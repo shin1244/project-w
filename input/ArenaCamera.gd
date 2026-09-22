@@ -16,7 +16,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	var direction := Vector3.ZERO
-	direction.x = float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT))
+	# A는 공격 대상 지정에 사용합니다. 왼쪽 이동은 Q 또는 왼쪽 방향키입니다.
+	direction.x = float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT))
 	direction.z = float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP))
 	if direction.length_squared() > 0:
 		position += direction.normalized() * pan_speed * (size / home_size) * delta

@@ -8,7 +8,9 @@ public partial class Main : Node3D
     [Export] public Camera3D Camera;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
-    public uint SelectedUnitId { get; private set; }
+    public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
+    private readonly HashSet<uint> _selectedUnitIds = new();
+    private const int MaxSelectedUnits = 64;
     private readonly Dictionary<uint, Unit> _units = new();
     private uint _localPlayerId;
 
@@ -19,7 +21,10 @@ public partial class Main : Node3D
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += OnUnitClicked;
         _playerInput.SelectionCleared += OnSelectionCleared;
+        _playerInput.BoxSelectionRequested += OnBoxSelectionRequested;
         _playerInput.GroundRightClicked += OnGroundRightClicked;
+        _playerInput.UnitRightClicked += OnUnitRightClicked;
+        _playerInput.AttackTargetClicked += OnAttackTargetClicked;
         _net = GetNode<NetClient>("/root/Net");
         _net.MessageReceived += OnMessage;
         _net.ConnectToServer("127.0.0.1", 7777);
@@ -60,17 +65,44 @@ public partial class Main : Node3D
 
     private void OnGroundRightClicked(Vector3 point)
     {
-        if (_localPlayerId == 0 || !_units.TryGetValue(SelectedUnitId, out Unit selected)
-            || selected.OwnerId != _localPlayerId)
+        ValidateSelection();
+        if (_selectedUnitIds.Count == 0)
         {
             GD.Print("내 유닛을 좌클릭으로 먼저 선택하세요.");
             return;
         }
         string command = Protocol.BuildMove(
-            new uint[] { SelectedUnitId },
+            _selectedUnitIds,
             point.X,
             point.Z
         );
+        _net.Send(command);
+        GD.Print($"전송 요청: {command}");
+    }
+
+    private bool IsEnemy(Unit unit)
+    {
+        // 아직 팀 정보가 없으므로 소유자가 다른 유닛을 적으로 취급합니다.
+        return _localPlayerId != 0 && GodotObject.IsInstanceValid(unit)
+            && !unit.IsQueuedForDeletion() && unit.OwnerId != _localPlayerId
+            && _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
+    }
+
+    private void OnUnitRightClicked(Unit unit, Vector3 point)
+    {
+        if (IsEnemy(unit))
+            OnAttackTargetClicked(unit);
+        else
+            OnGroundRightClicked(point);
+    }
+
+    private void OnAttackTargetClicked(Unit target)
+    {
+        ValidateSelection();
+        if (_selectedUnitIds.Count == 0 || !IsEnemy(target))
+            return;
+
+        string command = Protocol.BuildAttack(target.UnitId, _selectedUnitIds);
         _net.Send(command);
         GD.Print($"전송 요청: {command}");
     }
@@ -175,8 +207,7 @@ public partial class Main : Node3D
             return;
 
         unit.SetSelected(false);
-        if (SelectedUnitId == unitId)
-            SelectedUnitId = 0;
+        _selectedUnitIds.Remove(unitId);
         unit.QueueFree();
     }
 
@@ -186,31 +217,64 @@ public partial class Main : Node3D
             || _localPlayerId == 0 || unit.OwnerId != _localPlayerId
             || !_units.TryGetValue(unit.UnitId, out Unit registered) || registered != unit)
         {
-            SelectUnit(0);
+            ClearSelection();
             return;
         }
 
-        SelectUnit(unit.UnitId);
+        ClearSelection();
+        SelectUnit(unit);
     }
 
-    private void OnSelectionCleared() => SelectUnit(0);
+    private void OnSelectionCleared() => ClearSelection();
 
-    private void SelectUnit(uint unitId)
+    private void SelectUnit(Unit unit)
     {
-        if (_units.TryGetValue(SelectedUnitId, out Unit previous))
-            previous.SetSelected(false);
+        if (_selectedUnitIds.Count < MaxSelectedUnits && _selectedUnitIds.Add(unit.UnitId))
+            unit.SetSelected(true);
+    }
 
-        SelectedUnitId = unitId;
+    private void ClearSelection()
+    {
+        foreach (uint id in _selectedUnitIds)
+            if (_units.TryGetValue(id, out Unit unit))
+                unit.SetSelected(false);
+        _selectedUnitIds.Clear();
+    }
 
-        if (_units.TryGetValue(SelectedUnitId, out Unit selected))
-            selected.SetSelected(true);
+    private void OnBoxSelectionRequested(Rect2 rect)
+    {
+        ClearSelection();
+        if (_localPlayerId == 0 || !GodotObject.IsInstanceValid(Camera))
+            return;
+
+        foreach (Unit unit in _units.Values)
+        {
+            if (unit.IsQueuedForDeletion() || unit.OwnerId != _localPlayerId)
+                continue;
+
+            Vector3 center = unit.GlobalPosition + Vector3.Up;
+            if (!Camera.IsPositionInFrustum(center))
+                continue;
+
+            if (rect.HasPoint(Camera.UnprojectPosition(center)))
+                SelectUnit(unit);
+
+            if (_selectedUnitIds.Count >= MaxSelectedUnits)
+                break;
+        }
     }
 
     private void ValidateSelection()
     {
-        if (!_units.TryGetValue(SelectedUnitId, out Unit selected)
-            || selected.OwnerId != _localPlayerId)
-            SelectUnit(0);
+        _selectedUnitIds.RemoveWhere(id =>
+        {
+            if (!_units.TryGetValue(id, out Unit unit))
+                return true;
+            if (_localPlayerId != 0 && unit.OwnerId == _localPlayerId && !unit.IsQueuedForDeletion())
+                return false;
+            unit.SetSelected(false);
+            return true;
+        });
     }
 
     public override void _ExitTree()
@@ -219,7 +283,10 @@ public partial class Main : Node3D
         {
             _playerInput.UnitClicked -= OnUnitClicked;
             _playerInput.SelectionCleared -= OnSelectionCleared;
+            _playerInput.BoxSelectionRequested -= OnBoxSelectionRequested;
             _playerInput.GroundRightClicked -= OnGroundRightClicked;
+            _playerInput.UnitRightClicked -= OnUnitRightClicked;
+            _playerInput.AttackTargetClicked -= OnAttackTargetClicked;
         }
 
         if (_net != null)

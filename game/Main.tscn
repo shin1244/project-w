@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://maps/SymmetricArena.tscn" id="5_map"]
 [ext_resource type="Script" uid="uid://dxdd73s64xlk6" path="res://input/ArenaCamera.gd" id="6_camera"]
 [ext_resource type="Script" uid="uid://bec80lnhac4b3" path="res://input/PlayerInput.cs" id="7_272bh"]
+[ext_resource type="Script" path="res://input/SelectionBox.cs" id="8_selection"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -42,6 +43,19 @@ directional_shadow_max_distance = 230.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=510406117]
 environment = SubResource("Environment_arena")
 
-[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera")]
+[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera", "SelectionBox")]
 script = ExtResource("7_272bh")
 Camera = NodePath("../Camera3D")
+SelectionBox = NodePath("../SelectionUI/SelectionBox")
+
+[node name="SelectionUI" type="CanvasLayer" parent="."]
+
+[node name="SelectionBox" type="Control" parent="SelectionUI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("8_selection")
