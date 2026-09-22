@@ -1,0 +1,124 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+
+[sub_resource type="StandardMaterial3D" id="Cloth"]
+albedo_color = Color(0.22, 0.42, 0.24, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Leather"]
+albedo_color = Color(0.29, 0.18, 0.1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Skin"]
+albedo_color = Color(0.74, 0.53, 0.34, 1)
+
+[sub_resource type="StandardMaterial3D" id="String"]
+albedo_color = Color(0.85, 0.8, 0.63, 1)
+
+[sub_resource type="CylinderMesh" id="Tunic"]
+material = SubResource("Cloth")
+top_radius = 0.25
+bottom_radius = 0.37
+height = 0.75
+radial_segments = 8
+
+[sub_resource type="SphereMesh" id="Hood"]
+material = SubResource("Cloth")
+radius = 0.31
+height = 0.64
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereMesh" id="Face"]
+material = SubResource("Skin")
+radius = 0.2
+height = 0.42
+radial_segments = 12
+rings = 6
+
+[sub_resource type="BoxMesh" id="Leg"]
+material = SubResource("Leather")
+size = Vector3(0.19, 0.6, 0.28)
+
+[sub_resource type="BoxMesh" id="Arm"]
+material = SubResource("Cloth")
+size = Vector3(0.18, 0.52, 0.22)
+
+[sub_resource type="CylinderMesh" id="Quiver"]
+material = SubResource("Leather")
+top_radius = 0.12
+bottom_radius = 0.1
+height = 0.8
+radial_segments = 8
+
+[sub_resource type="BoxMesh" id="BowLimb"]
+material = SubResource("Leather")
+size = Vector3(0.065, 0.64, 0.065)
+
+[sub_resource type="BoxMesh" id="BowString"]
+material = SubResource("String")
+size = Vector3(0.018, 1.18, 0.018)
+
+[sub_resource type="BoxMesh" id="Arrow"]
+material = SubResource("String")
+size = Vector3(0.035, 0.55, 0.035)
+
+[node name="Archer" instance=ExtResource("1_base")]
+UnitType = 1
+
+[node name="Tunic" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.98, 0)
+mesh = SubResource("Tunic")
+
+[node name="Hood" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.66, 0.035)
+mesh = SubResource("Hood")
+
+[node name="Face" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.64, -0.16)
+mesh = SubResource("Face")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.16, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.16, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.36, 1.02, -0.07)
+mesh = SubResource("Arm")
+
+[node name="RightArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.36, 1.02, 0)
+mesh = SubResource("Arm")
+
+[node name="Quiver" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.12, 1.18, 0.31)
+rotation = Vector3(0, 0, -0.2)
+mesh = SubResource("Quiver")
+
+[node name="ArrowA" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.17, 1.69, 0.31)
+rotation = Vector3(0, 0, -0.2)
+mesh = SubResource("Arrow")
+
+[node name="ArrowB" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.25, 1.69, 0.31)
+rotation = Vector3(0, 0, -0.2)
+mesh = SubResource("Arrow")
+
+[node name="BowUpper" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.59, 1.37, -0.22)
+rotation = Vector3(0, 0, -0.38)
+mesh = SubResource("BowLimb")
+
+[node name="BowLower" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.59, 0.78, -0.22)
+rotation = Vector3(0, 0, 0.38)
+mesh = SubResource("BowLimb")
+
+[node name="BowString" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.47, 1.075, -0.22)
+mesh = SubResource("BowString")

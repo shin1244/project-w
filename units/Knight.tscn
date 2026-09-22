@@ -1,0 +1,113 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+
+[sub_resource type="StandardMaterial3D" id="Armor"]
+albedo_color = Color(0.47, 0.57, 0.68, 1)
+metallic = 0.55
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="Cloth"]
+albedo_color = Color(0.16, 0.29, 0.52, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Dark"]
+albedo_color = Color(0.085, 0.11, 0.15, 1)
+
+[sub_resource type="StandardMaterial3D" id="Gold"]
+albedo_color = Color(0.8, 0.57, 0.22, 1)
+metallic = 0.4
+
+[sub_resource type="BoxMesh" id="Body"]
+material = SubResource("Armor")
+size = Vector3(0.7, 0.7, 0.42)
+
+[sub_resource type="BoxMesh" id="Tabard"]
+material = SubResource("Cloth")
+size = Vector3(0.35, 0.78, 0.06)
+
+[sub_resource type="SphereMesh" id="Helmet"]
+material = SubResource("Armor")
+radius = 0.29
+height = 0.58
+radial_segments = 12
+rings = 6
+
+[sub_resource type="BoxMesh" id="Visor"]
+material = SubResource("Dark")
+size = Vector3(0.44, 0.08, 0.07)
+
+[sub_resource type="BoxMesh" id="Leg"]
+material = SubResource("Dark")
+size = Vector3(0.23, 0.6, 0.31)
+
+[sub_resource type="BoxMesh" id="Arm"]
+material = SubResource("Armor")
+size = Vector3(0.22, 0.57, 0.28)
+
+[sub_resource type="BoxMesh" id="Shield"]
+material = SubResource("Cloth")
+size = Vector3(0.5, 0.76, 0.13)
+
+[sub_resource type="BoxMesh" id="ShieldStripe"]
+material = SubResource("Gold")
+size = Vector3(0.08, 0.66, 0.04)
+
+[sub_resource type="BoxMesh" id="Blade"]
+material = SubResource("Armor")
+size = Vector3(0.1, 1.02, 0.07)
+
+[sub_resource type="BoxMesh" id="Guard"]
+material = SubResource("Gold")
+size = Vector3(0.3, 0.07, 0.1)
+
+[node name="Knight" instance=ExtResource("1_base")]
+UnitType = 0
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.04, 0)
+mesh = SubResource("Body")
+
+[node name="Tabard" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.96, -0.245)
+mesh = SubResource("Tabard")
+
+[node name="Helmet" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.73, 0)
+mesh = SubResource("Helmet")
+
+[node name="Visor" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.76, -0.27)
+mesh = SubResource("Visor")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.19, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.19, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.47, 1.05, 0)
+mesh = SubResource("Arm")
+
+[node name="RightArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.47, 1.05, 0)
+mesh = SubResource("Arm")
+
+[node name="Shield" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.56, 0.95, -0.26)
+mesh = SubResource("Shield")
+
+[node name="ShieldStripe" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.56, 0.95, -0.34)
+mesh = SubResource("ShieldStripe")
+
+[node name="Sword" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.59, 1.4, -0.22)
+mesh = SubResource("Blade")
+
+[node name="SwordGuard" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.59, 0.91, -0.22)
+mesh = SubResource("Guard")

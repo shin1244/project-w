@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="UnitDef" format=3 uid="uid://djajreqcc2v23"]
-
-[ext_resource type="Script" uid="uid://bqgq5baj1wmtm" path="res://UnitDef.cs" id="1_5mabg"]
-[ext_resource type="PackedScene" uid="uid://bmg6ctuvewtv5" path="res://capsule_model.tscn" id="1_m6tx7"]
-
-[resource]
-script = ExtResource("1_5mabg")
-Model = ExtResource("1_m6tx7")
-metadata/_custom_type_script = "uid://bqgq5baj1wmtm"

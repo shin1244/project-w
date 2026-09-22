@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://maps/resources/TerrainSurface.res" id="1_jbwyf"]
+[ext_resource type="Shape3D" path="res://maps/resources/TerrainCollision.res" id="2_3m54o"]
+[ext_resource type="ArrayMesh" path="res://maps/resources/OuterCliffs.res" id="3_c70fh"]
+
+[sub_resource type="Curve3D" id="Curve3D_4tr71"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -65, 0.06, 0, 0, 0, 0, 0, 0, 0, -58, 0.06, -14, 0, 0, 0, 0, 0, 0, -44, 0.06, -25, 0, 0, 0, 0, 0, 0, -24, 0.06, -29, 0, 0, 0, 0, 0, 0, 0, 0.06, -30, 0, 0, 0, 0, 0, 0, 24, 0.06, -29, 0, 0, 0, 0, 0, 0, 44, 0.06, -25, 0, 0, 0, 0, 0, 0, 58, 0.06, -14, 0, 0, 0, 0, 0, 0, 65, 0.06, 0),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
+}
+point_count = 9
+
+[sub_resource type="Curve3D" id="Curve3D_bl1xj"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -65, 0.06, 0, 0, 0, 0, 0, 0, 0, -58, 0.06, 14, 0, 0, 0, 0, 0, 0, -44, 0.06, 25, 0, 0, 0, 0, 0, 0, -24, 0.06, 29, 0, 0, 0, 0, 0, 0, 0, 0.06, 30, 0, 0, 0, 0, 0, 0, 24, 0.06, 29, 0, 0, 0, 0, 0, 0, 44, 0.06, 25, 0, 0, 0, 0, 0, 0, 58, 0.06, 14, 0, 0, 0, 0, 0, 0, 65, 0.06, 0),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
+}
+point_count = 9
+
+[node name="SymmetricArena" type="Node3D" unique_id=1913233699]
+metadata/dimensions = Vector2(168, 92)
+metadata/symmetry = "Reflection across X=0 and Z=0"
+metadata/lane_width = 8.0
+metadata/note = "Terrain blockout. Paths are guides, not movement/navigation logic."
+
+[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=2114937580]
+mesh = ExtResource("1_jbwyf")
+
+[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=131444808]
+
+[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=1307383797]
+shape = ExtResource("2_3m54o")
+
+[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=317962718]
+mesh = ExtResource("3_c70fh")
+
+[node name="LayoutGuides" type="Node3D" parent="." unique_id=1389799203]
+
+[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1795916703]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 0, 0)
+
+[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1158319505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, 0)
+
+[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=821500698]
+
+[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=1257314766]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 2.7, 13)
+
+[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=2062253180]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 2.7, 13)
+
+[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=833831028]
+curve = SubResource("Curve3D_4tr71")
+
+[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=456687334]
+curve = SubResource("Curve3D_bl1xj")

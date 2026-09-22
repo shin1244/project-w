@@ -11,8 +11,12 @@ config_version=5
 [application]
 
 config/name="Project W"
-run/main_scene="uid://bbpm2l5ifgi50"
+run/main_scene="res://game/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[autoload]
+
+Net="*res://network/NetClient.cs"
 
 [display]
 

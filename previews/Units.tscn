@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Knight.tscn" id="1_knight"]
+[ext_resource type="PackedScene" path="res://units/Archer.tscn" id="2_archer"]
+
+[sub_resource type="Environment" id="Environment_preview"]
+background_mode = 1
+background_color = Color(0.065, 0.085, 0.12, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.8, 0.95, 1)
+ambient_light_energy = 0.35
+ambient_light_sky_contribution = 0.0
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="Floor_material"]
+albedo_color = Color(0.12, 0.16, 0.2, 1)
+roughness = 0.9
+
+[sub_resource type="PlaneMesh" id="Floor_mesh"]
+material = SubResource("Floor_material")
+size = Vector2(200, 200)
+
+[node name="UnitPreview" type="Node3D"]
+
+[node name="Knight" parent="." instance=ExtResource("1_knight")]
+position = Vector3(-1.5, 0, 0)
+rotation = Vector3(0, -0.2, 0)
+
+[node name="Archer" parent="." instance=ExtResource("2_archer")]
+position = Vector3(1.5, 0, 0)
+rotation = Vector3(0, 0.2, 0)
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.015, 0)
+mesh = SubResource("Floor_mesh")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 4.2, -9)
+rotation = Vector3(-0.3367, 3.141593, 0)
+projection = 1
+size = 4.5
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.95, -0.6, 0)
+light_color = Color(1, 0.91, 0.8, 1)
+light_energy = 1.0
+shadow_enabled = true
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_preview")
+
+[node name="KnightLabel" type="Label3D" parent="."]
+position = Vector3(-1.5, 2.5, 0)
+billboard = 1
+text = "KNIGHT  /  0"
+font_size = 42
+pixel_size = 0.004
+outline_size = 4
+
+[node name="ArcherLabel" type="Label3D" parent="."]
+position = Vector3(1.5, 2.5, 0)
+billboard = 1
+text = "ARCHER  /  1"
+font_size = 42
+pixel_size = 0.004
+outline_size = 4

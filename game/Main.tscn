@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://bbpm2l5ifgi50"]
+
+[ext_resource type="Script" uid="uid://q0l5tu8yosqd" path="res://game/Main.cs" id="1_0xm2m"]
+[ext_resource type="PackedScene" path="res://units/Knight.tscn" id="2_knight"]
+[ext_resource type="PackedScene" path="res://units/Archer.tscn" id="3_archer"]
+[ext_resource type="PackedScene" path="res://maps/SymmetricArena.tscn" id="5_map"]
+[ext_resource type="Script" uid="uid://dxdd73s64xlk6" path="res://input/ArenaCamera.gd" id="6_camera"]
+[ext_resource type="Script" uid="uid://bec80lnhac4b3" path="res://input/PlayerInput.cs" id="7_272bh"]
+
+[sub_resource type="Environment" id="Environment_arena"]
+background_mode = 1
+background_color = Color(0.055, 0.071, 0.074, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.76, 0.83, 0.88, 1)
+ambient_light_sky_contribution = 0.0
+ambient_light_energy = 0.35
+tonemap_mode = 2
+
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Camera")]
+script = ExtResource("1_0xm2m")
+Camera = NodePath("Camera3D")
+KnightScene = ExtResource("2_knight")
+ArcherScene = ExtResource("3_archer")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1872000996]
+transform = Transform3D(1, 0, 0, 0, 0.56552833, 0.8247289, 0, -0.8247289, 0.56552833, 0, 105, 72)
+projection = 1
+current = true
+size = 102.0
+far = 400.0
+script = ExtResource("6_camera")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=730800074]
+transform = Transform3D(0.90044713, 0.37729916, -0.21642627, 0, 0.49757108, 0.8674232, 0.43496552, -0.7810687, 0.44803646, 0, 0, 0)
+light_color = Color(1, 0.92, 0.79, 1)
+light_energy = 1.15
+shadow_enabled = true
+directional_shadow_max_distance = 230.0
+
+[node name="Ground" parent="." unique_id=58567966 instance=ExtResource("5_map")]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=510406117]
+environment = SubResource("Environment_arena")
+
+[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera")]
+script = ExtResource("7_272bh")
+Camera = NodePath("../Camera3D")
