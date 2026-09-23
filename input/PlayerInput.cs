@@ -6,12 +6,13 @@ public partial class PlayerInput : Node
 {
     [Export] public Camera3D Camera;
     [Export(PropertyHint.Layers3DPhysics)] public uint SelectionMask = 1u << 1;
+    [Export(PropertyHint.Layers3DPhysics)] public uint ResourceMask = 1u << 2;
     [Export] public SelectionBox SelectionBox;
 
     public event Action<Unit> UnitClicked;
     public event Action SelectionCleared;
-    public event Action<Vector3> GroundRightClicked;
-    public event Action<Unit, Vector3> UnitRightClicked;
+    // target: Unit / ResourceNode / null(땅). 어떤 명령인지는 UnitManager가 결정합니다.
+    public event Action<Node3D, Vector3> ContextClicked;
     public event Action<Unit> AttackTargetClicked;
     public bool IsAttackTargeting { get; private set; }
 
@@ -204,33 +205,34 @@ public partial class PlayerInput : Node
     }
 
     private Unit FindUnit(Vector3 origin, Vector3 direction)
+        => FindTarget(origin, direction, SelectionMask) as Unit;
+
+    private Node3D FindTarget(Vector3 origin, Vector3 direction, uint mask)
     {
         var query = PhysicsRayQueryParameters3D.Create(
             origin, origin + direction * RayLength);
-        query.CollisionMask = SelectionMask;
+        query.CollisionMask = mask;
         query.CollideWithAreas = true;
         query.CollideWithBodies = false;
 
         var hit = Camera.GetWorld3D().DirectSpaceState.IntersectRay(query);
 
-        // Unit.tscn의 SelectionArea는 Unit 바로 아래에 있습니다.
+        // 두 종류를 한 번에 조회하므로 광선에 먼저 닿은 대상을 고릅니다.
         if (hit.Count > 0 &&
             hit["collider"].AsGodotObject() is Area3D area &&
-            area.GetParent() is Unit unit && !unit.IsQueuedForDeletion())
-            return unit;
+            area.GetParent() is Node3D target && (target is Unit or ResourceNode) &&
+            !target.IsQueuedForDeletion() && target is not Unit { IsDying: true })
+            return target;
         return null;
     }
 
     private void HandleRightClick(Vector3 origin, Vector3 direction)
     {
-        Unit unit = FindUnit(origin, direction);
-        // 현재 서버는 평면 X/Z 좌표를 사용합니다. 통행 여부 검증은 서버에 별도로 구현합니다.
+        // 이동 목적지는 Y=0 평면, 대상 판별은 유닛/자원 Area3D를 사용합니다.
         if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
         {
-            if (unit != null)
-                UnitRightClicked?.Invoke(unit, point);
-            else
-                GroundRightClicked?.Invoke(point);
+            Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask);
+            ContextClicked?.Invoke(target, point);
         }
     }
 

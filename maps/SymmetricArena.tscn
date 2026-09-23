@@ -18,41 +18,41 @@ _data = {
 }
 point_count = 9
 
-[node name="SymmetricArena" type="Node3D" unique_id=1913233699]
+[node name="SymmetricArena" type="Node3D" unique_id=1691874927]
 metadata/dimensions = Vector2(168, 92)
 metadata/symmetry = "Reflection across X=0 and Z=0"
 metadata/lane_width = 8.0
-metadata/note = "Terrain blockout. Paths are guides, not movement/navigation logic."
+metadata/note = "Flat terrain from maps/test.json. T is ground occupied by a server resource."
 
-[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=2114937580]
+[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=543963428]
 mesh = ExtResource("1_jbwyf")
 
-[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=131444808]
+[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=1144174075]
 
-[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=1307383797]
+[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=1117900690]
 shape = ExtResource("2_3m54o")
 
-[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=317962718]
+[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=674679163]
 mesh = ExtResource("3_c70fh")
 
-[node name="LayoutGuides" type="Node3D" parent="." unique_id=1389799203]
+[node name="LayoutGuides" type="Node3D" parent="." unique_id=2133013233]
 
-[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1795916703]
+[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1625245960]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 0, 0)
 
-[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1158319505]
+[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=2070174173]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, 0)
 
-[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=821500698]
+[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=1227044180]
 
-[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=1257314766]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 2.7, 13)
+[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=494677038]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, 13)
 
-[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=2062253180]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 2.7, 13)
+[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=1677512024]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 0, 13)
 
-[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=833831028]
+[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=1765213854]
 curve = SubResource("Curve3D_4tr71")
 
-[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=456687334]
+[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=1307392061]
 curve = SubResource("Curve3D_bl1xj")

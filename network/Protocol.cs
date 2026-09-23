@@ -15,4 +15,9 @@ public static class Protocol
 
         return FormattableString.Invariant($"MOVE {x} {z} {ids}");
     }
+
+    public static string BuildGather(uint targetId, IEnumerable<uint> unitIds)
+    {
+        return FormattableString.Invariant($"GATHER {targetId} {string.Join(" ", unitIds)}");
+    }
 }

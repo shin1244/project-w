@@ -1,0 +1,51 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://buildings/TownHall.tscn" id="1_hall"]
+[ext_resource type="Script" path="res://previews/TownHallPreview.gd" id="2_preview"]
+[ext_resource type="Shader" path="res://previews/BuildingGrid.gdshader" id="3_grid"]
+
+[sub_resource type="ShaderMaterial" id="FloorMaterial"]
+shader = ExtResource("3_grid")
+
+[sub_resource type="PlaneMesh" id="Floor"]
+material = SubResource("FloorMaterial")
+size = Vector2(200, 200)
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0.065, 0.085, 0.09, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.79, 0.87, 0.94, 1)
+ambient_light_energy = 0.55
+ambient_light_sky_contribution = 0.0
+tonemap_mode = 2
+
+[node name="TownHallPreview" type="Node3D"]
+script = ExtResource("2_preview")
+
+[node name="TownHall" parent="." instance=ExtResource("1_hall")]
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.015, 0)
+mesh = SubResource("Floor")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+projection = 1
+size = 6.3
+current = true
+far = 80.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.85, -0.6, 0)
+light_color = Color(1, 0.92, 0.78, 1)
+light_energy = 1.2
+shadow_enabled = true
+directional_shadow_max_distance = 25.0
+
+[node name="Fill" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.5, 2.0, 0)
+light_color = Color(0.68, 0.80, 1, 1)
+light_energy = 0.35
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")

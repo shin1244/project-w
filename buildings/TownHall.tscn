@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/TownHall.res" id="1_7xiv6"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4ryg4"]
+size = Vector3(3, 3.3, 3)
+
+[node name="TownHall" type="Node3D" unique_id=1996418196]
+metadata/footprint = Vector2i(3, 3)
+metadata/front = "-Z"
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=863927256]
+mesh = ExtResource("1_7xiv6")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=461313072]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=100113572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+shape = SubResource("BoxShape3D_4ryg4")
+
+[node name="Entrance" type="Marker3D" parent="." unique_id=1073145785]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)

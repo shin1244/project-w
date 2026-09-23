@@ -5,12 +5,13 @@ Godot .NET 클라이언트 프로토타입입니다. Go 서버가 유닛을 생�
 ## 폴더
 
 ```text
-game/             메인 게임 장면과 서버 메시지 적용
+game/             메인 게임 장면, 입력·통신 연결과 메시지 분기
 input/            마우스 입력과 맵 카메라
 network/          TCP 연결과 명령 문자열
-units/            공통 유닛 스크립트·씬, 일꾼·기사·궁수 씬
-resources/        자원 공통 스크립트와 나무 외형 3종
-maps/             맵 장면
+units/            UnitManager, 공통 유닛 스크립트와 일꾼·기사·궁수 씬
+resources/        ResourceManager, 자원 공통 스크립트와 나무 외형 3종
+buildings/        3×3 회관 씬과 건물 메시
+maps/             맵 장면과 서버와 공유하는 격자 데이터(test.json)
   resources/      지형 메시와 충돌 리소스
 previews/         서버 없이 보는 맵·유닛 미리보기
 tools/            맵 생성 도구
@@ -29,22 +30,33 @@ docs/             설명과 미리보기 이미지
 
 드래그 박스에 몸통 중심이 들어온 내 유닛을 최대 64개 선택합니다. 새 선택은 이전 선택을 대체하며, 빈 박스는 선택을 해제합니다. 드래그 중 Esc 또는 우클릭으로 취소할 수 있습니다.
 
-선택 후 적을 우클릭하거나 A를 누르고 적을 좌클릭하면 `ATTACK 대상ID 내유닛ID...`를 보냅니다. A를 누르면 십자 커서가 표시되고, 한 번 클릭하거나 Esc를 누르면 종료됩니다. A 이후 빈 땅이나 내 유닛을 좌클릭하면 명령 없이 종료합니다. 땅 우클릭은 기존 이동입니다. 현재 적 판정은 소유자 ID가 다른지로 구분합니다. 서버의 공격 처리는 별도 구현이 필요합니다.
+선택 후 적을 우클릭하거나 A를 누르고 적을 좌클릭하면 `ATTACK 대상ID 내유닛ID...`를 보냅니다. A를 누르면 십자 커서가 표시되고, 한 번 클릭하거나 Esc를 누르면 종료됩니다. A 이후 빈 땅이나 내 유닛을 좌클릭하면 명령 없이 종료합니다. 땅 우클릭은 기존 이동입니다. 현재 적 판정은 소유자 ID가 다른지로 구분합니다. 공격 판정은 서버에서 처리합니다.
 
 맵 카메라는 W/S(위/아래), Q/D(왼쪽/오른쪽), 방향키·가운데 드래그로 이동, 휠로 확대/축소, Home으로 전체 보기입니다. A는 공격 대상 지정에 사용합니다.
 
-서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`을 열고 F6으로 실행합니다.
+서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`, `previews/Forest.tscn`, `previews/TownHall.tscn`을 열고 F6으로 실행합니다.
 
-나무는 `resources/trees/Tree.tscn`을 Oak/Pine/Birch 씬이 상속합니다. 자원 ID와 선택 표시(`ResourceNode.cs`), 클릭 영역(물리 레이어 3)은 공통이며 `Visual` 아래 외형만 다릅니다. `VisualVariant`는 외형 번호로, 자원 종류나 채집 능력치를 구분하지 않습니다. 자원 클릭 입력과 서버 채집 메시지는 아직 연결하지 않았습니다.
+나무는 `resources/trees/Tree.tscn`을 Oak/Pine/Birch 씬이 상속합니다. 자원 ID와 선택 표시(`ResourceNode.cs`), 클릭 영역(물리 레이어 3)은 공통이며 `Visual` 아래 외형만 다릅니다. `VisualVariant`는 외형 번호로, 자원 종류나 채집 능력치를 구분하지 않습니다. 나무는 맵 파일에서 생성하며 서버는 남은 자원량과 제거 변경분만 보냅니다. 유닛 선택 후 나무를 우클릭하면 `GATHER 자원ID 내유닛ID...`를 보냅니다. 실제 채집 가능 여부는 서버가 검사합니다.
+
+## 코드 역할
+
+- `game/Main.cs`: PlayerInput 이벤트를 관리자에 연결하고, 서버 메시지를 분기합니다. 관리자가 요청한 명령을 NetClient로 전송합니다.
+- `units/UnitManager.cs`: 유닛 목록, UNIT/POS/REMOVE 적용, 선택, 소유권 확인, MOVE/ATTACK/GATHER 명령 생성을 담당합니다. 생성한 유닛은 Main/Units 아래에 둡니다.
+- `resources/ResourceManager.cs`: 자원 ID별 나무 생성·갱신(`SpawnOrUpdate`), 조회(`TryGetResource`), 제거(`Remove`)를 담당합니다. 생성한 나무는 Main/Resources 아래에 둡니다.
+- `units/Unit.cs`, `resources/ResourceNode.cs`: 유닛 한 개·자원 한 개의 ID와 화면 표시를 담당합니다.
+
+맵은 `maps/MapWorld.cs`가 JSON에서 지형과 나무를 생성합니다. 서버와 SHA-256을 확인한 뒤 변경된 나무만 `TREE id amount`로 적용하며, 0이면 제거합니다. 맵 불일치 시 게임 진행을 막습니다. 양쪽에 같은 `maps/test.json`을 두세요.
 
 ## 문서와 검증
 
 - [유닛과 메시지 형식](docs/units.md)
 - [맵 구성과 재생성](docs/map.md)
+- [맵 해시와 나무 변경분 동기화](docs/map-sync.md)
 
 ```text
 dotnet build
 Godot --headless --path . res://tests/UnitSceneChecks.tscn
+Godot --headless --path . res://tests/MapSyncChecks.tscn
 Godot --headless --path . --script tests/check_arena.gd
 ```
 

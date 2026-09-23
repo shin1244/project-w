@@ -1,6 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/WorkerAnimation.cs" id="2_animation"]
+[ext_resource type="AnimationLibrary" path="res://units/animations/Worker.tres" id="3_clips"]
 
 [sub_resource type="StandardMaterial3D" id="Cloth"]
 albedo_color = Color(0.76, 0.51, 0.2, 1)
@@ -84,27 +86,63 @@ bottom_radius = 0.36
 height = 0.045
 radial_segments = 10
 
+[sub_resource type="StandardMaterial3D" id="Bark"]
+albedo_color = Color(0.24, 0.115, 0.05, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="CutWood"]
+albedo_color = Color(0.85, 0.63, 0.32, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Rope"]
+albedo_color = Color(0.65, 0.51, 0.3, 1)
+roughness = 1.0
+
+[sub_resource type="CylinderMesh" id="Log"]
+material = SubResource("Bark")
+top_radius = 0.135
+bottom_radius = 0.15
+height = 1.12
+radial_segments = 9
+
+[sub_resource type="CylinderMesh" id="LogEnd"]
+material = SubResource("CutWood")
+top_radius = 0.123
+bottom_radius = 0.123
+height = 0.012
+radial_segments = 9
+
+[sub_resource type="TorusMesh" id="Binding"]
+material = SubResource("Rope")
+inner_radius = 0.23
+outer_radius = 0.252
+rings = 16
+ring_segments = 6
+
 [node name="Worker" instance=ExtResource("1_base")]
 UnitType = 0
 
-[node name="Body" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0, 0.91, 0)
+[node name="Torso" type="Node3D" parent="Visual"]
+position = Vector3(0, 0.8, 0)
+
+[node name="Body" type="MeshInstance3D" parent="Visual/Torso"]
+position = Vector3(0, 0.11, 0)
 mesh = SubResource("Body")
 
-[node name="Apron" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0, 0.87, -0.22)
+[node name="Apron" type="MeshInstance3D" parent="Visual/Torso"]
+position = Vector3(0, 0.07, -0.22)
 mesh = SubResource("Apron")
 
-[node name="Head" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0, 1.46, -0.025)
+[node name="Head" type="MeshInstance3D" parent="Visual/Torso"]
+position = Vector3(0, 0.66, -0.025)
 mesh = SubResource("Head")
 
-[node name="Hat" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0, 1.7, 0)
+[node name="Hat" type="MeshInstance3D" parent="Visual/Torso"]
+position = Vector3(0, 0.9, 0)
 mesh = SubResource("Hat")
 
-[node name="HatBrim" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0, 1.6, -0.025)
+[node name="HatBrim" type="MeshInstance3D" parent="Visual/Torso"]
+position = Vector3(0, 0.8, -0.025)
 mesh = SubResource("HatBrim")
 
 [node name="LeftLeg" type="MeshInstance3D" parent="Visual"]
@@ -115,34 +153,99 @@ mesh = SubResource("Leg")
 position = Vector3(0.16, 0.275, 0)
 mesh = SubResource("Leg")
 
-[node name="LeftArm" type="MeshInstance3D" parent="Visual"]
-position = Vector3(-0.36, 0.94, 0)
+[node name="LeftArm" type="Node3D" parent="Visual/Torso"]
+position = Vector3(-0.36, 0.39, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Torso/LeftArm"]
+position = Vector3(0, -0.25, 0)
 mesh = SubResource("Arm")
 
-[node name="RightArm" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0.36, 0.94, -0.07)
+[node name="RightArm" type="Node3D" parent="Visual/Torso"]
+position = Vector3(0.36, 0.39, -0.07)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Torso/RightArm"]
+position = Vector3(0, -0.25, 0)
 mesh = SubResource("Arm")
 
-[node name="Backpack" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0, 0.97, 0.29)
+[node name="Backpack" type="MeshInstance3D" parent="Visual/Torso"]
+position = Vector3(0, 0.17, 0.29)
 mesh = SubResource("Pack")
 
-[node name="Axe" type="Node3D" parent="Visual"]
-position = Vector3(0.47, 0.98, -0.23)
-rotation = Vector3(0, 0, -0.15)
+[node name="Axe" type="Node3D" parent="Visual/Torso/RightArm"]
+position = Vector3(0.09, -0.4, -0.12)
+rotation = Vector3(-0.15, 1.5707963, -0.15)
 
-[node name="Handle" type="MeshInstance3D" parent="Visual/Axe"]
+[node name="Handle" type="MeshInstance3D" parent="Visual/Torso/RightArm/Axe"]
 mesh = SubResource("Handle")
 
-[node name="Socket" type="MeshInstance3D" parent="Visual/Axe"]
+[node name="Socket" type="MeshInstance3D" parent="Visual/Torso/RightArm/Axe"]
 position = Vector3(0, 0.4, 0)
 mesh = SubResource("AxeSocket")
 
-[node name="Blade" type="MeshInstance3D" parent="Visual/Axe"]
+[node name="Blade" type="MeshInstance3D" parent="Visual/Torso/RightArm/Axe"]
 position = Vector3(0.16, 0.4, 0)
 rotation = Vector3(0, 0, 1.5707963)
 mesh = SubResource("AxeBlade")
 
-[node name="Edge" type="MeshInstance3D" parent="Visual/Axe"]
+[node name="Edge" type="MeshInstance3D" parent="Visual/Torso/RightArm/Axe"]
 position = Vector3(0.34, 0.4, 0)
 mesh = SubResource("AxeEdge")
+
+[node name="CarriedWood" type="Node3D" parent="Visual/Torso"]
+visible = false
+position = Vector3(0, 0.08, -0.53)
+
+[node name="BottomFront" type="MeshInstance3D" parent="Visual/Torso/CarriedWood"]
+position = Vector3(0, -0.07, -0.105)
+rotation = Vector3(0, 0, 1.5707963)
+mesh = SubResource("Log")
+
+[node name="LeftCut" type="MeshInstance3D" parent="Visual/Torso/CarriedWood/BottomFront"]
+position = Vector3(0, 0.564, 0)
+mesh = SubResource("LogEnd")
+
+[node name="RightCut" type="MeshInstance3D" parent="Visual/Torso/CarriedWood/BottomFront"]
+position = Vector3(0, -0.564, 0)
+mesh = SubResource("LogEnd")
+
+[node name="BottomBack" type="MeshInstance3D" parent="Visual/Torso/CarriedWood"]
+position = Vector3(0.04, -0.07, 0.105)
+rotation = Vector3(0, 0, 1.5707963)
+mesh = SubResource("Log")
+
+[node name="LeftCut" type="MeshInstance3D" parent="Visual/Torso/CarriedWood/BottomBack"]
+position = Vector3(0, 0.564, 0)
+mesh = SubResource("LogEnd")
+
+[node name="RightCut" type="MeshInstance3D" parent="Visual/Torso/CarriedWood/BottomBack"]
+position = Vector3(0, -0.564, 0)
+mesh = SubResource("LogEnd")
+
+[node name="Top" type="MeshInstance3D" parent="Visual/Torso/CarriedWood"]
+position = Vector3(-0.055, 0.12, 0)
+rotation = Vector3(0, 0, 1.5707963)
+mesh = SubResource("Log")
+
+[node name="LeftCut" type="MeshInstance3D" parent="Visual/Torso/CarriedWood/Top"]
+position = Vector3(0, 0.564, 0)
+mesh = SubResource("LogEnd")
+
+[node name="RightCut" type="MeshInstance3D" parent="Visual/Torso/CarriedWood/Top"]
+position = Vector3(0, -0.564, 0)
+mesh = SubResource("LogEnd")
+
+[node name="LeftBinding" type="MeshInstance3D" parent="Visual/Torso/CarriedWood"]
+position = Vector3(-0.29, 0, 0)
+rotation = Vector3(0, 0, 1.5707963)
+mesh = SubResource("Binding")
+
+[node name="RightBinding" type="MeshInstance3D" parent="Visual/Torso/CarriedWood"]
+position = Vector3(0.29, 0, 0)
+rotation = Vector3(0, 0, 1.5707963)
+mesh = SubResource("Binding")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = { &"": ExtResource("3_clips") }
+
+[node name="WorkerAnimation" type="Node" parent="."]
+script = ExtResource("2_animation")

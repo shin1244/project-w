@@ -1,0 +1,17 @@
+{
+  "name": "tree-footprint-check",
+  "originX": 0,
+  "originZ": 0,
+  "cellSize": 1,
+  "treeAmount": 400,
+  "treeSize": 2,
+  "bases": [[2, 4]],
+  "rows": [
+    "########",
+    "#T..T..#",
+    "#......#",
+    "#......#",
+    "#......#",
+    "########"
+  ]
+}
