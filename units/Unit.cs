@@ -5,6 +5,8 @@ public partial class Unit : Node3D
 {
     // 서버의 타입 번호: 0 = 일꾼, 1 = 기사, 2 = 궁수. 각 씬에서 지정합니다.
     [Export] public uint UnitType { get; set; }
+    [Export] public float HealthBarHeight { get; set; } = 2.4f;
+    public HealthBar HealthBar { get; private set; }
 
     public uint UnitId { get; private set; }
     public uint OwnerId { get; private set; }
@@ -18,7 +20,16 @@ public partial class Unit : Node3D
     private Node3D _focusTarget;
     private Tween _deathTween;
 
-    public override void _Ready() => SetProcess(false);
+    public override void _Ready()
+    {
+        SetProcess(false);
+        HealthBar = HealthBar.Attach(this, HealthBarHeight);
+    }
+
+    public void ApplyHealth(HealthSnapshot health)
+    {
+        if (!IsDying) HealthBar.Apply(health.Current, health.Maximum);
+    }
 
     // 공격자가 가만히 있어도 대상의 최신 POS를 따라 바라봅니다.
     public override void _Process(double delta) => FaceActionTarget();
@@ -96,6 +107,7 @@ public partial class Unit : Node3D
     {
         if (IsDying) return _deathTween;
         IsDying = true;
+        HealthBar.Clear();
         SetProcess(false);
         _focusTarget = null;
         ResolveFocus = null;

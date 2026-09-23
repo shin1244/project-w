@@ -14,6 +14,8 @@
 
 [ext_resource type="Script" path="res://units/UnitManager.cs" id="12_units"]
 [ext_resource type="Script" path="res://resources/ResourceManager.cs" id="13_resources"]
+[ext_resource type="Script" path="res://buildings/BuildingManager.cs" id="14_buildings"]
+[ext_resource type="PackedScene" path="res://buildings/TownHall.tscn" id="15_town_hall"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -24,9 +26,10 @@ ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.35
 tonemap_mode = 2
 
-[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Resources", "Map", "SyncStatus")]
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus")]
 script = ExtResource("1_0xm2m")
 Units = NodePath("Units")
+Buildings = NodePath("Buildings")
 Resources = NodePath("Resources")
 Map = NodePath("Ground")
 SyncStatus = NodePath("SelectionUI/SyncStatus")
@@ -38,6 +41,10 @@ Resources = NodePath("../Resources")
 WorkerScene = ExtResource("4_worker")
 KnightScene = ExtResource("2_knight")
 ArcherScene = ExtResource("3_archer")
+
+[node name="Buildings" type="Node3D" parent="."]
+script = ExtResource("14_buildings")
+TownHallScene = ExtResource("15_town_hall")
 
 [node name="Resources" type="Node3D" parent="."]
 script = ExtResource("13_resources")

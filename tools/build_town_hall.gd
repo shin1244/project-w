@@ -233,6 +233,7 @@ func save_hall() -> void:
 	assert(bounds.position.y >= -0.001)
 	assert(ResourceSaver.save(mesh, "res://buildings/meshes/TownHall.res", ResourceSaver.FLAG_COMPRESS) == OK)
 	var hall := Node3D.new()
+	hall.set_script(load("res://buildings/Building.cs"))
 	hall.name = "TownHall"
 	hall.set_meta("footprint", Vector2i(3, 3))
 	hall.set_meta("front", "-Z")

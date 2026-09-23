@@ -1,11 +1,13 @@
 [gd_scene format=3]
 
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/TownHall.res" id="1_7xiv6"]
+[ext_resource type="Script" path="res://buildings/Building.cs" id="2_building"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_4ryg4"]
 size = Vector3(3, 3.3, 3)
 
 [node name="TownHall" type="Node3D" unique_id=1996418196]
+script = ExtResource("2_building")
 metadata/footprint = Vector2i(3, 3)
 metadata/front = "-Z"
 

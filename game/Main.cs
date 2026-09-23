@@ -5,6 +5,7 @@ using System;
 public partial class Main : Node3D
 {
     [Export] public UnitManager Units;
+    [Export] public BuildingManager Buildings;
     [Export] public ResourceManager Resources;
     [Export] public MapWorld Map;
     [Export] public Label SyncStatus;
@@ -44,6 +45,7 @@ public partial class Main : Node3D
             case "MAP":
                 if (!Map.AcceptMap(parts)) { RejectMap(); return; }
                 Units.Clear();
+                Buildings?.Clear();
                 _net.Send($"MAP_READY {Map.MapHash}");
                 return;
             case "TREE":
@@ -66,14 +68,25 @@ public partial class Main : Node3D
             case "UNIT":
                 Units.HandleSpawn(parts);
                 break;
+            case "BUILDING":
+                Buildings?.HandleSpawn(parts);
+                break;
             case "POS":
                 Units.HandlePosition(parts);
+                break;
+            case "HP":
+                if (HealthSnapshot.TryParse(parts, out var health))
+                {
+                    Units.HandleHealth(health);
+                    Buildings?.HandleHealth(health);
+                }
                 break;
             case "STATE":
                 Units.HandleState(parts);
                 break;
             case "REMOVE":
                 Units.HandleRemove(parts);
+                Buildings?.HandleRemove(parts);
                 break;
             case "ERR":
                 GD.PushWarning(message);

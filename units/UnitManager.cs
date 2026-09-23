@@ -111,6 +111,11 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(command);
     }
 
+    public void HandleHealth(HealthSnapshot health)
+    {
+        if (_units.TryGetValue(health.Id, out Unit unit)) unit.ApplyHealth(health);
+    }
+
     public void HandlePosition(string[] parts)
     {
         if (parts.Length != 4)
