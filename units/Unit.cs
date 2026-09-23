@@ -123,5 +123,6 @@ public partial class Unit : Node3D
     public void SetSelected(bool selected)
     {
         GetNode<MeshInstance3D>("SelectionRing").Visible = selected && !IsDying;
+        HealthBar?.SetSelected(selected && !IsDying);
     }
 }

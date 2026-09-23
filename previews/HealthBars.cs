@@ -15,6 +15,7 @@ public partial class HealthBars : Node3D
             AddChild(unit);
             unit.Position = new Vector3(3 - i * 3, 0, -2);
             unit.ApplyHealth(new HealthSnapshot((uint)(i + 1), amounts[i], maxima[i]));
+            unit.SetSelected(i < 2); // 선택한 두 유닛만 표시. 궁수와 회관은 숨깁니다.
         }
         var hall = GD.Load<PackedScene>("res://buildings/TownHall.tscn").Instantiate<Building>();
         AddChild(hall);

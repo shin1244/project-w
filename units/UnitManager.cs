@@ -67,6 +67,17 @@ public partial class UnitManager : Node3D
             && _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
     }
 
+    public void RequestAttackMove(Vector3 point)
+    {
+        ValidateSelection();
+        if (_selectedUnitIds.Count == 0 || !float.IsFinite(point.X) || !float.IsFinite(point.Z))
+            return;
+
+        // 이동 중 적 탐색과 공격 전환은 서버에서 결정합니다.
+        _targetIndicator.Clear();
+        CommandRequested?.Invoke(Protocol.BuildAttackMove(_selectedUnitIds, point.X, point.Z));
+    }
+
     // 모든 일반 우클릭의 진입점. 새 대상의 기본 행동은 이곳에 추가합니다.
     public void RequestContextOrder(Node3D target, Vector3 point)
     {

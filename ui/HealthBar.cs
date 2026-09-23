@@ -9,6 +9,7 @@ public partial class HealthBar : Control
     private Node3D _owner;
     private float _worldHeight;
     private bool _hasHealth;
+    private bool _selected;
 
     public static HealthBar Attach(Node3D owner, float height, float width = 52)
     {
@@ -29,9 +30,22 @@ public partial class HealthBar : Control
         CurrentHP = Mathf.Min(current, maximum);
         MaxHP = maximum;
         _hasHealth = true;
-        SetProcess(true);
-        UpdatePosition();
+        RefreshVisibility();
         QueueRedraw();
+    }
+
+    public void SetSelected(bool selected)
+    {
+        _selected = selected;
+        RefreshVisibility();
+    }
+
+    private void RefreshVisibility()
+    {
+        bool active = _selected && _hasHealth;
+        SetProcess(active);
+        if (active) UpdatePosition();
+        else Hide();
     }
 
     public void Clear()
@@ -47,7 +61,7 @@ public partial class HealthBar : Control
     {
         Camera3D camera = GetViewport().GetCamera3D();
         Vector3 anchor = _owner.GlobalPosition + Vector3.Up * _worldHeight;
-        Visible = _hasHealth && _owner.IsVisibleInTree() && camera != null
+        Visible = _selected && _hasHealth && _owner.IsVisibleInTree() && camera != null
             && camera.IsPositionInFrustum(anchor);
         if (Visible)
             Position = (camera.UnprojectPosition(anchor) - new Vector2(Size.X / 2, Size.Y)).Round();

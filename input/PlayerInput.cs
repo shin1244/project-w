@@ -14,6 +14,7 @@ public partial class PlayerInput : Node
     // target: Unit / ResourceNode / null(땅). 어떤 명령인지는 UnitManager가 결정합니다.
     public event Action<Node3D, Vector3> ContextClicked;
     public event Action<Unit> AttackTargetClicked;
+    public event Action<Vector3> AttackGroundClicked;
     public bool IsAttackTargeting { get; private set; }
 
     private const float RayLength = 1000f;
@@ -166,6 +167,8 @@ public partial class PlayerInput : Node
             Unit target = FindUnit(origin, direction);
             if (target != null)
                 AttackTargetClicked?.Invoke(target);
+            else if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
+                AttackGroundClicked?.Invoke(point);
         });
     }
 

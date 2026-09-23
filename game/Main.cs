@@ -26,6 +26,7 @@ public partial class Main : Node3D
         _playerInput.BoxSelectionRequested += Units.SelectBox;
         _playerInput.ContextClicked += Units.RequestContextOrder;
         _playerInput.AttackTargetClicked += Units.RequestAttack;
+        _playerInput.AttackGroundClicked += Units.RequestAttackMove;
         Units.CommandRequested += SendCommand;
 
         _net = GetNode<NetClient>("/root/Net");
@@ -132,6 +133,7 @@ public partial class Main : Node3D
             _playerInput.BoxSelectionRequested -= Units.SelectBox;
             _playerInput.ContextClicked -= Units.RequestContextOrder;
             _playerInput.AttackTargetClicked -= Units.RequestAttack;
+            _playerInput.AttackGroundClicked -= Units.RequestAttackMove;
         }
 
         if (GodotObject.IsInstanceValid(Units))

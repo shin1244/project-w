@@ -20,4 +20,9 @@ public static class Protocol
     {
         return FormattableString.Invariant($"GATHER {targetId} {string.Join(" ", unitIds)}");
     }
+
+    public static string BuildAttackMove(IEnumerable<uint> unitIds, float x, float z)
+    {
+        return FormattableString.Invariant($"ATTACK_MOVE {x} {z} {string.Join(" ", unitIds)}");
+    }
 }

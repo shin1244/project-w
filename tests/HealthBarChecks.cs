@@ -27,6 +27,8 @@ public partial class HealthBarChecks : Main
             var camera = new Camera3D { Position = new Vector3(0, 8, 12), Current = true };
             AddChild(camera);
             camera.LookAt(Vector3.Zero);
+            Units.Camera = camera;
+            Receive("WELCOME 1");
             for (int i = 0; i < 3; i++) Receive($"UNIT {i} {101 + i} 1 0 0");
             Receive("BUILDING 0 201 1 0 0 1.5707963");
             Unit worker = Units.GetNode<Unit>("Unit_101");
@@ -37,8 +39,23 @@ public partial class HealthBarChecks : Main
             Receive("HP 102 100 100");
             Receive("HP 103 12 60");
             Receive("HP 201 700 1000");
-            Check(worker.HealthBar.Visible && Mathf.IsEqualApprox(worker.HealthBar.Ratio, .51f), "Invariant HP routes to worker");
-            Check(hall.HealthBar.Visible && hall.HealthBar.Ratio == .7f, "Building uses same HP message");
+            Check(!worker.HealthBar.Visible && !worker.HealthBar.IsProcessing() && Mathf.IsEqualApprox(worker.HealthBar.Ratio, .51f), "Unselected unit caches HP without drawing or processing");
+            Check(!hall.HealthBar.Visible && hall.HealthBar.Ratio == .7f, "Unselected building caches HP without drawing");
+            Units.SelectSingle(worker);
+            Check(worker.HealthBar.Visible, "Single selection shows HP immediately");
+            Unit knight = Units.GetNode<Unit>("Unit_102");
+            Units.SelectSingle(knight);
+            Check(!worker.HealthBar.Visible && knight.HealthBar.Visible, "Switch selection hides previous bar");
+            Units.SelectBox(new Rect2(Vector2.Zero, GetViewport().GetVisibleRect().Size));
+            Check(worker.HealthBar.Visible && knight.HealthBar.Visible && Units.GetNode<Unit>("Unit_103").HealthBar.Visible,
+                "Box selection shows all selected units");
+            Units.ClearSelection();
+            Receive("HP 101 20 50");
+            Check(!worker.HealthBar.Visible && !knight.HealthBar.Visible && !worker.HealthBar.IsProcessing(),
+                "Clearing selection hides all bars; later HP does not reveal them");
+            Units.SelectSingle(worker);
+            Check(worker.HealthBar.Visible && worker.HealthBar.CurrentHP == 20, "Reselection shows latest cached HP");
+            Receive("HP 101 25.5 50");
             Check(worker.HealthBar.MouseFilter == Control.MouseFilterEnum.Ignore, "Health bar does not intercept selection");
             Synced.SetValue(Map, false);
             Receive("HP 101 1 50");

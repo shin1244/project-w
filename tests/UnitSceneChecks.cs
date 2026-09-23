@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using System.Text;
+using System.Globalization;
 
 // Runs the existing message handler without connecting to a real game server.
 // Godot --headless --path . res://tests/UnitSceneChecks.tscn
@@ -79,7 +80,7 @@ public partial class UnitSceneChecks : Main
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(!Units.HasNode("Unit_101") && Units.HasNode("Unit_202") && SelectedUnitId == 0, "REMOVE clears the correct unit and selection");
-            GD.Print("PASS: unit lifecycle, click/drag selection, unified MOVE/ATTACK/GATHER context orders, nearest target, invalid targets, cancellation, resource lifecycle, manager scene wiring");
+            GD.Print("PASS: unit lifecycle, click/drag selection, MOVE/ATTACK/ATTACK_MOVE/GATHER orders, nearest target, invalid targets, cancellation, resource lifecycle, manager scene wiring");
             Map.Free();
             GetTree().Quit();
         }
@@ -233,6 +234,7 @@ public partial class UnitSceneChecks : Main
         Action<Node3D, Vector3> right = Units.RequestContextOrder;
 
         input.AttackTargetClicked += attack;
+        input.AttackGroundClicked += Units.RequestAttackMove;
         input.ContextClicked += right;
 
 
@@ -259,14 +261,24 @@ public partial class UnitSceneChecks : Main
         KeyPress(input, Key.A, true);
         Check(!input.IsAttackTargeting, "Key repeat does not re-arm targeting");
 
-        foreach (Vector2 point in new[] { ground, ownPoint })
-        {
-            KeyPress(input, Key.A);
-            Click(input, point, MouseButton.Left);
-            await FlushPhysics();
-            Check(Lines().Length == 2 && SelectedUnitId == 101 && !input.IsAttackTargeting,
-                "Attack click on ground or own unit sends nothing and preserves selection");
-        }
+        KeyPress(input, Key.A);
+        Click(input, ground, MouseButton.Left);
+        camera.Position += Vector3.Right * 2;
+        await FlushPhysics();
+        string[] attackMove = Lines().Last().Split(' ');
+        Check(Lines().Length == 3 && attackMove.Length == 4 && attackMove[0] == "ATTACK_MOVE" &&
+            Math.Abs(float.Parse(attackMove[1], CultureInfo.InvariantCulture)) < .01f &&
+            Math.Abs(float.Parse(attackMove[2], CultureInfo.InvariantCulture) - 10) < .01f &&
+            attackMove[3] == "101" && SelectedUnitId == 101 && !input.IsAttackTargeting,
+            "A-ground click sends one ATTACK_MOVE using click-time camera and preserves selection");
+        Check(enemy.GetNodeOrNull<MeshInstance3D>("CommandTargetRing") == null,
+            "Attack move clears the previous explicit attack target marker");
+        camera.Position -= Vector3.Right * 2;
+        KeyPress(input, Key.A);
+        Click(input, ownPoint, MouseButton.Left);
+        await FlushPhysics();
+        Check(Lines().Length == 3 && SelectedUnitId == 101 && !input.IsAttackTargeting,
+            "A-own-unit click sends nothing and preserves selection");
 
         KeyPress(input, Key.A);
         using (var escape = new InputEventKey { Keycode = Key.Escape, Pressed = true })
@@ -279,18 +291,20 @@ public partial class UnitSceneChecks : Main
         KeyPress(input, Key.A);
         Click(input, ground, MouseButton.Right);
         await FlushPhysics();
-        Check(!input.IsAttackTargeting && Lines().Length == 3 && Lines()[2].StartsWith("MOVE "),
+        Check(!input.IsAttackTargeting && Lines().Length == 4 && Lines()[3].StartsWith("MOVE "),
             "Ground right click exits targeting and still moves");
         Click(input, ownPoint, MouseButton.Right);
         await FlushPhysics();
-        Check(Lines().Length == 4 && Lines()[3].StartsWith("MOVE "), "Own unit right click retains movement");
+        Check(Lines().Length == 5 && Lines()[4].StartsWith("MOVE "), "Own unit right click retains movement");
 
         Units.ClearSelection();
         Click(input, enemyPoint, MouseButton.Right);
         KeyPress(input, Key.A);
         Click(input, enemyPoint, MouseButton.Left);
+        KeyPress(input, Key.A);
+        Click(input, ground, MouseButton.Left);
         await FlushPhysics();
-        Check(Lines().Length == 4, "No selection means no attack command");
+        Check(Lines().Length == 5, "No selection means no attack or attack-move command");
 
         Receive("UNIT 2 505 7 -2 4");
         await FlushPhysics();
@@ -299,7 +313,7 @@ public partial class UnitSceneChecks : Main
         Click(input, enemyPoint, MouseButton.Left);
         await FlushPhysics();
         string[] multi = Lines().Last().Split(' ');
-        Check(Lines().Length == 5 && multi.Length == 4 && multi[0] == "ATTACK" && multi[1] == "202" &&
+        Check(Lines().Length == 6 && multi.Length == 4 && multi[0] == "ATTACK" && multi[1] == "202" &&
             multi.Skip(2).ToHashSet().SetEquals(new[] { "101", "505" }), "Box selection then attack sends all selected IDs");
 
         Receive("UNIT 1 606 8 0 0");
@@ -307,10 +321,34 @@ public partial class UnitSceneChecks : Main
         Receive("REMOVE 606");
         Units.RequestAttack(removed);
         Units.RequestContextOrder(removed, Vector3.Zero);
-        Check(Lines().Length == 5, "Removed target is rejected");
+        Check(Lines().Length == 6, "Removed target is rejected");
+
+        KeyPress(input, Key.A);
+        Click(input, ground, MouseButton.Left);
+        await FlushPhysics();
+        string[] multiMove = Lines().Last().Split(' ');
+        Check(Lines().Length == 7 && multiMove.Length == 5 && multiMove[0] == "ATTACK_MOVE" &&
+            multiMove.Skip(3).ToHashSet().SetEquals(new[] { "101", "505" }) && SelectedUnitIds.Count == 2,
+            "Attack move sends all selected own IDs and preserves multiple selection");
+        Units.RequestAttackMove(new Vector3(float.NaN, 0, 1));
+        Units.RequestAttackMove(new Vector3(1, 0, float.PositiveInfinity));
+        Check(Lines().Length == 7, "Nonfinite attack-move coordinates are ignored");
+        CultureInfo previousCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            Units.RequestAttackMove(new Vector3(1.25f, 0, -2.5f));
+            Check(Lines().Last().StartsWith("ATTACK_MOVE 1.25 -2.5 "),
+                "Attack-move coordinates use invariant wire culture");
+        }
+        finally { CultureInfo.CurrentCulture = previousCulture; }
+        Receive("UNIT 2 505 8 -2 4");
+        Units.RequestAttackMove(new Vector3(1, 0, 2));
+        Check(Lines().Last() == "ATTACK_MOVE 1 2 101", "Attack move filters changed ownership");
         Receive("REMOVE 505");
 
         input.AttackTargetClicked -= attack;
+        input.AttackGroundClicked -= Units.RequestAttackMove;
         input.ContextClicked -= right;
 
         typeof(Main).GetField("_net", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, null);
@@ -326,6 +364,7 @@ public partial class UnitSceneChecks : Main
         typeof(Main).GetField("_net", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, net);
         input.ContextClicked += Units.RequestContextOrder;
         input.AttackTargetClicked += Units.RequestAttack;
+        input.AttackGroundClicked += Units.RequestAttackMove;
         string[] Lines() => Encoding.UTF8.GetString(sent.ToArray()).Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Trim()).ToArray();
 
@@ -350,24 +389,26 @@ public partial class UnitSceneChecks : Main
         KeyPress(input, Key.A);
         Click(input, treePoint, MouseButton.Left);
         await FlushPhysics();
-        Check(Lines().Length == 1 && !input.IsAttackTargeting, "A-left click on tree does not issue gather or attack");
+        Check(Lines().Length == 2 && Lines().Last().StartsWith("ATTACK_MOVE ") && !input.IsAttackTargeting &&
+            tree.GetNodeOrNull<MeshInstance3D>("CommandTargetRing") == null,
+            "A-left click without a unit targets ground beneath the tree and clears gather marker");
         KeyPress(input, Key.A);
         Click(input, treePoint, MouseButton.Right);
         await FlushPhysics();
-        Check(Lines().Length == 2 && Lines().Last() == "GATHER 9900 808" && !input.IsAttackTargeting,
+        Check(Lines().Length == 3 && Lines().Last() == "GATHER 9900 808" && !input.IsAttackTargeting,
             "Right click cancels A-mode and uses normal tree context");
 
         Units.ClearSelection();
         Click(input, treePoint, MouseButton.Right);
         await FlushPhysics();
-        Check(Lines().Length == 2, "No selected units means no gather");
+        Check(Lines().Length == 3, "No selected units means no gather");
         Drag(input, Vector2.One, GetViewport().GetVisibleRect().Size - Vector2.One);
         await FlushPhysics();
         string[] expectedIds = SelectedUnitIds.Select(id => id.ToString()).ToArray();
         Click(input, treePoint, MouseButton.Right);
         await FlushPhysics();
         string[] command = Lines().Last().Split(' ');
-        Check(Lines().Length == 3 && command[0] == "GATHER" && command[1] == "9900" &&
+        Check(Lines().Length == 4 && command[0] == "GATHER" && command[1] == "9900" &&
             command.Skip(2).ToHashSet().SetEquals(expectedIds) && !command.Skip(2).Contains("810"),
             "Mixed selection sends own IDs only; server decides gather capability");
 
@@ -377,12 +418,12 @@ public partial class UnitSceneChecks : Main
         await FlushPhysics();
         Click(input, treePoint, MouseButton.Right);
         await FlushPhysics();
-        Check(Lines().Length == 4 && Lines().Last() == "GATHER 9900 808", "Tree closer to ray than unit wins");
+        Check(Lines().Length == 5 && Lines().Last() == "GATHER 9900 808", "Tree closer to ray than unit wins");
         behindTree.GlobalPosition += Vector3.Up * 5;
         await FlushPhysics();
         Click(input, treePoint, MouseButton.Right);
         await FlushPhysics();
-        Check(Lines().Length == 5 && Lines().Last() == "ATTACK 811 808", "Unit closer to ray than tree wins");
+        Check(Lines().Length == 6 && Lines().Last() == "ATTACK 811 808", "Unit closer to ray than tree wins");
         Check(behindTree.GetNodeOrNull<MeshInstance3D>("CommandTargetRing")?.Visible == true &&
             tree.GetNodeOrNull<MeshInstance3D>("CommandTargetRing") == null, "Enemy right click transfers target ring");
         Receive("REMOVE 811");
@@ -391,14 +432,15 @@ public partial class UnitSceneChecks : Main
         tree.SetAmount(0);
         Click(input, treePoint, MouseButton.Right);
         await FlushPhysics();
-        Check(Lines().Length == 5, "Depleted tree sends no command");
+        Check(Lines().Length == 6, "Depleted tree sends no command");
         tree.SetAmount(400);
         resources.Remove(9900);
         Units.RequestContextOrder(tree, Vector3.Zero);
-        Check(Lines().Length == 5, "Removed tree cannot issue a context order");
+        Check(Lines().Length == 6, "Removed tree cannot issue a context order");
 
         input.ContextClicked -= Units.RequestContextOrder;
         input.AttackTargetClicked -= Units.RequestAttack;
+        input.AttackGroundClicked -= Units.RequestAttackMove;
         typeof(Main).GetField("_net", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, null);
         net.Free();
         resources.QueueFree();
