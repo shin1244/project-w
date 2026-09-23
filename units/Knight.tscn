@@ -62,7 +62,7 @@ material = SubResource("Gold")
 size = Vector3(0.3, 0.07, 0.1)
 
 [node name="Knight" instance=ExtResource("1_base")]
-UnitType = 0
+UnitType = 1
 
 [node name="Body" type="MeshInstance3D" parent="Visual"]
 position = Vector3(0, 1.04, 0)

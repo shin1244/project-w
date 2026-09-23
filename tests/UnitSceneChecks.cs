@@ -31,16 +31,17 @@ public partial class UnitSceneChecks : Main
     {
         try
         {
+            WorkerScene = GD.Load<PackedScene>("res://units/Worker.tscn");
             KnightScene = GD.Load<PackedScene>("res://units/Knight.tscn");
             ArcherScene = GD.Load<PackedScene>("res://units/Archer.tscn");
             Check(GetChildCount() == 0, "No units before server messages");
             Receive("WELCOME 7");
-            Receive("UNIT 0 101 7 -4 2");
-            Receive("UNIT 1 202 8 5 -3");
+            Receive("UNIT 1 101 7 -4 2");
+            Receive("UNIT 2 202 8 5 -3");
 
             Unit knight = GetNode<Unit>("Unit_101");
             Unit archer = GetNode<Unit>("Unit_202");
-            Check(knight.UnitType == 0 && archer.UnitType == 1, "Type-to-scene mapping");
+            Check(knight.UnitType == 1 && archer.UnitType == 2, "Type-to-scene mapping");
             Check(knight.UnitId == 101 && knight.OwnerId == 7, "Server identity");
             Check(archer.OwnerId == 8 && SelectedUnitId == 0, "Spawn does not auto-select");
             Check(knight.GetNode<Node3D>("Visual").GetChildCount() > 0, "Knight model");
@@ -49,17 +50,31 @@ public partial class UnitSceneChecks : Main
             Check(!knight.GetNode<MeshInstance3D>("SelectionRing").Visible, "No selection before click");
             Check(!archer.GetNode<MeshInstance3D>("SelectionRing").Visible, "Enemy unselected");
 
-            Receive("UNIT 0 101 7 -6 4");
+            Receive("UNIT 1 101 7 -6 4");
             Check(GetChildCount() == 2 && GetNode<Unit>("Unit_101") == knight, "Duplicate ID updates without respawn");
             Check(knight.GlobalPosition.IsEqualApprox(new Vector3(-6, 0, 4)), "Feet at Y=0");
             Receive("POS 202 10.25 -7.5");
             Check(archer.GlobalPosition.IsEqualApprox(new Vector3(10.25f, 0, -7.5f)), "POS routes by ID");
             Check(knight.GlobalPosition.IsEqualApprox(new Vector3(-6, 0, 4)), "Other unit unaffected");
             Receive("POS 202 NaN 3");
-            Receive("UNIT 1 broken 7 0 0");
+            Receive("UNIT 2 broken 7 0 0");
             Check(GetChildCount() == 2 && float.IsFinite(archer.GlobalPosition.X), "Malformed data ignored");
 
             await CheckInput(knight, archer);
+
+            Receive("UNIT 0 707 7 1 2");
+            Unit worker = GetNode<Unit>("Unit_707");
+            Check(worker.UnitType == 0 && worker.HasNode("Visual/Axe"), "Worker type spawns worker model");
+            Receive("UNIT 0 707 7 2 3");
+            Check(GetNode<Unit>("Unit_707") == worker, "Worker duplicate updates without respawn");
+            Receive("POS 707 3 4");
+            Check(worker.GlobalPosition.IsEqualApprox(new Vector3(3, 0, 4)), "Worker uses common movement");
+            ClickHandler.Invoke(this, new object[] { worker });
+            Check(SelectedUnitId == 707 && worker.GetNode<MeshInstance3D>("SelectionRing").Visible,
+                "Worker uses common selection");
+            Receive("REMOVE 707");
+            Check(SelectedUnitIds.Count == 0, "Worker removal clears selection");
+            ClickHandler.Invoke(this, new object[] { knight });
 
             Receive("REMOVE 101");
             Receive("POS 101 99 99");
@@ -147,9 +162,9 @@ public partial class UnitSceneChecks : Main
             "Release, wheel and missing camera do not generate commands");
         input.Camera = camera;
 
-        Receive("UNIT 0 101 8 -6 4");
+        Receive("UNIT 1 101 8 -6 4");
         Check(SelectedUnitId == 0, "Ownership update clears selection");
-        Receive("UNIT 0 101 7 -6 4");
+        Receive("UNIT 1 101 7 -6 4");
         await CheckDrag(input, box, camera, knight, archer);
         await CheckAttack(input, camera, knight, archer);
         ClickHandler.Invoke(this, new object[] { knight });
@@ -225,7 +240,7 @@ public partial class UnitSceneChecks : Main
         await FlushPhysics();
         Check(Lines().Length == 4, "No selection means no attack command");
 
-        Receive("UNIT 1 505 7 -2 4");
+        Receive("UNIT 2 505 7 -2 4");
         await FlushPhysics();
         Drag(input, Vector2.One, GetViewport().GetVisibleRect().Size - Vector2.One);
         KeyPress(input, Key.A);
@@ -235,7 +250,7 @@ public partial class UnitSceneChecks : Main
         Check(Lines().Length == 5 && multi.Length == 4 && multi[0] == "ATTACK" && multi[1] == "202" &&
             multi.Skip(2).ToHashSet().SetEquals(new[] { "101", "505" }), "Box selection then attack sends all selected IDs");
 
-        Receive("UNIT 0 606 8 0 0");
+        Receive("UNIT 1 606 8 0 0");
         Unit removed = GetNode<Unit>("Unit_606");
         Receive("REMOVE 606");
         AttackHandler.Invoke(this, new object[] { removed });
@@ -257,9 +272,9 @@ public partial class UnitSceneChecks : Main
 
     private async Task CheckDrag(PlayerInput input, SelectionBox box, Camera3D camera, Unit knight, Unit enemy)
     {
-        Receive("UNIT 1 303 7 -2 4");
+        Receive("UNIT 2 303 7 -2 4");
         Unit friend = GetNode<Unit>("Unit_303");
-        Receive("UNIT 0 404 7 0 0");
+        Receive("UNIT 1 404 7 0 0");
         Unit behind = GetNode<Unit>("Unit_404");
         behind.GlobalPosition = new Vector3(0, 30, 0);
         Vector2 a = camera.UnprojectPosition(knight.GlobalPosition + Vector3.Up);
@@ -340,9 +355,9 @@ public partial class UnitSceneChecks : Main
 
         Drag(input, start, end);
         await FlushPhysics();
-        Receive("UNIT 1 303 8 -2 4");
+        Receive("UNIT 2 303 8 -2 4");
         Check(SelectedUnitId == 101 && !friend.GetNode<MeshInstance3D>("SelectionRing").Visible, "Ownership change removes only that selection");
-        Receive("UNIT 1 303 7 -2 4");
+        Receive("UNIT 2 303 7 -2 4");
         Drag(input, start, end);
         await FlushPhysics();
         Receive("REMOVE 303");
@@ -353,7 +368,7 @@ public partial class UnitSceneChecks : Main
         Check(SelectedUnitIds.Count == 0 && !knight.GetNode<MeshInstance3D>("SelectionRing").Visible, "Empty box clears selection");
 
         for (uint id = 1000; id < 1070; id++)
-            Receive($"UNIT 0 {id} 7 -2 4");
+            Receive($"UNIT 1 {id} 7 -2 4");
         Drag(input, Vector2.One, fullEnd);
         await FlushPhysics();
         Check(SelectedUnitIds.Count == 64, "Selection obeys server MOVE limit");

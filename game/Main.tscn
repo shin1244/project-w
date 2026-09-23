@@ -3,10 +3,14 @@
 [ext_resource type="Script" uid="uid://q0l5tu8yosqd" path="res://game/Main.cs" id="1_0xm2m"]
 [ext_resource type="PackedScene" path="res://units/Knight.tscn" id="2_knight"]
 [ext_resource type="PackedScene" path="res://units/Archer.tscn" id="3_archer"]
+[ext_resource type="PackedScene" path="res://units/Worker.tscn" id="4_worker"]
 [ext_resource type="PackedScene" path="res://maps/SymmetricArena.tscn" id="5_map"]
 [ext_resource type="Script" uid="uid://dxdd73s64xlk6" path="res://input/ArenaCamera.gd" id="6_camera"]
 [ext_resource type="Script" uid="uid://bec80lnhac4b3" path="res://input/PlayerInput.cs" id="7_272bh"]
-[ext_resource type="Script" path="res://input/SelectionBox.cs" id="8_selection"]
+[ext_resource type="Script" uid="uid://vvetikxawskp" path="res://input/SelectionBox.cs" id="8_selection"]
+[ext_resource type="PackedScene" path="res://resources/trees/Birch.tscn" id="9_cf05b"]
+[ext_resource type="PackedScene" path="res://resources/trees/Oak.tscn" id="10_6lgcj"]
+[ext_resource type="PackedScene" path="res://resources/trees/Pine.tscn" id="11_dc36f"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -20,6 +24,7 @@ tonemap_mode = 2
 [node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Camera")]
 script = ExtResource("1_0xm2m")
 Camera = NodePath("Camera3D")
+WorkerScene = ExtResource("4_worker")
 KnightScene = ExtResource("2_knight")
 ArcherScene = ExtResource("3_archer")
 
@@ -48,9 +53,9 @@ script = ExtResource("7_272bh")
 Camera = NodePath("../Camera3D")
 SelectionBox = NodePath("../SelectionUI/SelectionBox")
 
-[node name="SelectionUI" type="CanvasLayer" parent="."]
+[node name="SelectionUI" type="CanvasLayer" parent="." unique_id=436774341]
 
-[node name="SelectionBox" type="Control" parent="SelectionUI"]
+[node name="SelectionBox" type="Control" parent="SelectionUI" unique_id=714198519]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -59,3 +64,12 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("8_selection")
+
+[node name="Birch" parent="." unique_id=388102126 instance=ExtResource("9_cf05b")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.48446643, -1.1920929e-07, 1.5128974)
+
+[node name="Oak" parent="." unique_id=1495820554 instance=ExtResource("10_6lgcj")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.13234, 3.751884, 18.416891)
+
+[node name="Pine" parent="." unique_id=333558981 instance=ExtResource("11_dc36f")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.807945, -3.8146973e-06, -3.0560837)

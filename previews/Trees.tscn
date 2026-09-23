@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://resources/trees/Oak.tscn" id="Oak"]
+
+[ext_resource type="PackedScene" path="res://resources/trees/Pine.tscn" id="Pine"]
+
+[ext_resource type="PackedScene" path="res://resources/trees/Birch.tscn" id="Birch"]
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0.09, 0.12, 0.14, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.82, 0.87, 0.92, 1)
+ambient_light_energy = 0.45
+ambient_light_sky_contribution = 0.0
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.22, 0.26, 0.17, 1)
+roughness = 1.0
+
+[sub_resource type="PlaneMesh" id="Floor"]
+material = SubResource("FloorMaterial")
+size = Vector2(200, 200)
+
+[node name="TreesPreview" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 6.5, -13)
+rotation = Vector3(-0.33, 3.141593, 0)
+projection = 1
+size = 7.5
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.95, -0.6, 0)
+light_color = Color(1, 0.94, 0.83, 1)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.015, 0)
+mesh = SubResource("Floor")
+
+[node name="Oak" parent="." instance=ExtResource("Oak")]
+position = Vector3(4, 0, 0)
+
+[node name="OakLabel" type="Label3D" parent="."]
+position = Vector3(4, 4.9, 0)
+billboard = 1
+text = "OAK"
+font_size = 44
+pixel_size = 0.006
+outline_size = 4
+
+[node name="Pine" parent="." instance=ExtResource("Pine")]
+position = Vector3(0, 0, 0)
+
+[node name="PineLabel" type="Label3D" parent="."]
+position = Vector3(0, 4.9, 0)
+billboard = 1
+text = "PINE"
+font_size = 44
+pixel_size = 0.006
+outline_size = 4
+
+[node name="Birch" parent="." instance=ExtResource("Birch")]
+position = Vector3(-4, 0, 0)
+
+[node name="BirchLabel" type="Label3D" parent="."]
+position = Vector3(-4, 4.9, 0)
+billboard = 1
+text = "BIRCH"
+font_size = 44
+pixel_size = 0.006
+outline_size = 4

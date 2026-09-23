@@ -8,7 +8,8 @@ Godot .NET 클라이언트 프로토타입입니다. Go 서버가 유닛을 생�
 game/             메인 게임 장면과 서버 메시지 적용
 input/            마우스 입력과 맵 카메라
 network/          TCP 연결과 명령 문자열
-units/            공통 유닛 스크립트·씬, 기사·궁수 씬
+units/            공통 유닛 스크립트·씬, 일꾼·기사·궁수 씬
+resources/        자원 공통 스크립트와 나무 외형 3종
 maps/             맵 장면
   resources/      지형 메시와 충돌 리소스
 previews/         서버 없이 보는 맵·유닛 미리보기
@@ -32,7 +33,9 @@ docs/             설명과 미리보기 이미지
 
 맵 카메라는 W/S(위/아래), Q/D(왼쪽/오른쪽), 방향키·가운데 드래그로 이동, 휠로 확대/축소, Home으로 전체 보기입니다. A는 공격 대상 지정에 사용합니다.
 
-서버 없이 외형을 확인하려면 `previews/Units.tscn` 또는 `previews/Arena.tscn`을 열고 F6으로 실행합니다.
+서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`을 열고 F6으로 실행합니다.
+
+나무는 `resources/trees/Tree.tscn`을 Oak/Pine/Birch 씬이 상속합니다. 자원 ID와 선택 표시(`ResourceNode.cs`), 클릭 영역(물리 레이어 3)은 공통이며 `Visual` 아래 외형만 다릅니다. `VisualVariant`는 외형 번호로, 자원 종류나 채집 능력치를 구분하지 않습니다. 자원 클릭 입력과 서버 채집 메시지는 아직 연결하지 않았습니다.
 
 ## 문서와 검증
 

@@ -1,10 +1,11 @@
 # 서버가 생성하는 유닛
 
-- `units/Knight.tscn`: 타입 0. 갑옷, 검, 방패가 있는 임시 기사 모델.
-- `units/Archer.tscn`: 타입 1. 녹색 옷, 활, 화살통이 있는 임시 궁수 모델.
-- `previews/Units.tscn`: 두 모델을 서버 없이 확인하는 장면. Godot에서 열고 F6.
+- `units/Worker.tscn`: 타입 0. 작업복, 모자, 배낭, 벌목용 도끼가 있는 임시 일꾼 모델.
+- `units/Knight.tscn`: 타입 1. 갑옷, 검, 방패가 있는 임시 기사 모델.
+- `units/Archer.tscn`: 타입 2. 녹색 옷, 활, 화살통이 있는 임시 궁수 모델.
+- `previews/Units.tscn`: 세 모델을 서버 없이 확인하는 장면. Godot에서 열고 F6.
 
-두 씬은 `units/Unit.tscn`을 상속합니다. 공통 ID·위치 반영은 `units/Unit.cs`, 외형은 각 씬의 `Visual` 아래에 있습니다. 새 모델이 생기면 `Visual` 아래만 바꾸면 됩니다. 루트 원점은 발밑, 정면은 -Z입니다.
+세 씬은 `units/Unit.tscn`을 상속합니다. 공통 ID·위치 반영은 `units/Unit.cs`, 외형은 각 씬의 `Visual` 아래에 있습니다. 새 모델이 생기면 `Visual` 아래만 바꾸면 됩니다. 루트 원점은 발밑, 정면은 -Z입니다.
 
 `Unit.cs`에는 이동 속도나 공격 판정을 넣지 않습니다. 서버의 X/Z 위치를 그대로 표시하며 보간, 공격 애니메이션, 경로 탐색은 아직 없습니다.
 

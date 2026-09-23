@@ -1,0 +1,96 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://resources/trees/Tree.tscn" id="1_base"]
+
+[sub_resource type="StandardMaterial3D" id="Bark"]
+albedo_color = Color(0.86, 0.84, 0.72, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Mark"]
+albedo_color = Color(0.22, 0.22, 0.18, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Leaf"]
+albedo_color = Color(0.58, 0.66, 0.18, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="LightLeaf"]
+albedo_color = Color(0.72, 0.75, 0.28, 1)
+roughness = 0.95
+
+[sub_resource type="CylinderMesh" id="Trunk"]
+material = SubResource("Bark")
+top_radius = 0.17
+bottom_radius = 0.28
+height = 2.8
+radial_segments = 8
+
+[sub_resource type="CylinderMesh" id="Branch"]
+material = SubResource("Bark")
+top_radius = 0.075
+bottom_radius = 0.13
+height = 1.35
+radial_segments = 6
+
+[sub_resource type="BoxMesh" id="Stripe"]
+material = SubResource("Mark")
+size = Vector3(0.23, 0.065, 0.03)
+
+[sub_resource type="SphereMesh" id="Crown"]
+material = SubResource("Leaf")
+radius = 0.78
+height = 2.0
+radial_segments = 8
+rings = 4
+
+[sub_resource type="SphereMesh" id="Tuft"]
+material = SubResource("LightLeaf")
+radius = 0.62
+height = 1.65
+radial_segments = 8
+rings = 4
+
+[node name="Birch" instance=ExtResource("1_base")]
+VisualVariant = 2
+
+[node name="Trunk" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.4, 0)
+mesh = SubResource("Trunk")
+
+[node name="LeftBranch" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.27, 2.3, 0)
+rotation = Vector3(0, 0, 0.45)
+mesh = SubResource("Branch")
+
+[node name="RightBranch" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.27, 2.4, 0)
+rotation = Vector3(0, 0, -0.45)
+mesh = SubResource("Branch")
+
+[node name="StripeA" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.02, 0.4, -0.257)
+mesh = SubResource("Stripe")
+
+[node name="StripeB" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.03, 0.95, -0.235)
+mesh = SubResource("Stripe")
+
+[node name="StripeC" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.02, 1.55, -0.211)
+mesh = SubResource("Stripe")
+
+[node name="StripeD" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.03, 2.15, -0.187)
+mesh = SubResource("Stripe")
+
+[node name="CrownLeft" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.52, 3.0, 0.05)
+mesh = SubResource("Crown")
+
+[node name="CrownRight" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.5, 3.2, -0.08)
+mesh = SubResource("Tuft")
+
+[node name="CrownTop" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 3.55, 0.12)
+mesh = SubResource("Tuft")

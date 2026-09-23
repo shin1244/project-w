@@ -1,0 +1,148 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+
+[sub_resource type="StandardMaterial3D" id="Cloth"]
+albedo_color = Color(0.76, 0.51, 0.2, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Leather"]
+albedo_color = Color(0.28, 0.16, 0.085, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Skin"]
+albedo_color = Color(0.76, 0.55, 0.38, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Metal"]
+albedo_color = Color(0.48, 0.53, 0.57, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Wood"]
+albedo_color = Color(0.42, 0.25, 0.11, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Edge"]
+albedo_color = Color(0.8, 0.85, 0.88, 1)
+metallic = 0.6
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="Body"]
+material = SubResource("Cloth")
+size = Vector3(0.55, 0.65, 0.38)
+
+[sub_resource type="BoxMesh" id="Apron"]
+material = SubResource("Leather")
+size = Vector3(0.38, 0.58, 0.06)
+
+[sub_resource type="BoxMesh" id="Leg"]
+material = SubResource("Leather")
+size = Vector3(0.19, 0.55, 0.28)
+
+[sub_resource type="BoxMesh" id="Arm"]
+material = SubResource("Cloth")
+size = Vector3(0.18, 0.5, 0.22)
+
+[sub_resource type="BoxMesh" id="Pack"]
+material = SubResource("Leather")
+size = Vector3(0.46, 0.52, 0.26)
+
+[sub_resource type="BoxMesh" id="Handle"]
+material = SubResource("Wood")
+size = Vector3(0.075, 1.05, 0.075)
+
+[sub_resource type="BoxMesh" id="AxeSocket"]
+material = SubResource("Metal")
+size = Vector3(0.18, 0.2, 0.16)
+
+[sub_resource type="PrismMesh" id="AxeBlade"]
+material = SubResource("Metal")
+size = Vector3(0.42, 0.36, 0.12)
+
+[sub_resource type="BoxMesh" id="AxeEdge"]
+material = SubResource("Edge")
+size = Vector3(0.045, 0.42, 0.07)
+
+[sub_resource type="SphereMesh" id="Head"]
+material = SubResource("Skin")
+radius = 0.24
+height = 0.48
+radial_segments = 12
+rings = 6
+
+[sub_resource type="CylinderMesh" id="Hat"]
+material = SubResource("Cloth")
+top_radius = 0.2
+bottom_radius = 0.28
+height = 0.23
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="HatBrim"]
+material = SubResource("Cloth")
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.045
+radial_segments = 10
+
+[node name="Worker" instance=ExtResource("1_base")]
+UnitType = 0
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.91, 0)
+mesh = SubResource("Body")
+
+[node name="Apron" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.87, -0.22)
+mesh = SubResource("Apron")
+
+[node name="Head" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.46, -0.025)
+mesh = SubResource("Head")
+
+[node name="Hat" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("Hat")
+
+[node name="HatBrim" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.6, -0.025)
+mesh = SubResource("HatBrim")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.16, 0.275, 0)
+mesh = SubResource("Leg")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.16, 0.275, 0)
+mesh = SubResource("Leg")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.36, 0.94, 0)
+mesh = SubResource("Arm")
+
+[node name="RightArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.36, 0.94, -0.07)
+mesh = SubResource("Arm")
+
+[node name="Backpack" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.97, 0.29)
+mesh = SubResource("Pack")
+
+[node name="Axe" type="Node3D" parent="Visual"]
+position = Vector3(0.47, 0.98, -0.23)
+rotation = Vector3(0, 0, -0.15)
+
+[node name="Handle" type="MeshInstance3D" parent="Visual/Axe"]
+mesh = SubResource("Handle")
+
+[node name="Socket" type="MeshInstance3D" parent="Visual/Axe"]
+position = Vector3(0, 0.4, 0)
+mesh = SubResource("AxeSocket")
+
+[node name="Blade" type="MeshInstance3D" parent="Visual/Axe"]
+position = Vector3(0.16, 0.4, 0)
+rotation = Vector3(0, 0, 1.5707963)
+mesh = SubResource("AxeBlade")
+
+[node name="Edge" type="MeshInstance3D" parent="Visual/Axe"]
+position = Vector3(0.34, 0.4, 0)
+mesh = SubResource("AxeEdge")

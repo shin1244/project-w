@@ -6,6 +6,7 @@ using System.Collections.Generic;
 public partial class Main : Node3D
 {
     [Export] public Camera3D Camera;
+    [Export] public PackedScene WorkerScene;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
@@ -161,8 +162,9 @@ public partial class Main : Node3D
 
         PackedScene scene = unitType switch
         {
-            0 => KnightScene,
-            1 => ArcherScene,
+            0 => WorkerScene,
+            1 => KnightScene,
+            2 => ArcherScene,
             _ => null
         };
 

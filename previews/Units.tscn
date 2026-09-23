@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://units/Knight.tscn" id="1_knight"]
 [ext_resource type="PackedScene" path="res://units/Archer.tscn" id="2_archer"]
+[ext_resource type="PackedScene" path="res://units/Worker.tscn" id="3_worker"]
 
 [sub_resource type="Environment" id="Environment_preview"]
 background_mode = 1
@@ -22,12 +23,15 @@ size = Vector2(200, 200)
 
 [node name="UnitPreview" type="Node3D"]
 
-[node name="Knight" parent="." instance=ExtResource("1_knight")]
-position = Vector3(-1.5, 0, 0)
+[node name="Worker" parent="." instance=ExtResource("3_worker")]
+position = Vector3(-2.6, 0, 0)
 rotation = Vector3(0, -0.2, 0)
 
+[node name="Knight" parent="." instance=ExtResource("1_knight")]
+position = Vector3(0, 0, 0)
+
 [node name="Archer" parent="." instance=ExtResource("2_archer")]
-position = Vector3(1.5, 0, 0)
+position = Vector3(2.6, 0, 0)
 rotation = Vector3(0, 0.2, 0)
 
 [node name="Floor" type="MeshInstance3D" parent="."]
@@ -38,7 +42,7 @@ mesh = SubResource("Floor_mesh")
 position = Vector3(0, 4.2, -9)
 rotation = Vector3(-0.3367, 3.141593, 0)
 projection = 1
-size = 4.5
+size = 5.5
 current = true
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
@@ -51,17 +55,25 @@ shadow_enabled = true
 environment = SubResource("Environment_preview")
 
 [node name="KnightLabel" type="Label3D" parent="."]
-position = Vector3(-1.5, 2.5, 0)
+position = Vector3(0, 2.5, 0)
 billboard = 1
-text = "KNIGHT  /  0"
+text = "KNIGHT  /  1"
 font_size = 42
 pixel_size = 0.004
 outline_size = 4
 
 [node name="ArcherLabel" type="Label3D" parent="."]
-position = Vector3(1.5, 2.5, 0)
+position = Vector3(2.6, 2.5, 0)
 billboard = 1
-text = "ARCHER  /  1"
+text = "ARCHER  /  2"
+font_size = 42
+pixel_size = 0.004
+outline_size = 4
+
+[node name="WorkerLabel" type="Label3D" parent="."]
+position = Vector3(-2.6, 2.5, 0)
+billboard = 1
+text = "WORKER  /  0"
 font_size = 42
 pixel_size = 0.004
 outline_size = 4
