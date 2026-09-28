@@ -1,5 +1,5 @@
 extends SceneTree
-## Creates the reusable 3x3 town hall. All dimensions are in map units.
+## Creates the reusable 4x4 town hall. All dimensions are in map units.
 
 const OUTPUT := "res://buildings/TownHall.tscn"
 var surfaces: Dictionary = {}
@@ -226,16 +226,25 @@ func save_hall() -> void:
 	var mesh := ArrayMesh.new()
 	for key: String in surfaces:
 		surfaces[key].commit(mesh)
-	# One visual mesh with material surfaces; dimensions include every roof and flag.
+	# Bake the enlarged design into the mesh, keeping gameplay roots at unit scale.
+	var enlarged := ArrayMesh.new()
+	for surface in range(mesh.get_surface_count()):
+		var part := SurfaceTool.new()
+		part.begin(Mesh.PRIMITIVE_TRIANGLES)
+		part.set_material(mesh.surface_get_material(surface))
+		part.append_from(mesh, surface, Transform3D(Basis.from_scale(Vector3(4.0 / 3.0, 1.1, 4.0 / 3.0)), Vector3.ZERO))
+		part.commit(enlarged)
+	mesh = enlarged
 	var bounds := mesh.get_aabb()
-	assert(bounds.position.x >= -1.501 and bounds.end.x <= 1.501)
-	assert(bounds.position.z >= -1.501 and bounds.end.z <= 1.501)
+	assert(bounds.position.x >= -2.001 and bounds.end.x <= 2.001)
+	assert(bounds.position.z >= -2.001 and bounds.end.z <= 2.001)
 	assert(bounds.position.y >= -0.001)
 	assert(ResourceSaver.save(mesh, "res://buildings/meshes/TownHall.res", ResourceSaver.FLAG_COMPRESS) == OK)
 	var hall := Node3D.new()
 	hall.set_script(load("res://buildings/Building.cs"))
 	hall.name = "TownHall"
-	hall.set_meta("footprint", Vector2i(3, 3))
+	hall.set("HealthBarHeight", 5.15)
+	hall.set_meta("footprint", Vector2i(4, 4))
 	hall.set_meta("front", "-Z")
 	var visual := MeshInstance3D.new()
 	visual.name = "Visual"
@@ -252,19 +261,19 @@ func save_hall() -> void:
 	selection.owner = hall
 	var collision := CollisionShape3D.new()
 	collision.name = "CollisionShape3D"
-	collision.position.y = 1.65
+	collision.position.y = 2.1
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(3, 3.3, 3)
+	shape.size = Vector3(4, 4.2, 4)
 	collision.shape = shape
 	selection.add_child(collision)
 	collision.owner = hall
 	var entrance_marker := Marker3D.new()
 	entrance_marker.name = "Entrance"
-	entrance_marker.position = Vector3(0, 0, -1.5)
+	entrance_marker.position = Vector3(0, 0, -2)
 	hall.add_child(entrance_marker)
 	entrance_marker.owner = hall
 	var scene := PackedScene.new()
 	assert(scene.pack(hall) == OK)
 	assert(ResourceSaver.save(scene, OUTPUT) == OK)
-	print("PASS: TownHall footprint 3x3, mesh bounds ", bounds, ", surfaces ", mesh.get_surface_count())
+	print("PASS: TownHall footprint 4x4, mesh bounds ", bounds, ", surfaces ", mesh.get_surface_count())
 	hall.free()

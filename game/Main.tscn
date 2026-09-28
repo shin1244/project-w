@@ -16,6 +16,8 @@
 [ext_resource type="Script" path="res://resources/ResourceManager.cs" id="13_resources"]
 [ext_resource type="Script" path="res://buildings/BuildingManager.cs" id="14_buildings"]
 [ext_resource type="PackedScene" path="res://buildings/TownHall.tscn" id="15_town_hall"]
+[ext_resource type="Script" path="res://ui/StockDisplay.cs" id="16_stock"]
+[ext_resource type="PackedScene" path="res://buildings/Tower.tscn" id="17_tower"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -26,25 +28,29 @@ ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.35
 tonemap_mode = 2
 
-[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus")]
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock")]
 script = ExtResource("1_0xm2m")
 Units = NodePath("Units")
 Buildings = NodePath("Buildings")
 Resources = NodePath("Resources")
 Map = NodePath("Ground")
 SyncStatus = NodePath("SelectionUI/SyncStatus")
+Stock = NodePath("SelectionUI/Stock")
 
-[node name="Units" type="Node3D" parent="." node_paths=PackedStringArray("Camera", "Resources")]
+[node name="Units" type="Node3D" parent="." node_paths=PackedStringArray("Camera", "Resources", "Buildings")]
 script = ExtResource("12_units")
 Camera = NodePath("../Camera3D")
 Resources = NodePath("../Resources")
+Buildings = NodePath("../Buildings")
 WorkerScene = ExtResource("4_worker")
 KnightScene = ExtResource("2_knight")
 ArcherScene = ExtResource("3_archer")
 
-[node name="Buildings" type="Node3D" parent="."]
+[node name="Buildings" type="Node3D" parent="." node_paths=PackedStringArray("Units")]
 script = ExtResource("14_buildings")
+Units = NodePath("../Units")
 TownHallScene = ExtResource("15_town_hall")
+TowerScene = ExtResource("17_tower")
 
 [node name="Resources" type="Node3D" parent="."]
 script = ExtResource("13_resources")
@@ -95,3 +101,15 @@ script = ExtResource("8_selection")
 offset_left = 24.0
 offset_top = 24.0
 text = "맵 확인 중…"
+
+[node name="Stock" type="PanelContainer" parent="SelectionUI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -244.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 96.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("16_stock")

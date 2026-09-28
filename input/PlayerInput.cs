@@ -7,13 +7,15 @@ public partial class PlayerInput : Node
     [Export] public Camera3D Camera;
     [Export(PropertyHint.Layers3DPhysics)] public uint SelectionMask = 1u << 1;
     [Export(PropertyHint.Layers3DPhysics)] public uint ResourceMask = 1u << 2;
+    [Export(PropertyHint.Layers3DPhysics)] public uint BuildingMask = 1u << 3;
     [Export] public SelectionBox SelectionBox;
 
     public event Action<Unit> UnitClicked;
+    public event Action<Building> BuildingClicked;
     public event Action SelectionCleared;
-    // target: Unit / ResourceNode / null(땅). 어떤 명령인지는 UnitManager가 결정합니다.
+    // target: Unit / Building / ResourceNode / null(땅).
     public event Action<Node3D, Vector3> ContextClicked;
-    public event Action<Unit> AttackTargetClicked;
+    public event Action<Node3D> AttackTargetClicked;
     public event Action<Vector3> AttackGroundClicked;
     public bool IsAttackTargeting { get; private set; }
 
@@ -164,7 +166,7 @@ public partial class PlayerInput : Node
         Vector3 direction = Camera.ProjectRayNormal(position);
         _actions.Enqueue(() =>
         {
-            Unit target = FindUnit(origin, direction);
+            Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
             if (target != null)
                 AttackTargetClicked?.Invoke(target);
             else if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
@@ -200,15 +202,14 @@ public partial class PlayerInput : Node
 
     private void HandleSelection(Vector3 origin, Vector3 direction)
     {
-        Unit unit = FindUnit(origin, direction);
-        if (unit != null)
+        Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
+        if (target is Unit unit)
             UnitClicked?.Invoke(unit);
+        else if (target is Building building)
+            BuildingClicked?.Invoke(building);
         else
             SelectionCleared?.Invoke();
     }
-
-    private Unit FindUnit(Vector3 origin, Vector3 direction)
-        => FindTarget(origin, direction, SelectionMask) as Unit;
 
     private Node3D FindTarget(Vector3 origin, Vector3 direction, uint mask)
     {
@@ -220,10 +221,10 @@ public partial class PlayerInput : Node
 
         var hit = Camera.GetWorld3D().DirectSpaceState.IntersectRay(query);
 
-        // 두 종류를 한 번에 조회하므로 광선에 먼저 닿은 대상을 고릅니다.
+        // 같은 광선에서 가장 먼저 닿은 유닛/건물/자원을 고릅니다.
         if (hit.Count > 0 &&
             hit["collider"].AsGodotObject() is Area3D area &&
-            area.GetParent() is Node3D target && (target is Unit or ResourceNode) &&
+            area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode) &&
             !target.IsQueuedForDeletion() && target is not Unit { IsDying: true })
             return target;
         return null;
@@ -231,10 +232,10 @@ public partial class PlayerInput : Node
 
     private void HandleRightClick(Vector3 origin, Vector3 direction)
     {
-        // 이동 목적지는 Y=0 평면, 대상 판별은 유닛/자원 Area3D를 사용합니다.
+        // 이동 목적지는 Y=0 평면, 대상 판별은 유닛/건물/자원 Area3D를 사용합니다.
         if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
         {
-            Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask);
+            Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask | BuildingMask);
             ContextClicked?.Invoke(target, point);
         }
     }

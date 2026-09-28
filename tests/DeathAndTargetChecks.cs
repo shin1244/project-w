@@ -26,9 +26,9 @@ public partial class DeathAndTargetChecks : Main
             AddChild(Units);
             var sent = new List<string>();
             Units.CommandRequested += sent.Add;
-            Receive("WELCOME 1");
-            for (int type = 0; type < 3; type++) Receive($"UNIT {type} {11 + type} 1 {type * 3} 0");
-            Receive("UNIT 1 99 2 8 0");
+            Receive("WELCOME 1 1");
+            for (int type = 0; type < 3; type++) Receive($"UNIT {type} {11 + type} 1 {type * 3} 0 1");
+            Receive("UNIT 1 99 2 8 0 2");
             Unit worker = Units.GetNode<Unit>("Unit_11");
             Unit enemy = Units.GetNode<Unit>("Unit_99");
             ResourceNode tree = Resources.SpawnOrUpdate(700, 0, new Vector3(5, 0, 4));
@@ -113,9 +113,9 @@ public partial class DeathAndTargetChecks : Main
                 Check(!GodotObject.IsInstanceValid(unit), "Death effect leaves no unit node behind");
             }
 
-            Receive("UNIT 0 55 1 0 0");
+            Receive("UNIT 0 55 1 0 0 1");
             Receive("REMOVE 55");
-            Receive("UNIT 0 55 1 1 1");
+            Receive("UNIT 0 55 1 1 1 1");
             Check(!Units.GetNode<Unit>("Unit_55").IsDying, "New unit ID is independent from old death visual");
             Units.Clear();
             Check(Units.GetChildCount() == 0, "Map reset clears living units and unfinished deaths");

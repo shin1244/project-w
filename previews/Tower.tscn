@@ -1,12 +1,12 @@
 [gd_scene load_steps=7 format=3]
 
-[ext_resource type="PackedScene" path="res://buildings/TownHall.tscn" id="1_hall"]
+[ext_resource type="PackedScene" path="res://buildings/Tower.tscn" id="1_hall"]
 [ext_resource type="Script" path="res://previews/TownHallPreview.gd" id="2_preview"]
 [ext_resource type="Shader" path="res://previews/BuildingGrid.gdshader" id="3_grid"]
 
 [sub_resource type="ShaderMaterial" id="FloorMaterial"]
 shader = ExtResource("3_grid")
-shader_parameter/footprint_half_size = 2.0
+shader_parameter/footprint_half_size = 1.5
 
 [sub_resource type="PlaneMesh" id="Floor"]
 material = SubResource("FloorMaterial")
@@ -21,10 +21,11 @@ ambient_light_energy = 0.55
 ambient_light_sky_contribution = 0.0
 tonemap_mode = 2
 
-[node name="TownHallPreview" type="Node3D"]
+[node name="TowerPreview" type="Node3D"]
 script = ExtResource("2_preview")
+capture_path = "res://docs/images/tower-preview.png"
 
-[node name="TownHall" parent="." instance=ExtResource("1_hall")]
+[node name="Tower" parent="." instance=ExtResource("1_hall")]
 
 [node name="Floor" type="MeshInstance3D" parent="."]
 position = Vector3(0, -0.015, 0)
@@ -32,7 +33,7 @@ mesh = SubResource("Floor")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 7.4
+size = 6.6
 current = true
 far = 80.0
 

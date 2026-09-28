@@ -14,7 +14,7 @@
 서버 → TREE 4412 375          # 기본 상태에서 바뀐 나무만 (없으면 생략)
 서버 → TREE 4580 0            # 0은 이미 제거된 나무
 서버 → WORLD_READY
-서버 → WELCOME <playerID>
+서버 → WELCOME <playerID> <team>
 서버 → UNIT ...              # 유닛은 기존과 동일하게 서버에서 생성
 ```
 

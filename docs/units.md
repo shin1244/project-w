@@ -12,14 +12,16 @@
 ## 메시지
 
 ```text
-WELCOME 플레이어ID
-UNIT 타입 유닛ID 소유자ID X Z
+WELCOME 플레이어ID 진영
+UNIT 타입 유닛ID 소유자ID X Z 진영
 POS 유닛ID X Z
-STATE 유닛ID IDLE|GATHER|ATTACK 운반량 대상ID 공격횟수
+STATE 유닛ID또는포탑ID IDLE|GATHER|ATTACK 운반량 대상ID 공격횟수
 REMOVE 유닛ID
 ```
 
-Main은 UNIT/POS/STATE/REMOVE 메시지를 UnitManager로 전달합니다. UnitManager는 UNIT을 받았을 때만 Main/Units 아래에 유닛을 만듭니다. 같은 ID는 중복 생성하지 않고 정보를 갱신합니다. 유닛 타입은 ID가 유지되는 동안 동일하다고 가정합니다.
+Main은 UNIT/POS를 UnitManager로, STATE/HP/REMOVE는 UnitManager와 BuildingManager로 전달합니다. STATE는 StateSnapshot에서 한 번 검증하고 ID가 등록된 관리자가 적용합니다. UnitManager는 UNIT을 받았을 때만 Main/Units 아래에 유닛을 만듭니다. 같은 ID는 중복 생성하지 않고 정보를 갱신합니다. 유닛 타입은 ID가 유지되는 동안 동일하다고 가정합니다.
+
+소유자 ID는 조종 권한, 진영은 아군/적군을 구분합니다. 소유자 0인 미니언은 선택할 수 없으며 기사/궁수 씬으로 표시합니다. [미니언 동기화](minions.md)를 참고하세요.
 
 REMOVE를 받으면 선택과 클릭 판정에서 즉시 제외하고, 모델은 공통 사망 연출(옆으로 넘어짐 → 서서히 사라짐)을 마친 후 지웁니다. 채집/공격 요청의 대상에는 각각 노란/빨간 원을 표시합니다. 자세한 동작과 미리보기는 [사망 연출과 명령 대상 표시](combat-feedback.md)를 참고하세요.
 
@@ -38,9 +40,9 @@ ATTACK 대상ID 내유닛ID...
 ATTACK 202 101 303
 ```
 
-위 예시는 선택한 101, 303번 유닛에게 202번 유닛을 공격하도록 요청합니다. `NetClient.Send`가 줄바꿈을 붙입니다. 선택 상한은 이동과 동일하게 64개입니다. 서버에서는 대상 존재 여부, 공격 가능 여부, 명령을 보낸 플레이어의 유닛 소유권을 검증한 뒤 처리해야 합니다. 공격·추적·피해 계산은 아직 클라이언트에 구현하지 않았습니다.
+위 예시는 선택한 101, 303번 유닛에게 202번 유닛 또는 건물을 공격하도록 요청합니다. `NetClient.Send`가 줄바꿈을 붙입니다. 선택 상한은 이동과 동일하게 64개입니다. 서버는 대상 존재 여부, 공격 가능 여부, 명령을 보낸 플레이어의 유닛 소유권을 검증합니다. 공격·추적·피해는 서버에서 계산하고 클라이언트는 결과를 표시합니다. STATE의 대상 ID는 유닛·건물·자원 목록에서 조회합니다.
 
-적 우클릭과 A → 적 좌클릭은 같은 요청을 보내며 선택 목록은 유지합니다. 팀 정보가 없으므로 현재는 소유자 ID가 다르면 적으로 판단합니다. A 모드는 클릭 한 번으로 종료하며, 빈 땅이나 내 유닛을 좌클릭하면 아무 명령도 보내지 않습니다. Esc 또는 창 포커스 상실로 취소할 수 있습니다. A 모드에서 우클릭하면 모드를 종료하고 일반 우클릭 동작(적 공격/나무 채집/땅 이동)을 수행합니다. 선택한 유닛이 없거나 대상이 삭제되었으면 공격 요청을 보내지 않습니다.
+적 우클릭과 A → 적 좌클릭은 같은 요청을 보내며 선택 목록은 유지합니다. 서버가 보낸 진영이 다르면 적으로 판단합니다. 같은 진영의 미니언·다른 플레이어의 유닛·건물은 아군입니다. A 모드는 클릭 한 번으로 종료하며, 빈 땅 클릭은 `ATTACK_MOVE X Z 내유닛ID...`, 아군 클릭은 명령 없이 종료합니다. Esc 또는 창 포커스 상실로 취소할 수 있습니다. A 모드에서 우클릭하면 모드를 종료하고 일반 우클릭 동작(적 공격/나무 채집/땅 이동)을 수행합니다. 선택한 유닛이 없거나 대상이 삭제되었으면 공격 요청을 보내지 않습니다.
 
 ## 검증
 
@@ -53,15 +55,15 @@ Godot은 설치된 .NET 버전 실행 파일 경로로 바꿉니다. 검증 장�
 
 ## 일반 우클릭과 채집
 
-PlayerInput의 `ContextClicked(Node3D target, Vector3 point)` 이벤트를 Main에서 `Units.RequestContextOrder`에 연결합니다. 대상은 Unit, ResourceNode, 또는 null(땅)입니다. 우클릭은 유닛과 자원의 클릭 레이어를 한 번에 광선 조회하므로 화면에서 먼저 닿은 대상을 사용합니다. 좌클릭 유닛 선택과 A 공격 지정은 기존 유닛 전용 조회를 유지합니다.
+PlayerInput의 `ContextClicked(Node3D target, Vector3 point)` 이벤트를 Main에서 `Units.RequestContextOrder`에 연결합니다. 대상은 Unit, Building, ResourceNode, 또는 null(땅)입니다. 우클릭은 유닛·건물·자원의 클릭 레이어를 한 번에 광선 조회하므로 화면에서 먼저 닿은 대상을 사용합니다. 좌클릭 선택과 A 공격 지정은 유닛·건물을 함께 조회합니다. 건물 좌클릭은 유닛 선택을 해제하고 건물 체력을 표시합니다.
 
 ```text
 PlayerInput.HandleRightClick
  → ContextClicked?.Invoke(target, point)
  → UnitManager.RequestContextOrder
-   - 적 유닛 → RequestAttack
+   - 적 유닛 / 적 건물 → RequestAttack
    - 나무 → RequestGather
-   - 땅 / 내 유닛 → RequestMove
+   - 땅 / 아군 유닛 / 아군 건물 → RequestMove
  → CommandRequested
  → Main.SendCommand
 ```
@@ -73,4 +75,4 @@ GATHER 자원ID 내유닛ID...
 GATHER 9900 808 809
 ```
 
-선택한 유닛이 없거나 자원이 삭제·소진되었으면 보내지 않습니다. 혼합 선택은 선택한 내 유닛 ID를 그대로 보내고, 서버가 소유권·채집 능력·이동 능력·대상 자원을 검사합니다. 클라이언트에서 자원량을 예측해 깎지 않으며 기존 TREE 메시지로 화면을 갱신합니다. 건물 우클릭은 아직 연결하지 않았습니다.
+선택한 유닛이 없거나 자원이 삭제·소진되었으면 보내지 않습니다. 혼합 선택은 선택한 내 유닛 ID를 그대로 보내고, 서버가 소유권·채집 능력·이동 능력·대상 자원을 검사합니다. 클라이언트에서 자원량을 예측해 깎지 않으며 기존 TREE 메시지로 화면을 갱신합니다.

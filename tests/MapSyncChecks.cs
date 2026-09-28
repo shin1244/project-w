@@ -81,12 +81,12 @@ public partial class MapSyncChecks : Node3D
         Check(sent.Length == 0, "Commands blocked before map verification");
         Receive($"MAP 2 {map.MapHash}");
         Check(Encoding.UTF8.GetString(sent.ToArray()).Trim() == $"MAP_READY {map.MapHash}", "Main acknowledges exact hash");
-        Receive("UNIT 1 16000 7 0 0");
+        Receive("UNIT 1 16000 7 0 0 1");
         Check(units.GetChildCount() == 0, "Units ignored before snapshot end");
         Receive("TREE 4412 0");
         Receive("WORLD_READY");
-        Receive("WELCOME 7");
-        Receive("UNIT 1 16000 7 0 0");
+        Receive("WELCOME 7 1");
+        Receive("UNIT 1 16000 7 0 0 1");
         Check(map.IsSynchronized && units.GetChildCount() == 1 && !resources.TryGetResource(4412, out _), "Main dispatches snapshot and unit messages");
         Receive($"MAP 2 {map.MapHash}");
         Check(units.GetChildCount() == 0 && !map.IsSynchronized && resources.TryGetResource(4412, out _), "Reconnect clears stale units and resets trees");

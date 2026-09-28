@@ -2,6 +2,8 @@ extends Node3D
 
 var yaw := 0.62
 var dragging := false
+@export var target_height := 2.1
+@export var capture_path := "res://docs/images/town-hall-preview.png"
 @onready var camera: Camera3D = $Camera3D
 
 func _ready() -> void:
@@ -11,7 +13,7 @@ func _ready() -> void:
 
 func update_camera() -> void:
 	camera.position = Vector3(sin(yaw) * 9.0, 6.4, -cos(yaw) * 9.0)
-	camera.look_at(Vector3(0, 1.9, 0))
+	camera.look_at(Vector3(0, target_height, 0))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -29,5 +31,5 @@ func capture() -> void:
 	for i in range(5):
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
-	var error := get_viewport().get_texture().get_image().save_png("res://docs/images/town-hall-preview.png")
+	var error := get_viewport().get_texture().get_image().save_png(capture_path)
 	get_tree().quit(error)

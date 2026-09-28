@@ -9,6 +9,7 @@ public partial class Main : Node3D
     [Export] public ResourceManager Resources;
     [Export] public MapWorld Map;
     [Export] public Label SyncStatus;
+    [Export] public StockDisplay Stock;
 
     private NetClient _net;
     private PlayerInput _playerInput;
@@ -21,9 +22,10 @@ public partial class Main : Node3D
             return;
         }
         _playerInput = GetNode<PlayerInput>("PlayerInput");
-        _playerInput.UnitClicked += Units.SelectSingle;
-        _playerInput.SelectionCleared += Units.ClearSelection;
-        _playerInput.BoxSelectionRequested += Units.SelectBox;
+        _playerInput.UnitClicked += SelectUnit;
+        _playerInput.BuildingClicked += SelectBuilding;
+        _playerInput.SelectionCleared += ClearSelection;
+        _playerInput.BoxSelectionRequested += SelectBox;
         _playerInput.ContextClicked += Units.RequestContextOrder;
         _playerInput.AttackTargetClicked += Units.RequestAttack;
         _playerInput.AttackGroundClicked += Units.RequestAttackMove;
@@ -35,6 +37,30 @@ public partial class Main : Node3D
         _net.ConnectToServer("127.0.0.1", 7777);
     }
 
+    private void SelectUnit(Unit unit)
+    {
+        Buildings?.ClearSelection();
+        Units.SelectSingle(unit);
+    }
+
+    private void SelectBuilding(Building building)
+    {
+        Units.ClearSelection();
+        Buildings?.SelectSingle(building);
+    }
+
+    private void ClearSelection()
+    {
+        Units.ClearSelection();
+        Buildings?.ClearSelection();
+    }
+
+    private void SelectBox(Rect2 rect)
+    {
+        Buildings?.ClearSelection();
+        Units.SelectBox(rect);
+    }
+
     private void OnMessage(string message)
     {
         string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -44,6 +70,7 @@ public partial class Main : Node3D
         switch (parts[0])
         {
             case "MAP":
+                Stock?.Clear();
                 if (!Map.AcceptMap(parts)) { RejectMap(); return; }
                 Units.Clear();
                 Buildings?.Clear();
@@ -63,8 +90,9 @@ public partial class Main : Node3D
         switch (parts[0])
         {
             case "WELCOME":
-                if (parts.Length == 2 && uint.TryParse(parts[1], out uint playerId))
-                    Units.SetLocalPlayer(playerId);
+                if (parts.Length == 3 && uint.TryParse(parts[1], out uint playerId) && playerId != 0 &&
+                    uint.TryParse(parts[2], out uint team) && team != 0)
+                    Units.SetLocalPlayer(playerId, team);
                 break;
             case "UNIT":
                 Units.HandleSpawn(parts);
@@ -83,7 +111,14 @@ public partial class Main : Node3D
                 }
                 break;
             case "STATE":
-                Units.HandleState(parts);
+                if (StateSnapshot.TryParse(parts, out var state))
+                {
+                    Units.HandleState(state);
+                    Buildings?.HandleState(state);
+                }
+                break;
+            case "STOCK":
+                Stock?.HandleStock(parts);
                 break;
             case "REMOVE":
                 Units.HandleRemove(parts);
@@ -107,6 +142,7 @@ public partial class Main : Node3D
 
     private void RejectMap()
     {
+        Stock?.Clear();
         ShowStatus(Map.SyncError ?? "맵 동기화 메시지가 올바르지 않습니다.");
         Map.StopSync();
         _net?.Disconnect();
@@ -114,6 +150,7 @@ public partial class Main : Node3D
 
     private void OnConnectionClosed(string reason)
     {
+        Stock?.Clear();
         Map.StopSync();
         ShowStatus(Map.SyncError ?? reason);
     }
@@ -128,9 +165,10 @@ public partial class Main : Node3D
     {
         if (_playerInput != null && GodotObject.IsInstanceValid(Units))
         {
-            _playerInput.UnitClicked -= Units.SelectSingle;
-            _playerInput.SelectionCleared -= Units.ClearSelection;
-            _playerInput.BoxSelectionRequested -= Units.SelectBox;
+            _playerInput.UnitClicked -= SelectUnit;
+            _playerInput.BuildingClicked -= SelectBuilding;
+            _playerInput.SelectionCleared -= ClearSelection;
+            _playerInput.BoxSelectionRequested -= SelectBox;
             _playerInput.ContextClicked -= Units.RequestContextOrder;
             _playerInput.AttackTargetClicked -= Units.RequestAttack;
             _playerInput.AttackGroundClicked -= Units.RequestAttackMove;

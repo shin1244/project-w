@@ -10,11 +10,13 @@ public partial class Unit : Node3D
 
     public uint UnitId { get; private set; }
     public uint OwnerId { get; private set; }
+    // 소유권은 조종 가능 여부, 진영은 아군/적군 판정에 사용합니다. 미니언의 OwnerId는 0입니다.
+    public uint Team { get; private set; }
     public UnitState State { get; private set; }
     public bool HasServerState { get; private set; }
     public bool IsDying { get; private set; }
     public event Action<UnitState, bool> StateChanged;
-    // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛 목록을 직접 소유하지 않습니다.
+    // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛/건물 목록을 직접 소유하지 않습니다.
     public Func<uint, Node3D> ResolveFocus { private get; set; }
     private bool _hasServerPosition;
     private Node3D _focusTarget;
@@ -45,10 +47,11 @@ public partial class Unit : Node3D
         _deathTween = null;
     }
 
-    public void Initialize(uint unitId, uint ownerId)
+    public void Initialize(uint unitId, uint ownerId, uint team)
     {
         UnitId = unitId;
         OwnerId = ownerId;
+        Team = team;
     }
 
     // 루트는 발밑(Y=0)에 둡니다. 실제 이동 계산은 서버에서만 합니다.

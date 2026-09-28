@@ -10,11 +10,13 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
     [Export] public ResourceManager Resources;
+    [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
     private readonly HashSet<uint> _selectedUnitIds = new();
     private const int MaxSelectedUnits = 64;
     private readonly Dictionary<uint, Unit> _units = new();
     private uint _localPlayerId;
+    private uint _localTeam;
     private readonly CommandTargetIndicator _targetIndicator = new();
 
     public override void _Process(double delta) => _targetIndicator.Refresh();
@@ -34,11 +36,14 @@ public partial class UnitManager : Node3D
         }
         _units.Clear();
         _localPlayerId = 0;
+        _localTeam = 0;
     }
 
-    public void SetLocalPlayer(uint playerId)
+    public void SetLocalPlayer(uint playerId, uint team)
     {
         _localPlayerId = playerId;
+        _localTeam = team;
+        _targetIndicator.Clear();
         ValidateSelection();
     }
 
@@ -59,12 +64,18 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(command);
     }
 
-    private bool IsEnemy(Unit unit)
+    private bool IsEnemy(Node3D target)
     {
-        // 아직 팀 정보가 없으므로 소유자가 다른 유닛을 적으로 취급합니다.
-        return _localPlayerId != 0 && GodotObject.IsInstanceValid(unit)
-            && !unit.IsQueuedForDeletion() && unit.OwnerId != _localPlayerId
-            && _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
+        if (_localPlayerId == 0 || _localTeam == 0 || !GodotObject.IsInstanceValid(target) ||
+            target.IsQueuedForDeletion() || !target.IsInsideTree()) return false;
+        return target switch
+        {
+            Unit unit => !unit.IsDying && unit.Team != _localTeam &&
+                _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit,
+            Building building => building.SideId != _localTeam && GodotObject.IsInstanceValid(Buildings) &&
+                Buildings.TryGetBuilding(building.BuildingId, out Building registered) && registered == building,
+            _ => false
+        };
     }
 
     public void RequestAttackMove(Vector3 point)
@@ -93,6 +104,14 @@ public partial class UnitManager : Node3D
             case ResourceNode resource:
                 RequestGather(resource);
                 break;
+            case Building building:
+                if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() ||
+                    !GodotObject.IsInstanceValid(Buildings) ||
+                    !Buildings.TryGetBuilding(building.BuildingId, out Building registeredBuilding) || registeredBuilding != building)
+                    return;
+                if (IsEnemy(building)) RequestAttack(building);
+                else RequestMove(point);
+                break;
             case null:
                 RequestMove(point);
                 break;
@@ -111,13 +130,14 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(Protocol.BuildGather(target.ResourceId, _selectedUnitIds));
     }
 
-    public void RequestAttack(Unit target)
+    public void RequestAttack(Node3D target)
     {
         ValidateSelection();
         if (_selectedUnitIds.Count == 0 || !IsEnemy(target))
             return;
 
-        string command = Protocol.BuildAttack(target.UnitId, _selectedUnitIds);
+        uint id = target is Unit unit ? unit.UnitId : ((Building)target).BuildingId;
+        string command = Protocol.BuildAttack(id, _selectedUnitIds);
         _targetIndicator.Show(target);
         CommandRequested?.Invoke(command);
     }
@@ -154,16 +174,20 @@ public partial class UnitManager : Node3D
 
     public void HandleSpawn(string[] parts)
     {
-        if (parts.Length != 6)
+        // UNIT type id owner x z team. 미니언은 기존 기사/궁수 씬으로 표시합니다.
+        if (parts.Length != 7)
             return;
 
         if (!uint.TryParse(parts[1], out uint unitType))
             return;
 
-        if (!uint.TryParse(parts[2], out uint unitId))
+        if (!uint.TryParse(parts[2], out uint unitId) || unitId == 0)
             return;
 
         if (!uint.TryParse(parts[3], out uint ownerID))
+            return;
+
+        if (!uint.TryParse(parts[6], out uint team) || team == 0)
             return;
 
         if (!float.TryParse(
@@ -201,7 +225,8 @@ public partial class UnitManager : Node3D
                 GD.PushWarning($"이미 등록된 유닛의 타입이 다릅니다. ID: {unitId}");
                 return;
             }
-            existing.Initialize(unitId, ownerID);
+            existing.Initialize(unitId, ownerID, team);
+            if (_targetIndicator.Target == existing && !IsEnemy(existing)) _targetIndicator.Clear();
             existing.ApplyServerPosition(x, z);
             ValidateSelection();
             return;
@@ -211,7 +236,7 @@ public partial class UnitManager : Node3D
 
         unit.ResolveFocus = ResolveFocus;
 
-        unit.Initialize(unitId, ownerID);
+        unit.Initialize(unitId, ownerID, team);
         unit.Name = $"Unit_{unitId}";
 
         AddChild(unit);
@@ -221,32 +246,20 @@ public partial class UnitManager : Node3D
         _units.Add(unitId, unit);
     }
 
-    private Node3D ResolveFocus(uint id)
+    public Node3D ResolveFocus(uint id)
     {
         if (_units.TryGetValue(id, out Unit unit)) return unit;
+        if (GodotObject.IsInstanceValid(Buildings) && Buildings.TryGetBuilding(id, out Building building))
+            return building;
         if (GodotObject.IsInstanceValid(Resources) && Resources.TryGetResource(id, out ResourceNode resource))
             return resource;
         return null;
     }
 
     // STATE id IDLE|GATHER|ATTACK carrying focusId swingSequence
-    public void HandleState(string[] parts)
+    public void HandleState(StateSnapshot snapshot)
     {
-        if (parts.Length != 6 || !uint.TryParse(parts[1], out uint id) ||
-            !int.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out int carrying) ||
-            !uint.TryParse(parts[4], out uint focusId) ||
-            !uint.TryParse(parts[5], out uint sequence))
-            return;
-
-        UnitActivity? activity = parts[2] switch
-        {
-            "IDLE" => UnitActivity.Idle,
-            "GATHER" => UnitActivity.Gather,
-            "ATTACK" => UnitActivity.Attack,
-            _ => null
-        };
-        if (activity.HasValue && _units.TryGetValue(id, out Unit unit))
-            unit.ApplyServerState(new UnitState(activity.Value, carrying, focusId, sequence));
+        if (_units.TryGetValue(snapshot.Id, out Unit unit)) unit.ApplyServerState(snapshot.State);
     }
 
     public void HandleRemove(string[] parts)

@@ -28,8 +28,8 @@ public partial class HealthBarChecks : Main
             AddChild(camera);
             camera.LookAt(Vector3.Zero);
             Units.Camera = camera;
-            Receive("WELCOME 1");
-            for (int i = 0; i < 3; i++) Receive($"UNIT {i} {101 + i} 1 0 0");
+            Receive("WELCOME 1 1");
+            for (int i = 0; i < 3; i++) Receive($"UNIT {i} {101 + i} 1 0 0 1");
             Receive("BUILDING 0 201 1 0 0 1.5707963");
             Unit worker = Units.GetNode<Unit>("Unit_101");
             Building hall = Buildings.GetNode<Building>("Building_201");

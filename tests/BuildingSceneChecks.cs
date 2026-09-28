@@ -19,7 +19,7 @@ public partial class BuildingSceneChecks : Main
             // Wire the real game scene without starting a connection.
             var game = GD.Load<PackedScene>("res://game/Main.tscn").Instantiate<Main>();
             Check(game.Buildings == game.GetNode<BuildingManager>("Buildings") &&
-                game.Buildings.TownHallScene != null, "Main scene connects its separate building manager");
+                game.Buildings.TownHallScene != null && game.Buildings.TowerScene != null, "Main scene connects both building types");
             game.Free();
 
             Resources = new ResourceManager
@@ -33,7 +33,11 @@ public partial class BuildingSceneChecks : Main
             AddChild(Map);
             Units = new UnitManager { KnightScene = GD.Load<PackedScene>("res://units/Knight.tscn") };
             AddChild(Units);
-            Buildings = new BuildingManager { TownHallScene = GD.Load<PackedScene>("res://buildings/TownHall.tscn") };
+            Buildings = new BuildingManager
+            {
+                TownHallScene = GD.Load<PackedScene>("res://buildings/TownHall.tscn"),
+                TowerScene = GD.Load<PackedScene>("res://buildings/Tower.tscn")
+            };
             AddChild(Buildings);
 
             using var sent = new MemoryStream();
@@ -49,7 +53,7 @@ public partial class BuildingSceneChecks : Main
             Receive("BUILDING 0 16001 1 -65 0 -1.5707963");
             Check(Buildings.GetChildCount() == 0, "Wait for WORLD_READY before spawning");
             Receive("WORLD_READY");
-            Receive("WELCOME 7");
+            Receive("WELCOME 7 1");
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
             Receive("BUILDING 0 16001 1 -65 0 -1.5707963");
             Receive("BUILDING 0 16002 2 65 0 1.5707963");
@@ -62,9 +66,24 @@ public partial class BuildingSceneChecks : Main
                 right.GlobalPosition.IsEqualApprox(new Vector3(65, 0, 0)) &&
                 (-left.GlobalBasis.Z).IsEqualApprox(Vector3.Right) &&
                 (-right.GlobalBasis.Z).IsEqualApprox(Vector3.Left), "Both entrances face the centre");
-            Check(left.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3) &&
-                left.GetNode<Area3D>("SelectionArea").CollisionLayer == 8, "3x3 building uses separate selection layer");
+            Check(left.GetMeta("footprint").AsVector2I() == new Vector2I(4, 4) &&
+                left.GetNode<Area3D>("SelectionArea").CollisionLayer == 8, "4x4 hall uses separate selection layer");
+            CheckDimensions(left, 4);
             CheckBannerIsolation(left, right);
+
+            Receive("BUILDING 1 17001 1 -24 -33 -1.5707963");
+            Receive("BUILDING 1 17002 2 24 -33 1.5707963");
+            Building tower = Buildings.GetNode<Building>("Building_17001");
+            Building enemyTower = Buildings.GetNode<Building>("Building_17002");
+            Check(tower.BuildingType == 1 && tower.HasNode("Turret/Ballista") && tower.HasNode("Turret/Muzzle"), "Tower type, rotating weapon and projectile origin");
+            CheckDimensions(tower, 3);
+            CheckBannerIsolation(tower, enemyTower);
+            Receive("HP 17001 400 500");
+            Receive("BUILDING 1 17001 2 -24 -33 0");
+            Check(Buildings.GetNode<Building>("Building_17001") == tower && tower.SideId == 2 && tower.HealthBar.CurrentHP == 400,
+                "Tower duplicate updates pose/team without replacing health or instance");
+            Receive("REMOVE 17001");
+            Receive("REMOVE 17002");
 
             Receive("BUILDING 0 16001 1 -64.5 2.25 0.25");
             Check(Buildings.GetChildCount() == 2 && Buildings.GetNode<Building>("Building_16001") == left &&
@@ -79,7 +98,7 @@ public partial class BuildingSceneChecks : Main
             Check(Buildings.GetChildCount() == 2 && left.SideId == 1 &&
                 left.GlobalPosition.IsEqualApprox(new Vector3(-64.5f, 0, 2.25f)), "Invalid payload cannot create or mutate buildings");
 
-            Receive("UNIT 1 16003 7 0 0");
+            Receive("UNIT 1 16003 7 0 0 1");
             Receive("REMOVE 16001");
             Receive("REMOVE 16001");
             Receive("REMOVE 99999");
@@ -123,6 +142,25 @@ public partial class BuildingSceneChecks : Main
     }
 
     private void Receive(string message) => MessageHandler.Invoke(this, new object[] { message });
+
+    private static void CheckDimensions(Building building, int size)
+    {
+        Check(building.Scale == Vector3.One && building.GetMeta("footprint").AsVector2I() == new Vector2I(size, size), "Unscaled root with exact footprint");
+        var shape = (BoxShape3D)building.GetNode<CollisionShape3D>("SelectionArea/CollisionShape3D").Shape;
+        Check(shape.Size.X == size && shape.Size.Z == size, "Selection bounds match footprint");
+        Aabb bounds = building.GetNode<MeshInstance3D>("Visual").Mesh.GetAabb();
+        Check(Mathf.Abs(bounds.Size.X - size) < .001f && Mathf.Abs(bounds.Size.Z - size) < .001f && bounds.Position.Y >= -.001f,
+            "Baked mesh fills footprint and starts at ground");
+        if (building.BuildingType == 0)
+            Check(building.GetNode<Marker3D>("Entrance").Position.Z == -2, "Hall entrance moved to 4x4 edge");
+        else
+        {
+            Mesh mesh = building.GetNode<MeshInstance3D>("Turret/Ballista").Mesh;
+            for (int surface = 0; surface < mesh.GetSurfaceCount(); surface++)
+                foreach (Vector3 vertex in mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array())
+                    Check(new Vector2(vertex.X, vertex.Z).Length() <= 1.5f, "Weapon stays inside footprint at every yaw");
+        }
+    }
     private static void Check(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);

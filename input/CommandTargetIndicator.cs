@@ -12,6 +12,8 @@ public sealed class CommandTargetIndicator
         Clear();
         bool gather = target is ResourceNode;
         float radius = gather ? 1.18f : 0.84f;
+        if (target is Building building)
+            radius = building.GetMeta("footprint").AsVector2I().X * 0.7072f + 0.08f;
         _ring = new MeshInstance3D
         {
             Name = "CommandTargetRing",

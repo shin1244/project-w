@@ -33,9 +33,9 @@ public partial class UnitSceneChecks : Main
             Units.KnightScene = GD.Load<PackedScene>("res://units/Knight.tscn");
             Units.ArcherScene = GD.Load<PackedScene>("res://units/Archer.tscn");
             Check(Units.GetChildCount() == 0, "No units before server messages");
-            Receive("WELCOME 7");
-            Receive("UNIT 1 101 7 -4 2");
-            Receive("UNIT 2 202 8 5 -3");
+            Receive("WELCOME 7 1");
+            Receive("UNIT 1 101 7 -4 2 1");
+            Receive("UNIT 2 202 8 5 -3 2");
 
             Unit knight = Units.GetNode<Unit>("Unit_101");
             Unit archer = Units.GetNode<Unit>("Unit_202");
@@ -48,23 +48,23 @@ public partial class UnitSceneChecks : Main
             Check(!knight.GetNode<MeshInstance3D>("SelectionRing").Visible, "No selection before click");
             Check(!archer.GetNode<MeshInstance3D>("SelectionRing").Visible, "Enemy unselected");
 
-            Receive("UNIT 1 101 7 -6 4");
+            Receive("UNIT 1 101 7 -6 4 1");
             Check(Units.GetChildCount() == 2 && Units.GetNode<Unit>("Unit_101") == knight, "Duplicate ID updates without respawn");
             Check(knight.GlobalPosition.IsEqualApprox(new Vector3(-6, 0, 4)), "Feet at Y=0");
             Receive("POS 202 10.25 -7.5");
             Check(archer.GlobalPosition.IsEqualApprox(new Vector3(10.25f, 0, -7.5f)), "POS routes by ID");
             Check(knight.GlobalPosition.IsEqualApprox(new Vector3(-6, 0, 4)), "Other unit unaffected");
             Receive("POS 202 NaN 3");
-            Receive("UNIT 2 broken 7 0 0");
+            Receive("UNIT 2 broken 7 0 0 1");
             Check(Units.GetChildCount() == 2 && float.IsFinite(archer.GlobalPosition.X), "Malformed data ignored");
 
             await CheckInput(knight, archer);
             await CheckResources();
 
-            Receive("UNIT 0 707 7 1 2");
+            Receive("UNIT 0 707 7 1 2 1");
             Unit worker = Units.GetNode<Unit>("Unit_707");
             Check(worker.UnitType == 0 && worker.HasNode("Visual/Torso/RightArm/Axe"), "Worker type spawns worker model");
-            Receive("UNIT 0 707 7 2 3");
+            Receive("UNIT 0 707 7 2 3 1");
             Check(Units.GetNode<Unit>("Unit_707") == worker, "Worker duplicate updates without respawn");
             Receive("POS 707 3 4");
             Check(worker.GlobalPosition.IsEqualApprox(new Vector3(3, 0, 4)), "Worker uses common movement");
@@ -214,9 +214,9 @@ public partial class UnitSceneChecks : Main
             "Release, wheel and missing camera do not generate commands");
         input.Camera = camera;
 
-        Receive("UNIT 1 101 8 -6 4");
+        Receive("UNIT 1 101 8 -6 4 2");
         Check(SelectedUnitId == 0, "Ownership update clears selection");
-        Receive("UNIT 1 101 7 -6 4");
+        Receive("UNIT 1 101 7 -6 4 1");
         await CheckDrag(input, box, camera, knight, archer);
         await CheckAttack(input, camera, knight, archer);
         await CheckGather(input, camera);
@@ -230,7 +230,7 @@ public partial class UnitSceneChecks : Main
         var net = new NetClient();
         typeof(NetClient).GetField("_writer", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(net, writer);
         typeof(Main).GetField("_net", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, net);
-        Action<Unit> attack = target => Units.RequestAttack(target);
+        Action<Node3D> attack = target => Units.RequestAttack(target);
         Action<Node3D, Vector3> right = Units.RequestContextOrder;
 
         input.AttackTargetClicked += attack;
@@ -306,7 +306,7 @@ public partial class UnitSceneChecks : Main
         await FlushPhysics();
         Check(Lines().Length == 5, "No selection means no attack or attack-move command");
 
-        Receive("UNIT 2 505 7 -2 4");
+        Receive("UNIT 2 505 7 -2 4 1");
         await FlushPhysics();
         Drag(input, Vector2.One, GetViewport().GetVisibleRect().Size - Vector2.One);
         KeyPress(input, Key.A);
@@ -316,7 +316,7 @@ public partial class UnitSceneChecks : Main
         Check(Lines().Length == 6 && multi.Length == 4 && multi[0] == "ATTACK" && multi[1] == "202" &&
             multi.Skip(2).ToHashSet().SetEquals(new[] { "101", "505" }), "Box selection then attack sends all selected IDs");
 
-        Receive("UNIT 1 606 8 0 0");
+        Receive("UNIT 1 606 8 0 0 2");
         Unit removed = Units.GetNode<Unit>("Unit_606");
         Receive("REMOVE 606");
         Units.RequestAttack(removed);
@@ -342,7 +342,7 @@ public partial class UnitSceneChecks : Main
                 "Attack-move coordinates use invariant wire culture");
         }
         finally { CultureInfo.CurrentCulture = previousCulture; }
-        Receive("UNIT 2 505 8 -2 4");
+        Receive("UNIT 2 505 8 -2 4 2");
         Units.RequestAttackMove(new Vector3(1, 0, 2));
         Check(Lines().Last() == "ATTACK_MOVE 1 2 101", "Attack move filters changed ownership");
         Receive("REMOVE 505");
@@ -372,9 +372,9 @@ public partial class UnitSceneChecks : Main
         AddChild(resources);
         var tree = resources.SpawnOrUpdate(9900, 0, new Vector3(4, 0, 6));
         tree.SetAmount(400);
-        Receive("UNIT 0 808 7 -10 -4");
-        Receive("UNIT 0 809 7 -9 -4");
-        Receive("UNIT 0 810 8 -8 -4");
+        Receive("UNIT 0 808 7 -10 -4 1");
+        Receive("UNIT 0 809 7 -9 -4 1");
+        Receive("UNIT 0 810 8 -8 -4 2");
         Unit worker = Units.GetNode<Unit>("Unit_808");
         await FlushPhysics();
         Vector2 treePoint = camera.UnprojectPosition(tree.GlobalPosition + Vector3.Up * 1.9f);
@@ -413,7 +413,7 @@ public partial class UnitSceneChecks : Main
             "Mixed selection sends own IDs only; server decides gather capability");
 
         Units.SelectSingle(worker);
-        Receive("UNIT 1 811 8 4 6");
+        Receive("UNIT 1 811 8 4 6 2");
         Unit behindTree = Units.GetNode<Unit>("Unit_811");
         await FlushPhysics();
         Click(input, treePoint, MouseButton.Right);
@@ -456,9 +456,9 @@ public partial class UnitSceneChecks : Main
 
     private async Task CheckDrag(PlayerInput input, SelectionBox box, Camera3D camera, Unit knight, Unit enemy)
     {
-        Receive("UNIT 2 303 7 -2 4");
+        Receive("UNIT 2 303 7 -2 4 1");
         Unit friend = Units.GetNode<Unit>("Unit_303");
-        Receive("UNIT 1 404 7 0 0");
+        Receive("UNIT 1 404 7 0 0 1");
         Unit behind = Units.GetNode<Unit>("Unit_404");
         behind.GlobalPosition = new Vector3(0, 30, 0);
         Vector2 a = camera.UnprojectPosition(knight.GlobalPosition + Vector3.Up);
@@ -539,9 +539,9 @@ public partial class UnitSceneChecks : Main
 
         Drag(input, start, end);
         await FlushPhysics();
-        Receive("UNIT 2 303 8 -2 4");
+        Receive("UNIT 2 303 8 -2 4 2");
         Check(SelectedUnitId == 101 && !friend.GetNode<MeshInstance3D>("SelectionRing").Visible, "Ownership change removes only that selection");
-        Receive("UNIT 2 303 7 -2 4");
+        Receive("UNIT 2 303 7 -2 4 1");
         Drag(input, start, end);
         await FlushPhysics();
         Receive("REMOVE 303");
@@ -552,7 +552,7 @@ public partial class UnitSceneChecks : Main
         Check(SelectedUnitIds.Count == 0 && !knight.GetNode<MeshInstance3D>("SelectionRing").Visible, "Empty box clears selection");
 
         for (uint id = 1000; id < 1070; id++)
-            Receive($"UNIT 1 {id} 7 -2 4");
+            Receive($"UNIT 1 {id} 7 -2 4 1");
         Drag(input, Vector2.One, fullEnd);
         await FlushPhysics();
         Check(SelectedUnitIds.Count == 64, "Selection obeys server MOVE limit");

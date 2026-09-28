@@ -19,7 +19,7 @@ public partial class WorkerAnimationChecks : Main
             Resources.SpawnOrUpdate(700, 0, new Vector3(4, 0, 0));
             Units = new UnitManager { Resources = Resources, WorkerScene = GD.Load<PackedScene>("res://units/Worker.tscn") };
             AddChild(Units);
-            Receive("UNIT 0 77 1 0 0");
+            Receive("UNIT 0 77 1 0 0 1");
             Unit worker = Units.GetNode<Unit>("Unit_77");
             AnimationPlayer player = worker.GetNode<AnimationPlayer>("AnimationPlayer");
             player.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
@@ -58,7 +58,7 @@ public partial class WorkerAnimationChecks : Main
             Receive("STATE 77 IDLE 0 0 0");
             Check(player.CurrentAnimation == "Idle" && !wood.Visible && axe.Visible, "Deposit clears wood");
 
-            Receive("UNIT 0 99 2 4 3");
+            Receive("UNIT 0 99 2 4 3 2");
             Receive("STATE 77 ATTACK 0 99 1");
             player.Advance(.2);
             Check(player.CurrentAnimation == "Swing", "Server hit triggers one swing");
@@ -90,11 +90,11 @@ public partial class WorkerAnimationChecks : Main
                 Receive(bad);
             Check(worker.State == before, "Malformed and unknown states ignored");
 
-            Receive("UNIT 0 88 1 5 0");
+            Receive("UNIT 0 88 1 5 0 1");
             Receive("STATE 88 ATTACK 5 200 32");
             Unit joined = Units.GetNode<Unit>("Unit_88");
             Check(joined.GetNode<AnimationPlayer>("AnimationPlayer").CurrentAnimation == "Carry", "Late join gets cargo without replaying old attacks");
-            Receive("UNIT 0 200 2 5 4");
+            Receive("UNIT 0 200 2 5 4 2");
             joined._Process(0);
             Check((-joined.GetNode<Node3D>("Visual").GlobalBasis.Z).Dot(Vector3.Back) > .99f,
                 "Snapshot STATE may arrive before target UNIT");
