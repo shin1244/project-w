@@ -13,6 +13,15 @@ func _ready() -> void:
 	size = maxf(size, 184.0 * viewport_size.y / maxf(viewport_size.x, 1.0))
 	home_position = position
 	home_size = size
+	get_window().focus_exited.connect(_cancel_drag)
+
+func _input(event: InputEvent) -> void:
+	# UI가 놓기 입력을 소비해도 전장에서 시작한 카메라 드래그는 끝낸다.
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE and not event.pressed:
+		_cancel_drag()
+
+func _cancel_drag() -> void:
+	dragging = false
 
 func _process(delta: float) -> void:
 	var direction := Vector3.ZERO

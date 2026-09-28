@@ -11,6 +11,7 @@ public partial class Main : Node3D
     [Export] public Label SyncStatus;
     [Export] public StockDisplay Stock;
     [Export] public FogOfWar Fog;
+    [Export] public Minimap Minimap;
 
     private NetClient _net;
     private PlayerInput _playerInput;
@@ -74,6 +75,7 @@ public partial class Main : Node3D
             case "MAP":
                 Stock?.Clear();
                 Fog?.Reset();
+                Minimap?.Reset();
                 if (!Map.AcceptMap(parts)) { RejectMap(); return; }
                 Units.Clear();
                 Buildings?.Clear();
@@ -82,10 +84,12 @@ public partial class Main : Node3D
             case "TREE":
                 if (!Map.ApplyTree(parts)) RejectMap();
                 else Fog?.Invalidate();
+                Minimap?.Invalidate();
                 return;
             case "WORLD_READY":
                 if (parts.Length != 1 || !Map.CompleteSync()) { RejectMap(); return; }
                 if (SyncStatus != null) SyncStatus.Hide();
+                Minimap?.Invalidate();
                 return;
         }
         if (!Map.IsSynchronized)
@@ -99,6 +103,7 @@ public partial class Main : Node3D
                 {
                     Units.SetLocalPlayer(playerId, team);
                     Fog?.SetTeam(team);
+                    Minimap?.SetTeam(team);
                 }
                 break;
             case "SIGHT":
@@ -107,14 +112,17 @@ public partial class Main : Node3D
             case "UNIT":
                 Units.HandleSpawn(parts);
                 Fog?.Invalidate();
+                Minimap?.Invalidate();
                 break;
             case "BUILDING":
                 Buildings?.HandleSpawn(parts);
                 Fog?.Invalidate();
+                Minimap?.Invalidate();
                 break;
             case "POS":
                 Units.HandlePosition(parts);
                 Fog?.Invalidate();
+                Minimap?.Invalidate();
                 break;
             case "HP":
                 if (HealthSnapshot.TryParse(parts, out var health))
@@ -137,10 +145,12 @@ public partial class Main : Node3D
                 Units.HandleRemove(parts);
                 Buildings?.HandleRemove(parts);
                 Fog?.Invalidate();
+                Minimap?.Invalidate();
                 break;
             case "HIDE":
                 Units.HandleHide(parts);
                 Fog?.Invalidate();
+                Minimap?.Invalidate();
                 break;
             case "ERR":
                 GD.PushWarning(message);
@@ -162,6 +172,7 @@ public partial class Main : Node3D
     {
         Stock?.Clear();
         Fog?.Reset();
+        Minimap?.Reset();
         Units.Clear();
         Buildings?.Clear();
         ShowStatus(Map.SyncError ?? "맵 동기화 메시지가 올바르지 않습니다.");
@@ -173,6 +184,7 @@ public partial class Main : Node3D
     {
         Stock?.Clear();
         Fog?.Reset();
+        Minimap?.Reset();
         Units.Clear();
         Buildings?.Clear();
         Map.StopSync();

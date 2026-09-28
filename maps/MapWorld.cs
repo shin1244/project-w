@@ -11,6 +11,7 @@ public partial class MapWorld : Node3D
     [Export(PropertyHint.File, "*.json")] public string MapPath = "res://maps/test.json";
     [Export] public ResourceManager Resources;
     public string MapHash { get; private set; }
+    public bool HasMap => _map != null;
     public bool IsSynchronized { get; private set; }
     public string SyncError { get; private set; }
     private MapFile _map;
@@ -21,6 +22,26 @@ public partial class MapWorld : Node3D
     public float CellSize => _map.CellSize;
     public Vector2I GridSize => new(_map.Rows[0].Length, _map.Rows.Length);
     public void CopyVisionObstacles(bool[] destination) => _visionBlocked.CopyTo(destination, 0);
+
+    // 칸당 한 픽셀. 나무의 전체 점유 영역과 벌목 후 빈 땅을 반영합니다.
+    public Image CreateMinimapTerrainImage()
+    {
+        if (_map == null || _visionBlocked == null) return null;
+
+        int width = _map.Rows[0].Length, height = _map.Rows.Length;
+        var image = Image.CreateEmpty(width, height, false, Image.Format.Rgb8);
+        var groundColor = new Color(0.31f, 0.32f, 0.24f);
+        var treeColor = new Color(0.13f, 0.22f, 0.17f);
+        var wallColor = new Color(0.12f, 0.15f, 0.18f);
+        for (int z = 0; z < height; z++)
+            for (int x = 0; x < width; x++)
+            {
+                Color color = _map.Rows[z][x] == '#' ? wallColor :
+                    _visionBlocked[z * width + x] ? treeColor : groundColor;
+                image.SetPixel(x, z, color);
+            }
+        return image;
+    }
 
     public sealed class MapFile
     {
