@@ -15,6 +15,12 @@ public partial class MapWorld : Node3D
     public string SyncError { get; private set; }
     private MapFile _map;
     private bool _accepted;
+    private bool[] _visionBlocked;
+    public uint OcclusionVersion { get; private set; }
+    public Vector2 GridOrigin => new(_map.OriginX, _map.OriginZ);
+    public float CellSize => _map.CellSize;
+    public Vector2I GridSize => new(_map.Rows[0].Length, _map.Rows.Length);
+    public void CopyVisionObstacles(bool[] destination) => _visionBlocked.CopyTo(destination, 0);
 
     public sealed class MapFile
     {
@@ -80,11 +86,17 @@ public partial class MapWorld : Node3D
 
     private void ResetTrees()
     {
+        _visionBlocked = new bool[_map.Rows.Length * _map.Rows[0].Length];
+        for (int z = 0; z < _map.Rows.Length; z++)
+            for (int x = 0; x < _map.Rows[z].Length; x++)
+                if (_map.Rows[z][x] == '#') _visionBlocked[z * _map.Rows[0].Length + x] = true;
+        OcclusionVersion++;
         Resources.Clear();
         for (int z = 0; z < _map.Rows.Length; z++)
             for (int x = 0; x < _map.Rows[z].Length; x++)
                 if (_map.Rows[z][x] == 'T')
                 {
+                    SetTreeObstacle(x, z, true);
                     uint id = checked((uint)(z * _map.Rows[0].Length + x + 1));
                     var tree = Resources.SpawnOrUpdate(id, (uint)((x + z) % 3), new Vector3(
                         _map.OriginX + (x + _map.TreeSize * 0.5f) * _map.CellSize, 0,
@@ -116,12 +128,23 @@ public partial class MapWorld : Node3D
         if (_map.Rows[index / _map.Rows[0].Length][index % _map.Rows[0].Length] != 'T')
             return Fail("맵에 없는 나무 ID");
         if (amount == 0)
+        {
             Resources.Remove(id);
+            SetTreeObstacle(index % _map.Rows[0].Length, index / _map.Rows[0].Length, false);
+            OcclusionVersion++;
+        }
         else if (Resources.TryGetResource(id, out ResourceNode tree))
             tree.SetAmount(amount);
         else
             return Fail("제거된 나무의 자원량 변경");
         return true;
+    }
+
+    private void SetTreeObstacle(int x, int z, bool blocked)
+    {
+        for (int dz = 0; dz < _map.TreeSize; dz++)
+            for (int dx = 0; dx < _map.TreeSize; dx++)
+                _visionBlocked[(z + dz) * _map.Rows[0].Length + x + dx] = blocked;
     }
 
     public bool CompleteSync()

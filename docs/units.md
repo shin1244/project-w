@@ -17,6 +17,7 @@ UNIT 타입 유닛ID 소유자ID X Z 진영
 POS 유닛ID X Z
 STATE 유닛ID또는포탑ID IDLE|GATHER|ATTACK 운반량 대상ID 공격횟수
 REMOVE 유닛ID
+HIDE 유닛ID
 ```
 
 Main은 UNIT/POS를 UnitManager로, STATE/HP/REMOVE는 UnitManager와 BuildingManager로 전달합니다. STATE는 StateSnapshot에서 한 번 검증하고 ID가 등록된 관리자가 적용합니다. UnitManager는 UNIT을 받았을 때만 Main/Units 아래에 유닛을 만듭니다. 같은 ID는 중복 생성하지 않고 정보를 갱신합니다. 유닛 타입은 ID가 유지되는 동안 동일하다고 가정합니다.
@@ -24,6 +25,8 @@ Main은 UNIT/POS를 UnitManager로, STATE/HP/REMOVE는 UnitManager와 BuildingMa
 소유자 ID는 조종 권한, 진영은 아군/적군을 구분합니다. 소유자 0인 미니언은 선택할 수 없으며 기사/궁수 씬으로 표시합니다. [미니언 동기화](minions.md)를 참고하세요.
 
 REMOVE를 받으면 선택과 클릭 판정에서 즉시 제외하고, 모델은 공통 사망 연출(옆으로 넘어짐 → 서서히 사라짐)을 마친 후 지웁니다. 채집/공격 요청의 대상에는 각각 노란/빨간 원을 표시합니다. 자세한 동작과 미리보기는 [사망 연출과 명령 대상 표시](combat-feedback.md)를 참고하세요.
+
+HIDE는 시야 이탈입니다. 사망 연출 없이 모델·클릭 영역·명령 대상 표시와 ID 조회를 즉시 정리합니다. 이후 UNIT/STATE/HP가 다시 오면 새 인스턴스로 최신 상태를 표시합니다. 시야 밖 상대 유닛은 처음부터 스냅샷에 포함되지 않습니다. 자세한 내용은 [전장의 안개](fog-of-war.md)를 참고하세요.
 
 내 유닛을 좌클릭하면 선택 원이 켜집니다. 좌클릭 드래그는 박스에 몸통 중심이 들어오는 내 유닛을 최대 64개 선택합니다. 새 선택은 기존 선택을 대체합니다. 빈 박스, 빈 곳 클릭, 다른 플레이어의 유닛 클릭은 선택을 해제합니다. 우클릭은 대상을 확인하여 MOVE, ATTACK, GATHER 중 하나를 선택 목록 전체에 요청합니다. 생성 시에는 자동 선택하지 않습니다.
 

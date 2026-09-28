@@ -12,6 +12,7 @@ public partial class UnitManager : Node3D
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
+    public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
     private readonly HashSet<uint> _selectedUnitIds = new();
     private const int MaxSelectedUnits = 64;
     private readonly Dictionary<uint, Unit> _units = new();
@@ -275,6 +276,19 @@ public partial class UnitManager : Node3D
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Name = $"Dying_{unitId}";
         unit.BeginDeath();
+    }
+
+    // HIDE는 사망이 아닙니다. 대상 조회·입력에서 즉시 빼고, 재등장 시 새 스냅샷을 받습니다.
+    public void HandleHide(string[] parts)
+    {
+        if (parts.Length != 2 || !uint.TryParse(parts[1], out uint id) ||
+            !_units.Remove(id, out Unit unit)) return;
+        unit.SetSelected(false);
+        _selectedUnitIds.Remove(id);
+        if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
+        unit.Hide();
+        RemoveChild(unit);
+        unit.QueueFree();
     }
 
     public void SelectSingle(Unit unit)

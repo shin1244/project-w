@@ -10,6 +10,8 @@ public partial class BuildingManager : Node3D
     [Export] public UnitManager Units;
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
+    public IReadOnlyCollection<Building> LiveBuildings => _buildings.Values;
+    public uint LayoutVersion { get; private set; }
 
     public bool TryGetBuilding(uint id, out Building building) => _buildings.TryGetValue(id, out building);
 
@@ -42,7 +44,10 @@ public partial class BuildingManager : Node3D
         if (_buildings.TryGetValue(id, out Building existing))
         {
             if (existing.BuildingType == type)
+            {
                 existing.ApplySnapshot(id, sideId, x, z, yaw);
+                LayoutVersion++;
+            }
             return;
         }
 
@@ -58,6 +63,7 @@ public partial class BuildingManager : Node3D
         AddChild(building);
         building.ApplySnapshot(id, sideId, x, z, yaw);
         _buildings.Add(id, building);
+        LayoutVersion++;
     }
 
     public void HandleHealth(HealthSnapshot health)
@@ -83,6 +89,7 @@ public partial class BuildingManager : Node3D
     private void Remove(uint id)
     {
         if (!_buildings.Remove(id, out Building building)) return;
+        LayoutVersion++;
         if (_selected == building) ClearSelection();
         RemoveChild(building);
         building.QueueFree();

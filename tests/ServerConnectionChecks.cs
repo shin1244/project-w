@@ -67,8 +67,9 @@ public partial class ServerConnectionChecks : Node
                     game.Units.RequestAttack(enemyTower);
                 }
                 var minions = units.Where(u => u.OwnerId == 0 && u.HasServerState && u.HealthBar.MaxHP > 0).ToArray();
-                bool fullWave = new uint[] { 1, 2 }.All(team => new uint[] { 1, 2 }.All(type => minions.Any(u => u.Team == team && u.UnitType == type)));
-                if (!game.Map.IsSynchronized || own == null || !fullWave || _movedTeams.Count < 2 ||
+                // 전장의 안개 이후에는 상대 웨이브가 출생 직후 보이지 않는 것이 정상입니다.
+                bool fullWave = new uint[] { 1, 2 }.All(type => minions.Any(u => u.Team == _team && u.UnitType == type));
+                if (!game.Map.IsSynchronized || own == null || !fullWave || !_movedTeams.Contains(_team) ||
                     !buildingsReady || !_sawTowerShot || !_sawProbeDamage || !_sawProbeRemoval) continue;
                 if (own.Team != _team) throw new InvalidOperationException("WELCOME and own UNIT team mismatch");
                 game.Units.SelectSingle(own);
@@ -78,7 +79,7 @@ public partial class ServerConnectionChecks : Node
                     game.Units.SelectSingle(minion);
                     if (game.Units.SelectedUnitIds.Count != 0) throw new InvalidOperationException("Minion became controllable");
                 }
-                GD.Print($"PASS: live server player={_player} team={_team}, map={game.Map.MapHash}, 2 halls, {towerSpots.Length} towers, tower {_probeTower} firing/HP/REMOVE, both teams' knight/archer minions, movement, state, HP and selection");
+                GD.Print($"PASS: live server player={_player} team={_team}, map={game.Map.MapHash}, 2 halls, {towerSpots.Length} towers, tower {_probeTower} firing/HP/REMOVE, allied knight/archer minions, movement, state, HP and selection");
                 GetTree().Quit();
                 return;
             }
