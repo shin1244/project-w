@@ -25,6 +25,17 @@ public partial class Main : Node3D
             return;
         }
         Fog?.Configure(Map);
+        ConnectInput();
+        Units.CommandRequested += SendCommand;
+
+        _net = GetNode<NetClient>("/root/Net");
+        _net.MessageReceived += OnMessage;
+        _net.ConnectionClosed += OnConnectionClosed;
+        _net.ConnectToServer("127.0.0.1", 7777);
+    }
+
+    private void ConnectInput()
+    {
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += SelectUnit;
         _playerInput.BuildingClicked += SelectBuilding;
@@ -33,12 +44,42 @@ public partial class Main : Node3D
         _playerInput.ContextClicked += Units.RequestContextOrder;
         _playerInput.AttackTargetClicked += Units.RequestAttack;
         _playerInput.AttackGroundClicked += Units.RequestAttackMove;
-        Units.CommandRequested += SendCommand;
+        _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
+        _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
+        _playerInput.ControlGroupRequested += HandleControlGroup;
+        if (Minimap != null)
+        {
+            Minimap.CameraMoveRequested += MoveCameraFromMinimap;
+            Minimap.MoveRequested += _playerInput.QueueMinimapMove;
+        }
+    }
 
-        _net = GetNode<NetClient>("/root/Net");
-        _net.MessageReceived += OnMessage;
-        _net.ConnectionClosed += OnConnectionClosed;
-        _net.ConnectToServer("127.0.0.1", 7777);
+    private void ModifyUnitSelection(Unit unit, bool shift, bool sameType)
+    {
+        if (!Units.CanControl(unit)) return;
+        Buildings?.ClearSelection();
+        if (sameType) Units.SelectSameTypeOnScreen(unit, shift);
+        else Units.ToggleSelection(unit);
+    }
+
+    private void ModifyBoxSelection(Rect2 rect)
+    {
+        Units.SelectBoxWithMode(rect, true);
+        if (Units.SelectedUnitIds.Count > 0) Buildings?.ClearSelection();
+    }
+
+    private void HandleControlGroup(int number, bool save, bool focus)
+    {
+        if (save) { Units.SaveControlGroup(number); return; }
+        if (!Units.RecallControlGroup(number)) return;
+        Buildings?.ClearSelection();
+        if (focus && Units.TryGetSelectionCenter(out Vector3 center)) CameraNavigation.FocusGround(Units.Camera, center);
+    }
+
+    private void MoveCameraFromMinimap(Vector3 point)
+    {
+        _playerInput.CancelTargeting();
+        CameraNavigation.FocusGround(Units.Camera, point);
     }
 
     private void SelectUnit(Unit unit)
@@ -74,6 +115,7 @@ public partial class Main : Node3D
         switch (parts[0])
         {
             case "MAP":
+                _playerInput?.ResetInteraction();
                 Stock?.Clear();
                 Fog?.Reset();
                 Minimap?.Reset();
@@ -184,6 +226,7 @@ public partial class Main : Node3D
 
     private void OnConnectionClosed(string reason)
     {
+        _playerInput?.ResetInteraction();
         Stock?.Clear();
         Fog?.Reset();
         Minimap?.Reset();
@@ -210,6 +253,14 @@ public partial class Main : Node3D
             _playerInput.ContextClicked -= Units.RequestContextOrder;
             _playerInput.AttackTargetClicked -= Units.RequestAttack;
             _playerInput.AttackGroundClicked -= Units.RequestAttackMove;
+            _playerInput.ModifiedUnitSelectionRequested -= ModifyUnitSelection;
+            _playerInput.ModifiedBoxSelectionRequested -= ModifyBoxSelection;
+            _playerInput.ControlGroupRequested -= HandleControlGroup;
+            if (GodotObject.IsInstanceValid(Minimap))
+            {
+                Minimap.CameraMoveRequested -= MoveCameraFromMinimap;
+                Minimap.MoveRequested -= _playerInput.QueueMinimapMove;
+            }
         }
 
         if (GodotObject.IsInstanceValid(Units))

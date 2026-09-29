@@ -4,246 +4,302 @@ using System.Collections.Generic;
 
 public partial class PlayerInput : Node
 {
-    [Export] public Camera3D Camera;
-    [Export(PropertyHint.Layers3DPhysics)] public uint SelectionMask = 1u << 1;
-    [Export(PropertyHint.Layers3DPhysics)] public uint ResourceMask = 1u << 2;
-    [Export(PropertyHint.Layers3DPhysics)] public uint BuildingMask = 1u << 3;
-    [Export] public SelectionBox SelectionBox;
+	[Export] public Camera3D Camera;
+	[Export(PropertyHint.Layers3DPhysics)] public uint SelectionMask = 1u << 1;
+	[Export(PropertyHint.Layers3DPhysics)] public uint ResourceMask = 1u << 2;
+	[Export(PropertyHint.Layers3DPhysics)] public uint BuildingMask = 1u << 3;
+	[Export] public SelectionBox SelectionBox;
 
-    public event Action<Unit> UnitClicked;
-    public event Action<Building> BuildingClicked;
-    public event Action SelectionCleared;
-    // target: Unit / Building / ResourceNode / null(땅).
-    public event Action<Node3D, Vector3> ContextClicked;
-    public event Action<Node3D> AttackTargetClicked;
-    public event Action<Vector3> AttackGroundClicked;
-    public bool IsAttackTargeting { get; private set; }
+	public event Action<Unit> UnitClicked;
+	public event Action<Unit, bool, bool> ModifiedUnitSelectionRequested;
+	public event Action<Rect2> ModifiedBoxSelectionRequested;
+	public event Action<int, bool, bool> ControlGroupRequested;
+	public event Action<Building> BuildingClicked;
+	public event Action SelectionCleared;
+	// target: Unit / Building / ResourceNode / null(땅).
+	public event Action<Node3D, Vector3> ContextClicked;
+	public event Action<Node3D> AttackTargetClicked;
+	public event Action<Vector3> AttackGroundClicked;
+	public bool IsAttackTargeting { get; private set; }
 
-    private const float RayLength = 1000f;
-    private static readonly Plane GroundPlane = new(Vector3.Up, 0);
+	private const float RayLength = 1000f;
+	private static readonly Plane GroundPlane = new(Vector3.Up, 0);
 
-    private bool _leftPressed;
-    private bool _dragging;
-    private Vector2 _dragStart;
+	private bool _leftPressed;
+	private bool _dragging;
+	private Vector2 _dragStart;
+	private bool _shiftSelection, _doubleClick;
+	private int _lastGroup;
+	private ulong _lastGroupTime;
 
-    private const float DragThreshold = 6f;
+	private const float DragThreshold = 6f;
 
-    public event Action<Rect2> BoxSelectionRequested;
+	public event Action<Rect2> BoxSelectionRequested;
 
-    // 광선 조회는 물리 프레임에서 실행하고, 박스 선택과 이동도 같은 순서를 지킵니다.
-    private readonly Queue<Action> _actions = new();
+	// 광선 조회는 물리 프레임에서 실행하고, 박스 선택과 이동도 같은 순서를 지킵니다.
+	private readonly Queue<Action> _actions = new();
 
-    public override void _Ready() => GetWindow().FocusExited += CancelInput;
+	public override void _Ready() => GetWindow().FocusExited += CancelInput;
 
-    // UI 위에서 버튼을 떼어도, 게임 화면에서 시작한 드래그를 끝냅니다.
-    public override void _Input(InputEvent @event)
-    {
-        if (IsAttackTargeting && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
-        {
-            SetAttackTargeting(false);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-        if (_leftPressed)
-            HandleDragEvent(@event);
-    }
+	// UI 위에서 버튼을 떼어도, 게임 화면에서 시작한 드래그를 끝냅니다.
+	public override void _Input(InputEvent @event)
+	{
+		if (IsAttackTargeting && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+		{
+			SetAttackTargeting(false);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+		if (_leftPressed)
+			HandleDragEvent(@event);
+	}
 
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (@event is InputEventKey key && key.Pressed &&
-            (key.PhysicalKeycode == Key.A || key.Keycode == Key.A))
-        {
-            if (!key.Echo && !_leftPressed && GodotObject.IsInstanceValid(Camera))
-                SetAttackTargeting(true);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
+	public override void _UnhandledInput(InputEvent @event)
+	{
+		if (@event is InputEventKey groupKey && groupKey.Pressed && TryGroupNumber(groupKey, out int number))
+		{
+			if (!groupKey.Echo && !_leftPressed && !groupKey.AltPressed && !groupKey.MetaPressed && !groupKey.ShiftPressed)
+			{
+				bool save = groupKey.CtrlPressed;
+				ulong now = Time.GetTicksMsec();
+				bool focus = !save && _lastGroup == number && now - _lastGroupTime <= 350;
+				_lastGroup = save || focus ? 0 : number;
+				_lastGroupTime = now;
+				SetAttackTargeting(false);
+				_actions.Enqueue(() => ControlGroupRequested?.Invoke(number, save, focus));
+			}
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+		if (@event is InputEventKey key && key.Pressed &&
+			(key.PhysicalKeycode == Key.A || key.Keycode == Key.A))
+		{
+			_lastGroup = 0;
+			if (!key.Echo && !_leftPressed && GodotObject.IsInstanceValid(Camera))
+				SetAttackTargeting(true);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 
-        if (_leftPressed)
-        {
-            HandleDragEvent(@event);
-            return;
-        }
+		if (_leftPressed)
+		{
+			HandleDragEvent(@event);
+			return;
+		}
 
-        if (@event is not InputEventMouseButton mouse || !mouse.Pressed)
-            return;
+		if (@event is not InputEventMouseButton mouse || !mouse.Pressed)
+			return;
 
-        if (mouse.ButtonIndex != MouseButton.Left && mouse.ButtonIndex != MouseButton.Right)
-            return;
+		if (mouse.ButtonIndex != MouseButton.Left && mouse.ButtonIndex != MouseButton.Right)
+			return;
 
-        if (!GodotObject.IsInstanceValid(Camera))
-            return;
+		if (!GodotObject.IsInstanceValid(Camera))
+			return;
+		_lastGroup = 0;
 
-        if (mouse.ButtonIndex == MouseButton.Left)
-        {
-            if (IsAttackTargeting)
-            {
-                // 공격 클릭은 선택을 바꾸지 않으며, 한 번 클릭하면 모드가 종료됩니다.
-                QueueAttack(mouse.Position);
-                SetAttackTargeting(false);
-            }
-            else
-            {
-                _leftPressed = true;
-                _dragging = false;
-                _dragStart = mouse.Position;
-            }
-        }
-        else
-        {
-            SetAttackTargeting(false);
-            QueueClick(mouse.ButtonIndex, mouse.Position);
-        }
-        GetViewport().SetInputAsHandled();
-    }
+		if (mouse.ButtonIndex == MouseButton.Left)
+		{
+			if (IsAttackTargeting)
+			{
+				// 공격 클릭은 선택을 바꾸지 않으며, 한 번 클릭하면 모드가 종료됩니다.
+				QueueAttack(mouse.Position);
+				SetAttackTargeting(false);
+			}
+			else
+			{
+				_leftPressed = true;
+				_dragging = false;
+				_dragStart = mouse.Position;
+				_shiftSelection = mouse.ShiftPressed;
+				_doubleClick = mouse.DoubleClick;
+			}
+		}
+		else
+		{
+			SetAttackTargeting(false);
+			QueueClick(mouse.ButtonIndex, mouse.Position);
+		}
+		GetViewport().SetInputAsHandled();
+	}
 
-    private void HandleDragEvent(InputEvent @event)
-    {
-        if (!GodotObject.IsInstanceValid(Camera))
-        {
-            CancelDrag();
-            return;
-        }
+	private void HandleDragEvent(InputEvent @event)
+	{
+		if (!GodotObject.IsInstanceValid(Camera))
+		{
+			CancelDrag();
+			return;
+		}
 
-        if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.Escape ||
-            @event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
-        {
-            CancelDrag();
-            GetViewport().SetInputAsHandled();
-        }
-        else if (@event is InputEventMouseMotion motion)
-        {
-            UpdateDrag(motion.Position);
-            GetViewport().SetInputAsHandled();
-        }
-        else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } mouse)
-        {
-            UpdateDrag(mouse.Position);
-            if (_dragging)
-            {
-                Rect2 rect = new Rect2(_dragStart, mouse.Position - _dragStart).Abs();
-                _actions.Enqueue(() => BoxSelectionRequested?.Invoke(rect));
-            }
-            else
-                QueueClick(MouseButton.Left, mouse.Position);
+		if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.Escape ||
+			@event is InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true })
+		{
+			CancelDrag();
+			GetViewport().SetInputAsHandled();
+		}
+		else if (@event is InputEventMouseMotion motion)
+		{
+			UpdateDrag(motion.Position);
+			GetViewport().SetInputAsHandled();
+		}
+		else if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } mouse)
+		{
+			UpdateDrag(mouse.Position);
+			if (_dragging)
+			{
+				Rect2 rect = new Rect2(_dragStart, mouse.Position - _dragStart).Abs();
+				bool shift = _shiftSelection;
+				_actions.Enqueue(() =>
+				{
+					if (shift) ModifiedBoxSelectionRequested?.Invoke(rect);
+					else BoxSelectionRequested?.Invoke(rect);
+				});
+			}
+			else
+				QueueClick(MouseButton.Left, mouse.Position, _shiftSelection, _doubleClick);
 
-            CancelDrag();
-            GetViewport().SetInputAsHandled();
-        }
-    }
+			CancelDrag();
+			GetViewport().SetInputAsHandled();
+		}
+	}
 
-    private void UpdateDrag(Vector2 position)
-    {
-        _dragging |= _dragStart.DistanceSquaredTo(position) >= DragThreshold * DragThreshold;
-        if (_dragging)
-            SelectionBox?.ShowRect(new Rect2(_dragStart, position - _dragStart).Abs());
-    }
+	private void UpdateDrag(Vector2 position)
+	{
+		_dragging |= _dragStart.DistanceSquaredTo(position) >= DragThreshold * DragThreshold;
+		if (_dragging)
+			SelectionBox?.ShowRect(new Rect2(_dragStart, position - _dragStart).Abs());
+	}
 
-    private void CancelDrag()
-    {
-        _leftPressed = false;
-        _dragging = false;
-        SelectionBox?.Hide();
-    }
+	private void CancelDrag()
+	{
+		_leftPressed = false;
+		_dragging = false;
+		SelectionBox?.Hide();
+	}
 
-    private void SetAttackTargeting(bool active)
-    {
-        if (IsAttackTargeting == active)
-            return;
-        IsAttackTargeting = active;
-        Input.SetDefaultCursorShape(active ? Input.CursorShape.Cross : Input.CursorShape.Arrow);
-    }
+	private void SetAttackTargeting(bool active)
+	{
+		if (IsAttackTargeting == active)
+			return;
+		IsAttackTargeting = active;
+		Input.SetDefaultCursorShape(active ? Input.CursorShape.Cross : Input.CursorShape.Arrow);
+	}
 
-    private void CancelInput()
-    {
-        CancelDrag();
-        SetAttackTargeting(false);
-    }
+	private void CancelInput()
+	{
+		CancelDrag();
+		SetAttackTargeting(false);
+		_lastGroup = 0;
+		_actions.Clear();
+	}
 
-    private void QueueAttack(Vector2 position)
-    {
-        Vector3 origin = Camera.ProjectRayOrigin(position);
-        Vector3 direction = Camera.ProjectRayNormal(position);
-        _actions.Enqueue(() =>
-        {
-            Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
-            if (target != null)
-                AttackTargetClicked?.Invoke(target);
-            else if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
-                AttackGroundClicked?.Invoke(point);
-        });
-    }
+	public void ResetInteraction() => CancelInput();
 
-    private void QueueClick(MouseButton button, Vector2 position)
-    {
-        Vector3 origin = Camera.ProjectRayOrigin(position);
-        Vector3 direction = Camera.ProjectRayNormal(position);
-        _actions.Enqueue(() =>
-        {
-            if (button == MouseButton.Left)
-                HandleSelection(origin, direction);
-            else
-                HandleRightClick(origin, direction);
-        });
-    }
+	public void CancelTargeting()
+	{
+		SetAttackTargeting(false);
+		_lastGroup = 0;
+	}
 
-    public override void _PhysicsProcess(double delta)
-    {
-        if (!GodotObject.IsInstanceValid(Camera))
-        {
-            _actions.Clear();
-            CancelInput();
-            return;
-        }
+	public void QueueMinimapMove(Vector3 point)
+	{
+		CancelTargeting();
+		_actions.Enqueue(() => ContextClicked?.Invoke(null, point));
+	}
 
-        while (_actions.TryDequeue(out var action))
-            action();
-    }
+	private static bool TryGroupNumber(InputEventKey key, out int number)
+	{
+		Key code = key.PhysicalKeycode != Key.None ? key.PhysicalKeycode : key.Keycode;
+		number = (int)code - (int)Key.Key0;
+		return number >= 1 && number <= 9;
+	}
 
-    private void HandleSelection(Vector3 origin, Vector3 direction)
-    {
-        Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
-        if (target is Unit unit)
-            UnitClicked?.Invoke(unit);
-        else if (target is Building building)
-            BuildingClicked?.Invoke(building);
-        else
-            SelectionCleared?.Invoke();
-    }
+	private void QueueAttack(Vector2 position)
+	{
+		Vector3 origin = Camera.ProjectRayOrigin(position);
+		Vector3 direction = Camera.ProjectRayNormal(position);
+		_actions.Enqueue(() =>
+		{
+			Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
+			if (target != null)
+				AttackTargetClicked?.Invoke(target);
+			else if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
+				AttackGroundClicked?.Invoke(point);
+		});
+	}
 
-    private Node3D FindTarget(Vector3 origin, Vector3 direction, uint mask)
-    {
-        var query = PhysicsRayQueryParameters3D.Create(
-            origin, origin + direction * RayLength);
-        query.CollisionMask = mask;
-        query.CollideWithAreas = true;
-        query.CollideWithBodies = false;
+	private void QueueClick(MouseButton button, Vector2 position, bool shift = false, bool sameType = false)
+	{
+		Vector3 origin = Camera.ProjectRayOrigin(position);
+		Vector3 direction = Camera.ProjectRayNormal(position);
+		_actions.Enqueue(() =>
+		{
+			if (button == MouseButton.Left)
+				HandleSelection(origin, direction, shift, sameType);
+			else
+				HandleRightClick(origin, direction);
+		});
+	}
 
-        var hit = Camera.GetWorld3D().DirectSpaceState.IntersectRay(query);
+	public override void _PhysicsProcess(double delta)
+	{
+		if (!GodotObject.IsInstanceValid(Camera))
+		{
+			_actions.Clear();
+			CancelInput();
+			return;
+		}
 
-        // 같은 광선에서 가장 먼저 닿은 유닛/건물/자원을 고릅니다.
-        if (hit.Count > 0 &&
-            hit["collider"].AsGodotObject() is Area3D area &&
-            area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode) &&
-            !target.IsQueuedForDeletion() && target is not Unit { IsDying: true })
-            return target;
-        return null;
-    }
+		while (_actions.TryDequeue(out var action))
+			action();
+	}
 
-    private void HandleRightClick(Vector3 origin, Vector3 direction)
-    {
-        // 이동 목적지는 Y=0 평면, 대상 판별은 유닛/건물/자원 Area3D를 사용합니다.
-        if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
-        {
-            Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask | BuildingMask);
-            ContextClicked?.Invoke(target, point);
-        }
-    }
+	private void HandleSelection(Vector3 origin, Vector3 direction, bool shift, bool sameType)
+	{
+		Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
+		if (target is Unit unit)
+		{
+			if (shift || sameType) ModifiedUnitSelectionRequested?.Invoke(unit, shift, sameType);
+			else UnitClicked?.Invoke(unit);
+		}
+		else if (target is Building building && !shift)
+			BuildingClicked?.Invoke(building);
+		else if (!shift)
+			SelectionCleared?.Invoke();
+	}
 
-    public override void _ExitTree()
-    {
-        GetWindow().FocusExited -= CancelInput;
-        SetAttackTargeting(false);
-        _actions.Clear();
-    }
+	private Node3D FindTarget(Vector3 origin, Vector3 direction, uint mask)
+	{
+		var query = PhysicsRayQueryParameters3D.Create(
+			origin, origin + direction * RayLength);
+		query.CollisionMask = mask;
+		query.CollideWithAreas = true;
+		query.CollideWithBodies = false;
+
+		var hit = Camera.GetWorld3D().DirectSpaceState.IntersectRay(query);
+
+		// 같은 광선에서 가장 먼저 닿은 유닛/건물/자원을 고릅니다.
+		if (hit.Count > 0 &&
+			hit["collider"].AsGodotObject() is Area3D area &&
+			area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode) &&
+			!target.IsQueuedForDeletion() && target is not Unit { IsDying: true })
+			return target;
+		return null;
+	}
+
+	private void HandleRightClick(Vector3 origin, Vector3 direction)
+	{
+		// 이동 목적지는 Y=0 평면, 대상 판별은 유닛/건물/자원 Area3D를 사용합니다.
+		if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
+		{
+			Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask | BuildingMask);
+			ContextClicked?.Invoke(target, point);
+		}
+	}
+
+	public override void _ExitTree()
+	{
+		GetWindow().FocusExited -= CancelInput;
+		SetAttackTargeting(false);
+		_actions.Clear();
+	}
 }

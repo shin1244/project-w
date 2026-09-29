@@ -14,8 +14,10 @@ public partial class UnitManager : Node3D
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
     public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
     public uint LocalTeam => _localTeam;
+    public bool TryGetUnit(uint id, out Unit unit) => _units.TryGetValue(id, out unit);
     public event Action SelectionChanged;
     private readonly HashSet<uint> _selectedUnitIds = new();
+    private readonly Dictionary<int, HashSet<uint>> _controlGroups = new();
     private const int MaxSelectedUnits = 64;
     private readonly Dictionary<uint, Unit> _units = new();
     private uint _localPlayerId;
@@ -38,6 +40,7 @@ public partial class UnitManager : Node3D
             unit.QueueFree();
         }
         _units.Clear();
+        _controlGroups.Clear();
         _localPlayerId = 0;
         _localTeam = 0;
         SelectionChanged?.Invoke();
@@ -47,6 +50,7 @@ public partial class UnitManager : Node3D
     {
         bool playerChanged = _localPlayerId != playerId || _localTeam != team;
         bool teamChanged = _localTeam != team;
+        if (playerChanged) _controlGroups.Clear();
         _localPlayerId = playerId;
         _localTeam = team;
         if (teamChanged)
@@ -251,6 +255,7 @@ public partial class UnitManager : Node3D
                 return;
             }
             existing.Initialize(unitId, ownerID, team);
+            if (!CanControl(existing)) ForgetGroupUnit(unitId);
             if (_targetIndicator.Target == existing && !IsEnemy(existing)) _targetIndicator.Clear();
             existing.ApplyServerPosition(x, z);
             ValidateSelection();
@@ -298,6 +303,7 @@ public partial class UnitManager : Node3D
 
         unit.SetSelected(false);
         bool selectionChanged = _selectedUnitIds.Remove(unitId);
+        ForgetGroupUnit(unitId);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Name = $"Dying_{unitId}";
         unit.BeginDeath();
@@ -311,6 +317,7 @@ public partial class UnitManager : Node3D
             !_units.Remove(id, out Unit unit)) return;
         unit.SetSelected(false);
         bool selectionChanged = _selectedUnitIds.Remove(id);
+        ForgetGroupUnit(id);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Hide();
         RemoveChild(unit);
@@ -320,9 +327,7 @@ public partial class UnitManager : Node3D
 
     public void SelectSingle(Unit unit)
     {
-        if (!GodotObject.IsInstanceValid(unit) || unit.IsQueuedForDeletion()
-            || _localPlayerId == 0 || unit.OwnerId != _localPlayerId
-            || !_units.TryGetValue(unit.UnitId, out Unit registered) || registered != unit)
+        if (!CanControl(unit))
         {
             ClearSelection();
             return;
@@ -338,6 +343,86 @@ public partial class UnitManager : Node3D
     {
         if (_selectedUnitIds.Count < MaxSelectedUnits && _selectedUnitIds.Add(unit.UnitId))
             unit.SetSelected(true);
+    }
+
+    public bool CanControl(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() &&
+        !unit.IsQueuedForDeletion() && !unit.IsDying && _localPlayerId != 0 && unit.OwnerId == _localPlayerId &&
+        _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
+
+    public void ToggleSelection(Unit unit)
+    {
+        if (CanControl(unit)) ApplyCandidates(new List<Unit> { unit }, toggle: true);
+    }
+
+    public void SelectSameTypeOnScreen(Unit clicked, bool additive)
+    {
+        if (!CanControl(clicked) || !GodotObject.IsInstanceValid(Camera)) return;
+        var candidates = new List<Unit> { clicked };
+        Rect2 screen = GetViewport().GetVisibleRect();
+        foreach (Unit unit in _units.Values)
+            if (unit != clicked && unit.UnitType == clicked.UnitType && IsOnScreen(unit, screen)) candidates.Add(unit);
+        // 더블클릭의 첫 클릭이 이미 선택을 바꿨으므로 Shift+더블클릭은 추가만 합니다.
+        ApplyCandidates(candidates, toggle: false, additive: additive);
+    }
+
+    public void SaveControlGroup(int number)
+    {
+        if (number < 1 || number > 9) return;
+        ValidateSelection();
+        _controlGroups[number] = new HashSet<uint>(_selectedUnitIds);
+    }
+
+    public bool RecallControlGroup(int number)
+    {
+        if (!_controlGroups.TryGetValue(number, out HashSet<uint> ids)) return false;
+        var candidates = new List<Unit>();
+        foreach (uint id in ids)
+            if (_units.TryGetValue(id, out Unit unit) && CanControl(unit)) candidates.Add(unit);
+        if (candidates.Count == 0) return false;
+        candidates.Sort((left, right) => left.UnitId.CompareTo(right.UnitId));
+        ApplyCandidates(candidates, toggle: false);
+        return true;
+    }
+
+    public bool TryGetSelectionCenter(out Vector3 center)
+    {
+        center = Vector3.Zero;
+        int count = 0;
+        foreach (uint id in _selectedUnitIds)
+            if (_units.TryGetValue(id, out Unit unit) && CanControl(unit)) { center += unit.GlobalPosition; count++; }
+        if (count == 0) return false;
+        center /= count;
+        return true;
+    }
+
+    private void ForgetGroupUnit(uint id)
+    {
+        foreach (HashSet<uint> group in _controlGroups.Values) group.Remove(id);
+    }
+
+    // 초상화는 현재 선택 안에서만 좁힙니다. 다른 소유자의 유닛을 선택에 추가하지 않습니다.
+    public void SelectFromPortrait(uint id, bool exclude, bool sameType)
+    {
+        ValidateSelection();
+        if (!_selectedUnitIds.Contains(id) || !_units.TryGetValue(id, out Unit clicked)) return;
+        if (!exclude && !sameType)
+        {
+            SelectSingle(clicked);
+            return;
+        }
+
+        bool changed = false;
+        foreach (uint selectedId in new List<uint>(_selectedUnitIds))
+        {
+            Unit unit = _units[selectedId];
+            bool matches = sameType ? unit.UnitType == clicked.UnitType : selectedId == id;
+            if (exclude ? !matches : matches) continue;
+            _selectedUnitIds.Remove(selectedId);
+            unit.SetSelected(false);
+            changed = true;
+        }
+        if (_selectedUnitIds.Count == 0) _targetIndicator.Clear();
+        if (changed) SelectionChanged?.Invoke();
     }
 
     public void ClearSelection()
@@ -356,31 +441,36 @@ public partial class UnitManager : Node3D
         _selectedUnitIds.Clear();
     }
 
-    public void SelectBox(Rect2 rect)
+    public void SelectBox(Rect2 rect) => SelectBoxWithMode(rect, false);
+
+    public void SelectBoxWithMode(Rect2 rect, bool toggle)
+    {
+        var candidates = new List<Unit>();
+        foreach (Unit unit in _units.Values)
+            if (IsOnScreen(unit, rect)) candidates.Add(unit);
+        ApplyCandidates(candidates, toggle);
+    }
+
+    private bool IsOnScreen(Unit unit, Rect2 rect)
+    {
+        if (!CanControl(unit) || !unit.IsVisibleInTree() || !GodotObject.IsInstanceValid(Camera)) return false;
+        Vector3 center = unit.GlobalPosition + Vector3.Up;
+        return Camera.IsPositionInFrustum(center) && rect.HasPoint(Camera.UnprojectPosition(center));
+    }
+
+    private void ApplyCandidates(List<Unit> candidates, bool toggle, bool additive = false)
     {
         var previousSelection = new HashSet<uint>(_selectedUnitIds);
-        ClearSelectionCore();
-        if (_localPlayerId == 0 || !GodotObject.IsInstanceValid(Camera))
-        {
-            if (previousSelection.Count > 0) SelectionChanged?.Invoke();
-            return;
-        }
-
-        foreach (Unit unit in _units.Values)
-        {
-            if (unit.IsQueuedForDeletion() || unit.OwnerId != _localPlayerId)
-                continue;
-
-            Vector3 center = unit.GlobalPosition + Vector3.Up;
-            if (!Camera.IsPositionInFrustum(center))
-                continue;
-
-            if (rect.HasPoint(Camera.UnprojectPosition(center)))
-                SelectUnit(unit);
-
-            if (_selectedUnitIds.Count >= MaxSelectedUnits)
-                break;
-        }
+        bool remove = toggle && candidates.Count > 0 && candidates.TrueForAll(unit => _selectedUnitIds.Contains(unit.UnitId));
+        if (!toggle && !additive) ClearSelectionCore();
+        else _targetIndicator.Clear();
+        foreach (Unit unit in candidates)
+            if (remove)
+            {
+                _selectedUnitIds.Remove(unit.UnitId);
+                unit.SetSelected(false);
+            }
+            else SelectUnit(unit);
         if (!previousSelection.SetEquals(_selectedUnitIds)) SelectionChanged?.Invoke();
     }
 

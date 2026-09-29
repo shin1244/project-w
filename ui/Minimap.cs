@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 // 지형은 변경될 때만 다시 만들고, 표식은 서버가 알려준 현재 목록에서 그립니다.
 public partial class Minimap : Control
@@ -6,6 +7,8 @@ public partial class Minimap : Control
     [Export] public MapWorld Map;
     [Export] public UnitManager Units;
     [Export] public BuildingManager Buildings;
+    public event Action<Vector3> CameraMoveRequested;
+    public event Action<Vector3> MoveRequested;
 
     public uint Team { get; private set; }
     public static readonly Color AllyColor = new("63e88a");
@@ -17,6 +20,11 @@ public partial class Minimap : Control
     private MapWorld _terrainMap;
     private uint _terrainVersion;
     private StyleBoxFlat _frame;
+    private bool _dragging;
+    private Transform3D _cameraTransform;
+    private float _cameraSize;
+    private Rect2 _screenRect;
+    private Camera3D Camera => GodotObject.IsInstanceValid(Units) ? Units.Camera : null;
 
     // 맵의 실제 비율을 유지해 가로/세로 크기가 달라도 원과 사각형이 왜곡되지 않습니다.
     public Rect2 MapRect
@@ -45,16 +53,63 @@ public partial class Minimap : Control
             CornerRadiusTopRight = 6
         };
         Resized += Invalidate;
+        GetWindow().FocusExited += CancelDrag;
         Invalidate();
     }
 
     public void SetTeam(uint team) { Team = team; Invalidate(); }
-    public void Reset() { Team = 0; Invalidate(); }
+    public void Reset() { Team = 0; CancelDrag(); Invalidate(); }
     public void Invalidate() => QueueRedraw();
+
+    public override void _Process(double delta)
+    {
+        Camera3D camera = Camera;
+        if (!GodotObject.IsInstanceValid(camera)) return;
+        Rect2 screen = GetViewport().GetVisibleRect();
+        if (_cameraTransform == camera.GlobalTransform && _cameraSize == camera.Size && _screenRect == screen) return;
+        _cameraTransform = camera.GlobalTransform;
+        _cameraSize = camera.Size;
+        _screenRect = screen;
+        Invalidate();
+    }
+
+    // 미니맵 밖에서 놓아도 드래그가 끝나며, 전장 선택/명령으로 이어지지 않습니다.
+    public override void _Input(InputEvent @event)
+    {
+        if (!_dragging) return;
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape } ||
+            @event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right })
+            CancelDrag();
+        else if (@event is InputEventMouseMotion motion)
+            Pan(GetGlobalTransformWithCanvas().AffineInverse() * motion.Position, true);
+        else if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left } release)
+        {
+            Pan(GetGlobalTransformWithCanvas().AffineInverse() * release.Position, true);
+            CancelDrag();
+        }
+        else return;
+        GetViewport().SetInputAsHandled();
+    }
+
+    private void CancelDrag() => _dragging = false;
+
+    private bool Pan(Vector2 local, bool clamp)
+    {
+        if (!TryMapToWorld(local, out Vector3 world, clamp)) return false;
+        CameraMoveRequested?.Invoke(world);
+        return true;
+    }
 
     public override void _GuiInput(InputEvent @event)
     {
-        // 표시용 UI 위의 클릭/휠이 뒤쪽 전장으로 전달되지 않도록 합니다.
+        if (@event is InputEventMouseButton { Pressed: true } button)
+        {
+            if (button.ButtonIndex == MouseButton.Left) _dragging = Pan(button.Position, false);
+            else if (button.ButtonIndex == MouseButton.Right && Team != 0 &&
+                GodotObject.IsInstanceValid(Map) && Map.IsSynchronized &&
+                TryMapToWorld(button.Position, out Vector3 world)) MoveRequested?.Invoke(world);
+        }
+        // 미니맵에서 처리한 입력과 여백/휠 입력 모두 전장으로 전달하지 않습니다.
         if (@event is InputEventMouse) AcceptEvent();
     }
 
@@ -68,6 +123,12 @@ public partial class Minimap : Control
         if (_terrain == null) return;
         DrawTextureRect(_terrain, mapRect, false);
         DrawRect(mapRect.Grow(1), new Color("0d171b"), false, 1);
+        Rect2 cameraRect = CameraRect;
+        if (cameraRect.HasArea())
+        {
+            DrawRect(cameraRect, new Color("101b1acc"), false, 3);
+            DrawRect(cameraRect, new Color("e4ede4"), false, 1);
+        }
         if (Team == 0 || !Map.IsSynchronized) return;
 
         // 건물은 서버가 공개한 목록을 그대로 표시합니다. 유닛의 적 시야 여부도 UNIT/HIDE가 결정합니다.
@@ -105,6 +166,41 @@ public partial class Minimap : Control
         return true;
     }
 
+    public bool TryMapToWorld(Vector2 local, out Vector3 world, bool clamp = false)
+    {
+        world = default;
+        Rect2 rect = MapRect;
+        if (!rect.HasArea() || !float.IsFinite(local.X) || !float.IsFinite(local.Y) ||
+            (!clamp && !rect.HasPoint(local))) return false;
+        Vector2 uv = ((local - rect.Position) / rect.Size).Clamp(Vector2.Zero, Vector2.One);
+        Vector2 point = Map.GridOrigin + uv * new Vector2(Map.GridSize.X, Map.GridSize.Y) * Map.CellSize;
+        world = new Vector3(point.X, 0, point.Y);
+        return true;
+    }
+
+    // 현재 카메라는 축에 정렬된 직교 투영입니다. 네 모서리의 지면 범위를 맵 안에서 잘라 표시합니다.
+    public Rect2 CameraRect
+    {
+        get
+        {
+            Rect2 mapRect = MapRect;
+            if (!mapRect.HasArea() || !GodotObject.IsInstanceValid(Camera)) return default;
+            Rect2 screen = GetViewport().GetVisibleRect();
+            Vector2 extent = new Vector2(Map.GridSize.X, Map.GridSize.Y) * Map.CellSize;
+            Vector2 minimum = new(float.PositiveInfinity, float.PositiveInfinity);
+            Vector2 maximum = new(float.NegativeInfinity, float.NegativeInfinity);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector2 corner = new(i % 2 == 0 ? screen.Position.X : screen.End.X, i < 2 ? screen.Position.Y : screen.End.Y);
+                if (!CameraNavigation.TryGroundPoint(Camera, corner, out Vector3 world)) return default;
+                Vector2 mapped = mapRect.Position + (new Vector2(world.X, world.Z) - Map.GridOrigin) / extent * mapRect.Size;
+                minimum = minimum.Min(mapped);
+                maximum = maximum.Max(mapped);
+            }
+            return new Rect2(minimum, maximum - minimum).Intersection(mapRect);
+        }
+    }
+
     private static Vector2 KeepMarkerInside(Vector2 point, float radius, Rect2 rect)
         => point.Clamp(rect.Position + Vector2.One * radius, rect.End - Vector2.One * radius);
 
@@ -127,6 +223,7 @@ public partial class Minimap : Control
     public override void _ExitTree()
     {
         Resized -= Invalidate;
+        GetWindow().FocusExited -= CancelDrag;
         _terrain?.Dispose();
         _frame?.Dispose();
     }
