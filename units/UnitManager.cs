@@ -13,6 +13,8 @@ public partial class UnitManager : Node3D
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
     public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
+    public uint LocalTeam => _localTeam;
+    public event Action SelectionChanged;
     private readonly HashSet<uint> _selectedUnitIds = new();
     private const int MaxSelectedUnits = 64;
     private readonly Dictionary<uint, Unit> _units = new();
@@ -27,7 +29,7 @@ public partial class UnitManager : Node3D
 
     public void Clear()
     {
-        ClearSelection();
+        ClearSelectionCore();
         // 사망 연출 중인 유닛은 이미 사전에서 빠졌으므로 씬 자식도 함께 정리합니다.
         foreach (Node child in GetChildren())
         {
@@ -38,14 +40,31 @@ public partial class UnitManager : Node3D
         _units.Clear();
         _localPlayerId = 0;
         _localTeam = 0;
+        SelectionChanged?.Invoke();
     }
 
     public void SetLocalPlayer(uint playerId, uint team)
     {
+        bool playerChanged = _localPlayerId != playerId || _localTeam != team;
         _localPlayerId = playerId;
         _localTeam = team;
         _targetIndicator.Clear();
-        ValidateSelection();
+        bool selectionChanged = ValidateSelection(notify: false);
+        if (playerChanged || selectionChanged) SelectionChanged?.Invoke();
+    }
+
+    public void RequestTrainWorker()
+    {
+        if (_localPlayerId == 0 || _localTeam == 0 || _selectedUnitIds.Count > 0 ||
+            !GodotObject.IsInstanceValid(Buildings)) return;
+
+        Building hall = Buildings.SelectedBuilding;
+        if (!GodotObject.IsInstanceValid(hall) || hall.IsQueuedForDeletion() || !hall.IsInsideTree() ||
+            hall.BuildingType != 0 || hall.SideId != _localTeam ||
+            !Buildings.TryGetBuilding(hall.BuildingId, out Building registered) || registered != hall) return;
+
+        // 생성 가능 여부와 비용은 서버에서 결정하고, UNIT 응답을 받은 뒤 표시합니다.
+        CommandRequested?.Invoke(Protocol.BuildTrain(0));
     }
 
     public void RequestMove(Vector3 point)
@@ -272,10 +291,11 @@ public partial class UnitManager : Node3D
             return;
 
         unit.SetSelected(false);
-        _selectedUnitIds.Remove(unitId);
+        bool selectionChanged = _selectedUnitIds.Remove(unitId);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Name = $"Dying_{unitId}";
         unit.BeginDeath();
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     // HIDE는 사망이 아닙니다. 대상 조회·입력에서 즉시 빼고, 재등장 시 새 스냅샷을 받습니다.
@@ -284,11 +304,12 @@ public partial class UnitManager : Node3D
         if (parts.Length != 2 || !uint.TryParse(parts[1], out uint id) ||
             !_units.Remove(id, out Unit unit)) return;
         unit.SetSelected(false);
-        _selectedUnitIds.Remove(id);
+        bool selectionChanged = _selectedUnitIds.Remove(id);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Hide();
         RemoveChild(unit);
         unit.QueueFree();
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     public void SelectSingle(Unit unit)
@@ -301,8 +322,10 @@ public partial class UnitManager : Node3D
             return;
         }
 
-        ClearSelection();
+        bool selectionChanged = _selectedUnitIds.Count != 1 || !_selectedUnitIds.Contains(unit.UnitId);
+        ClearSelectionCore();
         SelectUnit(unit);
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     private void SelectUnit(Unit unit)
@@ -313,6 +336,13 @@ public partial class UnitManager : Node3D
 
     public void ClearSelection()
     {
+        bool selectionChanged = _selectedUnitIds.Count > 0;
+        ClearSelectionCore();
+        if (selectionChanged) SelectionChanged?.Invoke();
+    }
+
+    private void ClearSelectionCore()
+    {
         _targetIndicator.Clear();
         foreach (uint id in _selectedUnitIds)
             if (_units.TryGetValue(id, out Unit unit))
@@ -322,9 +352,13 @@ public partial class UnitManager : Node3D
 
     public void SelectBox(Rect2 rect)
     {
-        ClearSelection();
+        var previousSelection = new HashSet<uint>(_selectedUnitIds);
+        ClearSelectionCore();
         if (_localPlayerId == 0 || !GodotObject.IsInstanceValid(Camera))
+        {
+            if (previousSelection.Count > 0) SelectionChanged?.Invoke();
             return;
+        }
 
         foreach (Unit unit in _units.Values)
         {
@@ -341,11 +375,12 @@ public partial class UnitManager : Node3D
             if (_selectedUnitIds.Count >= MaxSelectedUnits)
                 break;
         }
+        if (!previousSelection.SetEquals(_selectedUnitIds)) SelectionChanged?.Invoke();
     }
 
-    private void ValidateSelection()
+    private bool ValidateSelection(bool notify = true)
     {
-        _selectedUnitIds.RemoveWhere(id =>
+        int removed = _selectedUnitIds.RemoveWhere(id =>
         {
             if (!_units.TryGetValue(id, out Unit unit))
                 return true;
@@ -355,6 +390,8 @@ public partial class UnitManager : Node3D
             return true;
         });
         if (_selectedUnitIds.Count == 0) _targetIndicator.Clear();
+        if (notify && removed > 0) SelectionChanged?.Invoke();
+        return removed > 0;
     }
 
 }

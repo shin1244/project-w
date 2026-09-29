@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://buildings/Tower.tscn" id="17_tower"]
 [ext_resource type="Script" path="res://maps/FogOfWar.cs" id="18_fog"]
 [ext_resource type="Script" path="res://ui/Minimap.cs" id="19_minimap"]
+[ext_resource type="Script" path="res://ui/CommandPanel.cs" id="20_commands"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -30,7 +31,7 @@ ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.35
 tonemap_mode = 2
 
-[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap")]
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands")]
 script = ExtResource("1_0xm2m")
 Units = NodePath("Units")
 Buildings = NodePath("Buildings")
@@ -40,6 +41,7 @@ SyncStatus = NodePath("SelectionUI/SyncStatus")
 Stock = NodePath("SelectionUI/Stock")
 Fog = NodePath("Camera3D/FogOfWar")
 Minimap = NodePath("SelectionUI/Minimap")
+Commands = NodePath("SelectionUI/CommandPanel")
 
 [node name="Units" type="Node3D" parent="." node_paths=PackedStringArray("Camera", "Resources", "Buildings")]
 script = ExtResource("12_units")
@@ -128,13 +130,31 @@ layout_mode = 3
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -224.0
-offset_right = 320.0
-offset_bottom = -20.0
+offset_left = 0.0
+offset_top = -168.0
+offset_right = 300.0
+offset_bottom = 0.0
 grow_vertical = 0
 mouse_filter = 0
 script = ExtResource("19_minimap")
 Map = NodePath("../../Ground")
+Units = NodePath("../../Units")
+Buildings = NodePath("../../Buildings")
+
+[node name="CommandPanel" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings")]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -216.0
+offset_top = -216.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 0
+script = ExtResource("20_commands")
 Units = NodePath("../../Units")
 Buildings = NodePath("../../Buildings")

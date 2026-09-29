@@ -12,6 +12,7 @@ public partial class Main : Node3D
     [Export] public StockDisplay Stock;
     [Export] public FogOfWar Fog;
     [Export] public Minimap Minimap;
+    [Export] public CommandPanel Commands;
 
     private NetClient _net;
     private PlayerInput _playerInput;

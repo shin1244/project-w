@@ -28,9 +28,9 @@ public partial class MinimapChecks : Main
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Rect2 viewport = GetViewport().GetVisibleRect();
             Rect2 panel = Minimap.GetGlobalRect();
-            Check(panel.Position.X >= 0 && panel.Position.X < 40 &&
-                Mathf.Abs(viewport.End.Y - panel.End.Y - 20) < 2 && panel.Size.X >= 280,
-                "Minimap stays at the bottom left with a usable display size");
+            Check(Mathf.IsEqualApprox(panel.Position.X, viewport.Position.X) &&
+                Mathf.IsEqualApprox(panel.End.Y, viewport.End.Y) && panel.Size.IsEqualApprox(new Vector2(300, 168)),
+                "Minimap is 300 by 168 and sits flush against the bottom-left viewport edges");
             CheckCameraDragRelease(viewport);
             Check(Mathf.IsEqualApprox(Minimap.MapRect.Size.X / Minimap.MapRect.Size.Y,
                 (float)Map.GridSize.X / Map.GridSize.Y), "Rectangular terrain keeps its aspect ratio");

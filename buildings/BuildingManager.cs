@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -11,20 +12,35 @@ public partial class BuildingManager : Node3D
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
     public IReadOnlyCollection<Building> LiveBuildings => _buildings.Values;
+    public Building SelectedBuilding => _selected;
+    public event Action SelectionChanged;
     public uint LayoutVersion { get; private set; }
 
     public bool TryGetBuilding(uint id, out Building building) => _buildings.TryGetValue(id, out building);
 
     public void SelectSingle(Building building)
     {
-        ClearSelection();
+        Building previousSelection = _selected;
+        ClearSelectionCore();
         if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() ||
-            !_buildings.TryGetValue(building.BuildingId, out Building registered) || registered != building) return;
+            !_buildings.TryGetValue(building.BuildingId, out Building registered) || registered != building)
+        {
+            if (previousSelection != null) SelectionChanged?.Invoke();
+            return;
+        }
         _selected = building;
         building.SetSelected(true);
+        if (previousSelection != _selected) SelectionChanged?.Invoke();
     }
 
     public void ClearSelection()
+    {
+        bool selectionChanged = _selected != null;
+        ClearSelectionCore();
+        if (selectionChanged) SelectionChanged?.Invoke();
+    }
+
+    private void ClearSelectionCore()
     {
         if (GodotObject.IsInstanceValid(_selected)) _selected.SetSelected(false);
         _selected = null;
@@ -45,8 +61,10 @@ public partial class BuildingManager : Node3D
         {
             if (existing.BuildingType == type)
             {
+                bool selectedSideChanged = _selected == existing && existing.SideId != sideId;
                 existing.ApplySnapshot(id, sideId, x, z, yaw);
                 LayoutVersion++;
+                if (selectedSideChanged) SelectionChanged?.Invoke();
             }
             return;
         }
@@ -83,16 +101,21 @@ public partial class BuildingManager : Node3D
 
     public void Clear()
     {
+        bool selectionChanged = _selected != null;
+        ClearSelectionCore();
         foreach (uint id in new List<uint>(_buildings.Keys)) Remove(id);
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     private void Remove(uint id)
     {
         if (!_buildings.Remove(id, out Building building)) return;
         LayoutVersion++;
-        if (_selected == building) ClearSelection();
+        bool selectionChanged = _selected == building;
+        if (selectionChanged) ClearSelectionCore();
         RemoveChild(building);
         building.QueueFree();
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     private static bool TryCoordinate(string text, out float value)

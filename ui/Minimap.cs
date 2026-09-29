@@ -11,8 +11,7 @@ public partial class Minimap : Control
     public static readonly Color AllyColor = new("63e88a");
     public static readonly Color EnemyColor = new("ff635f");
     private static readonly Color MarkerOutline = new("101b1a");
-    private const float Padding = 12;
-    private const float HeaderHeight = 20;
+    private const float Padding = 4;
     private const float UnitRadius = 2.3f;
     private ImageTexture _terrain;
     private MapWorld _terrainMap;
@@ -25,11 +24,11 @@ public partial class Minimap : Control
         get
         {
             if (!GodotObject.IsInstanceValid(Map) || !Map.HasMap) return default;
-            Vector2 available = Size - new Vector2(Padding * 2, Padding * 2 + HeaderHeight);
+            Vector2 available = Size - Vector2.One * Padding * 2;
             if (available.X <= 0 || available.Y <= 0) return default;
             Vector2 grid = new(Map.GridSize.X, Map.GridSize.Y);
             Vector2 fitted = grid * Mathf.Min(available.X / grid.X, available.Y / grid.Y);
-            return new Rect2(new Vector2(Padding, Padding + HeaderHeight) + (available - fitted) * .5f, fitted);
+            return new Rect2(Vector2.One * Padding + (available - fitted) * .5f, fitted);
         }
     }
 
@@ -42,9 +41,8 @@ public partial class Minimap : Control
         _frame = new StyleBoxFlat
         {
             BgColor = new Color("18232ef5"), BorderColor = new Color("65776a"),
-            BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6
+            BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
+            CornerRadiusTopRight = 6
         };
         Resized += Invalidate;
         Invalidate();
@@ -64,13 +62,6 @@ public partial class Minimap : Control
     {
         if (_frame == null) return;
         DrawStyleBox(_frame, new Rect2(Vector2.Zero, Size));
-        Font font = GetThemeDefaultFont();
-        DrawString(font, new Vector2(Padding, 22), "전장", fontSize: 14, modulate: new Color("f2e8cb"));
-        DrawCircle(new Vector2(Size.X - 101, 17), 2.5f, AllyColor, antialiased: true);
-        DrawString(font, new Vector2(Size.X - 93, 21), "아군", fontSize: 11, modulate: new Color("c3ccc6"));
-        DrawCircle(new Vector2(Size.X - 48, 17), 2.5f, EnemyColor, antialiased: true);
-        DrawString(font, new Vector2(Size.X - 40, 21), "적군", fontSize: 11, modulate: new Color("c3ccc6"));
-
         Rect2 mapRect = MapRect;
         if (mapRect.Size == Vector2.Zero) return;
         RefreshTerrain();
