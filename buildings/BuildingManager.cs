@@ -11,12 +11,20 @@ public partial class BuildingManager : Node3D
     [Export] public UnitManager Units;
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
+    private uint _localTeam;
     public IReadOnlyCollection<Building> LiveBuildings => _buildings.Values;
     public Building SelectedBuilding => _selected;
     public event Action SelectionChanged;
     public uint LayoutVersion { get; private set; }
 
     public bool TryGetBuilding(uint id, out Building building) => _buildings.TryGetValue(id, out building);
+
+    public void SetLocalTeam(uint team)
+    {
+        if (_localTeam == team) return;
+        _localTeam = team;
+        foreach (Building building in _buildings.Values) building.SetLocalTeam(team);
+    }
 
     public void SelectSingle(Building building)
     {
@@ -76,6 +84,7 @@ public partial class BuildingManager : Node3D
             return;
         }
         Building building = scene.Instantiate<Building>();
+        building.SetLocalTeam(_localTeam);
         building.Name = $"Building_{id}";
         building.ResolveFocus = id => GodotObject.IsInstanceValid(Units) ? Units.ResolveFocus(id) : null;
         AddChild(building);
@@ -101,6 +110,7 @@ public partial class BuildingManager : Node3D
 
     public void Clear()
     {
+        _localTeam = 0;
         bool selectionChanged = _selected != null;
         ClearSelectionCore();
         foreach (uint id in new List<uint>(_buildings.Keys)) Remove(id);

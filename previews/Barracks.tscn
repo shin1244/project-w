@@ -1,0 +1,58 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://buildings/Barracks.tscn" id="1_model"]
+[ext_resource type="Script" path="res://previews/ProductionPreview.gd" id="2_preview"]
+[ext_resource type="Shader" path="res://previews/ProductionGrid.gdshader" id="3_grid"]
+
+[sub_resource type="ShaderMaterial" id="FloorMaterial"]
+shader = ExtResource("3_grid")
+shader_parameter/footprint_size = Vector2(3, 2)
+
+[sub_resource type="PlaneMesh" id="Floor"]
+material = SubResource("FloorMaterial")
+size = Vector2(120, 120)
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0.045, 0.063, 0.070, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.76, 0.85, 0.94, 1)
+ambient_light_energy = 0.46
+ambient_light_sky_contribution = 0.0
+tonemap_mode = 2
+
+[node name="BarracksPreview" type="Node3D"]
+script = ExtResource("2_preview")
+target_height = 1.15
+capture_path = "res://docs/images/barracks-preview.png"
+
+[node name="Barracks" parent="." instance=ExtResource("1_model")]
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.015, 0)
+mesh = SubResource("Floor")
+cast_shadow = 0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+projection = 1
+size = 4.6
+current = true
+far = 80.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.95, -0.65, 0)
+light_color = Color(1, 0.91, 0.75, 1)
+light_energy = 1.28
+shadow_enabled = true
+directional_shadow_max_distance = 20.0
+directional_shadow_mode = 0
+shadow_bias = 0.1
+shadow_normal_bias = 1.0
+
+[node name="Fill" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.5, 2.0, 0)
+light_color = Color(0.65, 0.79, 1, 1)
+light_energy = 0.28
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")

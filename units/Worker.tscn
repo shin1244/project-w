@@ -5,6 +5,7 @@
 [ext_resource type="AnimationLibrary" path="res://units/animations/Worker.tres" id="3_clips"]
 
 [sub_resource type="StandardMaterial3D" id="Cloth"]
+resource_name = "team_cloth"
 albedo_color = Color(0.76, 0.51, 0.2, 1)
 roughness = 0.8
 

@@ -21,11 +21,15 @@ public partial class Unit : Node3D
     private bool _hasServerPosition;
     private Node3D _focusTarget;
     private Tween _deathTween;
+    private uint _localTeam;
+    private TeamMaterials _teamMaterials;
 
     public override void _Ready()
     {
         SetProcess(false);
         HealthBar = HealthBar.Attach(this, HealthBarHeight);
+        _teamMaterials = new TeamMaterials(GetNode<Node3D>("Visual"));
+        _teamMaterials.Apply(Team, _localTeam);
     }
 
     public void ApplyHealth(HealthSnapshot health)
@@ -45,6 +49,8 @@ public partial class Unit : Node3D
             _deathTween.Dispose();
         }
         _deathTween = null;
+        _teamMaterials?.Dispose();
+        _teamMaterials = null;
     }
 
     public void Initialize(uint unitId, uint ownerId, uint team)
@@ -52,6 +58,13 @@ public partial class Unit : Node3D
         UnitId = unitId;
         OwnerId = ownerId;
         Team = team;
+        _teamMaterials?.Apply(Team, _localTeam);
+    }
+
+    public void SetLocalTeam(uint team)
+    {
+        _localTeam = team;
+        _teamMaterials?.Apply(Team, _localTeam);
     }
 
     // 루트는 발밑(Y=0)에 둡니다. 실제 이동 계산은 서버에서만 합니다.

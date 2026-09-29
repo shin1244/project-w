@@ -8,6 +8,7 @@ metallic = 0.55
 roughness = 0.4
 
 [sub_resource type="StandardMaterial3D" id="Cloth"]
+resource_name = "team_cloth"
 albedo_color = Color(0.16, 0.29, 0.52, 1)
 roughness = 0.9
 

@@ -133,8 +133,8 @@ public partial class BuildingSceneChecks : Main
             var blue = (StandardMaterial3D)a.GetSurfaceOverrideMaterial(i);
             var red = (StandardMaterial3D)b.GetSurfaceOverrideMaterial(i);
             Check(a.Mesh == b.Mesh && blue != red && source != red &&
-                blue.AlbedoColor.IsEqualApprox(new Color("376a94")) &&
-                red.AlbedoColor.IsEqualApprox(new Color("a33c37")) &&
+                blue.AlbedoColor.IsEqualApprox(TeamMaterials.FriendlyColor) &&
+                red.AlbedoColor.IsEqualApprox(TeamMaterials.EnemyColor) &&
                 source.AlbedoColor.IsEqualApprox(new Color("376a94")), "Side tint does not alter shared mesh material");
             return;
         }

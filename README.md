@@ -10,7 +10,7 @@ input/            마우스 입력과 맵 카메라
 network/          TCP 연결과 명령 문자열
 units/            UnitManager, 공통 유닛 스크립트와 일꾼·기사·궁수 씬
 resources/        ResourceManager, 자원 공통 스크립트와 나무 외형 3종
-buildings/        4×4 회관·3×3 쇠뇌 포탑 씬과 건물 메시
+buildings/        4×4 회관·3×3 포탑·2×2 서플라이·3×2 병영 씬과 메시
 maps/             맵 장면과 서버와 공유하는 격자 데이터(test.json)
   resources/      지형 메시와 충돌 리소스
 previews/         서버 없이 보는 맵·유닛 미리보기
@@ -38,7 +38,7 @@ docs/             설명과 미리보기 이미지
 
 맵 카메라는 W/S(위/아래), Q/D(왼쪽/오른쪽), 방향키·가운데 드래그로 이동, 휠로 확대/축소, Home으로 전체 보기입니다. A는 공격 대상 지정에 사용합니다.
 
-서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`, `previews/Forest.tscn`, `previews/TownHall.tscn`을 열고 F6으로 실행합니다.
+서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`, `previews/Forest.tscn`, `previews/TownHall.tscn`을 열고 F6으로 실행합니다. 새 서플라이·병영은 `previews/ProductionBuildings.tscn`에서 함께 보고 회전·확대할 수 있습니다. 두 건물의 인구수·생산 기능은 서버 연동 전입니다.
 
 나무는 `resources/trees/Tree.tscn`을 Oak/Pine/Birch 씬이 상속합니다. 자원 ID와 선택 표시(`ResourceNode.cs`), 클릭 영역(물리 레이어 3)은 공통이며 `Visual` 아래 외형만 다릅니다. `VisualVariant`는 외형 번호로, 자원 종류나 채집 능력치를 구분하지 않습니다. 나무는 맵 파일에서 생성하며 서버는 남은 자원량과 제거 변경분만 보냅니다. 유닛 선택 후 나무를 우클릭하면 `GATHER 자원ID 내유닛ID...`를 보냅니다. 실제 채집 가능 여부는 서버가 검사합니다.
 
@@ -55,6 +55,7 @@ docs/             설명과 미리보기 이미지
 
 - [보유 자원 UI와 STOCK 메시지](docs/stock.md)
 - [미니언과 진영 동기화](docs/minions.md)
+- [아군·적군 의상과 건물 지붕 색상](docs/team-colors.md)
 - [회관·포탑과 건물 전투 동기화](buildings/README.md)
 - [전장의 안개 동기화와 서버 성능 측정](docs/fog-of-war.md)
 - [유닛과 메시지 형식](docs/units.md)

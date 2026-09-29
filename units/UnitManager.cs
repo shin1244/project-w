@@ -46,8 +46,13 @@ public partial class UnitManager : Node3D
     public void SetLocalPlayer(uint playerId, uint team)
     {
         bool playerChanged = _localPlayerId != playerId || _localTeam != team;
+        bool teamChanged = _localTeam != team;
         _localPlayerId = playerId;
         _localTeam = team;
+        if (teamChanged)
+            foreach (Node child in GetChildren())
+                if (child is Unit unit) unit.SetLocalTeam(team);
+        Buildings?.SetLocalTeam(team);
         _targetIndicator.Clear();
         bool selectionChanged = ValidateSelection(notify: false);
         if (playerChanged || selectionChanged) SelectionChanged?.Invoke();
@@ -257,6 +262,7 @@ public partial class UnitManager : Node3D
         unit.ResolveFocus = ResolveFocus;
 
         unit.Initialize(unitId, ownerID, team);
+        unit.SetLocalTeam(_localTeam);
         unit.Name = $"Unit_{unitId}";
 
         AddChild(unit);

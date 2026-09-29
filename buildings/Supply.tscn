@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_emlak"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/Supply.res" id="2_7idce"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5bnij"]
+size = Vector3(2, 2.3969529, 2)
+
+[node name="Supply" type="Node3D" unique_id=880069691]
+script = ExtResource("1_emlak")
+BuildingType = 2
+HealthBarHeight = 2.6969528
+metadata/role = "supply"
+metadata/footprint = Vector2i(2, 2)
+metadata/front = "-Z"
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1398697679]
+mesh = ExtResource("2_7idce")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1152851842]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=2114713242]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1984764, 0)
+shape = SubResource("BoxShape3D_5bnij")
+
+[node name="Entrance" type="Marker3D" parent="." unique_id=1687360428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)

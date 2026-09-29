@@ -103,6 +103,7 @@ public partial class Main : Node3D
                     uint.TryParse(parts[2], out uint team) && team != 0)
                 {
                     Units.SetLocalPlayer(playerId, team);
+                    Buildings?.SetLocalTeam(team);
                     Fog?.SetTeam(team);
                     Minimap?.SetTeam(team);
                 }

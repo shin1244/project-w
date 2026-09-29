@@ -19,10 +19,14 @@ public partial class Building : Node3D
     private Vector3 _restPosition;
     private Tween _recoil;
     private MeshInstance3D _selection;
+    private uint _localTeam;
+    private TeamMaterials _teamMaterials;
 
     public override void _Ready()
     {
         HealthBar = HealthBar.Attach(this, HealthBarHeight, 76);
+        _teamMaterials = new TeamMaterials(GetNode<MeshInstance3D>("Visual"));
+        _teamMaterials.Apply(SideId, _localTeam);
         _turret = GetNodeOrNull<Node3D>("Turret");
         _ballista = GetNodeOrNull<Node3D>("Turret/Ballista");
         _muzzle = GetNodeOrNull<Marker3D>("Turret/Muzzle");
@@ -35,7 +39,8 @@ public partial class Building : Node3D
         HealthBar?.SetSelected(selected);
         if (_selection == null && selected)
         {
-            float radius = GetMeta("footprint").AsVector2I().X * .7072f + .08f;
+            Vector2I footprint = GetMeta("footprint").AsVector2I();
+            float radius = new Vector2(footprint.X, footprint.Y).Length() * .5f + .08f;
             _selection = new MeshInstance3D
             {
                 Name = "SelectionRing",
@@ -111,7 +116,12 @@ public partial class Building : Node3D
         trace.CreateTween().TweenCallback(Callable.From(trace.QueueFree)).SetDelay(.09);
     }
 
-    public override void _ExitTree() => _recoil?.Kill();
+    public override void _ExitTree()
+    {
+        _recoil?.Kill();
+        _teamMaterials?.Dispose();
+        _teamMaterials = null;
+    }
 
     public void ApplyHealth(HealthSnapshot health) => HealthBar.Apply(health.Current, health.Maximum);
 
@@ -122,26 +132,12 @@ public partial class Building : Node3D
         GlobalRotation = new Vector3(0, yaw, 0);
         if (SideId == sideId) return;
         SideId = sideId;
-        UpdateBanner();
+        _teamMaterials?.Apply(SideId, _localTeam);
     }
 
-    private void UpdateBanner()
+    public void SetLocalTeam(uint team)
     {
-        MeshInstance3D visual = GetNode<MeshInstance3D>("Visual");
-        for (int i = 0; i < visual.Mesh.GetSurfaceCount(); i++)
-        {
-            if (visual.Mesh.SurfaceGetMaterial(i) is not StandardMaterial3D source ||
-                source.ResourceName != "banner") continue;
-
-            // 메시 재질은 공유됩니다. 각 건물에 별도 재질을 덮어씌웁니다.
-            var banner = (StandardMaterial3D)source.Duplicate();
-            banner.AlbedoColor = SideId switch
-            {
-                1 => new Color("376a94"),
-                2 => new Color("a33c37"),
-                _ => source.AlbedoColor
-            };
-            visual.SetSurfaceOverrideMaterial(i, banner);
-        }
+        _localTeam = team;
+        _teamMaterials?.Apply(SideId, _localTeam);
     }
 }
