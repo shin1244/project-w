@@ -85,6 +85,7 @@ public partial class CommandPanelChecks : Main
             Expect("The friendly town hall shows worker in numpad slot 7", (7, "일꾼"));
             Check(Units.SelectedUnitIds.Count == 0, "Building selection clears selected units");
             Receive("STOCK 0 100");
+            Receive("SUPPLY 4 10");
             CheckWorkerTrain();
             CheckWorkerTrain();
             await Capture("command-panel-hall");
@@ -343,7 +344,7 @@ public partial class CommandPanelChecks : Main
     {
         int commandsBefore = _commands.Count;
         int unitsBefore = Units.LiveUnits.Count;
-        string stockBefore = Stock.GetChild<Label>(0).Text;
+        string stockBefore = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
         int bytesBefore = checked((int)_wire.Length);
         _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
         const string expected = "TRAIN 0";
@@ -351,7 +352,7 @@ public partial class CommandPanelChecks : Main
             "One worker click requests exactly one TRAIN with only the worker type and no player ID");
         Check(Encoding.UTF8.GetString(_wire.ToArray().AsSpan(bytesBefore)) == expected + System.Environment.NewLine,
             "The existing Main and NetClient path writes exactly one correctly framed training line");
-        Check(Units.LiveUnits.Count == unitsBefore && Stock.GetChild<Label>(0).Text == stockBefore,
+        Check(Units.LiveUnits.Count == unitsBefore && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == stockBefore,
             "A training request does not create a local unit or deduct local stock");
         Expect("Sending a worker request preserves the hall selection", (7, "일꾼"));
     }

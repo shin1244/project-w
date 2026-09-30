@@ -200,6 +200,9 @@ public partial class Main : Node3D
             case "STOCK":
                 Stock?.HandleStock(parts);
                 break;
+            case "SUPPLY":
+                Stock?.HandleSupply(parts);
+                break;
             case "REMOVE":
                 Units.HandleRemove(parts);
                 Buildings?.HandleRemove(parts);
