@@ -18,10 +18,16 @@
 [ext_resource type="PackedScene" path="res://buildings/TownHall.tscn" id="15_town_hall"]
 [ext_resource type="Script" path="res://ui/StockDisplay.cs" id="16_stock"]
 [ext_resource type="PackedScene" path="res://buildings/Tower.tscn" id="17_tower"]
+[ext_resource type="PackedScene" path="res://buildings/Fortress.tscn" id="25_fortress"]
 [ext_resource type="Script" path="res://maps/FogOfWar.cs" id="18_fog"]
 [ext_resource type="Script" path="res://ui/Minimap.cs" id="19_minimap"]
 [ext_resource type="Script" path="res://ui/CommandPanel.cs" id="20_commands"]
 [ext_resource type="Script" path="res://ui/SelectionDetails.cs" id="21_details"]
+[ext_resource type="Script" path="res://input/BuildingPlacement.cs" id="22_placement"]
+[ext_resource type="PackedScene" path="res://buildings/Supply.tscn" id="23_supply"]
+[ext_resource type="PackedScene" path="res://buildings/Barracks.tscn" id="24_barracks"]
+[ext_resource type="PackedScene" path="res://buildings/Store.tscn" id="26_store"]
+[ext_resource type="PackedScene" path="res://buildings/Forge.tscn" id="27_forge"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -32,7 +38,7 @@ ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.35
 tonemap_mode = 2
 
-[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands")]
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands", "Placement")]
 script = ExtResource("1_0xm2m")
 Units = NodePath("Units")
 Buildings = NodePath("Buildings")
@@ -43,6 +49,7 @@ Stock = NodePath("SelectionUI/Stock")
 Fog = NodePath("Camera3D/FogOfWar")
 Minimap = NodePath("SelectionUI/Minimap")
 Commands = NodePath("SelectionUI/CommandPanel")
+Placement = NodePath("BuildingPlacement")
 
 [node name="Units" type="Node3D" parent="." node_paths=PackedStringArray("Camera", "Resources", "Buildings")]
 script = ExtResource("12_units")
@@ -58,6 +65,11 @@ script = ExtResource("14_buildings")
 Units = NodePath("../Units")
 TownHallScene = ExtResource("15_town_hall")
 TowerScene = ExtResource("17_tower")
+FortressScene = ExtResource("25_fortress")
+SupplyScene = ExtResource("23_supply")
+BarracksScene = ExtResource("24_barracks")
+StoreScene = ExtResource("26_store")
+ForgeScene = ExtResource("27_forge")
 
 [node name="Resources" type="Node3D" parent="."]
 script = ExtResource("13_resources")
@@ -92,10 +104,20 @@ Resources = NodePath("../Resources")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=510406117]
 environment = SubResource("Environment_arena")
 
-[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera", "SelectionBox")]
+[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera", "SelectionBox", "Placement", "Commands")]
 script = ExtResource("7_272bh")
 Camera = NodePath("../Camera3D")
 SelectionBox = NodePath("../SelectionUI/SelectionBox")
+Placement = NodePath("../BuildingPlacement")
+Commands = NodePath("../SelectionUI/CommandPanel")
+
+[node name="BuildingPlacement" type="Node3D" parent="." node_paths=PackedStringArray("Map", "Units", "Buildings", "Camera", "Status")]
+script = ExtResource("22_placement")
+Map = NodePath("../Ground")
+Units = NodePath("../Units")
+Buildings = NodePath("../Buildings")
+Camera = NodePath("../Camera3D")
+Status = NodePath("../SelectionUI/BuildStatus")
 
 [node name="SelectionUI" type="CanvasLayer" parent="." unique_id=436774341]
 
@@ -113,6 +135,22 @@ script = ExtResource("8_selection")
 offset_left = 24.0
 offset_top = 24.0
 text = "맵 확인 중…"
+
+[node name="BuildStatus" type="Label" parent="SelectionUI"]
+visible = false
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -265.0
+offset_right = -24.0
+offset_bottom = -230.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 19
+horizontal_alignment = 1
 
 [node name="Stock" type="PanelContainer" parent="SelectionUI"]
 anchors_preset = 1

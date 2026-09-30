@@ -15,7 +15,12 @@ public partial class SelectionPortraits : Node
             "res://units/Knight.tscn" => "knight",
             "res://units/Archer.tscn" => "archer",
             "res://buildings/TownHall.tscn" => enemy ? "townhall-enemy" : "townhall-ally",
+            "res://buildings/Fortress.tscn" => enemy ? "fortress-enemy" : "fortress-ally",
             "res://buildings/Tower.tscn" => enemy ? "tower-enemy" : "tower-ally",
+            "res://buildings/Store.tscn" => enemy ? "store-enemy" : "store-ally",
+            "res://buildings/Supply.tscn" => enemy ? "supply-enemy" : "supply-ally",
+            "res://buildings/Barracks.tscn" => enemy ? "barracks-enemy" : "barracks-ally",
+            "res://buildings/Forge.tscn" => enemy ? "forge-enemy" : "forge-ally",
             _ => null
         };
         if (name == null) return null;

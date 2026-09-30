@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// Asset checks only: these scenes are not registered with the server protocol yet.
+// 서버와 동일한 타입 ID, 건물 외형·점유 크기·선택 영역 검증.
 public partial class ProductionBuildingChecks : Node3D
 {
     private const float Tolerance = .001f;
@@ -11,11 +11,17 @@ public partial class ProductionBuildingChecks : Node3D
     {
         try
         {
-            CheckAsset("Supply", new Vector2I(2, 2), 2);
-            CheckAsset("Barracks", new Vector2I(3, 2), 3);
-            CheckExistingSquareSelection("TownHall", 4);
-            CheckExistingSquareSelection("Tower", 3);
-            GD.Print("PASS: supply and barracks footprints, complete mesh bounds, selection volumes, entrances, health anchors, isolated team banners and rectangular selection rings; existing square rings preserved");
+            CheckAsset("TownHall", new Vector2I(5, 5), 0);
+            CheckAsset("Store", new Vector2I(3, 3), 2);
+            CheckAsset("Supply", new Vector2I(3, 3), 3);
+            CheckAsset("Barracks", new Vector2I(5, 3), 4);
+            CheckAsset("Forge", new Vector2I(5, 3), 5);
+            CheckAsset("Fortress", new Vector2I(4, 4), 1);
+            CheckAsset("Tower", new Vector2I(3, 3), 6);
+            CheckExistingSquareSelection("TownHall", 5);
+            CheckExistingSquareSelection("Fortress", 4);
+            CheckDefenseSweep();
+            GD.Print("PASS: all seven enlarged server footprints, scaled shared meshes, selection/health bounds, team colours and 3x3 tower weapon sweep including recoil");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -29,7 +35,7 @@ public partial class ProductionBuildingChecks : Node3D
         var red = scene.Instantiate<Building>();
         AddChild(blue);
         AddChild(red);
-        Check(blue.Scale.IsEqualApprox(Vector3.One), $"{name}: root uses world-size geometry without scaling");
+        Check(blue.Scale.IsEqualApprox(Vector3.One), $"{name}: root keeps world units while visual children enlarge the original meshes");
         Check(blue.BuildingType == type && blue.GetMeta("footprint").AsVector2I() == footprint,
             $"{name}: reserved asset type and footprint");
         Check(blue.GetMeta("front").AsString() == "-Z", $"{name}: front convention is -Z");
@@ -112,13 +118,39 @@ public partial class ProductionBuildingChecks : Node3D
                 $"{name}: repeated team changes preserve other instances and shared materials");
     }
 
+    private void CheckDefenseSweep()
+    {
+        var tower = GD.Load<PackedScene>("res://buildings/Tower.tscn").Instantiate<Building>();
+        AddChild(tower);
+        var turret = tower.GetNode<Node3D>("Turret");
+        var weapon = tower.GetNode<MeshInstance3D>("Turret/Ballista");
+        for (int angle = 0; angle < 360; angle += 15)
+        {
+            turret.RotationDegrees = new Vector3(0, angle, 0);
+            foreach (float recoil in new[] { 0f, .15f })
+            {
+                weapon.Position = new Vector3(0, 0, recoil);
+                Transform3D transform = tower.GlobalTransform.AffineInverse() * weapon.GlobalTransform;
+                // Transform real vertices: rotating a local AABB would include empty corners beyond the bow.
+                for (int surface = 0; surface < weapon.Mesh.GetSurfaceCount(); surface++)
+                    foreach (Vector3 vertex in weapon.Mesh.SurfaceGetArrays(surface)[(int)Mesh.ArrayType.Vertex].AsVector3Array())
+                    {
+                        Vector3 point = transform * vertex;
+                        Check(Mathf.Abs(point.X) <= 1.501f && Mathf.Abs(point.Z) <= 1.501f,
+                            $"Tower: enlarged weapon rotation/recoil stays in 3x3 at {angle} degrees");
+                    }
+            }
+        }
+        tower.Free();
+    }
+
     private void CheckExistingSquareSelection(string name, int size)
     {
         var building = GD.Load<PackedScene>($"res://buildings/{name}.tscn").Instantiate<Building>();
         AddChild(building);
         building.SetSelected(true);
         float radius = ((TorusMesh)building.GetNode<MeshInstance3D>("SelectionRing").Mesh).InnerRadius;
-        Check(Near(radius, size * .7072f + .08f), $"{name}: previous square selection radius is preserved within tolerance");
+        Check(Near(radius, size * .7072f + .08f), $"{name}: selection radius encloses the enlarged square footprint");
         building.Free();
     }
 

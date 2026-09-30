@@ -1,10 +1,16 @@
 extends "res://tools/build_town_hall.gd"
-## Compact 2x2 granary. Reusable visual only; production/population remain server concerns.
+## Compact 2x2 communal lodging. Resource storage is a separate building.
 
 const SUPPLY_SCENE := "res://buildings/Supply.tscn"
 const SUPPLY_MESH := "res://buildings/meshes/Supply.res"
 
 func _initialize() -> void:
+	setup_materials()
+	build_supply()
+	save_supply()
+	quit()
+
+func setup_materials() -> void:
 	material("stone", Color("7e8779"))
 	material("stone_light", Color("a6ad96"))
 	material("stone_dark", Color("526054"))
@@ -18,9 +24,8 @@ func _initialize() -> void:
 	material("gold", Color("d2aa59"), 0.25)
 	material("canvas", Color("cebc85"))
 	material("banner", Color("376a94"))
-	build_supply()
-	save_supply()
-	quit()
+	material("plaster", Color("d8cba9"))
+	material("window", Color("f7cf78"))
 
 func foundation() -> void:
 	var corners := [Vector2(-.87, -1), Vector2(.87, -1), Vector2(1, -.87), Vector2(1, .87),
@@ -44,48 +49,62 @@ func foundation() -> void:
 
 func build_supply() -> void:
 	foundation()
-	# Recessed dark core makes the little plank joints readable from an RTS camera.
-	box("wood", Vector3(0, .91, .19), Vector3(1.37, 1.02, 1.26))
-	for i in range(10):
-		var x := -.615 + i * .137
-		for z in [-.455, .835]:
-			box("wood_light" if i % 3 == 0 else "wood_warm", Vector3(x, .91, z), Vector3(.127, .95, .035))
+	# Two shared sleeping floors, warm windows and a domestic chimney.
+	box("plaster", Vector3(0, 1.105, .19), Vector3(1.39, 1.39, 1.28))
 	for side in [-1.0, 1.0]:
-		for i in range(9):
-			box("wood_light" if i % 3 == 0 else "wood_warm", Vector3(side * .701, .91, -.375 + i * .14), Vector3(.035, .95, .13))
-		for z in [-.437, .82]:
-			box("wood", Vector3(side * .69, .92, z), Vector3(.115, 1.07, .115))
-		box("wood", Vector3(side * .706, .47, .19), Vector3(.095, .10, 1.34))
-		box("wood", Vector3(side * .706, 1.38, .19), Vector3(.095, .115, 1.37))
-		# A long cross brace and a shuttered ventilation slot on each side.
-		beam("wood", Vector3(side * .733, .51, -.32), Vector3(side * .733, 1.30, .40), .055, .075)
-		box("wood", Vector3(side * .746, 1.12, .54), Vector3(.065, .40, .34))
-		box("dark", Vector3(side * .785, 1.13, .54), Vector3(.025, .28, .25))
-		for y in [1.035, 1.12, 1.205]:
-			box("wood_light", Vector3(side * .802, y, .54), Vector3(.03, .037, .265))
-		box("wood_light", Vector3(side * .80, .895, .54), Vector3(.09, .055, .41))
-	# Two timber gables: the front is deliberately visible above the storage doors.
-	for z in [-.465, .835]:
-		var a := Vector3(-.69, 1.40, z)
-		var b := Vector3(.69, 1.40, z)
-		var c := Vector3(0, 2.015, z)
-		if z < 0: triangle("wood_warm", a, c, b)
-		else: triangle("wood_warm", a, b, c)
-		box("wood", Vector3(0, 1.405, z), Vector3(1.46, .105, .105))
-		beam("wood", a, c, .075, .095)
-		beam("wood", c, b, .075, .095)
-		box("wood", Vector3(0, 1.66, z), Vector3(.065, .48, .08))
-	roof(.875, -.565, .905, 1.455, 2.10, 5, 8)
-	storage_doors()
-	wheat_crest()
-	roof_vent()
-	crate(Vector3(-.72, .115, -.76), .30)
-	sack(Vector3(-.54, .12, -.86), .11, .30)
-	sack(Vector3(-.78, .415, -.76), .10, .25)
-	barrel(Vector3(.70, .11, -.72), .18, .43)
-	sack(Vector3(.44, .12, -.87), .10, .25)
-	crate(Vector3(.84, .11, -.25), .22)
-	team_pennant()
+		for z in [-.445, .825]:
+			box("wood", Vector3(side * .69, 1.11, z), Vector3(.09, 1.46, .09))
+		for y in [.46, 1.095, 1.79]:
+			box("wood", Vector3(side * .71, y, .19), Vector3(.075, .085, 1.35))
+		for z in [-.10, .48]:
+			for y in [.77, 1.46]:
+				lodging_window(Vector3(side * .714, y, z), Basis(Vector3.UP, -side * PI * .5))
+	for z in [-.46, .84]:
+		for y in [.46, 1.095, 1.79]:
+			box("wood", Vector3(0, y, z), Vector3(1.45, .085, .08))
+		for x in [-.43, .43]:
+			lodging_window(Vector3(x, 1.46, z), Basis.IDENTITY if z < 0 else Basis(Vector3.UP, PI))
+		var a := Vector3(-.70, 1.80, z)
+		var b := Vector3(.70, 1.80, z)
+		var c := Vector3(0, 2.42, z)
+		if z < 0: triangle("plaster", a, c, b)
+		else: triangle("plaster", a, b, c)
+		beam("wood", a, c, .065, .075)
+		beam("wood", c, b, .065, .075)
+		box("wood", Vector3(0, 2.06, z), Vector3(.055, .49, .07))
+	roof(.89, -.59, .93, 1.85, 2.50, 6, 9)
+	# Human-scale single door, porch bench and bed sign distinguish housing from a warehouse.
+	box("wood", Vector3(0, .75, -.475), Vector3(.46, .71, .085))
+	for i in range(5):
+		box("wood_light", Vector3(-.172 + i * .086, .74, -.529), Vector3(.076, .65, .027))
+	sphere("gold", Vector3(.145, .75, -.554), .023)
+	box("roof", Vector3(0, 1.15, -.66), Vector3(.73, .065, .36))
+	for x in [-.32, .32]:
+		beam("wood", Vector3(x, .95, -.47), Vector3(x, 1.12, -.77), .045, .045)
+	for x in [-.82, -.42]:
+		box("wood", Vector3(x, .24, -.76), Vector3(.055, .25, .23))
+	box("wood_light", Vector3(-.62, .385, -.76), Vector3(.49, .065, .26))
+	box("wood", Vector3(-.62, .54, -.655), Vector3(.49, .16, .045))
+	box("banner", Vector3(.47, .84, -.511), Vector3(.29, .34, .035))
+	for x in [.365, .575]:
+		box("gold", Vector3(x, .805, -.535), Vector3(.02, .19, .015))
+	box("canvas", Vector3(.47, .81, -.544), Vector3(.20, .07, .016))
+	box("canvas", Vector3(.395, .865, -.544), Vector3(.055, .055, .017))
+	# Brick chimney sits inside the roof silhouette in X/Z, but rises above the ridge.
+	box("stone_dark", Vector3(.48, 2.31, .55), Vector3(.27, .73, .30))
+	for i in range(6):
+		box("stone_light" if i % 2 == 0 else "stone", Vector3(.48, 2.03 + i * .108, .55), Vector3(.285, .095, .31))
+	box("stone_light", Vector3(.48, 2.68, .55), Vector3(.35, .075, .37))
+	box("dark", Vector3(.48, 2.722, .55), Vector3(.23, .012, .25))
+
+func lodging_window(center: Vector3, basis: Basis) -> void:
+	box("wood", center, Vector3(.32, .37, .06), basis)
+	box("window", center + basis * Vector3(0, 0, -.039), Vector3(.245, .29, .022), basis)
+	box("wood", center + basis * Vector3(0, 0, -.055), Vector3(.026, .30, .025), basis)
+	box("wood", center + basis * Vector3(0, .005, -.057), Vector3(.25, .027, .025), basis)
+	for x in [-.19, .19]:
+		box("roof_mid", center + basis * Vector3(x, 0, -.019), Vector3(.062, .34, .038), basis)
+	box("wood_light", center + basis * Vector3(0, -.20, -.035), Vector3(.40, .045, .11), basis)
 
 func storage_doors() -> void:
 	box("dark", Vector3(0, .845, -.493), Vector3(.68, .86, .07))
@@ -209,6 +228,9 @@ func team_pennant() -> void:
 	box("gold", Vector3(.53, 1.095, -.617), Vector3(.12, .03, .01))
 
 func save_supply() -> void:
+	save_compact(SUPPLY_SCENE, SUPPLY_MESH, "Supply", 3, "supply")
+
+func save_compact(scene_path: String, mesh_path: String, model_name: String, type: int, role: String, footprint := Vector2i(2, 2)) -> void:
 	DirAccess.make_dir_recursive_absolute("res://buildings/meshes")
 	var mesh := ArrayMesh.new()
 	for key: String in surfaces:
@@ -216,9 +238,9 @@ func save_supply() -> void:
 		if arrays[Mesh.ARRAY_VERTEX] != null and arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			surfaces[key].commit(mesh)
 	var bounds := mesh.get_aabb()
-	assert(bounds.position.x >= -1.0001 and bounds.end.x <= 1.0001, "Supply exceeds 2-wide footprint: %s" % bounds)
-	assert(bounds.position.z >= -1.0001 and bounds.end.z <= 1.0001, "Supply exceeds 2-deep footprint: %s" % bounds)
-	assert(bounds.position.y >= -.0001, "Supply extends below ground")
+	assert(bounds.position.x >= -footprint.x * .5 - .0001 and bounds.end.x <= footprint.x * .5 + .0001, "%s exceeds footprint width: %s" % [model_name, bounds])
+	assert(bounds.position.z >= -footprint.y * .5 - .0001 and bounds.end.z <= footprint.y * .5 + .0001, "%s exceeds footprint depth: %s" % [model_name, bounds])
+	assert(bounds.position.y >= -.0001, "%s extends below ground" % model_name)
 	var triangles := 0
 	for surface in range(mesh.get_surface_count()):
 		var arrays := mesh.surface_get_arrays(surface)
@@ -227,18 +249,18 @@ func save_supply() -> void:
 		triangles += (indices.size() if indices != null and not indices.is_empty() else vertices.size()) / 3
 	assert(triangles < 30000)
 	assert(mesh.get_surface_count() <= 15)
-	assert(ResourceSaver.save(mesh, SUPPLY_MESH, ResourceSaver.FLAG_COMPRESS) == OK)
+	assert(ResourceSaver.save(mesh, mesh_path, ResourceSaver.FLAG_COMPRESS) == OK)
 	var supply := Node3D.new()
 	supply.set_script(load("res://buildings/Building.cs"))
-	supply.name = "Supply"
-	supply.set("BuildingType", 2) # Local asset identity; no network registration here.
+	supply.name = model_name
+	supply.set("BuildingType", type)
 	supply.set("HealthBarHeight", bounds.end.y + .30)
-	supply.set_meta("role", "supply")
-	supply.set_meta("footprint", Vector2i(2, 2))
+	supply.set_meta("role", role)
+	supply.set_meta("footprint", footprint)
 	supply.set_meta("front", "-Z")
 	var visual := MeshInstance3D.new()
 	visual.name = "Visual"
-	visual.mesh = load(SUPPLY_MESH)
+	visual.mesh = load(mesh_path)
 	supply.add_child(visual)
 	visual.owner = supply
 	var selection := Area3D.new()
@@ -253,17 +275,18 @@ func save_supply() -> void:
 	collision.name = "CollisionShape3D"
 	collision.position.y = bounds.end.y * .5
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(2, bounds.end.y, 2)
+	shape.size = Vector3(footprint.x, bounds.end.y, footprint.y)
 	collision.shape = shape
 	selection.add_child(collision)
 	collision.owner = supply
 	var entrance_marker := Marker3D.new()
 	entrance_marker.name = "Entrance"
-	entrance_marker.position = Vector3(0, 0, -1)
+	entrance_marker.position = Vector3(0, 0, -footprint.y * .5)
 	supply.add_child(entrance_marker)
 	entrance_marker.owner = supply
+	apply_server_footprint(supply)
 	var scene := PackedScene.new()
 	assert(scene.pack(supply) == OK)
-	assert(ResourceSaver.save(scene, SUPPLY_SCENE) == OK)
-	print("PASS: Supply footprint 2x2, bounds ", bounds, ", triangles ", triangles, ", surfaces ", mesh.get_surface_count())
+	assert(ResourceSaver.save(scene, scene_path) == OK)
+	print("PASS: ", model_name, " footprint ", supply.get_meta("footprint"), ", source bounds ", bounds, ", triangles ", triangles, ", surfaces ", mesh.get_surface_count())
 	supply.free()

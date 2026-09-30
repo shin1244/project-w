@@ -1,7 +1,16 @@
 extends SceneTree
-## Creates the reusable 4x4 town hall. All dimensions are in map units.
+## Creates the town hall from its original mesh, then scales the scene to 5x5.
 
 const OUTPUT := "res://buildings/TownHall.tscn"
+const SERVER_FOOTPRINTS := {
+	0: Vector2i(5, 5),
+	1: Vector2i(4, 4),
+	2: Vector2i(3, 3),
+	3: Vector2i(3, 3),
+	4: Vector2i(5, 3),
+	5: Vector2i(5, 3),
+	6: Vector2i(3, 3),
+}
 var surfaces: Dictionary = {}
 var materials: Dictionary = {}
 
@@ -261,9 +270,9 @@ func save_hall() -> void:
 	selection.owner = hall
 	var collision := CollisionShape3D.new()
 	collision.name = "CollisionShape3D"
-	collision.position.y = 2.1
+	collision.position.y = bounds.end.y * .5
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(4, 4.2, 4)
+	shape.size = Vector3(4, bounds.end.y, 4)
 	collision.shape = shape
 	selection.add_child(collision)
 	collision.owner = hall
@@ -272,8 +281,31 @@ func save_hall() -> void:
 	entrance_marker.position = Vector3(0, 0, -2)
 	hall.add_child(entrance_marker)
 	entrance_marker.owner = hall
+	apply_server_footprint(hall)
 	var scene := PackedScene.new()
 	assert(scene.pack(hall) == OK)
 	assert(ResourceSaver.save(scene, OUTPUT) == OK)
-	print("PASS: TownHall footprint 4x4, mesh bounds ", bounds, ", surfaces ", mesh.get_surface_count())
+	print("PASS: TownHall footprint ", hall.get_meta("footprint"), ", source mesh bounds ", bounds, ", surfaces ", mesh.get_surface_count())
 	hall.free()
+
+func apply_server_footprint(building: Node3D) -> void:
+	# Keep mesh resources and the gameplay root unchanged; scale only their presentation.
+	var original: Vector2i = building.get_meta("footprint")
+	var target: Vector2i = SERVER_FOOTPRINTS[int(building.get("BuildingType"))]
+	var width_scale := float(target.x) / original.x
+	var depth_scale := float(target.y) / original.y
+	var model_scale := Vector3(width_scale, minf(width_scale, depth_scale), depth_scale)
+	var visual := building.get_node("Visual") as Node3D
+	visual.scale *= model_scale
+	var turret := building.get_node_or_null("Turret") as Node3D
+	if turret != null:
+		turret.scale *= model_scale
+		turret.position *= model_scale
+	var collision := building.get_node("SelectionArea/CollisionShape3D") as CollisionShape3D
+	var shape := collision.shape as BoxShape3D
+	shape.size *= model_scale
+	collision.position *= model_scale
+	var entrance := building.get_node("Entrance") as Marker3D
+	entrance.position *= model_scale
+	building.set("HealthBarHeight", float(building.get("HealthBarHeight")) * model_scale.y)
+	building.set_meta("footprint", target)

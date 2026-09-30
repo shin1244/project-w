@@ -35,9 +35,9 @@ public sealed class FogOcclusionGrid
             {
                 int token = _tokens.Count + 1;
                 _tokens[building.BuildingId] = token;
-                float half = building.GetMeta("footprint").AsVector2I().X * .5f;
-                Vector2 min = new(building.GlobalPosition.X - half, building.GlobalPosition.Z - half);
-                Vector2 max = new(building.GlobalPosition.X + half, building.GlobalPosition.Z + half);
+                Vector2[] corners = BuildingFootprint.Corners(building);
+                Rect2 bounds = BuildingFootprint.Bounds(corners);
+                Vector2 min = bounds.Position, max = bounds.End;
                 int x0 = Math.Max(0, Mathf.FloorToInt((min.X - _origin.X) / _cell));
                 int z0 = Math.Max(0, Mathf.FloorToInt((min.Y - _origin.Y) / _cell));
                 int x1 = Math.Min(_size.X - 1, Mathf.CeilToInt((max.X - _origin.X) / _cell) - 1);
@@ -45,6 +45,7 @@ public sealed class FogOcclusionGrid
                 for (int z = z0; z <= z1; z++)
                     for (int x = x0; x <= x1; x++)
                     {
+                        if (!BuildingFootprint.Overlaps(new Rect2(_origin + new Vector2(x, z) * _cell, Vector2.One * _cell), corners)) continue;
                         int i = z * _size.X + x;
                         _buildings[i] = _buildings[i] == 0 ? token : -1;
                     }

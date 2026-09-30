@@ -37,7 +37,7 @@ public partial class WorkerAnimation : Node
     private void RefreshPose()
     {
         if (_unit.IsDying) return;
-        if (_attackSwing || _unit.State.Activity == UnitActivity.Gather)
+        if (_attackSwing || _unit.State.Activity is UnitActivity.Gather or UnitActivity.Build)
             Play("Swing");
         else
             Play(_unit.State.Carrying > 0 ? "Carry" : "Idle");

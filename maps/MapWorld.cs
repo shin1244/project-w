@@ -22,6 +22,8 @@ public partial class MapWorld : Node3D
     public float CellSize => _map.CellSize;
     public Vector2I GridSize => new(_map.Rows[0].Length, _map.Rows.Length);
     public void CopyVisionObstacles(bool[] destination) => _visionBlocked.CopyTo(destination, 0);
+    public bool IsTerrainBlocked(int x, int z) => _map == null || x < 0 || z < 0 ||
+        x >= GridSize.X || z >= GridSize.Y || _visionBlocked[z * GridSize.X + x];
 
     // 칸당 한 픽셀. 나무의 전체 점유 영역과 벌목 후 빈 땅을 반영합니다.
     public Image CreateMinimapTerrainImage()

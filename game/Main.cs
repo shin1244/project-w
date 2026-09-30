@@ -13,6 +13,7 @@ public partial class Main : Node3D
     [Export] public FogOfWar Fog;
     [Export] public Minimap Minimap;
     [Export] public CommandPanel Commands;
+    [Export] public BuildingPlacement Placement;
 
     private NetClient _net;
     private PlayerInput _playerInput;
@@ -48,11 +49,18 @@ public partial class Main : Node3D
         _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
         _playerInput.ControlGroupRequested += HandleControlGroup;
+        if (Commands != null) Commands.BuildRequested += BeginPlacement;
         if (Minimap != null)
         {
             Minimap.CameraMoveRequested += MoveCameraFromMinimap;
             Minimap.MoveRequested += _playerInput.QueueMinimapMove;
         }
+    }
+
+    private void BeginPlacement(uint type)
+    {
+        _playerInput?.ResetInteraction();
+        Placement?.Begin(type);
     }
 
     private void ModifyUnitSelection(Unit unit, bool shift, bool sameType)
@@ -167,6 +175,9 @@ public partial class Main : Node3D
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
+            case "CONSTRUCTION":
+                Buildings?.HandleConstruction(parts);
+                break;
             case "POS":
                 Units.HandlePosition(parts);
                 Fog?.Invalidate();
@@ -201,6 +212,7 @@ public partial class Main : Node3D
                 Minimap?.Invalidate();
                 break;
             case "ERR":
+                Placement?.Notice(message.Length > 4 ? message[4..] : "요청을 처리할 수 없습니다.", true);
                 GD.PushWarning(message);
                 break;
             default:
@@ -254,6 +266,7 @@ public partial class Main : Node3D
 
     public override void _ExitTree()
     {
+        if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
         if (_playerInput != null && GodotObject.IsInstanceValid(Units))
         {
             _playerInput.UnitClicked -= SelectUnit;

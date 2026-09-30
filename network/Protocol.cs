@@ -3,6 +3,12 @@ using System.Collections.Generic;
 
 public static class Protocol
 {
+    public static string BuildConstruct(uint buildingId, uint workerId)
+        => FormattableString.Invariant($"CONSTRUCT {buildingId} {workerId}");
+
+    public static string BuildConstruction(uint buildingType, float x, float z, uint workerId)
+        => FormattableString.Invariant($"BUILD {buildingType} {x} {z} {workerId}");
+
     // TRAIN 유닛타입 (일꾼: 0, 사용자는 서버 접속 정보로 판별합니다.)
     public static string BuildTrain(uint unitType)
     {

@@ -15,6 +15,7 @@ public readonly record struct StateSnapshot(uint Id, UnitState State)
             "IDLE" => UnitActivity.Idle,
             "GATHER" => UnitActivity.Gather,
             "ATTACK" => UnitActivity.Attack,
+            "BUILD" => UnitActivity.Build,
             _ => null
         };
         if (!activity.HasValue) return false;

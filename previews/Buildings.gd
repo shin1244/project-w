@@ -14,8 +14,9 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 2)
 	add_child(layout)
 	for entry in [
-		["res://previews/TownHall.tscn", "회관", "4 × 4", 8.1],
-		["res://previews/Tower.tscn", "쇠뇌 포탑", "3 × 3", 8.1]
+		["res://previews/TownHall.tscn", "회관", "5 × 5", 10.2],
+		["res://previews/Fortress.tscn", "요새", "4 × 4", 10.2],
+		["res://previews/Tower.tscn", "간이 포탑", "3 × 3", 10.2]
 	]:
 		var panel := SubViewportContainer.new()
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -32,8 +33,8 @@ func _ready() -> void:
 		viewport.add_child(model)
 		var camera: Camera3D = model.get_node("Camera3D")
 		camera.size = entry[3]
-		camera.position = Vector3(5.2, 6.4, -8.3)
-		camera.look_at(Vector3(0, 2.2, 0))
+		camera.position = Vector3(6.5, 8.0, -10.4)
+		camera.look_at(Vector3(0, 2.75, 0))
 		var title := Label.new()
 		title.text = entry[1] + "  /  " + entry[2]
 		title.position = Vector2(28, 20)

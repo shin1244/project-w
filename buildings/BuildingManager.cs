@@ -7,7 +7,12 @@ using System.Globalization;
 public partial class BuildingManager : Node3D
 {
     [Export] public PackedScene TownHallScene;
+    [Export] public PackedScene FortressScene;
     [Export] public PackedScene TowerScene;
+    [Export] public PackedScene StoreScene;
+    [Export] public PackedScene SupplyScene;
+    [Export] public PackedScene BarracksScene;
+    [Export] public PackedScene ForgeScene;
     [Export] public UnitManager Units;
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
@@ -18,6 +23,11 @@ public partial class BuildingManager : Node3D
     public uint LayoutVersion { get; private set; }
 
     public bool TryGetBuilding(uint id, out Building building) => _buildings.TryGetValue(id, out building);
+    public PackedScene SceneFor(uint type) => type switch
+    {
+        0 => TownHallScene, 1 => FortressScene, 2 => StoreScene, 3 => SupplyScene,
+        4 => BarracksScene, 5 => ForgeScene, 6 => TowerScene, _ => null
+    };
 
     public void SetLocalTeam(uint team)
     {
@@ -58,7 +68,7 @@ public partial class BuildingManager : Node3D
     {
         // BUILDING type id sideId x z yaw (yaw: radians)
         if (parts.Length != 7 ||
-            !uint.TryParse(parts[1], out uint type) || type > 1 ||
+            !uint.TryParse(parts[1], out uint type) || type > 6 ||
             !uint.TryParse(parts[2], out uint id) || id == 0 ||
             !uint.TryParse(parts[3], out uint sideId) || sideId == 0 ||
             !TryCoordinate(parts[4], out float x) ||
@@ -77,7 +87,7 @@ public partial class BuildingManager : Node3D
             return;
         }
 
-        PackedScene scene = type == 0 ? TownHallScene : TowerScene;
+        PackedScene scene = SceneFor(type);
         if (scene == null)
         {
             GD.PushWarning($"건물 씬이 지정되지 않았습니다. 타입: {type}");
@@ -96,6 +106,16 @@ public partial class BuildingManager : Node3D
     public void HandleHealth(HealthSnapshot health)
     {
         if (_buildings.TryGetValue(health.Id, out Building building)) building.ApplyHealth(health);
+    }
+
+    public void HandleConstruction(string[] parts)
+    {
+        if (parts.Length != 3 || !uint.TryParse(parts[1], out uint id) || id == 0 ||
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int percent) ||
+            percent < 0 || percent > 100 || !_buildings.TryGetValue(id, out Building building)) return;
+        if (building.ConstructionPercent == percent) return;
+        building.ApplyConstruction(percent);
+        if (_selected == building) SelectionChanged?.Invoke();
     }
 
     public void HandleState(StateSnapshot snapshot)

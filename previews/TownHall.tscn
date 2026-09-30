@@ -6,7 +6,7 @@
 
 [sub_resource type="ShaderMaterial" id="FloorMaterial"]
 shader = ExtResource("3_grid")
-shader_parameter/footprint_half_size = 2.0
+shader_parameter/footprint_half_size = 2.5
 
 [sub_resource type="PlaneMesh" id="Floor"]
 material = SubResource("FloorMaterial")
@@ -23,6 +23,7 @@ tonemap_mode = 2
 
 [node name="TownHallPreview" type="Node3D"]
 script = ExtResource("2_preview")
+target_height = 2.625
 
 [node name="TownHall" parent="." instance=ExtResource("1_hall")]
 
@@ -32,7 +33,7 @@ mesh = SubResource("Floor")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 7.4
+size = 9.25
 current = true
 far = 80.0
 

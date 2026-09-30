@@ -156,8 +156,8 @@ public partial class SelectionDetails : PanelContainer
             else if (_building != null)
             {
                 bool enemy = GodotObject.IsInstanceValid(Units) && Units.LocalTeam != 0 && _building.SideId != Units.LocalTeam;
-                _title.Text = _building.BuildingType == 0 ? "회관" : "포탑";
-                _portrait.Texture = _portraits.GetPortrait(_building.BuildingType == 0 ? Buildings.TownHallScene : Buildings.TowerScene, enemy);
+                _title.Text = BuildingCatalog.Name(_building.BuildingType);
+                _portrait.Texture = _portraits.GetPortrait(Buildings.SceneFor(_building.BuildingType), enemy);
             }
             else
             {
@@ -190,8 +190,9 @@ public partial class SelectionDetails : PanelContainer
         else if (Available(_building))
         {
             health = _building.HealthBar;
-            SetText(_activity, _building.BuildingType == 0 ? "" : ActivityText(_building.State, _building.HasServerState));
-            SetText(_extra, "");
+            SetText(_activity, _building.IsUnderConstruction ? $"공사 중   {_building.ConstructionPercent}%" :
+                _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
+            SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam ? "내 일꾼으로 우클릭해 이어 짓기" : "");
         }
         else return;
         SetText(_healthText, $"체력   {HealthText(health)}");
@@ -292,7 +293,8 @@ public partial class SelectionDetails : PanelContainer
     public static Color HealthColor(float ratio) => new(ratio > .5f ? "64cf79" : ratio > .25f ? "edbf55" : "e96860");
     public static string ActivityText(UnitState state, bool known) => !known ? "상태   —" : state.Activity switch
     {
-        UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중", _ => "상태   대기 / 이동"
+        UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중",
+        UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
     };
 
     public override void _GuiInput(InputEvent @event)

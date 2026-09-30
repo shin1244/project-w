@@ -90,6 +90,36 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(Protocol.BuildTrain(0));
     }
 
+    public bool TryGetSelectedWorker(out Unit worker)
+    {
+        worker = null;
+        foreach (uint id in _selectedUnitIds)
+            if (_units.TryGetValue(id, out Unit candidate) && candidate.UnitType == 0 && CanControl(candidate) &&
+                (worker == null || id < worker.UnitId)) worker = candidate;
+        return worker != null;
+    }
+
+    public bool RequestBuild(uint type, Vector3 position, uint workerId)
+    {
+        if (!BuildingCatalog.IsPlayerBuildable(type) || !position.IsFinite() || !_selectedUnitIds.Contains(workerId) ||
+            !_units.TryGetValue(workerId, out Unit worker) || worker.UnitType != 0 || !CanControl(worker)) return false;
+        CommandRequested?.Invoke(Protocol.BuildConstruction(type, position.X, position.Z, workerId));
+        return true;
+    }
+
+    public bool RequestConstruct(Building building, uint workerId)
+    {
+        if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() || !building.IsInsideTree() ||
+            !building.IsUnderConstruction || building.SideId != _localTeam ||
+            !GodotObject.IsInstanceValid(Buildings) || !Buildings.TryGetBuilding(building.BuildingId, out Building registered) ||
+            registered != building || !_selectedUnitIds.Contains(workerId) ||
+            !_units.TryGetValue(workerId, out Unit worker) || worker.UnitType != 0 || !CanControl(worker)) return false;
+        // 접근 중인 일꾼도 서버에서 예약되므로 사용 중 여부는 서버 응답으로만 판단합니다.
+        _targetIndicator.Clear();
+        CommandRequested?.Invoke(Protocol.BuildConstruct(building.BuildingId, workerId));
+        return true;
+    }
+
     public void RequestMove(Vector3 point)
     {
         ValidateSelection();
@@ -153,6 +183,7 @@ public partial class UnitManager : Node3D
                     !Buildings.TryGetBuilding(building.BuildingId, out Building registeredBuilding) || registeredBuilding != building)
                     return;
                 if (IsEnemy(building)) RequestAttack(building);
+                else if (building.IsUnderConstruction && TryGetSelectedWorker(out Unit builder)) RequestConstruct(building, builder.UnitId);
                 else RequestMove(point);
                 break;
             case null:

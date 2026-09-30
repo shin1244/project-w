@@ -23,6 +23,7 @@ tonemap_mode = 2
 
 [node name="TowerPreview" type="Node3D"]
 script = ExtResource("2_preview")
+target_height = 1.8
 capture_path = "res://docs/images/tower-preview.png"
 
 [node name="Tower" parent="." instance=ExtResource("1_hall")]
@@ -33,7 +34,7 @@ mesh = SubResource("Floor")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 6.6
+size = 6.3
 current = true
 far = 80.0
 

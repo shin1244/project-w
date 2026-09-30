@@ -40,6 +40,12 @@ public partial class HealthBar : Control
         RefreshVisibility();
     }
 
+    public void SetWorldHeight(float height)
+    {
+        _worldHeight = height;
+        if (_selected && _hasHealth) UpdatePosition();
+    }
+
     private void RefreshVisibility()
     {
         bool active = _selected && _hasHealth;

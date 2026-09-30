@@ -15,9 +15,11 @@ public partial class BakeSelectionPortraits : Node
             Error result = DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
             if (result != Error.Ok) throw new System.InvalidOperationException($"Cannot create portrait directory: {result}");
             var portraits = new Dictionary<string, Texture2D>();
-            foreach (string unit in new[] { "Worker", "Knight", "Archer" })
-                portraits.Add(unit.ToLowerInvariant(), GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn")));
-            foreach (string building in new[] { "TownHall", "Tower" })
+            bool defensesOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--defenses-only") >= 0;
+            if (!defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
+                foreach (string unit in new[] { "Worker", "Knight", "Archer" })
+                    portraits.Add(unit.ToLowerInvariant(), GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn")));
+            foreach (string building in defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" })
                 foreach (bool enemy in new[] { false, true })
                     portraits.Add($"{building.ToLowerInvariant()}-{(enemy ? "enemy" : "ally")}",
                         GetPortrait(GD.Load<PackedScene>($"res://buildings/{building}.tscn"), true, enemy));
@@ -32,7 +34,7 @@ public partial class BakeSelectionPortraits : Node
                     throw new System.InvalidOperationException($"Cannot save portrait: {path}");
                 GD.Print($"Saved portrait: {path}");
             }
-            GetTree().Quit();
+            Callable.From(FinishBake).CallDeferred();
         }
         catch (System.Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
     }
@@ -54,6 +56,7 @@ public partial class BakeSelectionPortraits : Node
         viewport.AddChild(model);
         // 루트 스크립트, 충돌, 체력바, 애니메이션은 초상화에서 실행하지 않습니다.
         Node source = scene.Instantiate();
+        float buildingHeight = building ? ((Building)source).HealthBarHeight : 0;
         foreach (string childName in new[] { "Visual", "Turret" })
         {
             Node3D visual = source.GetNodeOrNull<Node3D>(childName);
@@ -86,13 +89,20 @@ public partial class BakeSelectionPortraits : Node
         var camera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, Current = true,
-            Size = building ? 6.8f : 2.25f,
+            Size = building ? buildingHeight * 1.5f : 2.25f,
             Position = building ? new Vector3(7, 6, -10) : new Vector3(2.4f, 2.5f, -5)
         };
         viewport.AddChild(camera);
-        camera.LookAt(new Vector3(0, building ? 1.4f : 1.15f, 0));
+        camera.LookAt(new Vector3(0, building ? buildingHeight * .42f : 1.15f, 0));
         _cache.Add(key, viewport);
         return viewport.GetTexture();
+    }
+
+    private void FinishBake()
+    {
+        System.GC.Collect();
+        System.GC.WaitForPendingFinalizers();
+        GetTree().Quit();
     }
 
     private static void ClearOwners(Node node)

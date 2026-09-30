@@ -4,15 +4,16 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/TownHall.res" id="2_m5c8c"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wc5ff"]
-size = Vector3(4, 4.2, 4)
+size = Vector3(5, 5.975, 5)
 
 [node name="TownHall" type="Node3D" unique_id=1657165137]
 script = ExtResource("1_4ryg4")
-HealthBarHeight = 5.15
-metadata/footprint = Vector2i(4, 4)
+HealthBarHeight = 6.4375
+metadata/footprint = Vector2i(5, 5)
 metadata/front = "-Z"
 
 [node name="Visual" type="MeshInstance3D" parent="." unique_id=757909359]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
 mesh = ExtResource("2_m5c8c")
 
 [node name="SelectionArea" type="Area3D" parent="." unique_id=1380407967]
@@ -22,8 +23,8 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=548159399]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9875, 0)
 shape = SubResource("BoxShape3D_wc5ff")
 
 [node name="Entrance" type="Marker3D" parent="." unique_id=314683575]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.5)

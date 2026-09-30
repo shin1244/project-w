@@ -36,6 +36,7 @@ public partial class FogSyncChecks : Main
             AddChild(Units);
             Buildings = new BuildingManager
             {
+                FortressScene = GD.Load<PackedScene>("res://buildings/Fortress.tscn"),
                 TowerScene = GD.Load<PackedScene>("res://buildings/Tower.tscn"),
                 TownHallScene = GD.Load<PackedScene>("res://buildings/TownHall.tscn"), Units = Units
             };

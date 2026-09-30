@@ -1,0 +1,67 @@
+[
+  {
+    "Type": 3,
+    "Texture": "res://ui/build-previews/supply.png",
+    "Footprint": [
+      3,
+      3
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
+  },
+  {
+    "Type": 4,
+    "Texture": "res://ui/build-previews/barracks.png",
+    "Footprint": [
+      5,
+      3
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
+  },
+  {
+    "Type": 2,
+    "Texture": "res://ui/build-previews/store.png",
+    "Footprint": [
+      3,
+      3
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
+  },
+  {
+    "Type": 5,
+    "Texture": "res://ui/build-previews/forge.png",
+    "Footprint": [
+      5,
+      3
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
+  },
+  {
+    "Type": 6,
+    "Texture": "res://ui/build-previews/tower.png",
+    "Footprint": [
+      3,
+      3
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
+  }
+]

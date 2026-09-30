@@ -19,7 +19,7 @@ public partial class TeamColorChecks : Main
             typeof(Main).GetField("_net", PrivateInstance).SetValue(this, GetNode<NetClient>("/root/Net"));
             foreach (string name in new[] { "Worker", "Knight", "Archer" })
                 CheckAsset($"res://units/{name}.tscn");
-            foreach (string name in new[] { "TownHall", "Tower", "Supply", "Barracks" })
+            foreach (string name in new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" })
                 CheckAsset($"res://buildings/{name}.tscn");
 
             BeginWorld();

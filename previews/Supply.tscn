@@ -6,7 +6,7 @@
 
 [sub_resource type="ShaderMaterial" id="FloorMaterial"]
 shader = ExtResource("3_grid")
-shader_parameter/footprint_size = Vector2(2, 2)
+shader_parameter/footprint_size = Vector2(3, 3)
 
 [sub_resource type="PlaneMesh" id="Floor"]
 material = SubResource("FloorMaterial")
@@ -23,7 +23,7 @@ tonemap_mode = 2
 
 [node name="SupplyPreview" type="Node3D"]
 script = ExtResource("2_preview")
-target_height = 1.15
+target_height = 1.725
 capture_path = "res://docs/images/supply-preview.png"
 
 [node name="Supply" parent="." instance=ExtResource("1_model")]
@@ -35,7 +35,7 @@ cast_shadow = 0
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 4.2
+size = 6.3
 current = true
 far = 80.0
 

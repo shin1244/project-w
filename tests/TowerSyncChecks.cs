@@ -24,7 +24,7 @@ public partial class TowerSyncChecks : Main
             Buildings = new BuildingManager
             {
                 TownHallScene = GD.Load<PackedScene>("res://buildings/TownHall.tscn"),
-                TowerScene = GD.Load<PackedScene>("res://buildings/Tower.tscn"), Units = Units
+                FortressScene = GD.Load<PackedScene>("res://buildings/Fortress.tscn"), TowerScene = GD.Load<PackedScene>("res://buildings/Tower.tscn"), Units = Units
             };
             Units.Buildings = Buildings;
             AddChild(Units);
@@ -61,7 +61,9 @@ public partial class TowerSyncChecks : Main
             await Flush();
             Node3D turret = tower.GetNode<Node3D>("Turret");
             CheckFacing(turret, own, "Late UNIT snapshot becomes the tower's aim target");
-            Check(Mathf.IsEqualApprox(tower.GlobalRotation.Y, Mathf.Pi / 2), "Masonry keeps server yaw while weapon rotates");
+            Check(tower.GlobalRotation.IsZeroApprox() &&
+                Mathf.IsEqualApprox(tower.GetNode<Node3D>("Visual").Rotation.Y, Building.ViewYaw(camera.GlobalBasis)),
+                "Masonry faces the camera while weapon aims independently and occupancy stays server-aligned");
             Receive("POS 101 -5 -2");
             await Flush();
             CheckFacing(turret, own, "Aim follows POS even without another STATE");
@@ -82,6 +84,25 @@ public partial class TowerSyncChecks : Main
                 "STATE 501 ATTACK 0 101", "STATE 501 ATTACK 0 101 10 extra", "STATE 0 IDLE 0 0 0" }) Receive(bad);
             Receive("STATE 502 ATTACK 0 101 1");
             Check(tower.State.SwingSequence == 9 && shots == 1 && !hall.HasServerState, "Invalid tower states and non-attacking hall state ignored");
+
+            Receive("BUILDING 6 601 1 10 7 0");
+            Building smallTower = Buildings.GetNode<Building>("Building_601");
+            Check(tower.GetMeta("footprint").AsVector2I() == new Vector2I(4, 4) &&
+                smallTower.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3), "Old fortress and buildable tower keep distinct enlarged footprint sizes");
+            int smallShots = 0;
+            smallTower.StateChanged += (_, fired) => { if (fired) smallShots++; };
+            Receive("STATE 601 ATTACK 0 101 20");
+            Check(smallTower.HasServerState && smallShots == 0, "Small tower also suppresses historical shots");
+            smallTower._Process(0);
+            CheckFacing(smallTower.GetNode<Node3D>("Turret"), own, "Small tower aims at the server target");
+            Receive("STATE 601 ATTACK 0 101 21");
+            Receive("STATE 601 ATTACK 0 101 21");
+            Check(smallShots == 1 && smallTower.HasNode("ShotTrace") && smallTower.GetNode<Node3D>("Turret/Ballista").Position.Z > .1f,
+                "Small tower displays one recoil and trace per new server shot");
+            Receive("HP 601 180 250");
+            Check(smallTower.HealthBar.CurrentHP == 180 && smallTower.HealthBar.MaxHP == 250, "Small tower health comes from the server");
+            Receive("REMOVE 601");
+            Check(!Buildings.TryGetBuilding(601, out _) && smallTower.IsQueuedForDeletion(), "Small tower removal clears lookup immediately");
             await ToSignal(GetTree().CreateTimer(.3), SceneTreeTimer.SignalName.Timeout);
             Check(!tower.HasNode("ShotTrace") && tower.GetNode<Node3D>("Turret/Ballista").Position.IsZeroApprox(), "Shot effects complete without client damage simulation");
 
@@ -133,17 +154,25 @@ public partial class TowerSyncChecks : Main
             Building reconnected = Buildings.GetNode<Building>("Building_501");
             Check(!reconnected.HasNode("ShotTrace"), "Recreated tower starts with a fresh snapshot baseline");
             Receive("STATE 501 IDLE 0 0 100");
-            Check(!reconnected.IsProcessing(), "Idle stops aim updates");
+            Check(reconnected.State.Activity == UnitActivity.Idle && !reconnected.HasNode("ShotTrace"), "Idle retains camera-facing updates without attack effects");
             Buildings.Clear();
             Check(Buildings.GetChildCount() == 0, "Map reset clears building visuals and state");
+            await Flush(); // Finish queued building/effect cleanup before shutting down the engine.
             GD.Print("PASS: tower STATE, late targets, aim, shot deduplication, HP, building attack rays, selection, removal and reconnect");
-            GetTree().Quit();
+            Callable.From(FinishChecks).CallDeferred();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
         finally { Map?.Free(); }
     }
 
     private T Bind<T>(string name) where T : Delegate => typeof(Main).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic).CreateDelegate<T>(this);
+    private void FinishChecks()
+    {
+        // The async test has released its temporary wrappers. Finalize them while Godot is still alive.
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GetTree().Quit();
+    }
     private async Task Flush()
     {
         await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
@@ -153,9 +182,13 @@ public partial class TowerSyncChecks : Main
     }
     private static void Click(PlayerInput input, Vector2 position, MouseButton button)
     {
-        input._UnhandledInput(new InputEventMouseButton { Position = position, ButtonIndex = button, Pressed = true });
+        using var press = new InputEventMouseButton { Position = position, ButtonIndex = button, Pressed = true };
+        input._UnhandledInput(press);
         if (button == MouseButton.Left)
-            input._UnhandledInput(new InputEventMouseButton { Position = position, ButtonIndex = button, Pressed = false });
+        {
+            using var release = new InputEventMouseButton { Position = position, ButtonIndex = button, Pressed = false };
+            input._UnhandledInput(release);
+        }
     }
     private static void CheckFacing(Node3D facing, Node3D target, string message)
     {

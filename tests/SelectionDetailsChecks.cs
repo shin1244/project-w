@@ -132,7 +132,7 @@ public partial class SelectionDetailsChecks : Main
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 202));
             Receive("STATE 202 ATTACK 0 201 1");
             await Layout();
-            Check(Labels().Any(label => label.Text == "포탑") && Labels().Any(label => label.Text == "상태   공격 중"), "Tower displays server activity");
+            Check(Labels().Any(label => label.Text == "요새") && Labels().Any(label => label.Text == "상태   공격 중"), "Type 1 fortress displays its name and server activity");
             await Capture("selection-tower");
             var portrait = Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single();
             Texture2D enemyPortrait = portrait.Texture;

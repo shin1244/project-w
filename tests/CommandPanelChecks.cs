@@ -31,6 +31,8 @@ public partial class CommandPanelChecks : Main
             Check(Map.HasMap && Map.SyncError == null, "The real Main scene loads its map");
             Check(Commands == GetNode<CommandPanel>("SelectionUI/CommandPanel") && Commands.Units == Units &&
                 Commands.Buildings == Buildings, "Main wires the command panel to the live selection managers");
+            Check(GetNode<PlayerInput>("PlayerInput").Commands == Commands,
+                "PlayerInput routes construction hotkeys through the command panel");
             Units.CommandRequested += _commands.Add;
             Units.CommandRequested += command => InvokeMain("SendCommand", command);
             for (int number = 1; number <= 9; number++)
@@ -57,7 +59,14 @@ public partial class CommandPanelChecks : Main
             SelectUnit(101);
             ExpectUnit("An owned worker shows attack, stop and hold in numpad slots 4, 5 and 6");
             CheckDisplayOnlyButtons();
+            CheckTierMenu();
             await Capture("command-panel-unit");
+            if (_capture)
+            {
+                _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+                await Capture("command-panel-tier-one");
+                Commands.CancelMenu();
+            }
             SelectUnit(102);
             ExpectUnit("An owned combat unit shows the same three commands");
             InvokeMain("SelectBox", GetViewport().GetVisibleRect());
@@ -137,11 +146,14 @@ public partial class CommandPanelChecks : Main
                 "The server UNIT response creates the worker");
             SelectUnit(301);
             ExpectUnit("Selection works after reconnecting as a different player");
+            _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+            Check(Commands.IsTierOneMenuOpen, "A reconnected worker can reopen the tier-one menu");
             InvokeMain("OnConnectionClosed", "Command panel test disconnect");
             Expect("Disconnect clears the visible commands");
+            Check(!Commands.IsTierOneMenuOpen, "Disconnect exits the tier-one menu");
             CheckNoWorkerTrain("Disconnect prevents requests using stale identity or hall selection");
 
-            GD.Print("PASS: command panel layout and selection, worker TRAIN type-only transmission without player ID, one line per click, server-only creation and stock changes, sync gate, ownership/team changes, removal, reconnect and disconnect");
+            GD.Print("PASS: command panel layout, tier-one building menu and Q/W/E/A/S/Z/Esc shortcuts, tower construction, camera/attack conflicts, selection/focus/reset cancellation, control groups, worker TRAIN transmission, sync gate, ownership, removal and reconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -173,7 +185,12 @@ public partial class CommandPanelChecks : Main
         }
     }
 
-    private void ExpectUnit(string message) => Expect(message, (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
+    private void ExpectUnit(string message)
+    {
+        if (Units.TryGetSelectedWorker(out _))
+            Expect(message, (1, "1티어(Z)"), (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
+        else Expect(message, (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
+    }
 
     private void Expect(string message, params (int Slot, string Text)[] entries)
     {
@@ -181,7 +198,8 @@ public partial class CommandPanelChecks : Main
         foreach ((int number, Button button) in _slots)
         {
             string text = expected.GetValueOrDefault(number, "");
-            Check(button.Text == text && button.Disabled == (text.Length == 0),
+            bool disabled = text.Length == 0;
+            Check(button.Text == text && button.Disabled == disabled,
                 $"{message}: slot {number} expected '{text}', got '{button.Text}' (disabled={button.Disabled})");
         }
     }
@@ -190,13 +208,135 @@ public partial class CommandPanelChecks : Main
     {
         int commandsBefore = _commands.Count;
         string[] before = _slots.Values.Select(button => button.Text).ToArray();
-        foreach (Button button in _slots.Values)
+        foreach (int slot in new[] { 4, 5, 6 })
         {
-            Check(button.Shortcut == null, "Panel labels do not install new keyboard shortcuts");
+            Button button = _slots[slot];
             if (!button.Disabled) button.EmitSignal(BaseButton.SignalName.Pressed);
         }
         Check(_commands.Count == commandsBefore && before.SequenceEqual(_slots.Values.Select(button => button.Text)),
-            "Pressing populated buttons neither sends commands nor changes the selection layout");
+            "Pressing the existing display-only combat buttons preserves the layout and sends nothing");
+    }
+
+    private void CheckTierMenu()
+    {
+        PlayerInput input = GetNode<PlayerInput>("PlayerInput");
+        var requested = new List<uint>();
+        Commands.BuildRequested += requested.Add;
+        try
+        {
+            _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+            ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
+            Check(Units.Camera.GetMeta(CommandPanel.CameraMenuMeta, false).AsBool(),
+                "An open tier-one menu suppresses camera letter polling");
+            Check(!_slots[5].Disabled, "Tower construction is available with the updated server definition");
+            Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
+                "Modified keys are not reinterpreted as plain building shortcuts");
+            KeyStroke(input, Key.Z);
+            ExpectUnit("Z returns to the default worker panel");
+            KeyStroke(input, Key.Z);
+            KeyStroke(input, Key.Escape);
+            ExpectUnit("Escape returns to the default worker panel");
+
+            foreach ((int slot, Key key, uint type) in new[]
+            {
+                (7, Key.Q, BuildingCatalog.Store), (8, Key.W, BuildingCatalog.Supply),
+                (9, Key.E, BuildingCatalog.Barracks), (4, Key.A, BuildingCatalog.Forge), (5, Key.S, BuildingCatalog.Tower)
+            })
+            {
+                _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+                int before = requested.Count;
+                _slots[slot].EmitSignal(BaseButton.SignalName.Pressed);
+                Check(requested.Count == before + 1 && requested[^1] == type,
+                    $"Slot {slot} requests exactly one construction of type {type}");
+                ExpectUnit("A building selection returns to the default panel before placement");
+                KeyStroke(input, Key.Z);
+                before = requested.Count;
+                input._UnhandledInput(KeyEvent(key, true));
+                input._UnhandledInput(KeyEvent(key, true, echo: true));
+                Check(requested.Count == before + 1 && requested[^1] == type && !input.IsAttackTargeting,
+                    $"{key} requests one type {type}, while key repetition cannot enter attack targeting");
+                Check(!Commands.IsTierOneMenuOpen &&
+                    Units.Camera.GetMeta(CommandPanel.CameraReleaseMeta, false).AsBool(),
+                    "Closing the menu holds camera letters until the selecting key is released");
+                input._Input(KeyEvent(key, false));
+            }
+
+            // Input의 실제 물리 키 상태를 사용해 프레임마다 폴링하는 카메라까지 확인합니다.
+            Vector3 cameraPosition = Units.Camera.Position;
+            try
+            {
+                KeyStroke(input, Key.Z);
+                Input.ParseInputEvent(KeyEvent(Key.W, true));
+                Input.FlushBufferedEvents();
+                Check(!Commands.IsTierOneMenuOpen && requested[^1] == BuildingCatalog.Supply,
+                    "A real W event selects quarters through the PlayerInput path");
+                Units.Camera.Call("_process", .1);
+                Check(Units.Camera.Position.IsEqualApprox(cameraPosition),
+                    "Holding the selecting W key after menu closure does not pan the camera");
+                Input.ParseInputEvent(KeyEvent(Key.W, false));
+                Input.FlushBufferedEvents();
+                Units.Camera.Call("_process", .1);
+                Input.ParseInputEvent(KeyEvent(Key.W, true));
+                Input.FlushBufferedEvents();
+                Units.Camera.Call("_process", .1);
+                Check(!Units.Camera.Position.IsEqualApprox(cameraPosition),
+                    "Releasing and pressing W again restores normal camera movement");
+            }
+            finally
+            {
+                Input.ParseInputEvent(KeyEvent(Key.W, false));
+                Input.FlushBufferedEvents();
+                Units.Camera.Position = cameraPosition;
+            }
+
+            KeyStroke(input, Key.A);
+            Check(input.IsAttackTargeting, "A still activates attack targeting outside the construction menu");
+            KeyStroke(input, Key.Z);
+            Check(!input.IsAttackTargeting && Commands.IsTierOneMenuOpen,
+                "Opening the construction menu exits attack targeting");
+            SelectUnit(102);
+            Check(!Commands.IsTierOneMenuOpen, "Changing selection closes the construction menu");
+            SelectUnit(101);
+            KeyStroke(input, Key.Z);
+            GetWindow().EmitSignal(Window.SignalName.FocusExited);
+            Check(!Commands.IsTierOneMenuOpen, "Losing window focus closes the construction menu");
+            KeyStroke(input, Key.Z);
+            input.ResetInteraction();
+            Check(!Commands.IsTierOneMenuOpen, "Session reset closes the construction menu");
+
+            int group = 0;
+            void OnGroup(int number, bool save, bool focus) { group = number; }
+            input.ControlGroupRequested += OnGroup;
+            try
+            {
+                KeyStroke(input, Key.Z);
+                KeyStroke(input, Key.Key1);
+                input._PhysicsProcess(0);
+                Check(group == 1 && !Commands.IsTierOneMenuOpen,
+                    "Number-row control groups retain their input path and close the construction menu");
+            }
+            finally { input.ControlGroupRequested -= OnGroup; }
+            ExpectUnit("Menu checks leave the normal worker commands visible");
+        }
+        finally
+        {
+            Commands.BuildRequested -= requested.Add;
+            input.ResetInteraction();
+        }
+    }
+
+    private void ExpectTierMenu(string message) => Expect(message,
+        (7, "저장소\n(Q)"), (8, "합숙소\n(W)"), (9, "병영\n(E)"),
+        (4, "대장간\n(A)"), (5, "포탑\n(S)"), (1, "뒤로(Z)"));
+
+    private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>
+        new() { Keycode = key, PhysicalKeycode = key, Pressed = pressed, Echo = echo };
+
+    private static void KeyStroke(PlayerInput input, Key key)
+    {
+        if (key == Key.Escape) input._Input(KeyEvent(key, true));
+        else input._UnhandledInput(KeyEvent(key, true));
+        input._Input(KeyEvent(key, false));
     }
 
     private void CheckWorkerTrain()

@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_qde4i"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/Fortress.res" id="2_qn5na"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/FortressBallista.res" id="3_wvnaj"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_m5yoi"]
+size = Vector3(4, 5.9566667, 4)
+
+[node name="Fortress" type="Node3D" unique_id=976485757]
+script = ExtResource("1_qde4i")
+BuildingType = 1
+HealthBarHeight = 6.5333333
+metadata/footprint = Vector2i(4, 4)
+metadata/front = "-Z"
+metadata/role = "fortress"
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=130770142]
+transform = Transform3D(1.3333333, 0, 0, 0, 1.3333333, 0, 0, 0, 1.3333333, 0, 0, 0)
+mesh = ExtResource("2_qn5na")
+
+[node name="Turret" type="Node3D" parent="." unique_id=223902915]
+transform = Transform3D(1.3333333, 0, 0, 0, 1.3333333, 0, 0, 0, 1.3333333, 0, 4.84, 0)
+
+[node name="Ballista" type="MeshInstance3D" parent="Turret" unique_id=1210342975]
+mesh = ExtResource("3_wvnaj")
+
+[node name="Muzzle" type="Marker3D" parent="Turret" unique_id=316107137]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, -1.39)
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=744288447]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1521243014]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9783333, 0)
+shape = SubResource("BoxShape3D_m5yoi")
+
+[node name="Entrance" type="Marker3D" parent="." unique_id=583520501]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)

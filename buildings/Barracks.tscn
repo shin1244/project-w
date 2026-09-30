@@ -4,18 +4,19 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Barracks.res" id="2_x2gnx"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_y5phg"]
-size = Vector3(3, 3.218, 2)
+size = Vector3(5, 4.827, 3)
 
 [node name="Barracks" type="Node3D" unique_id=585023270]
 script = ExtResource("1_xp2p2")
-BuildingType = 3
-HealthBarHeight = 3.47
-metadata/footprint = Vector2i(3, 2)
+BuildingType = 4
+HealthBarHeight = 5.205
+metadata/footprint = Vector2i(5, 3)
 metadata/front = "-Z"
 metadata/role = "barracks"
 metadata/tier = 1
 
 [node name="Visual" type="MeshInstance3D" parent="." unique_id=541090034]
+transform = Transform3D(1.6666667, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 mesh = ExtResource("2_x2gnx")
 
 [node name="SelectionArea" type="Area3D" parent="." unique_id=727887819]
@@ -25,8 +26,8 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1348642599]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.609, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4135, 0)
 shape = SubResource("BoxShape3D_y5phg")
 
 [node name="Entrance" type="Marker3D" parent="." unique_id=759270166]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)

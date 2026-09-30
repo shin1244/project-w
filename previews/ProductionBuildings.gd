@@ -4,7 +4,7 @@ extends Control
 var cameras: Array[Camera3D] = []
 var yaw := 0.56
 var dragging := false
-var zoom := 4.8
+var zoom := 7.5
 
 func _ready() -> void:
 	var background := ColorRect.new()
@@ -12,10 +12,10 @@ func _ready() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	var heading := label("PROJECT W  /  군수 시설", 30, Color("edf0e4"))
+	var heading := label("PROJECT W  /  생활 · 군수 시설", 30, Color("edf0e4"))
 	heading.position = Vector2(38, 24)
 	add_child(heading)
-	var subtitle := label("보급을 늘리고, 전열을 준비하다", 17, Color("9eaca8"))
+	var subtitle := label("합숙소 · 자원 창고 · 병영 · 화덕과 모루가 있는 대장간", 17, Color("9eaca8"))
 	subtitle.position = Vector2(40, 66)
 	add_child(subtitle)
 	var layout := HBoxContainer.new()
@@ -27,8 +27,10 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 14)
 	add_child(layout)
 	for entry in [
-		["res://previews/Supply.tscn", "서플라이", "인구 수용량 확장", "2 × 2", "c5aa72"],
-		["res://previews/Barracks.tscn", "병영", "1티어 유닛 훈련", "3 × 2", "7fa4b9"]
+		["res://previews/Store.tscn", "저장소", "목재 · 자원 창고", "3 × 3", "9eb581"],
+		["res://previews/Supply.tscn", "합숙소", "병사들의 생활 공간", "3 × 3", "c5aa72"],
+		["res://previews/Barracks.tscn", "병영", "1티어 유닛 훈련", "5 × 3", "7fa4b9"],
+		["res://previews/Forge.tscn", "대장간", "화덕 · 모루 · 철제 장비", "5 × 3", "c9956f"]
 	]:
 		add_card(layout, entry)
 	update_cameras()
@@ -97,18 +99,18 @@ func add_card(layout: HBoxContainer, entry: Array) -> void:
 func update_cameras() -> void:
 	for camera in cameras:
 		camera.size = zoom
-		camera.position = Vector3(sin(yaw) * 8.0, 5.0, -cos(yaw) * 8.0)
-		camera.look_at(Vector3(0, 1.15, 0))
+		camera.position = Vector3(sin(yaw) * 12.0, 7.5, -cos(yaw) * 12.0)
+		camera.look_at(Vector3(0, 1.8, 0))
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			dragging = event.pressed
 		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom = maxf(3.2, zoom / 1.1)
+			zoom = maxf(4.8, zoom / 1.1)
 			update_cameras()
 		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom = minf(8.0, zoom * 1.1)
+			zoom = minf(12.0, zoom * 1.1)
 			update_cameras()
 	elif event is InputEventMouseMotion and dragging:
 		yaw -= event.relative.x * 0.008

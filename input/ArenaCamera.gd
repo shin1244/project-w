@@ -25,9 +25,16 @@ func _cancel_drag() -> void:
 
 func _process(delta: float) -> void:
 	var direction := Vector3.ZERO
+	var menu_open: bool = get_meta("command_menu_open", false)
+	var wait_for_release: bool = get_meta("command_menu_wait_for_release", false)
+	if wait_for_release and not (Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_D)):
+		wait_for_release = false
+		set_meta("command_menu_wait_for_release", false)
+	var letters_enabled := not menu_open and not wait_for_release
 	# A는 공격 대상 지정에 사용합니다. 왼쪽 이동은 Q 또는 왼쪽 방향키입니다.
-	direction.x = float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_LEFT))
-	direction.z = float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP))
+	# 건설 메뉴는 Q/W/A/S를 사용하므로 메뉴가 닫힌 뒤 해당 키를 놓을 때까지 문자 이동을 쉽니다.
+	direction.x = float((letters_enabled and Input.is_physical_key_pressed(KEY_D)) or Input.is_physical_key_pressed(KEY_RIGHT)) - float((letters_enabled and Input.is_physical_key_pressed(KEY_Q)) or Input.is_physical_key_pressed(KEY_LEFT))
+	direction.z = float((letters_enabled and Input.is_physical_key_pressed(KEY_S)) or Input.is_physical_key_pressed(KEY_DOWN)) - float((letters_enabled and Input.is_physical_key_pressed(KEY_W)) or Input.is_physical_key_pressed(KEY_UP))
 	if direction.length_squared() > 0:
 		position += direction.normalized() * pan_speed * (size / home_size) * delta
 		clamp_position()

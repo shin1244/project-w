@@ -263,7 +263,7 @@ func save_barracks() -> void:
 	var barracks := Node3D.new()
 	barracks.name = "Barracks"
 	barracks.set_script(load("res://buildings/Building.cs"))
-	barracks.set("BuildingType", 3)
+	barracks.set("BuildingType", 4)
 	barracks.set("HealthBarHeight", 3.47)
 	barracks.set_meta("footprint", Vector2i(3, 2))
 	barracks.set_meta("front", "-Z")
@@ -295,8 +295,9 @@ func save_barracks() -> void:
 	entrance_marker.position = Vector3(0, 0, -1)
 	barracks.add_child(entrance_marker)
 	entrance_marker.owner = barracks
+	apply_server_footprint(barracks)
 	var scene := PackedScene.new()
 	assert(scene.pack(barracks) == OK)
 	assert(ResourceSaver.save(scene, "res://buildings/Barracks.tscn") == OK)
-	print("PASS: Barracks 3x2; bounds ", bounds, "; triangles ", triangles, "; material surfaces ", mesh.get_surface_count())
+	print("PASS: Barracks footprint ", barracks.get_meta("footprint"), "; source bounds ", bounds, "; triangles ", triangles, "; material surfaces ", mesh.get_surface_count())
 	barracks.free()

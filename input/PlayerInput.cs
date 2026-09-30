@@ -9,6 +9,8 @@ public partial class PlayerInput : Node
 	[Export(PropertyHint.Layers3DPhysics)] public uint ResourceMask = 1u << 2;
 	[Export(PropertyHint.Layers3DPhysics)] public uint BuildingMask = 1u << 3;
 	[Export] public SelectionBox SelectionBox;
+	[Export] public BuildingPlacement Placement;
+	[Export] public CommandPanel Commands;
 
 	public event Action<Unit> UnitClicked;
 	public event Action<Unit, bool, bool> ModifiedUnitSelectionRequested;
@@ -39,11 +41,38 @@ public partial class PlayerInput : Node
 	// 광선 조회는 물리 프레임에서 실행하고, 박스 선택과 이동도 같은 순서를 지킵니다.
 	private readonly Queue<Action> _actions = new();
 
-	public override void _Ready() => GetWindow().FocusExited += CancelInput;
+	public override void _Ready()
+	{
+		GetWindow().FocusExited += CancelInput;
+		if (GodotObject.IsInstanceValid(Commands)) Commands.BuildMenuOpened += OnBuildMenuOpened;
+	}
+
+	private void OnBuildMenuOpened()
+	{
+		Placement?.Cancel();
+		CancelDrag();
+		SetAttackTargeting(false);
+		_lastGroup = 0;
+	}
 
 	// UI 위에서 버튼을 떼어도, 게임 화면에서 시작한 드래그를 끝냅니다.
 	public override void _Input(InputEvent @event)
 	{
+		Commands?.ObserveKeyRelease(@event);
+		if (Placement is { Active: true } &&
+			(@event is InputEventKey { Pressed: true, Keycode: Key.Escape } ||
+			 @event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }))
+		{
+			Placement.Cancel();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+		if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape } &&
+			Commands?.TryHandleShortcut(@event) == true)
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (IsAttackTargeting && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
 		{
 			SetAttackTargeting(false);
@@ -56,6 +85,14 @@ public partial class PlayerInput : Node
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (!_leftPressed && Commands?.TryHandleShortcut(@event) == true)
+		{
+			_lastGroup = 0;
+			SetAttackTargeting(false);
+			if (Commands.IsTierOneMenuOpen) Placement?.Cancel();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (@event is InputEventKey groupKey && groupKey.Pressed && TryGroupNumber(groupKey, out int number))
 		{
 			if (!groupKey.Echo && !_leftPressed && !groupKey.AltPressed && !groupKey.MetaPressed && !groupKey.ShiftPressed)
@@ -65,6 +102,8 @@ public partial class PlayerInput : Node
 				bool focus = !save && _lastGroup == number && now - _lastGroupTime <= 350;
 				_lastGroup = save || focus ? 0 : number;
 				_lastGroupTime = now;
+				Placement?.Cancel();
+				Commands?.CancelMenu();
 				SetAttackTargeting(false);
 				_actions.Enqueue(() => ControlGroupRequested?.Invoke(number, save, focus));
 			}
@@ -76,7 +115,22 @@ public partial class PlayerInput : Node
 		{
 			_lastGroup = 0;
 			if (!key.Echo && !_leftPressed && GodotObject.IsInstanceValid(Camera))
+			{
+				Placement?.Cancel();
 				SetAttackTargeting(true);
+			}
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
+		if (Placement is { Active: true } && @event is InputEventMouseButton placementClick &&
+			placementClick.ButtonIndex is MouseButton.Left or MouseButton.Right)
+		{
+			if (placementClick.Pressed)
+			{
+				if (placementClick.ButtonIndex == MouseButton.Right) Placement.Cancel();
+				else Placement.TryPlace(placementClick.Position);
+			}
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -186,6 +240,8 @@ public partial class PlayerInput : Node
 
 	private void CancelInput()
 	{
+		Placement?.Cancel();
+		Commands?.CancelMenu();
 		CancelDrag();
 		SetAttackTargeting(false);
 		_lastGroup = 0;
@@ -196,6 +252,8 @@ public partial class PlayerInput : Node
 
 	public void CancelTargeting()
 	{
+		Placement?.Cancel();
+		Commands?.CancelMenu();
 		SetAttackTargeting(false);
 		_lastGroup = 0;
 	}
@@ -299,6 +357,7 @@ public partial class PlayerInput : Node
 	public override void _ExitTree()
 	{
 		GetWindow().FocusExited -= CancelInput;
+		if (GodotObject.IsInstanceValid(Commands)) Commands.BuildMenuOpened -= OnBuildMenuOpened;
 		SetAttackTargeting(false);
 		_actions.Clear();
 	}
