@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Runtime.InteropServices;
 
-// 작은 원을 장애물 경계에서 자른 삼각형 팬. 격자 칸의 사각형 윤곽을 출력하지 않습니다.
+// 몸 가장자리에서 시야만큼 확장한 윤곽을 장애물 경계에서 자르는 삼각형 팬.
 public sealed class FogLightMesh
 {
     public const int Segments = 256;
@@ -15,8 +15,8 @@ public sealed class FogLightMesh
     private readonly MeshInstance2D _node;
     private readonly ShaderMaterial _material;
     private uint _revision = uint.MaxValue;
-    private Vector2 _center;
-    private float _radius = -1;
+    private RangeBody _body;
+    private float _sight = -1;
     private int _ignore;
 
     public FogLightMesh(Node parent)
@@ -31,33 +31,42 @@ public sealed class FogLightMesh
         _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, flags: Mesh.ArrayFormat.FlagUseDynamicUpdate);
     }
 
-    public bool Update(Vector2 center, float radius, int ignore, FogOcclusionGrid grid, Vector2 origin, float pixelsPerWorldUnit, float cell)
+    public bool Update(RangeBody body, float sight, int ignore, FogOcclusionGrid grid, Vector2 origin, float pixelsPerWorldUnit, float cell)
     {
-        if (_center == center && _radius == radius && _ignore == ignore && _revision == grid.Revision) return false;
-        _center = center; _radius = radius; _ignore = ignore; _revision = grid.Revision;
-        _node.Position = (center - origin) * pixelsPerWorldUnit;
-        _node.Visible = radius > 0;
-        if (radius <= 0) return true;
+        if (_body == body && _sight == sight && _ignore == ignore && _revision == grid.Revision) return false;
+        _body = body; _sight = sight; _ignore = ignore; _revision = grid.Revision;
+        float reach = sight + body.Radius;
+        float extent = body.HalfExtents.Length() + reach;
+        _node.Position = (body.Center - origin) * pixelsPerWorldUnit;
+        _node.Visible = extent > 0;
+        if (extent <= 0) return true;
         for (int i = 0; i < Segments; i++)
-            _distances[i] = grid.RayDistance(center, Directions[i], radius, ignore);
+            _distances[i] = grid.RayDistance(body.Center, Directions[i], body.BoundaryDistance(Directions[i], sight), ignore);
         for (int i = 0; i < Segments; i++)
         {
             // 차폐 모서리를 잇는 삼각형이 장애물 뒤로 삐져나오지 않도록 이웃 각도도 보수적으로 적용합니다.
             float distance = Math.Min(_distances[i], Math.Min(_distances[(i + Segments - 1) % Segments], _distances[(i + 1) % Segments]));
-            if (distance < radius) distance = Math.Max(0, distance - .02f * cell);
+            // 열린 곳의 곡선은 정확한 범위를 유지하고, 차폐 경계만 보수적으로 잘라냅니다.
+            float boundary = body.BoundaryDistance(Directions[i], sight);
+            bool occluded = _distances[i] < boundary - .001f ||
+                _distances[(i + Segments - 1) % Segments] < body.BoundaryDistance(Directions[(i + Segments - 1) % Segments], sight) - .001f ||
+                _distances[(i + 1) % Segments] < body.BoundaryDistance(Directions[(i + 1) % Segments], sight) - .001f;
+            distance = occluded ? Math.Max(0, Math.Min(boundary, distance) - .02f * cell) : boundary;
             _polygon[i] = Directions[i] * distance;
             Vector2 vertex = _polygon[i] * pixelsPerWorldUnit;
             _vertices[i + 1] = new Vector3(vertex.X, vertex.Y, 0);
         }
-        float pixelRadius = radius * pixelsPerWorldUnit;
+        float pixelRadius = extent * pixelsPerWorldUnit;
         _mesh.CustomAabb = new Aabb(new Vector3(-pixelRadius, -pixelRadius, -.1f), new Vector3(pixelRadius * 2, pixelRadius * 2, .2f));
         _mesh.SurfaceUpdateVertexRegion(0, 0, MemoryMarshal.AsBytes(_vertices.AsSpan()));
-        _material.SetShaderParameter("radius", pixelRadius);
-        _material.SetShaderParameter("feather", Math.Min(radius, .35f * cell) * pixelsPerWorldUnit);
+        _material.SetShaderParameter("half_extents", body.HalfExtents * pixelsPerWorldUnit);
+        _material.SetShaderParameter("reach", reach * pixelsPerWorldUnit);
+        _material.SetShaderParameter("feather", Math.Min(reach, .35f * cell) * pixelsPerWorldUnit);
         return true;
     }
 
-    public bool Contains(Vector2 point) => _radius > 0 && Geometry2D.IsPointInPolygon(point - _center, _polygon);
+    public bool Contains(Vector2 point) => _sight >= 0 && _body.DistanceTo(new(point, Vector2.Zero, 0)) <= _sight &&
+        Geometry2D.IsPointInPolygon(point - _body.Center, _polygon);
     public void Remove()
     {
         _node.Hide();

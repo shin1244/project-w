@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/MapZonesChecks.cs" id="1"]
+
+[node name="MapZonesChecks" type="Node3D"]
+script = ExtResource("1")

@@ -44,9 +44,9 @@ public partial class MinimapChecks : Main
             Check(Minimap.Team == 0 && Units.LiveUnits.Count == 0, "No team or markers before map synchronization");
             BeginSession(7, 1);
             Receive("UNIT 0 101 7 -40 -12 1");
-            Receive("UNIT 1 102 0 -20 -12 1");
+            Receive("UNIT 3 102 0 -20 -12 1");
             Receive("UNIT 2 103 9 0 -12 1");
-            Receive("UNIT 1 201 0 20 -12 2");
+            Receive("UNIT 3 201 0 20 -12 2");
             Receive("BUILDING 0 301 1 -40 12 0");
             Receive("BUILDING 1 302 2 20 12 0");
             Check(Minimap.Team == 1 && Units.LiveUnits.Count == 4 && Buildings.LiveBuildings.Count == 2,
@@ -83,8 +83,8 @@ public partial class MinimapChecks : Main
             Check(Minimap.Team == 0, "WELCOME cannot reveal markers before WORLD_READY");
             Receive("WORLD_READY");
             Receive("WELCOME 8 2");
-            Receive("UNIT 1 401 0 20 -12 2");
-            Receive("UNIT 1 402 0 -20 -12 1");
+            Receive("UNIT 3 401 0 20 -12 2");
+            Receive("UNIT 3 402 0 -20 -12 1");
             Check(Minimap.Team == 2, "Reconnecting on the other team updates minimap allegiance");
             using (Image snapshot = await Snapshot())
             {
@@ -170,7 +170,7 @@ public partial class MinimapChecks : Main
     private void ArrangePreview()
     {
         BeginSession(7, 1);
-        foreach (string sight in new[] { "SIGHT UNIT 0 8", "SIGHT UNIT 1 8", "SIGHT UNIT 2 8", "SIGHT BUILDING 0 12", "SIGHT BUILDING 1 12" })
+        foreach (string sight in new[] { "SIGHT UNIT 0 8", "SIGHT UNIT 1 8", "SIGHT UNIT 2 8", "SIGHT UNIT 3 8", "SIGHT UNIT 4 8", "SIGHT BUILDING 0 12", "SIGHT BUILDING 1 12" })
             Receive(sight);
         Receive("BUILDING 0 501 1 -65 0 0");
         Receive("BUILDING 0 502 2 65 0 0");
@@ -184,16 +184,16 @@ public partial class MinimapChecks : Main
         Receive("BUILDING 1 510 2 45 22 0");
         Receive("UNIT 0 601 7 -60 3 1");
         Receive("UNIT 0 602 7 -63 -5 1");
-        Receive("UNIT 1 603 0 -8 -22 1");
-        Receive("UNIT 1 604 0 -5 -19 1");
-        Receive("UNIT 2 605 0 -14 -21 1");
-        Receive("UNIT 1 606 0 -8 22 1");
-        Receive("UNIT 2 607 0 -14 22 1");
-        Receive("UNIT 1 608 0 1 -22 2");
-        Receive("UNIT 1 609 0 4 -19 2");
-        Receive("UNIT 2 610 0 8 -21 2");
-        Receive("UNIT 1 611 0 1 22 2");
-        Receive("UNIT 2 612 0 8 22 2");
+        Receive("UNIT 3 603 0 -8 -22 1");
+        Receive("UNIT 3 604 0 -5 -19 1");
+        Receive("UNIT 4 605 0 -14 -21 1");
+        Receive("UNIT 3 606 0 -8 22 1");
+        Receive("UNIT 4 607 0 -14 22 1");
+        Receive("UNIT 3 608 0 1 -22 2");
+        Receive("UNIT 3 609 0 4 -19 2");
+        Receive("UNIT 4 610 0 8 -21 2");
+        Receive("UNIT 3 611 0 1 22 2");
+        Receive("UNIT 4 612 0 8 22 2");
     }
 
     private static void Check(bool condition, string message)

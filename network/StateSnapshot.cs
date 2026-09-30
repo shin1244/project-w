@@ -13,6 +13,7 @@ public readonly record struct StateSnapshot(uint Id, UnitState State)
         UnitActivity? activity = parts[2] switch
         {
             "IDLE" => UnitActivity.Idle,
+            "GUARD" => UnitActivity.Guard,
             "GATHER" => UnitActivity.Gather,
             "ATTACK" => UnitActivity.Attack,
             "BUILD" => UnitActivity.Build,

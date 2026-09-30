@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // 건물은 서버가 보내준 식별자와 배치를 표시합니다. SideId는 접속한 플레이어 ID가 아닙니다.
 public partial class Building : Node3D
@@ -12,9 +13,28 @@ public partial class Building : Node3D
     public uint SideId { get; private set; }
     public UnitState State { get; private set; }
     public bool HasServerState { get; private set; }
+    public StatsSnapshot? Stats { get; set; }
     public int ConstructionPercent { get; private set; } = 100;
+    public uint ConstructionOwnerId { get; set; }
     public bool IsUnderConstruction => ConstructionPercent < 100;
     public bool IsDefense => BuildingType is 1 or 6;
+    public IReadOnlyList<uint> ProductionQueue { get; private set; } = Array.Empty<uint>();
+    public IReadOnlyList<ProductionJob> ProductionJobs { get; private set; } = Array.Empty<ProductionJob>();
+    public int ProductionPercent { get; private set; }
+    public bool IsProducer => BuildingType is BuildingCatalog.TownHall or BuildingCatalog.Barracks;
+    public RallySnapshot? Rally { get; internal set; }
+    public bool CanTrain(uint type) => BuildingType == BuildingCatalog.TownHall ? type == 0 :
+        BuildingType == BuildingCatalog.Barracks && type is 1 or 2;
+
+    public bool ApplyProduction(ProductionSnapshot snapshot)
+    {
+        ProductionJob[] jobs = snapshot.Jobs ?? snapshot.UnitTypes.Select(type => new ProductionJob(0, type, 0)).ToArray();
+        if (ProductionPercent == snapshot.Percent && ProductionQueue.SequenceEqual(snapshot.UnitTypes) && ProductionJobs.SequenceEqual(jobs)) return false;
+        ProductionPercent = snapshot.Percent;
+        ProductionQueue = snapshot.UnitTypes;
+        ProductionJobs = jobs;
+        return true;
+    }
     public Func<uint, Node3D> ResolveFocus { get; set; }
     public event Action<UnitState, bool> StateChanged;
     private Node3D _turret;

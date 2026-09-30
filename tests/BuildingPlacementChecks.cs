@@ -109,7 +109,7 @@ public partial class BuildingPlacementChecks : Main
             Check(ghost.Tint.R > ghost.Tint.G, "Blocked image is red");
             await Capture("blocked", -10.5f, -3.5f);
             Receive("REMOVE 501");
-            Receive("UNIT 1 303 0 10 5 2");
+            Receive("UNIT 3 303 0 10 5 2");
             Receive("TICK 100");
             Receive("POS 303 -10.5 -3.5");
             Check(Unit(303).GlobalPosition == new Vector3(10, 0, 5) && Issue(-10.5f, -3.5f)?.Contains("유닛") == true,

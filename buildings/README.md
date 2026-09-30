@@ -48,7 +48,7 @@
 
 ```text
 BUILDING type id sideId x z yaw
-CONSTRUCTION id percent
+CONSTRUCTION id percent payerId
 HP id current maximum
 STATE id IDLE|ATTACK 0 targetId swingSequence
 REMOVE id
@@ -85,7 +85,9 @@ BUILD 6 -14.5 -4.5 101
 
 ![건물 공통 공사 부지와 글자 없는 팻말](../docs/images/construction-sites.png)
 
-`CONSTRUCTION id percent`의 정수 0~100을 선택 상세정보 창에 표시하며 100에서 완성 모델·선택 영역·체력바 높이를 복원합니다. 중단되면 별도 상태 메시지 없이 마지막 진행률을 유지합니다. HP는 공사 중에도 피해를 입을 수 있으므로 진행률을 HP에서 계산하지 않습니다. 처음부터 완성된 건물은 CONSTRUCTION을 받지 않습니다. 접속 스냅샷은 BUILDING 이후 미완성 건물에만 현재 진행률을 보내고, 중복 BUILDING으로 공사 상태를 초기화하지 않습니다.
+`CONSTRUCTION id percent payerId`의 정수 0~100을 선택 상세정보 창에 표시하며 100에서 완성 모델·선택 영역·체력바 높이를 복원합니다. payerId는 공사비를 지불한 플레이어입니다. 중단되면 별도 상태 메시지 없이 마지막 진행률을 유지합니다. HP는 공사 중에도 피해를 입을 수 있으므로 진행률을 HP에서 계산하지 않습니다. 처음부터 완성된 건물은 CONSTRUCTION을 받지 않습니다. 접속 스냅샷은 BUILDING 이후 미완성 건물에만 현재 진행률과 비용 지불자를 보내고, 중복 BUILDING으로 공사 상태를 초기화하지 않습니다.
+
+비용 지불자는 미완성 부지를 선택한 뒤 명령 패널의 `건설 취소(Esc)`로 `CANCEL_BUILD id`를 요청할 수 있습니다. 서버는 실제 지불 비용의 75%를 자원별로 버림하여 반환하고, 부지·길막·진행 중인 건설 명령을 제거합니다. 현재 일꾼이 다른 플레이어 소유여도 환급 대상은 원래 비용 지불자입니다. 완성된 건물·적 건물·다른 플레이어가 지불한 공사·이미 제거된 부지는 취소하지 않습니다. [취소 규칙](../docs/command-panel.md#생산건설-취소)을 참고하세요.
 
 내 일꾼을 선택해 같은 편 미완성 건물을 우클릭하면 `CONSTRUCT 건물ID 일꾼ID` 한 줄을 보냅니다. 혼합/다중 선택에서도 ID가 가장 작은 내 일꾼 한 명만 보내며 나머지 선택 유닛에는 명령하지 않습니다. 다른 플레이어 소유 일꾼은 사용할 수 없지만 같은 편의 건물에는 이어 지을 수 있습니다. 서버는 접근 중인 건설자도 예약하므로 클라이언트에서 비어 있다고 추정하지 않고, `ERR 이미 짓는 중`을 그대로 알립니다. 재개에 추가 비용은 없습니다.
 

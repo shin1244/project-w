@@ -11,9 +11,11 @@ public partial class SelectionPortraits : Node
         if (scene == null) return null;
         string name = scene.ResourcePath switch
         {
-            "res://units/Worker.tscn" => "worker",
-            "res://units/Knight.tscn" => "knight",
-            "res://units/Archer.tscn" => "archer",
+            "res://units/Worker.tscn" => enemy ? "worker-enemy" : "worker",
+            "res://units/Knight.tscn" => enemy ? "knight-enemy" : "knight",
+            "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
+            "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
+            "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
             "res://buildings/TownHall.tscn" => enemy ? "townhall-enemy" : "townhall-ally",
             "res://buildings/Fortress.tscn" => enemy ? "fortress-enemy" : "fortress-ally",
             "res://buildings/Tower.tscn" => enemy ? "tower-enemy" : "tower-ally",

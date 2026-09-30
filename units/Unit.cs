@@ -3,9 +3,11 @@ using System;
 
 public partial class Unit : Node3D
 {
-    // 서버의 타입 번호: 0 = 일꾼, 1 = 기사, 2 = 궁수. 각 씬에서 지정합니다.
+    // UnitCatalog의 서버 타입 번호. RTS 유닛과 미니언은 각자 별도 타입을 사용한다.
     [Export] public uint UnitType { get; set; }
     [Export] public float HealthBarHeight { get; set; } = 2.4f;
+    // A larger model/picking capsule must not change the authoritative construction footprint.
+    [Export] public float BodyRadius { get; set; }
     public HealthBar HealthBar { get; private set; }
 
     public uint UnitId { get; private set; }
@@ -14,6 +16,7 @@ public partial class Unit : Node3D
     public uint Team { get; private set; }
     public UnitState State { get; private set; }
     public bool HasServerState { get; private set; }
+    public StatsSnapshot? Stats { get; set; }
     public bool IsDying { get; private set; }
     public event Action<UnitState, bool> StateChanged;
     // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛/건물 목록을 직접 소유하지 않습니다.
@@ -32,7 +35,8 @@ public partial class Unit : Node3D
     public override void _Ready()
     {
         SetProcess(false);
-        PlacementRadius = ((CapsuleShape3D)GetNode<CollisionShape3D>("SelectionArea/CollisionShape3D").Shape).Radius;
+        PlacementRadius = BodyRadius > 0 ? BodyRadius :
+            ((CapsuleShape3D)GetNode<CollisionShape3D>("SelectionArea/CollisionShape3D").Shape).Radius;
         HealthBar = HealthBar.Attach(this, HealthBarHeight);
         _teamMaterials = new TeamMaterials(GetNode<Node3D>("Visual"));
         _teamMaterials.Apply(Team, _localTeam);
@@ -106,7 +110,7 @@ public partial class Unit : Node3D
         GlobalPosition = next;
 
         // 첫 스폰은 제외하고, 움직였을 때만 모델의 정면(-Z)을 이동 방향으로 돌립니다.
-        if (_hasServerPosition && State.Activity == UnitActivity.Idle && direction.LengthSquared() > 0.000001f)
+        if (_hasServerPosition && State.Activity is UnitActivity.Idle or UnitActivity.Guard && direction.LengthSquared() > 0.000001f)
         {
             Node3D visual = GetNode<Node3D>("Visual");
             visual.LookAt(visual.GlobalPosition + direction, Vector3.Up);

@@ -24,6 +24,9 @@ public partial class MapWorld : Node3D
     public void CopyVisionObstacles(bool[] destination) => _visionBlocked.CopyTo(destination, 0);
     public bool IsTerrainBlocked(int x, int z) => _map == null || x < 0 || z < 0 ||
         x >= GridSize.X || z >= GridSize.Y || _visionBlocked[z * GridSize.X + x];
+    // Roads remain walkable and transparent to vision, but cannot host new buildings.
+    public bool IsRoad(int x, int z) => _map != null && x >= 0 && z >= 0 &&
+        x < GridSize.X && z < GridSize.Y && _map.Rows[z][x] == 'R';
 
     // 칸당 한 픽셀. 나무의 전체 점유 영역과 벌목 후 빈 땅을 반영합니다.
     public Image CreateMinimapTerrainImage()
@@ -32,14 +35,15 @@ public partial class MapWorld : Node3D
 
         int width = _map.Rows[0].Length, height = _map.Rows.Length;
         var image = Image.CreateEmpty(width, height, false, Image.Format.Rgb8);
-        var groundColor = new Color(0.31f, 0.32f, 0.24f);
+        var groundColor = new Color("49783e");
+        var roadColor = new Color("8b8e8c");
         var treeColor = new Color(0.13f, 0.22f, 0.17f);
         var wallColor = new Color(0.12f, 0.15f, 0.18f);
         for (int z = 0; z < height; z++)
             for (int x = 0; x < width; x++)
             {
-                Color color = _map.Rows[z][x] == '#' ? wallColor :
-                    _visionBlocked[z * width + x] ? treeColor : groundColor;
+                Color color = _map.Rows[z][x] == '#' ? wallColor : _map.Rows[z][x] == 'W' ? new Color("727d80") :
+                    _visionBlocked[z * width + x] ? treeColor : IsRoad(x, z) ? roadColor : groundColor;
                 image.SetPixel(x, z, color);
             }
         return image;
@@ -74,7 +78,7 @@ public partial class MapWorld : Node3D
             (map.TreeSize != 1 && map.TreeSize != 2) ||
             string.IsNullOrWhiteSpace(map.Name) || map.Bases == null || map.Bases.Length == 0 ||
             map.Bases.Any(b => b == null || b.Length != 2 || b.Any(v => !float.IsFinite(v))) ||
-            map.Rows.Any(r => r == null || r.Length != map.Rows[0].Length || r.Any(c => c != '#' && c != '.' && c != 'T')))
+            map.Rows.Any(r => r == null || r.Length != map.Rows[0].Length || r.Any(c => c != '#' && c != '.' && c != 'T' && c != 'R' && c != 'W')))
             throw new InvalidOperationException("잘못된 맵 형식");
 
         var occupied = new bool[map.Rows.Length, map.Rows[0].Length];
@@ -86,8 +90,8 @@ public partial class MapWorld : Node3D
                         {
                             int cx = x + dx, cz = z + dz;
                             if (cz >= map.Rows.Length || cx >= map.Rows[0].Length ||
-                                map.Rows[cz][cx] == '#' || occupied[cz, cx])
-                                throw new InvalidOperationException("나무 점유 영역이 겹치거나 맵 밖입니다.");
+                                map.Rows[cz][cx] == '#' || map.Rows[cz][cx] == 'R' || map.Rows[cz][cx] == 'W' || occupied[cz, cx])
+                                throw new InvalidOperationException("나무 점유 영역이 겹치거나 도로·맵 밖입니다.");
                             occupied[cz, cx] = true;
                         }
 
@@ -112,7 +116,7 @@ public partial class MapWorld : Node3D
         _visionBlocked = new bool[_map.Rows.Length * _map.Rows[0].Length];
         for (int z = 0; z < _map.Rows.Length; z++)
             for (int x = 0; x < _map.Rows[z].Length; x++)
-                if (_map.Rows[z][x] == '#') _visionBlocked[z * _map.Rows[0].Length + x] = true;
+                if (_map.Rows[z][x] == '#' || _map.Rows[z][x] == 'W') _visionBlocked[z * _map.Rows[0].Length + x] = true;
         OcclusionVersion++;
         Resources.Clear();
         for (int z = 0; z < _map.Rows.Length; z++)

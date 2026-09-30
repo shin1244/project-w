@@ -42,7 +42,7 @@ mesh = SubResource("Floor_mesh")
 position = Vector3(0, 4.2, -9)
 rotation = Vector3(-0.3367, 3.141593, 0)
 projection = 1
-size = 5.5
+size = 6.5
 current = true
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
@@ -55,17 +55,17 @@ shadow_enabled = true
 environment = SubResource("Environment_preview")
 
 [node name="KnightLabel" type="Label3D" parent="."]
-position = Vector3(0, 2.5, 0)
+position = Vector3(0, 3.1, 0)
 billboard = 1
-text = "KNIGHT  /  1"
+text = "검방병  /  RTS 1"
 font_size = 42
 pixel_size = 0.004
 outline_size = 4
 
 [node name="ArcherLabel" type="Label3D" parent="."]
-position = Vector3(2.6, 2.5, 0)
+position = Vector3(2.6, 3.1, 0)
 billboard = 1
-text = "ARCHER  /  2"
+text = "궁수  /  RTS 2"
 font_size = 42
 pixel_size = 0.004
 outline_size = 4

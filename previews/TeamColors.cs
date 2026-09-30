@@ -113,7 +113,7 @@ public partial class TeamColors : Control
             unit.Position = new Vector3(-1.7f + i * 1.75f, 0, -2.1f);
             var nameTag = new Label3D
             {
-                Text = new[] { "일꾼", "기사", "궁수" }[i], FontSize = 38, PixelSize = .008f,
+                Text = new[] { "일꾼", "검방병", "궁수" }[i], FontSize = 38, PixelSize = .008f,
                 Modulate = new Color("e4e9e3"), OutlineSize = 6,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 Position = unit.Position + new Vector3(0, .06f, -.62f)

@@ -9,6 +9,8 @@ func _initialize() -> void:
 		["TerrainSurface", "mesh", "TerrainSurface.res"],
 		["TerrainCollision/SurfaceShape", "shape", "TerrainCollision.res"],
 		["OuterCliffs", "mesh", "OuterCliffs.res"],
+		["OuterWalls", "mesh", "OuterWalls.res"],
+		["WallCollision/WallShape", "shape", "WallCollision.res"],
 	]:
 		var node: Node = arena.get_node(entry[0])
 		var path: String = "res://maps/resources/" + entry[2]

@@ -33,6 +33,8 @@ public partial class SelectionDetailsChecks : Main
             Receive("SIGHT UNIT 0 8");
             Receive("SIGHT UNIT 1 8");
             Receive("SIGHT UNIT 2 8");
+            Receive("SIGHT UNIT 3 8");
+            Receive("SIGHT UNIT 4 8");
             Receive("SIGHT BUILDING 0 12");
             Receive("SIGHT BUILDING 1 9");
             Receive("STOCK 0 240");
@@ -61,6 +63,7 @@ public partial class SelectionDetailsChecks : Main
                 Labels().Any(label => label.Text == "운반 중인 목재   7") &&
                 Labels().Any(label => label.Text == "상태   채집 중"), "HP, activity and carrying update without reselection");
             await Capture("selection-single");
+            await CheckInspection();
             foreach (uint id in new uint[] { 102, 103 })
             {
                 InvokeMain("SelectUnit", Unit(id));
@@ -127,7 +130,7 @@ public partial class SelectionDetailsChecks : Main
 
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 201));
             await Layout();
-            Check(Single.Visible && Labels().Any(label => label.Text == "회관") && Labels().Any(label => label.Text == "체력   740 / 1000"), "Building displays its name and current HP");
+            Check(Single.Visible && Labels().Any(label => label.Text.StartsWith("회관")) && Labels().Any(label => label.Text == "체력   740 / 1000"), "Building displays its name and current HP");
             await Capture("selection-building");
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 202));
             Receive("STATE 202 ATTACK 0 201 1");
@@ -169,6 +172,76 @@ public partial class SelectionDetailsChecks : Main
         Check(Mathf.IsEqualApprox(details.Position.X, map.End.X) && Mathf.IsEqualApprox(details.End.X, commands.Position.X) &&
             Mathf.IsEqualApprox(details.End.Y, commands.End.Y) && Mathf.IsEqualApprox(details.Size.Y, 186), "Details fill the gap with a shorter, bottom-anchored panel");
         Check(_details.MouseFilter == Control.MouseFilterEnum.Stop && !_details.MouseForcePassScrollEvents, "Details block world clicks and scroll events");
+    }
+
+    private async Task CheckInspection()
+    {
+        Receive("STATS 101 5 0.5 1 5 8");
+        await Layout();
+        Check(Labels().Any(label => label.Text.Contains("공격력 5") && label.Text.Contains("사거리 0.5") && label.Text.Contains("이동 속도 5")),
+            "Info panel uses server damage, range, attack interval, speed and sight");
+        foreach (string invalid in new[] { "STATS 101 NaN 1 1 1 1", "STATS 101 -1 1 1 1 1", "STATS 0 1 1 1 1 1", "STATS 101 1 1 1 1", "STATS 101 1 1 1 Infinity 1" }) Receive(invalid);
+        Check(Unit(101).Stats?.Damage == 5, "Malformed stats do not overwrite the last known server values");
+        Receive("STATS 101 7 0.75 1.2 6 9");
+        await Layout();
+        Check(Labels().Any(label => label.Text.Contains("공격력 7") && label.Text.Contains("사거리 0.75")), "Stats update without reselection");
+        Receive("HP 999 61 100");
+        Receive("STATS 999 12 0.5 1 5 8");
+        Receive("STATE 999 GUARD 0 0 0");
+        Receive("UNIT 2 998 9 10 0 1");
+        Receive("UNIT 3 997 0 8 0 2");
+        Receive("STATS 997 4 0.4 1.4 4 6");
+        foreach (uint id in new uint[] { 999, 998, 997 })
+        {
+            InvokeMain("SelectUnit", Unit(id));
+            await Layout();
+            Check(Units.InspectedUnit == Unit(id) && Units.SelectedUnitIds.Count == 0 && Single.Visible,
+                "Enemy, allied other-owner and minion clicks all inspect without entering the command selection");
+            Check(Commands.FindChildren("*", "Button", true, false).OfType<Button>().All(button => button.Disabled), "Foreign inspection exposes no unit commands");
+            Units.RequestMove(Vector3.Zero);
+            Units.RequestAttackMove(Vector3.Zero);
+            Units.RequestAttack(Unit(999));
+            Units.SaveControlGroup(8);
+            Check(!Units.RecallControlGroup(8), "Inspected foreign units cannot enter a control group");
+            if (id == 999)
+            {
+                Check(Labels().Any(label => label.Text == "체력   61 / 100") && Labels().Any(label => label.Text == "상태   경계 중"),
+                    "Enemy inspection shows current server health and guarding state");
+                Check(Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single().Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
+                    "Enemy inspection uses the opposing team's portrait colors");
+                await Capture("selection-enemy");
+            }
+            if (id == 997)
+            {
+                Check(Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single().Texture.ResourcePath == "res://ui/portraits/minion-knight-enemy.png",
+                    "Inspected minions retain their own model portrait");
+                Check(Labels().Any(label => label.Text == "근접 미니언") && Labels().Any(label => label.Text.Contains("공격력 4") && label.Text.Contains("시야 6")),
+                    "Minion inspection shows its independent name and combat stats");
+            }
+        }
+        InvokeMain("SelectUnit", Unit(999));
+        Receive("HIDE 999");
+        Check(Units.InspectedUnit == null && !Single.Visible, "Losing vision immediately clears enemy inspection");
+        Receive("UNIT 1 999 8 12 0 2");
+        InvokeMain("SelectUnit", Unit(997));
+        Receive("REMOVE 997");
+        Check(!Single.Visible && Units.InspectedUnit == null, "Inspected minion death clears the info panel");
+
+        Building enemy = Buildings.LiveBuildings.Single(building => building.BuildingId == 202);
+        bool visible = false;
+        Buildings.VisibilityCheck = _ => visible;
+        InvokeMain("SelectBuilding", enemy);
+        Check(Buildings.SelectedBuilding == null, "A building hidden by fog cannot be inspected");
+        visible = true;
+        Receive("STATS 202 15 7 1.5 0 11");
+        InvokeMain("SelectBuilding", enemy);
+        await Layout();
+        Check(Single.Visible && Labels().Any(label => label.Text.Contains("공격력 15") && label.Text.Contains("사거리 7")), "Visible enemy buildings show combat stats");
+        visible = false;
+        await Layout();
+        Check(Buildings.SelectedBuilding == null && !Single.Visible, "Losing building vision closes its current-status panel");
+        Buildings.VisibilityCheck = null;
+        InvokeMain("SelectUnit", Unit(101));
     }
 
     private void CheckCardsInside()

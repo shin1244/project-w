@@ -48,6 +48,7 @@ public partial class FogSyncChecks : Main
             Fog = new FogOfWar { Units = Units, Buildings = Buildings };
             camera.AddChild(Fog);
             Fog.Configure(Map);
+            Buildings.VisibilityCheck = Fog.IsBuildingVisible;
             var net = new NetClient();
             AddChild(net);
             typeof(Main).GetField("_net", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, net);
@@ -56,27 +57,82 @@ public partial class FogSyncChecks : Main
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
             Receive("WELCOME 7 1");
-            foreach (string definition in new[] { "SIGHT UNIT 0 8", "SIGHT UNIT 1 8", "SIGHT UNIT 2 8", "SIGHT BUILDING 0 12", "SIGHT BUILDING 1 12" }) Receive(definition);
+            foreach (string definition in new[] { "SIGHT UNIT 0 8", "SIGHT UNIT 1 8", "SIGHT UNIT 2 8", "SIGHT UNIT 3 8", "SIGHT UNIT 4 8", "SIGHT BUILDING 0 12", "SIGHT BUILDING 1 12" }) Receive(definition);
+            Receive("BODY UNIT 0 0.4");
+            Receive("BODY BUILDING 1 4 4");
             Receive("UNIT 0 101 7 0 0 1");
-            Receive("UNIT 1 102 0 25 0 1");
-            Receive("UNIT 2 201 0 2 0 2");
+            Receive("UNIT 3 102 0 25 0 1");
+            Receive("UNIT 4 201 0 2 0 2");
             Receive("BUILDING 1 301 1 -40 0 0");
             Receive("BUILDING 0 302 2 60 0 0");
             Fog.RefreshVision();
-            Check(Fog.Team == 1 && Fog.IsVisibleAt(new Vector3(7, 0, 0)) && !Fog.IsVisibleAt(new Vector3(9, 0, 0)), "Visual circle stays inside server radius");
+            Check(Fog.Team == 1 && Fog.IsVisibleAt(new Vector3(8.35f, 0, 0)) && !Fog.IsVisibleAt(new Vector3(8.45f, 0, 0)), "Sight expands from the body edge without a fixed visual inset");
             Check(Fog.IsVisibleAt(new Vector3(25, 0, 0)) && Fog.IsVisibleAt(new Vector3(-30, 0, 0)), "Owner-zero allies and same-team buildings share sight");
             Check(!Fog.IsVisibleAt(new Vector3(60, 0, 0)) && Buildings.TryGetBuilding(302, out _), "Known enemy building does not grant vision");
             Check(!Fog.IsVisibleAt(new Vector3(10000, 0, 0)), "No vision outside map bounds");
 
-            // 중심이 칸 안에서 움직여도 외곽은 서버 반경보다 작은 원입니다.
+            Check(Fog.IsVisibleAt(new Vector3(-26.05f, 0, 0)) && !Fog.IsVisibleAt(new Vector3(-25.95f, 0, 0)), "Building sight starts at its wall");
+            Vector2 corner = new(-38, 2);
+            Vector2 cornerInner = corner + Vector2.One.Normalized() * 11.95f;
+            Vector2 cornerOuter = corner + Vector2.One.Normalized() * 12.05f;
+            Check(Fog.IsVisibleAt(new(cornerInner.X, 0, cornerInner.Y)) && !Fog.IsVisibleAt(new(cornerOuter.X, 0, cornerOuter.Y)),
+                "Building sight has rounded corners at the same surface distance");
+            Receive("BODY BUILDING 1 6 2");
+            Fog.RefreshVision();
+            Check(Fog.IsVisibleAt(new(-25.05f, 0, 0)) && !Fog.IsVisibleAt(new(-40, 0, 13.05f)), "Server rectangular footprint controls range on both axes");
+            Receive("BODY BUILDING 1 4 4");
+            Receive("BODY UNIT 0 0.9");
+            Fog.RefreshVision();
+            Check(Fog.IsVisibleAt(new(8.8f, 0, 0)), "Server radius overrides the decorative model size");
+            Receive("BODY UNIT 0 0.4");
+            foreach (string bad in new[] { "BODY UNIT 0 NaN", "BODY UNIT 0 -2", "BODY UNIT 0 100 extra", "BODY BUILDING 1 4 NaN", "BODY BUILDING 1 0 0", "BODY OTHER 0 100" }) Receive(bad);
+            Fog.RefreshVision();
+            Check(!Fog.IsVisibleAt(new(8.8f, 0, 0)), "Body changes invalidate cached contours; malformed definitions are ignored");
+
+            Receive("UNIT 0 105 7 0 -20 1");
+            Receive("STATS 105 5 0.5 1 5 2");
+            Fog.RefreshVision();
+            Check(Fog.IsVisibleAt(new(2.3f, 0, -20)) && !Fog.IsVisibleAt(new(2.5f, 0, -20)), "Instance sight overrides the type default");
+            Receive("STATS 105 5 0.5 1 5 4");
+            Fog.RefreshVision();
+            Check(Fog.IsVisibleAt(new(4.3f, 0, -20)), "Instance sight changes rebuild the contour");
+            Receive("HIDE 105");
+            if (OS.GetCmdlineUserArgs().Contains("--surface-capture"))
+            {
+                Fog.RefreshVision();
+                await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                using Image mask = Fog.GetNode<SubViewport>("SmoothVisionMask").GetTexture().GetImage();
+                Check(mask.SavePng("res://.godot/surface-sight-mask.png") == Error.Ok, "Range mask capture saved");
+            }
+
+            Receive("UNIT 1 103 7 -20 -20 1");
+            Receive("SIGHT UNIT 3 3");
+            Fog.RefreshVision();
+            Check(!Fog.IsVisibleAt(new Vector3(29, 0, 0)) && Fog.IsVisibleAt(new Vector3(-14, 0, -20)),
+                "Changing melee minion sight does not change RTS knight sight");
+            Receive("SIGHT UNIT 3 8");
+            Receive("HIDE 103");
+            Fog.RefreshVision();
+
+            Building knownEnemy = Buildings.GetNode<Building>("Building_302");
+            Buildings.SelectSingle(knownEnemy);
+            Check(Buildings.SelectedBuilding == null, "Known buildings inside fog cannot be inspected");
+            Receive("POS 101 54 0");
+            Buildings.SelectSingle(knownEnemy); // Checks pending vision without waiting for the render throttle.
+            Check(Buildings.SelectedBuilding == knownEnemy, "A visible outer wall allows inspection even when the building center is occluded");
+            Receive("POS 101 0 0");
+            Buildings._Process(0);
+            Check(Buildings.SelectedBuilding == null, "Current building inspection closes as the scout leaves");
+
+            // 빈 땅은 반지름 0인 대상이다. 유닛 반지름 0.4 + 시야 8의 경계가 유지되어야 한다.
             Receive("POS 101 0.23 0.37");
             Fog.RefreshVision();
             for (int i = 0; i < 64; i++)
             {
                 Vector2 radial = Vector2.FromAngle(Mathf.Tau * i / 64);
-                Vector3 inner = new(.23f + radial.X * 7.1f, 0, .37f + radial.Y * 7.1f);
-                Vector3 outer = new(.23f + radial.X * 7.5f, 0, .37f + radial.Y * 7.5f);
-                Check(Fog.IsVisibleAt(inner) && !Fog.IsVisibleAt(outer), "Smooth inset circle is independent of grid phase and angle");
+                Vector3 inner = new(.23f + radial.X * 8.35f, 0, .37f + radial.Y * 8.35f);
+                Vector3 outer = new(.23f + radial.X * 8.45f, 0, .37f + radial.Y * 8.45f);
+                Check(Fog.IsVisibleAt(inner) && !Fog.IsVisibleAt(outer), "Surface-based circle is independent of grid phase and angle");
             }
             Receive("POS 101 0 0");
             Fog.RefreshVision();
@@ -106,7 +162,7 @@ public partial class FogSyncChecks : Main
             Check(Units.ResolveFocus(201) == null && Units.ResolveFocus(101) == own && Buildings.TryGetBuilding(301, out _),
                 "Duplicate/invalid HIDE and late deltas do not recreate units or hide buildings");
 
-            Receive("UNIT 2 201 0 4 1 2");
+            Receive("UNIT 4 201 0 4 1 2");
             Unit returned = Units.GetNode<Unit>("Unit_201");
             bool replayed = false;
             returned.StateChanged += (_, fired) => replayed |= fired;
@@ -143,7 +199,7 @@ public partial class FogSyncChecks : Main
                 "Disconnect clears fog data and frozen entities");
             CheckOcclusion();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            GD.Print("PASS: fog HIDE/reappearance, shared sight, smooth inset circles, walls/trees/corners, tree removal, own/other buildings, destruction, reconnect and disconnect");
+            GD.Print("PASS: body-edge sight, circles/rounded building footprints, server body definitions, instance sight, HIDE/reappearance, shared vision, walls/trees/corners, removal and reconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -170,6 +226,10 @@ public partial class FogSyncChecks : Main
         Receive("BUILDING 0 801 2 0 0 0");
         Fog.RefreshVision();
         Check(!Fog.IsVisibleAt(new Vector3(-1, 0, .5f)) && !Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Another building blocks vision through the gap");
+        Receive("BODY BUILDING 0 2 2");
+        Fog.RefreshVision();
+        Check(Fog.IsVisibleAt(new(-1.5f, 0, .5f)) && !Fog.IsVisibleAt(new(3.5f, 0, .5f)), "Server body size also updates obstacle occlusion");
+        Receive("BODY BUILDING 0 5 5");
         Receive("REMOVE 801");
         Fog.RefreshVision();
         Check(Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Building destruction opens vision");

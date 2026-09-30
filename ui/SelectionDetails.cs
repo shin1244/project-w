@@ -12,12 +12,18 @@ public partial class SelectionDetails : PanelContainer
     private readonly List<Unit> _selection = new();
     private readonly List<SelectionUnitCard> _cards = new();
     private SelectionPortraits _portraits;
-    private Label _title, _healthText, _activity, _extra, _pageText;
+    private Label _title, _healthText, _activity, _extra, _pageText, _stats, _productionText;
     private Control _empty;
     private HBoxContainer _single, _navigation;
     private GridContainer _grid;
     private TextureRect _portrait;
     private ProgressBar _health;
+    private VBoxContainer _production;
+    private ProgressBar _productionProgress;
+    private HBoxContainer _productionQueue;
+    private readonly List<TextureRect> _queuePortraits = new();
+    private readonly List<PanelContainer> _queueFrames = new();
+    private StyleBoxFlat _queueActive;
     private StyleBoxFlat _healthFill, _cardNormal, _cardHover, _cardPressed;
     private Button _previous, _next;
     private Building _building;
@@ -79,7 +85,7 @@ public partial class SelectionDetails : PanelContainer
         };
         portraitFrame.AddChild(_portrait);
         var information = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
-        information.AddThemeConstantOverride("separation", 5);
+        information.AddThemeConstantOverride("separation", 3);
         _single.AddChild(information);
         _healthText = Text("", 17, "e3ebdd");
         _healthText.Name = "HealthText";
@@ -94,6 +100,49 @@ public partial class SelectionDetails : PanelContainer
         information.AddChild(_activity);
         _extra = Text("", 13, "a5b6ad");
         information.AddChild(_extra);
+        _stats = Text("", 13, "d0dcd2");
+        _stats.Name = "Stats";
+        information.AddChild(_stats);
+        _production = new VBoxContainer { Name = "Production", MouseFilter = MouseFilterEnum.Ignore, Visible = false };
+        _production.AddThemeConstantOverride("separation", 3);
+        information.AddChild(_production);
+        _productionText = Text("", 13, "e5dba9");
+        _production.AddChild(_productionText);
+        _productionProgress = new ProgressBar
+        {
+            Name = "ProductionProgress", CustomMinimumSize = new Vector2(0, 12),
+            ShowPercentage = false, MouseFilter = MouseFilterEnum.Ignore
+        };
+        _productionProgress.AddThemeStyleboxOverride("background", Style("101c26", "516653"));
+        _productionProgress.AddThemeStyleboxOverride("fill", Style("d4bd6a", "d4bd6a"));
+        _production.AddChild(_productionProgress);
+        _productionQueue = new HBoxContainer { Name = "Queue", MouseFilter = MouseFilterEnum.Ignore };
+        _production.AddChild(_productionQueue);
+        _queueActive = Style("365543", "d4bd6a");
+        for (int i = 0; i < ProductionSnapshot.MaxQueue; i++)
+        {
+            var frameSlot = new PanelContainer { CustomMinimumSize = new Vector2(30, 30), MouseFilter = MouseFilterEnum.Stop };
+            frameSlot.AddThemeStyleboxOverride("panel", i == 0 ? _queueActive : _cardNormal);
+            var queuePortrait = new TextureRect
+            {
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = MouseFilterEnum.Ignore
+            };
+            frameSlot.AddChild(queuePortrait);
+            int slotIndex = i;
+            frameSlot.GuiInput += input =>
+            {
+                if (input is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
+                {
+                    frameSlot.AcceptEvent();
+                    if (Available(_building) && slotIndex < _building.ProductionJobs.Count)
+                        Units.RequestCancelTraining(_building, _building.ProductionJobs[slotIndex].Id);
+                }
+            };
+            _productionQueue.AddChild(frameSlot);
+            _queueFrames.Add(frameSlot);
+            _queuePortraits.Add(queuePortrait);
+        }
 
         _grid = new GridContainer { Name = "UnitGrid", MouseFilter = MouseFilterEnum.Ignore };
         _grid.AddThemeConstantOverride("h_separation", 6);
@@ -116,7 +165,11 @@ public partial class SelectionDetails : PanelContainer
         _next = PageButton("›", "다음 유닛", 1);
         _navigation.AddChild(_next);
         if (GodotObject.IsInstanceValid(Units)) Units.SelectionChanged += RefreshSelection;
-        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged += RefreshSelection;
+        if (GodotObject.IsInstanceValid(Buildings))
+        {
+            Buildings.SelectionChanged += RefreshSelection;
+            Buildings.ProductionChanged += RefreshValues;
+        }
         Resized += RefreshColumns;
         _ready = true;
         RefreshColumns();
@@ -129,6 +182,8 @@ public partial class SelectionDetails : PanelContainer
         if (GodotObject.IsInstanceValid(Units))
             foreach (uint id in Units.SelectedUnitIds)
                 if (Units.TryGetUnit(id, out Unit unit) && Available(unit)) _selection.Add(unit);
+        if (_selection.Count == 0 && GodotObject.IsInstanceValid(Units) && Units.CanInspect(Units.InspectedUnit))
+            _selection.Add(Units.InspectedUnit);
         _selection.Sort((left, right) => left.UnitType == right.UnitType
             ? left.UnitId.CompareTo(right.UnitId) : left.UnitType.CompareTo(right.UnitType));
         _building = GodotObject.IsInstanceValid(Buildings) && Available(Buildings.SelectedBuilding)
@@ -151,7 +206,7 @@ public partial class SelectionDetails : PanelContainer
             {
                 Unit unit = _selection[0];
                 _title.Text = UnitName(unit.UnitType);
-                _portrait.Texture = _portraits.GetPortrait(UnitScene(unit.UnitType));
+                _portrait.Texture = _portraits.GetPortrait(UnitScene(unit.UnitType), unit.Team != Units.LocalTeam);
             }
             else if (_building != null)
             {
@@ -173,6 +228,7 @@ public partial class SelectionDetails : PanelContainer
 
     private void RefreshValues()
     {
+        _production.Visible = false;
         if (_selection.Count > 1)
         {
             foreach (SelectionUnitCard card in _cards)
@@ -186,6 +242,7 @@ public partial class SelectionDetails : PanelContainer
             health = single.HealthBar;
             SetText(_activity, ActivityText(single.State, single.HasServerState));
             SetText(_extra, single.UnitType == 0 ? single.HasServerState ? $"운반 중인 목재   {single.State.Carrying}" : "운반 중인 목재   —" : "");
+            SetText(_stats, StatsText(single.Stats, true));
         }
         else if (Available(_building))
         {
@@ -193,12 +250,46 @@ public partial class SelectionDetails : PanelContainer
             SetText(_activity, _building.IsUnderConstruction ? $"공사 중   {_building.ConstructionPercent}%" :
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
             SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam ? "내 일꾼으로 우클릭해 이어 짓기" : "");
+            string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
+                _building.Rally is not RallySnapshot r ? " · 우클릭으로 랠리 지정" : r.ResourceId != 0 ? " · 랠리: 자동 채집" : " · 랠리: 이동" : "";
+            SetText(_title, BuildingCatalog.Name(_building.BuildingType) + rallyText);
+            SetText(_stats, StatsText(_building.Stats, false));
+            RefreshProduction();
         }
         else return;
+        _activity.Visible = _activity.Text.Length > 0;
+        _extra.Visible = _extra.Text.Length > 0;
         SetText(_healthText, $"체력   {HealthText(health)}");
         _health.Value = health.MaxHP > 0 ? health.Ratio * 100 : 0;
         Color color = HealthColor(health.Ratio);
         if (_healthFill.BgColor != color) _healthFill.BgColor = _healthFill.BorderColor = color;
+    }
+
+    private void RefreshProduction()
+    {
+        if (_building.SideId != Units.LocalTeam || _building.IsUnderConstruction || _building.ProductionQueue.Count == 0) return;
+        _production.Visible = true;
+        int count = _building.ProductionQueue.Count;
+        string name = UnitName(_building.ProductionQueue[0]);
+        SetText(_productionText, $"{name} · {(_building.ProductionPercent == 100 ? "출구 대기" : "생산 중")}   {count} / {ProductionSnapshot.MaxQueue}");
+        _productionProgress.Value = _building.ProductionPercent;
+        for (int i = 0; i < _queuePortraits.Count; i++)
+        {
+            bool occupied = i < count;
+            _queuePortraits[i].Texture = occupied ? _portraits.GetPortrait(UnitScene(_building.ProductionQueue[i])) : null;
+            bool canCancel = occupied && Units.CanCancelTraining(_building, _building.ProductionJobs[i].Id);
+            _queueFrames[i].MouseDefaultCursorShape = canCancel ? CursorShape.PointingHand : CursorShape.Arrow;
+            _queueFrames[i].TooltipText = occupied ? $"{(i == 0 ? "생산 중" : $"대기 {i}")} · {UnitName(_building.ProductionQueue[i])}" +
+                (canCancel ? "\n클릭하여 취소 · 지불 비용 75% 반환" : "") : "빈 생산 슬롯";
+        }
+    }
+
+    public static string StatsText(StatsSnapshot? snapshot, bool mobile)
+    {
+        if (snapshot is not StatsSnapshot s) return "공격력 —   사거리 —   공격 간격 —";
+        string F(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+        string attack = s.Interval > 0 ? $"공격력 {F(s.Damage)}   사거리 {F(s.Range)}   공격 간격 {F(s.Interval)}초" : "공격 불가";
+        return mobile ? $"{attack}\n이동 속도 {F(s.Speed)}   시야 {F(s.Sight)}" : s.Interval > 0 ? $"{attack}\n시야 {F(s.Sight)}" : $"{attack}   시야 {F(s.Sight)}";
     }
 
     private void RefreshColumns()
@@ -253,7 +344,11 @@ public partial class SelectionDetails : PanelContainer
         _cards.Clear();
     }
 
-    private PackedScene UnitScene(uint type) => type switch { 0 => Units.WorkerScene, 1 => Units.KnightScene, 2 => Units.ArcherScene, _ => null };
+    private PackedScene UnitScene(uint type) => type switch
+    {
+        UnitCatalog.Worker => Units.WorkerScene, UnitCatalog.Knight => Units.KnightScene, UnitCatalog.Archer => Units.ArcherScene,
+        UnitCatalog.MinionMelee => Units.MinionKnightScene, UnitCatalog.MinionRanged => Units.MinionArcherScene, _ => null
+    };
 
     private Button PageButton(string text, string tooltip, int direction)
     {
@@ -287,13 +382,14 @@ public partial class SelectionDetails : PanelContainer
 
     private static void SetText(Label label, string text) { if (label.Text != text) label.Text = text; }
     private static bool Available(Node node) => GodotObject.IsInstanceValid(node) && node.IsInsideTree() && !node.IsQueuedForDeletion() && node is not Unit { IsDying: true };
-    public static string UnitName(uint type) => type switch { 0 => "일꾼", 1 => "기사", 2 => "궁수", _ => "유닛" };
+    public static string UnitName(uint type) => UnitCatalog.Name(type);
     public static string HealthText(HealthBar health) => health.MaxHP <= 0 ? "— / —" :
         $"{health.CurrentHP.ToString("0.#", CultureInfo.InvariantCulture)} / {health.MaxHP.ToString("0.#", CultureInfo.InvariantCulture)}";
     public static Color HealthColor(float ratio) => new(ratio > .5f ? "64cf79" : ratio > .25f ? "edbf55" : "e96860");
     public static string ActivityText(UnitState state, bool known) => !known ? "상태   —" : state.Activity switch
     {
         UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중",
+        UnitActivity.Guard => "상태   경계 중",
         UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
     };
 
@@ -305,7 +401,11 @@ public partial class SelectionDetails : PanelContainer
     public override void _ExitTree()
     {
         if (GodotObject.IsInstanceValid(Units)) Units.SelectionChanged -= RefreshSelection;
-        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged -= RefreshSelection;
+        if (GodotObject.IsInstanceValid(Buildings))
+        {
+            Buildings.SelectionChanged -= RefreshSelection;
+            Buildings.ProductionChanged -= RefreshValues;
+        }
         Resized -= RefreshColumns;
         foreach (StyleBoxFlat style in _styles) style.Dispose();
         _styles.Clear();

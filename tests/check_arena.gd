@@ -27,6 +27,9 @@ func check() -> void:
 	var rows: Array = data["rows"]
 	var cell_size: float = data["cellSize"]
 	var land_count := 0
+	for tower in source["towers"]:
+		var p := Vector2(tower["pos"][0], tower["pos"][1])
+		assert(builder.lane_distance(p) < 0.01, "Tower must sit on the lane centerline")
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
 			var is_land: bool = rows[z][x] != "#"
@@ -41,15 +44,21 @@ func check() -> void:
 				var hit := space.intersect_ray(query)
 				assert(not hit.is_empty() == is_land, "Terrain/grid mismatch at cell %d,%d" % [x, z])
 				if is_land:
-					assert(absf(hit.position.y) < 0.01 and hit.normal.y > 0.99, "Grid ground must be flat")
+					if rows[z][x] == "W":
+						assert(hit.position.y >= 2.59 and hit.position.y <= 3.26 and hit.normal.y > 0.99, "Wall must have a solid raised surface")
+					else:
+						assert(absf(hit.position.y) < 0.01 and hit.normal.y > 0.99, "Grid ground must be flat")
 	assert(vertices.size() == land_count * 8 * 3, "Unexpected terrain outside map cells")
 	for path_name in ["TopLane", "BottomLane"]:
 		var path: Path3D = arena.get_node("LayoutGuides/" + path_name)
 		for i in range(201):
 			var point := path.curve.sample_baked(path.curve.get_baked_length() * i / 200.0)
-			var query := PhysicsRayQueryParameters3D.create(point + Vector3.UP * 10, point + Vector3.DOWN * 10)
+			# Avoid Jolt's ray/triangle-edge tolerance at near-zero baked coordinates.
+			# A 1mm offset still samples the lane center while staying off shared mesh seams.
+			var sample := point + Vector3(0.001, 0, 0.001)
+			var query := PhysicsRayQueryParameters3D.create(sample + Vector3.UP * 10, sample + Vector3.DOWN * 10)
 			var hit := space.intersect_ray(query)
-			assert(not hit.is_empty(), "Lane collision missing")
+			assert(not hit.is_empty(), "Lane collision missing: %s sample %d at %s" % [path_name, i, point])
 			assert(absf(hit.position.y) < 0.01, "Lane should remain flat")
 			assert(hit.normal.y > 0.99, "Lane collision should face up")
 	print("PASS: flat terrain, symmetric grid, ", rows.size() * rows[0].length() * 4, " grid collision samples, 402 lane samples")

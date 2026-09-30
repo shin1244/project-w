@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// 선택한 일꾼의 건설 메뉴와 회관의 일꾼 생성 요청을 표시합니다.
+// 선택한 일꾼의 건설 메뉴와 회관·병영의 생산 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
 public partial class CommandPanel : PanelContainer
 {
     [Export] public UnitManager Units;
@@ -13,7 +13,7 @@ public partial class CommandPanel : PanelContainer
     public bool IsTierOneMenuOpen => _tierOne;
     public const string CameraMenuMeta = "command_menu_open";
     public const string CameraReleaseMeta = "command_menu_wait_for_release";
-    private enum DisplayMode { Unset, Empty, Units, Workers, TierOne, TownHall }
+    private enum DisplayMode { Unset, Empty, Units, Workers, TierOne, TownHall, Barracks, Construction }
     private static readonly int[] NumpadOrder = { 7, 8, 9, 4, 5, 6, 1, 2, 3 };
     private readonly Button[] _slots = new Button[9];
     private readonly List<StyleBoxFlat> _styles = new();
@@ -56,13 +56,18 @@ public partial class CommandPanel : PanelContainer
             slot.AddThemeColorOverride("font_color", new Color("f2e8cb"));
             slot.AddThemeColorOverride("font_hover_color", new Color("fff4d6"));
             slot.AddThemeColorOverride("font_pressed_color", new Color("fff4d6"));
+            slot.AddThemeColorOverride("font_disabled_color", new Color("a8b8bd"));
             int number = NumpadOrder[i];
             slot.Pressed += () => RequestSlot(number);
             grid.AddChild(slot);
             _slots[i] = slot;
         }
         if (GodotObject.IsInstanceValid(Units)) Units.SelectionChanged += OnSelectionChanged;
-        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged += OnSelectionChanged;
+        if (GodotObject.IsInstanceValid(Buildings))
+        {
+            Buildings.SelectionChanged += OnSelectionChanged;
+            Buildings.ProductionChanged += RefreshProduction;
+        }
         GetWindow().FocusExited += OnFocusExited;
         RefreshSelection();
     }
@@ -84,17 +89,22 @@ public partial class CommandPanel : PanelContainer
         if (GodotObject.IsInstanceValid(Units) && Units.LocalTeam != 0)
         {
             if (Units.SelectedUnitIds.Count > 0) next = Units.TryGetSelectedWorker(out _) ? DisplayMode.Workers : DisplayMode.Units;
-            else if (GodotObject.IsInstanceValid(Buildings))
+            else if (Units.InspectedUnit == null && GodotObject.IsInstanceValid(Buildings))
             {
                 Building selected = Buildings.SelectedBuilding;
                 if (GodotObject.IsInstanceValid(selected) && !selected.IsQueuedForDeletion() &&
-                    selected.BuildingType == BuildingCatalog.TownHall && selected.SideId == Units.LocalTeam)
-                    next = DisplayMode.TownHall;
+                    selected.SideId == Units.LocalTeam)
+                    next = selected.IsUnderConstruction ? Units.CanCancelConstruction(selected) ? DisplayMode.Construction : DisplayMode.Empty : selected.BuildingType switch
+                    {
+                        BuildingCatalog.TownHall => DisplayMode.TownHall,
+                        BuildingCatalog.Barracks => DisplayMode.Barracks,
+                        _ => DisplayMode.Empty
+                    };
             }
         }
         if (next != DisplayMode.Workers) SetMenuOpen(false);
         else if (_tierOne) next = DisplayMode.TierOne;
-        if (next == _display) return;
+        if (next == _display) { RefreshProduction(); return; }
         _display = next;
         for (int i = 0; i < _slots.Length; i++)
         {
@@ -111,18 +121,55 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.TierOne, 5) => "포탑\n(S)",
                 (DisplayMode.TierOne, 1) => "뒤로(Z)",
                 (DisplayMode.TownHall, 7) => "일꾼",
+                (DisplayMode.Barracks, 7) => "검방병",
+                (DisplayMode.Barracks, 8) => "궁수",
+                (DisplayMode.Construction, 3) => "건설 취소\n(Esc)",
                 _ => ""
             };
             _slots[i].Text = text;
             _slots[i].Disabled = text.Length == 0;
             _slots[i].TooltipText = "";
         }
+        RefreshProduction();
+    }
+
+    private void RefreshProduction()
+    {
+        if (_display == DisplayMode.Construction)
+        {
+            _slots[8].Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
+            _slots[8].TooltipText = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
+            return;
+        }
+        if (_display is not (DisplayMode.TownHall or DisplayMode.Barracks)) return;
+        Building producer = Buildings.SelectedBuilding;
+        if (!GodotObject.IsInstanceValid(producer)) return;
+        int count = producer.ProductionQueue.Count;
+        bool canCancel = producer.ProductionJobs.Count > 0 && Units.CanCancelTraining(producer, producer.ProductionJobs[0].Id);
+        _slots[8].Text = canCancel ? "생산 취소\n(Esc)" : "";
+        _slots[8].Disabled = !canCancel;
+        _slots[8].TooltipText = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
+        _slots[0].Disabled = count >= ProductionSnapshot.MaxQueue;
+        const string rallyHint = "\n지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제";
+        _slots[0].TooltipText = (_display == DisplayMode.TownHall ? "나무 100 · 인구 1 · 생산 10초\n나무 우클릭: 새 일꾼 자동 채집" : "나무 200 · 인구 2 · 생산 10초") + rallyHint;
+        if (_display == DisplayMode.Barracks)
+        {
+            _slots[1].Disabled = count >= ProductionSnapshot.MaxQueue;
+            _slots[1].TooltipText = "나무 200 · 인구 2 · 생산 10초" + rallyHint;
+        }
     }
 
     private void RequestSlot(int number)
     {
         RefreshSelection();
-        if (_display == DisplayMode.TownHall && number == 7) Units.RequestTrainWorker();
+        if (_display == DisplayMode.Construction && number == 3) Units.RequestCancelConstruction(Buildings.SelectedBuilding);
+        else if (_display is DisplayMode.TownHall or DisplayMode.Barracks && number == 3)
+        {
+            Building producer = Buildings.SelectedBuilding;
+            if (producer.ProductionJobs.Count > 0) Units.RequestCancelTraining(producer, producer.ProductionJobs[0].Id);
+        }
+        else if (_display == DisplayMode.TownHall && number == 7) Units.RequestTrainWorker();
+        else if (_display == DisplayMode.Barracks && number is 7 or 8) Units.RequestTrain(number == 7 ? 1u : 2u);
         else if (_display == DisplayMode.Workers && number == 1)
         {
             SetMenuOpen(true);
@@ -166,6 +213,7 @@ public partial class CommandPanel : PanelContainer
             Key.A when _tierOne => 4,
             Key.S when _tierOne => 5,
             Key.Escape when _tierOne => 1,
+            Key.Escape when _display is DisplayMode.Construction or DisplayMode.TownHall or DisplayMode.Barracks && !_slots[8].Disabled => 3,
             _ => 0
         };
         if (slot == 0) return false;
@@ -222,7 +270,11 @@ public partial class CommandPanel : PanelContainer
     public override void _ExitTree()
     {
         if (GodotObject.IsInstanceValid(Units)) Units.SelectionChanged -= OnSelectionChanged;
-        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged -= OnSelectionChanged;
+        if (GodotObject.IsInstanceValid(Buildings))
+        {
+            Buildings.SelectionChanged -= OnSelectionChanged;
+            Buildings.ProductionChanged -= RefreshProduction;
+        }
         GetWindow().FocusExited -= OnFocusExited;
         SetMenuOpen(false);
         foreach (StyleBoxFlat style in _styles) style.Dispose();

@@ -11,10 +11,11 @@ public partial class FogOfWar : MeshInstance3D
     public uint Team { get; private set; }
     private readonly Dictionary<uint, float> _unitSight = new();
     private readonly Dictionary<uint, float> _buildingSight = new();
+    private readonly Dictionary<uint, float> _unitRadii = new();
+    private readonly Dictionary<uint, Vector2> _buildingSizes = new();
     private Vector2 _origin;
     private Vector2I _size;
     private float _cellSize;
-    public const float VisualInsetCells = .75f;
     public const int VisualPixelsPerCell = 8;
     private readonly Dictionary<uint, FogLightMesh> _sources = new();
     private readonly HashSet<uint> _seen = new();
@@ -85,11 +86,28 @@ public partial class FogOfWar : MeshInstance3D
 
     public void Invalidate() => _dirty = true;
 
+    // 서버의 충돌 몸체를 사용하여 외형 크기와 판정 크기가 섞이지 않도록 합니다.
+    public void HandleBody(string[] parts)
+    {
+        if (parts.Length < 4 || !uint.TryParse(parts[2], out uint type) ||
+            !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float size) ||
+            !float.IsFinite(size) || size < 0) return;
+        if (parts[1] == "UNIT" && parts.Length == 4) _unitRadii[type] = size;
+        else if (parts[1] == "BUILDING" && parts.Length == 5 &&
+            float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float depth) &&
+            float.IsFinite(depth) && size > 0 && depth > 0) _buildingSizes[type] = new(size, depth);
+        else return;
+        _occlusion?.Invalidate();
+        Invalidate();
+    }
+
     public void Reset()
     {
         Team = 0;
         _unitSight.Clear();
         _buildingSight.Clear();
+        _unitRadii.Clear();
+        _buildingSizes.Clear();
         foreach (FogLightMesh source in _sources.Values) source.Remove();
         _sources.Clear();
         if (_maskViewport != null) _maskViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
@@ -109,19 +127,27 @@ public partial class FogOfWar : MeshInstance3D
         _elapsed = 0;
         _dirty = false;
         if (_occlusion == null) return;
-        _occlusion.Refresh(_map, Buildings);
+        _occlusion.Refresh(_map, Buildings, _buildingSizes);
         _seen.Clear();
         bool changed = false;
         if (Team != 0)
         {
             if (GodotObject.IsInstanceValid(Units))
                 foreach (Unit unit in Units.LiveUnits)
-                    if (unit.Team == Team && _unitSight.TryGetValue(unit.UnitType, out float sight))
-                        changed |= UpdateSource(unit.UnitId, unit.GlobalPosition, sight, 0);
+                    if (unit.Team == Team && (unit.Stats.HasValue || _unitSight.ContainsKey(unit.UnitType)))
+                    {
+                        float sight = unit.Stats?.Sight ?? _unitSight[unit.UnitType];
+                        float radius = _unitRadii.GetValueOrDefault(unit.UnitType, unit.PlacementRadius);
+                        var body = new RangeBody(new(unit.GlobalPosition.X, unit.GlobalPosition.Z), Vector2.Zero, radius);
+                        changed |= UpdateSource(unit.UnitId, body, sight, 0);
+                    }
             if (GodotObject.IsInstanceValid(Buildings))
                 foreach (Building building in Buildings.LiveBuildings)
-                    if (building.SideId == Team && _buildingSight.TryGetValue(building.BuildingType, out float sight))
-                        changed |= UpdateSource(building.BuildingId, building.GlobalPosition, sight, _occlusion.BuildingToken(building.BuildingId));
+                    if (building.SideId == Team && (building.Stats.HasValue || _buildingSight.ContainsKey(building.BuildingType)))
+                    {
+                        float sight = building.Stats?.Sight ?? _buildingSight[building.BuildingType];
+                        changed |= UpdateSource(building.BuildingId, BuildingBody(building), sight, _occlusion.BuildingToken(building.BuildingId));
+                    }
         }
         _stale.Clear();
         foreach (uint id in _sources.Keys)
@@ -130,7 +156,7 @@ public partial class FogOfWar : MeshInstance3D
         if (changed) _maskViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
     }
 
-    private bool UpdateSource(uint id, Vector3 position, float serverRadius, int ignore)
+    private bool UpdateSource(uint id, RangeBody body, float sight, int ignore)
     {
         _seen.Add(id);
         if (!_sources.TryGetValue(id, out FogLightMesh source))
@@ -138,8 +164,7 @@ public partial class FogOfWar : MeshInstance3D
             source = new FogLightMesh(_canvas);
             _sources.Add(id, source);
         }
-        float radius = Math.Max(0, serverRadius - VisualInsetCells * _cellSize);
-        return source.Update(new Vector2(position.X, position.Z), radius, ignore, _occlusion,
+        return source.Update(body, sight, ignore, _occlusion,
             _origin, VisualPixelsPerCell / _cellSize, _cellSize);
     }
 
@@ -148,6 +173,30 @@ public partial class FogOfWar : MeshInstance3D
         var point = new Vector2(position.X, position.Z);
         foreach (FogLightMesh source in _sources.Values)
             if (source.Contains(point)) return true;
+        return false;
+    }
+
+    private RangeBody BuildingBody(Building building)
+    {
+        Vector2 size = _buildingSizes.GetValueOrDefault(building.BuildingType, (Vector2)building.GetMeta("footprint").AsVector2I());
+        return new(new(building.GlobalPosition.X, building.GlobalPosition.Z), size * .5f, 0);
+    }
+
+    public bool IsBuildingVisible(Building building)
+    {
+        if (_dirty) RefreshVision();
+        if (Team == 0) return false;
+        if (building.SideId == Team) return true;
+        // 중심은 건물 자체의 차폐 안에 있으므로 시야에 드러난 외벽도 검사한다.
+        if (_occlusion == null || _cellSize <= 0) return false;
+        RangeBody body = BuildingBody(building);
+        Rect2 bounds = new(body.Center - body.HalfExtents, body.HalfExtents * 2);
+        // 차폐 격자에 걸친 부지도 같은 외곽으로 검사한다. 반 칸에 걸친 건물의 외벽을 놓치지 않는다.
+        Vector2 min = _origin + ((bounds.Position - _origin) / _cellSize).Floor() * _cellSize - Vector2.One * .05f;
+        Vector2 max = _origin + ((bounds.End - _origin) / _cellSize).Ceil() * _cellSize + Vector2.One * .05f;
+        for (int x = 0; x <= 2; x++)
+            for (int z = 0; z <= 2; z++)
+                if (IsVisibleAt(new Vector3(Mathf.Lerp(min.X, max.X, x * .5f), 0, Mathf.Lerp(min.Y, max.Y, z * .5f)))) return true;
         return false;
     }
 

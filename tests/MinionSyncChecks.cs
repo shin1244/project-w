@@ -30,15 +30,15 @@ public partial class MinionSyncChecks : Main
 
             Receive("WELCOME 7 2"); // 플레이어 ID로 진영을 추측하면 실패하는 사례
             Receive("UNIT 0 101 7 0 0 2");
-            Receive("UNIT 1 201 0 -2 0 2");
-            Receive("UNIT 2 202 0 2 0 1");
+            Receive("UNIT 3 201 0 -2 0 2");
+            Receive("UNIT 4 202 0 2 0 1");
             Receive("UNIT 0 301 9 0 -2 2");
             Unit own = Units.GetNode<Unit>("Unit_101");
             Unit ally = Units.GetNode<Unit>("Unit_201");
             Unit enemy = Units.GetNode<Unit>("Unit_202");
             Unit allyPlayer = Units.GetNode<Unit>("Unit_301");
-            Check(ally.OwnerId == 0 && ally.Team == 2 && ally.UnitType == 1 && enemy.Team == 1 && enemy.UnitType == 2,
-                "Minions reuse knight/archer scenes with server team and no owner");
+            Check(ally.OwnerId == 0 && ally.Team == 2 && ally.UnitType == UnitCatalog.MinionMelee && enemy.Team == 1 && enemy.UnitType == UnitCatalog.MinionRanged,
+                "Minions use dedicated melee/ranged types with server team and no owner");
             foreach (Unit other in new[] { ally, enemy, allyPlayer })
             {
                 Units.SelectSingle(other);
@@ -60,20 +60,22 @@ public partial class MinionSyncChecks : Main
             Receive("HP 202 42 60");
             Check(enemy.GlobalPosition == new Vector3(3, 0, 1) && enemy.HasServerState && enemy.State.FocusId == 101 && enemy.HealthBar.CurrentHP == 42,
                 "Existing position, state and health messages apply to minions");
-            Receive("UNIT 2 202 0 4 1 2");
+            Receive("UNIT 4 202 0 4 1 2");
             int count = sent.Count;
             Units.RequestAttack(enemy);
             Check(Units.GetNode<Unit>("Unit_202") == enemy && enemy.Team == 2 && sent.Count == count,
                 "Duplicate snapshot updates team and stops friendly attacks");
 
-            foreach (string invalid in new[] { "UNIT 1 401 0 0 0", "UNIT 1 401 0 0 0 nope", "UNIT 1 401 0 0 0 0", "UNIT 1 401 0 0 0 2 extra", "UNIT 1 0 0 0 0 2" }) Receive(invalid);
+            foreach (string invalid in new[] { "UNIT 3 401 0 0 0", "UNIT 3 401 0 0 0 nope", "UNIT 3 401 0 0 0 0", "UNIT 3 401 0 0 0 2 extra", "UNIT 3 0 0 0 0 2" }) Receive(invalid);
             Check(Units.GetChildCount() == 4, "Missing or invalid team never spawns a unit");
             Receive("WELCOME 8 nope");
             Receive("WELCOME 8");
             Units.SelectSingle(own);
             Check(Units.SelectedUnitIds.Contains(101u), "Malformed welcome does not change local ownership");
 
-            Receive("UNIT 0 101 0 0 0 2");
+            foreach (string invalid in new[] { "UNIT 1 401 0 0 0 2", "UNIT 2 401 0 0 0 2", "UNIT 3 401 7 0 0 2", "UNIT 4 401 7 0 0 2" }) Receive(invalid);
+            Check(Units.GetChildCount() == 4, "RTS and minion types cannot be interchanged by changing ownership");
+            Receive("UNIT 0 101 9 0 0 2");
             Check(Units.SelectedUnitIds.Count == 0, "Losing ownership clears selection even when team stays the same");
             Receive("REMOVE 202");
             Check(enemy.IsDying && !Units.HasNode("Unit_202"), "Minion removal uses normal death lifecycle");

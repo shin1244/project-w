@@ -1,4 +1,4 @@
-public enum UnitActivity { Idle, Gather, Attack, Build }
+public enum UnitActivity { Idle, Gather, Attack, Build, Guard }
 
 // 서버가 확정한 행동과 운반량. 애니메이션은 이 정보를 표시하기만 합니다.
 public readonly record struct UnitState(

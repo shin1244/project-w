@@ -24,7 +24,10 @@ public static class PlacementRules
         Vector2 to = (area.End - map.GridOrigin) / map.CellSize;
         for (int z = Mathf.FloorToInt(from.Y + .0001f); z < Mathf.CeilToInt(to.Y - .0001f); z++)
             for (int x = Mathf.FloorToInt(from.X + .0001f); x < Mathf.CeilToInt(to.X - .0001f); x++)
+            {
+                if (map.IsRoad(x, z)) return "도로에는 건물을 지을 수 없습니다.";
                 if (map.IsTerrainBlocked(x, z)) return "벽이나 나무가 있는 곳에는 지을 수 없습니다.";
+            }
         if (GodotObject.IsInstanceValid(buildings))
             foreach (Building building in buildings.LiveBuildings)
                 if (BuildingFootprint.Overlaps(area, BuildingFootprint.Corners(building))) return "다른 건물과 겹칩니다.";

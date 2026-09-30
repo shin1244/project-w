@@ -22,7 +22,9 @@ public sealed class FogOcclusionGrid
         _buildings = new int[_terrain.Length];
     }
 
-    public void Refresh(MapWorld map, BuildingManager buildings)
+    public void Invalidate() { _mapVersion = uint.MaxValue; _layoutVersion = uint.MaxValue; }
+
+    public void Refresh(MapWorld map, BuildingManager buildings, IReadOnlyDictionary<uint, Vector2> bodySizes = null)
     {
         uint layout = GodotObject.IsInstanceValid(buildings) ? buildings.LayoutVersion : 0;
         if (_mapVersion == map.OcclusionVersion && _layoutVersion == layout) return;
@@ -35,7 +37,14 @@ public sealed class FogOcclusionGrid
             {
                 int token = _tokens.Count + 1;
                 _tokens[building.BuildingId] = token;
-                Vector2[] corners = BuildingFootprint.Corners(building);
+                Vector2[] corners;
+                if (bodySizes != null && bodySizes.TryGetValue(building.BuildingType, out Vector2 bodySize))
+                {
+                    Vector2 center = new(building.GlobalPosition.X, building.GlobalPosition.Z);
+                    Vector2 lo = center - bodySize * .5f, hi = center + bodySize * .5f;
+                    corners = new[] { lo, new Vector2(hi.X, lo.Y), hi, new Vector2(lo.X, hi.Y) };
+                }
+                else corners = BuildingFootprint.Corners(building);
                 Rect2 bounds = BuildingFootprint.Bounds(corners);
                 Vector2 min = bounds.Position, max = bounds.End;
                 int x0 = Math.Max(0, Mathf.FloorToInt((min.X - _origin.X) / _cell));

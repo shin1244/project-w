@@ -26,6 +26,7 @@ public partial class Main : Node3D
             return;
         }
         Fog?.Configure(Map);
+        if (Buildings != null && Fog != null) Buildings.VisibilityCheck = Fog.IsBuildingVisible;
         ConnectInput();
         Units.CommandRequested += SendCommand;
         Units.PositionsRendered += OnPositionsRendered;
@@ -65,7 +66,7 @@ public partial class Main : Node3D
 
     private void ModifyUnitSelection(Unit unit, bool shift, bool sameType)
     {
-        if (!Units.CanControl(unit)) return;
+        if (!Units.CanControl(unit)) { SelectUnit(unit); return; }
         Buildings?.ClearSelection();
         if (sameType) Units.SelectSameTypeOnScreen(unit, shift);
         else Units.ToggleSelection(unit);
@@ -165,6 +166,9 @@ public partial class Main : Node3D
             case "SIGHT":
                 Fog?.HandleSight(parts);
                 break;
+            case "BODY":
+                Fog?.HandleBody(parts);
+                break;
             case "UNIT":
                 Units.HandleSpawn(parts);
                 Fog?.Invalidate();
@@ -178,6 +182,12 @@ public partial class Main : Node3D
             case "CONSTRUCTION":
                 Buildings?.HandleConstruction(parts);
                 break;
+            case "QUEUE":
+                Buildings?.HandleProduction(parts);
+                break;
+            case "RALLY":
+                Buildings?.HandleRally(parts);
+                break;
             case "POS":
                 Units.HandlePosition(parts);
                 Fog?.Invalidate();
@@ -188,6 +198,14 @@ public partial class Main : Node3D
                 {
                     Units.HandleHealth(health);
                     Buildings?.HandleHealth(health);
+                }
+                break;
+            case "STATS":
+                if (StatsSnapshot.TryParse(parts, out var stats))
+                {
+                    if (Units.TryGetUnit(stats.Id, out Unit statsUnit)) statsUnit.Stats = stats;
+                    if (Buildings != null && Buildings.TryGetBuilding(stats.Id, out Building statsBuilding)) statsBuilding.Stats = stats;
+                    Fog?.Invalidate();
                 }
                 break;
             case "STATE":

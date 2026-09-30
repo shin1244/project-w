@@ -1,20 +1,23 @@
 extends RefCounted
-## Flat geometry follows maps/test.json; road masks use the same layout as the forest tool.
+## Geometry and the visible road mask both follow the authoritative JSON cells.
 
 const SUBDIVISIONS := 2
 const BASE_X := 65.0
-const LANE_WIDTH := 8.0
+const LANE_WIDTH := 12.0
+const OUTER_BUILD_WIDTH := 3.0
+const WALL_THICKNESS := 2
+const BASE_OUTER_RADIUS := 18.0
 const TOP_LANE := [
-	Vector2(-65, 0), Vector2(-58, -14), Vector2(-44, -25),
-	Vector2(-24, -29), Vector2(0, -30), Vector2(24, -29),
-	Vector2(44, -25), Vector2(58, -14), Vector2(65, 0),
+	Vector2(-65, 0), Vector2(-58, -14), Vector2(-47, -24),
+	Vector2(-20, -29), Vector2(0, -30), Vector2(20, -29),
+	Vector2(47, -24), Vector2(58, -14), Vector2(65, 0),
 ]
 
 const TRAIL_SEGMENTS := [
-	Vector4(0, 0, 13, 2), Vector4(13, 2, 27, 0),
-	Vector4(27, 0, 25, 13), Vector4(25, 13, 31, 28),
-	Vector4(27, 0, 39, 6), Vector4(39, 6, 55, 4), Vector4(0, 7, 0, 30),
+	Vector4(0, 0, 15, 0), Vector4(15, 0, 28, 0),
+	Vector4(28, 0, 28, 14), Vector4(28, 14, 32, 28), Vector4(0, 0, 0, 30),
 ]
+const TRAIL_WIDTH := 6.0
 
 var arena: Node3D
 var map_data: Dictionary
@@ -33,14 +36,15 @@ func generate(data: Dictionary) -> Node3D:
 	for row: String in rows:
 		assert(row.length() == rows[0].length())
 		for tile in row:
-			assert(tile in [".", "#", "T"])
+			assert(tile in [".", "#", "T", "R", "W"])
 	arena = Node3D.new()
 	arena.name = "SymmetricArena"
 	arena.set_meta("dimensions", Vector2(rows[0].length(), rows.size()) * cell_size)
 	arena.set_meta("symmetry", "Reflection across X=0 and Z=0")
 	arena.set_meta("lane_width", LANE_WIDTH)
-	arena.set_meta("note", "Flat terrain from maps/test.json. T is ground occupied by a server resource.")
+	arena.set_meta("note", "R: walkable stone road, no construction. .: buildable grass. T: harvestable forest.")
 	build_terrain()
+	build_walls()
 	build_guides()
 	return arena
 
@@ -66,6 +70,26 @@ func trail_distance(p: Vector2) -> float:
 	for edge: Vector4 in TRAIL_SEGMENTS:
 		distance = minf(distance, segment_distance(q, Vector2(edge.x, edge.y), Vector2(edge.z, edge.w)))
 	return distance
+
+# Used only when authoring the map. Gameplay and rendering read its saved R cells.
+func is_road(p: Vector2) -> bool:
+	return lane_distance(p) <= LANE_WIDTH * 0.5 \
+		or trail_distance(p) <= TRAIL_WIDTH * 0.5 \
+		or p.abs().distance_to(Vector2(BASE_X, 0)) <= 11.0 \
+		or p.length() <= 5.0
+
+func is_initial_forest(p: Vector2) -> bool:
+	# Fill all six interior parcels up to the roads, rather than isolated oval groves.
+	# Mirroring into the upper half lets the lane polyline enclose the full interior.
+	# The planting tool excludes every road/wall cell in each complete 2x2 footprint.
+	return Geometry2D.is_point_in_polygon(Vector2(p.x, -absf(p.y)), PackedVector2Array(TOP_LANE))
+
+func is_arena_land(p: Vector2) -> bool:
+	# Follow the lanes closely: retain a narrow building strip before the wall.
+	# Rounded base ends preserve the east/west extent while the north/south rim shrinks.
+	return is_initial_forest(p) \
+		or lane_distance(p) <= LANE_WIDTH * 0.5 + OUTER_BUILD_WIDTH + WALL_THICKNESS \
+		or p.abs().distance_to(Vector2(BASE_X, 0)) <= BASE_OUTER_RADIUS
 
 # The same cells used by the Go server define the visible surface.
 # T still has ground underneath; resource blocking is handled by the server.
@@ -132,10 +156,13 @@ func build_terrain() -> void:
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var ground_material := ShaderMaterial.new()
 	ground_material.shader = load("res://maps/materials/Ground.gdshader")
-	ground_material.set_shader_parameter("top_lane", PackedVector2Array(TOP_LANE))
-	ground_material.set_shader_parameter("trails", TRAIL_SEGMENTS)
-	ground_material.set_shader_parameter("lane_width", LANE_WIDTH)
-	ground_material.set_shader_parameter("base_x", BASE_X)
+	var road_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
+	for z in range(rows.size()):
+		for x in range(rows[z].length()):
+			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" else Color.BLACK)
+	ground_material.set_shader_parameter("road_mask", ImageTexture.create_from_image(road_image))
+	ground_material.set_shader_parameter("map_origin", map_origin)
+	ground_material.set_shader_parameter("map_size", Vector2(rows[0].length(), rows.size()) * cell_size)
 	top.set_material(ground_material)
 	sides.set_material(material)
 	var ground := MeshInstance3D.new()
@@ -157,6 +184,52 @@ func build_terrain() -> void:
 	attach(edge_mesh)
 	print("Terrain triangles: ", count)
 	print("PASS: flat terrain generated from ", rows[0].length(), " x ", rows.size(), " map cells")
+
+func wall_face(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	st.set_normal((b - a).cross(c - a).normalized())
+	for point in [a, c, b, a, d, c]:
+		st.add_vertex(point)
+
+func wall_box(st: SurfaceTool, lo: Vector3, size: Vector3) -> void:
+	var hi := lo + size
+	wall_face(st, Vector3(lo.x, hi.y, lo.z), Vector3(lo.x, hi.y, hi.z), hi, Vector3(hi.x, hi.y, lo.z))
+	wall_face(st, lo, Vector3(lo.x, hi.y, lo.z), Vector3(hi.x, hi.y, lo.z), Vector3(hi.x, lo.y, lo.z))
+	wall_face(st, Vector3(hi.x, lo.y, lo.z), Vector3(hi.x, hi.y, lo.z), hi, Vector3(hi.x, lo.y, hi.z))
+	wall_face(st, Vector3(hi.x, lo.y, hi.z), hi, Vector3(lo.x, hi.y, hi.z), Vector3(lo.x, lo.y, hi.z))
+	wall_face(st, Vector3(lo.x, lo.y, hi.z), Vector3(lo.x, hi.y, hi.z), Vector3(lo.x, hi.y, lo.z), lo)
+
+func build_walls() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	for z in range(rows.size()):
+		for x in range(rows[z].length()):
+			if rows[z][x] != "W":
+				continue
+			var p := map_origin + Vector2(x, z) * cell_size
+			wall_box(st, Vector3(p.x, 0, p.y), Vector3(cell_size, 2.4, cell_size))
+			wall_box(st, Vector3(p.x, 2.4, p.y), Vector3(cell_size, 0.2, cell_size))
+			var center := p + Vector2.ONE * cell_size * 0.5
+			if (floori(absf(center.x)) + floori(absf(center.y))) % 3 == 0:
+				wall_box(st, Vector3(p.x + cell_size * 0.08, 2.6, p.y + cell_size * 0.08), Vector3(cell_size * 0.84, 0.65, cell_size * 0.84))
+			count += 1
+	if count == 0:
+		return
+	var material := ShaderMaterial.new()
+	material.shader = load("res://maps/materials/Wall.gdshader")
+	st.set_material(material)
+	var wall := MeshInstance3D.new()
+	wall.name = "OuterWalls"
+	wall.mesh = st.commit()
+	attach(wall)
+	var body := StaticBody3D.new()
+	body.name = "WallCollision"
+	attach(body)
+	var shape := CollisionShape3D.new()
+	shape.name = "WallShape"
+	shape.shape = wall.mesh.create_trimesh_shape()
+	attach(shape, body)
+	print("Outer wall cells: ", count)
 
 func build_guides() -> void:
 	var guides := Node3D.new()

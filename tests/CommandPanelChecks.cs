@@ -46,10 +46,11 @@ public partial class CommandPanelChecks : Main
             BeginSession(7, 1);
             Receive("SIGHT UNIT 0 8");
             Receive("SIGHT UNIT 1 8");
+            Receive("SIGHT UNIT 3 8");
             Receive("SIGHT BUILDING 0 12");
             Receive("UNIT 0 101 7 -10 0 1");
             Receive("UNIT 1 102 7 -7 0 1");
-            Receive("UNIT 1 103 0 -4 0 1");
+            Receive("UNIT 3 103 0 -4 0 1");
             Receive("UNIT 2 104 9 -1 0 1");
             Receive("UNIT 1 105 8 2 0 2");
             Receive("BUILDING 0 201 1 -10 8 0");
@@ -89,6 +90,8 @@ public partial class CommandPanelChecks : Main
             CheckWorkerTrain();
             CheckWorkerTrain();
             await Capture("command-panel-hall");
+            await CheckBarracksProduction();
+            await CheckCancellation();
             foreach (uint id in new uint[] { 202, 203 })
             {
                 SelectBuilding(201);
@@ -154,7 +157,7 @@ public partial class CommandPanelChecks : Main
             Check(!Commands.IsTierOneMenuOpen, "Disconnect exits the tier-one menu");
             CheckNoWorkerTrain("Disconnect prevents requests using stale identity or hall selection");
 
-            GD.Print("PASS: command panel layout, tier-one building menu and Q/W/E/A/S/Z/Esc shortcuts, tower construction, camera/attack conflicts, selection/focus/reset cancellation, control groups, worker TRAIN transmission, sync gate, ownership, removal and reconnect");
+            GD.Print("PASS: production/construction cancellation, stable job IDs, payer ownership, queue portrait clicks, Escape, server-only refunds, commands, independent queues, progress, removal and reconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -347,14 +350,195 @@ public partial class CommandPanelChecks : Main
         string stockBefore = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
         int bytesBefore = checked((int)_wire.Length);
         _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
-        const string expected = "TRAIN 0";
+        string expected = $"TRAIN {Buildings.SelectedBuilding.BuildingId} 0";
         Check(_commands.Count == commandsBefore + 1 && _commands[^1] == expected,
-            "One worker click requests exactly one TRAIN with only the worker type and no player ID");
+            "One worker click includes the selected town hall and unit type, without a player ID");
         Check(Encoding.UTF8.GetString(_wire.ToArray().AsSpan(bytesBefore)) == expected + System.Environment.NewLine,
             "The existing Main and NetClient path writes exactly one correctly framed training line");
         Check(Units.LiveUnits.Count == unitsBefore && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == stockBefore,
             "A training request does not create a local unit or deduct local stock");
         Expect("Sending a worker request preserves the hall selection", (7, "일꾼"));
+    }
+
+    private async Task CheckBarracksProduction()
+    {
+        Receive("BUILDING 4 601 1 -10 15 0");
+        Receive("BUILDING 4 602 1 0 15 0");
+        Receive("BUILDING 4 603 1 10 15 0");
+        Receive("CONSTRUCTION 603 20");
+        Receive("BUILDING 4 604 2 20 15 0");
+        Receive("HP 601 800 800");
+        Receive("STATS 601 0 0 0 0 6");
+        SelectBuilding(601);
+        Expect("A completed friendly barracks trains both soldiers", (7, "검방병"), (8, "궁수"));
+        Check(_slots[7].TooltipText.Contains("200") && _slots[8].TooltipText.Contains("인구 2"), "Both soldiers display their initial cost and supply");
+        int unitCount = Units.LiveUnits.Count;
+        string stock = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
+        foreach (int slot in new[] { 7, 8 })
+        {
+            int before = _commands.Count, bytes = checked((int)_wire.Length);
+            _slots[slot].EmitSignal(BaseButton.SignalName.Pressed);
+            string expected = $"TRAIN 601 {(slot == 7 ? 1 : 2)}";
+            Check(_commands.Count == before + 1 && _commands[^1] == expected &&
+                Encoding.UTF8.GetString(_wire.ToArray().AsSpan(bytes)) == expected + System.Environment.NewLine,
+                "Each barracks button sends the selected building ID and correct unit type exactly once");
+        }
+        Check(Units.LiveUnits.Count == unitCount && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == stock,
+            "Training never predicts local spending or spawns a local soldier");
+        int count = _commands.Count;
+        Units.RequestTrainWorker();
+        Check(_commands.Count == count, "Barracks cannot train workers");
+        Receive("QUEUE 601 25 1 2");
+        var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
+        var progress = details.FindChildren("ProductionProgress", "ProgressBar", true, false).OfType<ProgressBar>().Single();
+        Check(progress.IsVisibleInTree() && progress.Value == 25 && !progress.ShowPercentage,
+            "Server production fills a bar in the information panel without a percent button");
+        Expect("Command slots contain only production actions", (7, "검방병"), (8, "궁수"));
+        var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
+        Check(queue.GetChildCount() == 5 && queue.GetChild(0).GetChild<TextureRect>(0).Texture != null &&
+            queue.GetChild(1).GetChild<TextureRect>(0).Texture != null && queue.GetChild(2).GetChild<TextureRect>(0).Texture == null,
+            "Production queue shows current and waiting portraits, with vacant slots empty");
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Check(details.GetGlobalRect().Encloses(queue.GetGlobalRect()), "Production queue fits inside the information panel");
+        await Capture("command-panel-barracks");
+        SelectBuilding(602);
+        Check(!progress.IsVisibleInTree(), "Another empty producer hides the previous progress");
+        Expect("Another barracks starts with its own empty queue", (7, "검방병"), (8, "궁수"));
+        _slots[8].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_commands[^1] == "TRAIN 602 2", "Changing selection changes the producer ID");
+        Receive("QUEUE 602 75 2");
+        SelectBuilding(601);
+        Check(progress.Value == 25 && progress.IsVisibleInTree(), "Switching back restores the first building's progress");
+        foreach (string invalid in new[]
+        {
+            "QUEUE 601 -1 1", "QUEUE 601 101 1", "QUEUE 601 25 0", "QUEUE 601 25 99",
+            "QUEUE 601 25", "QUEUE 601 nope 1", "QUEUE 601 25 1 1 1 1 1 1", "QUEUE 0 25 1", "QUEUE 999 50 1"
+        }) Receive(invalid);
+        Check(progress.Value == 25, "Malformed queues cannot corrupt current progress");
+        Receive("QUEUE 601 30 1 2 1 2 1");
+        count = _commands.Count;
+        _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
+        _slots[8].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_slots[7].Disabled && _slots[8].Disabled && _commands.Count == count, "Full queue disables further production");
+        Receive("QUEUE 601 100 1");
+        Check(progress.Value == 100 && details.FindChildren("*", "Label", true, false).OfType<Label>().Any(label => label.IsVisibleInTree() && label.Text.Contains("출구 대기")),
+            "A completed unit with no exit keeps its full progress bar and waiting status");
+        Receive("QUEUE 601 0");
+        Check(!progress.IsVisibleInTree(), "Completing production hides the production area");
+        Expect("Completing all work clears progress and unlocks both buttons", (7, "검방병"), (8, "궁수"));
+
+        foreach (uint id in new uint[] { 603, 604 })
+        {
+            SelectBuilding(id);
+            Expect("Unfinished or enemy barracks expose no production actions");
+            count = _commands.Count;
+            Units.RequestTrain(1);
+            Units.RequestTrain(2);
+            Check(_commands.Count == count, "Client rejects wrong-team and unfinished producers");
+        }
+        Receive("QUEUE 604 50 1");
+        Check(Buildings.SelectedBuilding.ProductionQueue.Count == 0, "Enemy production snapshots are ignored");
+        SelectBuilding(603);
+        Receive("CONSTRUCTION 603 100");
+        Expect("Finishing construction enables production immediately", (7, "검방병"), (8, "궁수"));
+        Receive("REMOVE 603");
+        Expect("Destroying the selected barracks clears its commands and progress");
+        count = _commands.Count;
+        Units.RequestTrain(1);
+        Check(_commands.Count == count, "Destroyed producer ID cannot be reused");
+        SelectBuilding(601);
+        Receive("QUEUE 601 80 2");
+        Receive("BUILDING 4 601 2 -10 15 0");
+        Expect("Losing the barracks team hides production");
+        Receive("BUILDING 4 601 1 -10 15 0");
+        Check(Buildings.SelectedBuilding.ProductionQueue.Count == 0, "Changed ownership cannot expose stale queue state");
+        SelectBuilding(201);
+    }
+
+    private async Task CheckCancellation()
+    {
+        SelectBuilding(601);
+        Receive("QUEUE 601 40 9001:1:7 9002:2:7 9003:1:9");
+        Building producer = Buildings.SelectedBuilding;
+        Expect("Owned active production shows cancel", (7, "검방병"), (8, "궁수"), (3, "생산 취소\n(Esc)"));
+        Check(_slots[3].TooltipText.Contains("75%"), "Cancellation explains the refund rate");
+        var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
+        var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        string stockBefore = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
+        int before = _commands.Count;
+        long bytes = _wire.Length;
+        Vector2 click = queue.GetChild<Control>(1).GetGlobalRect().GetCenter();
+        using (var down = new InputEventMouseButton { Position = click, GlobalPosition = click, ButtonIndex = MouseButton.Left, Pressed = true, ButtonMask = MouseButtonMask.Left }) GetViewport().PushInput(down, true);
+        using (var up = new InputEventMouseButton { Position = click, GlobalPosition = click, ButtonIndex = MouseButton.Left, Pressed = false }) GetViewport().PushInput(up, true);
+        Check(_commands.Count == before + 1 && _commands[^1] == "CANCEL_TRAIN 601 9002" &&
+            Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)bytes)) == "CANCEL_TRAIN 601 9002" + System.Environment.NewLine,
+            "Clicking the queued portrait sends exactly that stable job ID");
+        Check(producer.ProductionJobs.Count == 3 && producer.ProductionPercent == 40 && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == stockBefore,
+            "Cancel click does not predict queue removal, progress or refund");
+        Check(Buildings.SelectedBuilding == producer && Units.SelectedUnitIds.Count == 0, "Queue click does not select the world beneath it");
+
+        foreach (string malformed in new[] { "QUEUE 601 50 0:1:7", "QUEUE 601 50 9001:1:0", "QUEUE 601 50 9001:1:7 9001:2:7", "QUEUE 601 50 9001:1:7 2", "QUEUE 601 50 9001:3:7", "QUEUE 601 50 9001:1:7:8" }) Receive(malformed);
+        Check(producer.ProductionPercent == 40 && producer.ProductionJobs.Count == 3, "Malformed job IDs and owners do not corrupt the queue");
+        _slots[3].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_commands[^1] == "CANCEL_TRAIN 601 9001", "Command button cancels active production");
+        await Capture("command-panel-cancel-production");
+        var input = GetNode<PlayerInput>("PlayerInput");
+        before = _commands.Count;
+        input._Input(KeyEvent(Key.Escape, true));
+        input._Input(KeyEvent(Key.Escape, true, echo: true));
+        input._Input(KeyEvent(Key.Escape, false));
+        Check(_commands.Count == before + 1 && _commands[^1] == "CANCEL_TRAIN 601 9001", "Escape repeats do not cancel multiple items");
+        Receive("QUEUE 601 0 9002:2:7 9003:1:9");
+        before = _commands.Count;
+        Units.RequestCancelTraining(producer, 9001);
+        Units.RequestCancelTraining(producer, 9003);
+        Check(_commands.Count == before, "Stale jobs and another payer's reservation cannot be canceled");
+        Receive("QUEUE 601 0 9003:1:9 9004:2:7");
+        Check(_slots[3].Disabled, "Another player's active production has no cancel action");
+        Units.RequestCancelTraining(producer, 9004);
+        Check(_commands[^1] == "CANCEL_TRAIN 601 9004", "The player can still cancel their own waiting job");
+        Receive("QUEUE 601 0");
+        before = _commands.Count;
+        Units.RequestCancelTraining(producer, 9004);
+        Check(_commands.Count == before && _slots[3].Disabled, "An empty queue cannot send stale cancellations");
+
+        Receive("BUILDING 3 701 1 -15 18 0");
+        Receive("CONSTRUCTION 701 35 7");
+        Receive("HP 701 140 400");
+        SelectBuilding(701);
+        Building site = Buildings.SelectedBuilding;
+        Expect("The payer can cancel unfinished construction", (3, "건설 취소\n(Esc)"));
+        _slots[3].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_commands[^1] == "CANCEL_BUILD 701" && Buildings.TryGetBuilding(701, out _) && site.ConstructionPercent == 35,
+            "Construction click sends the building ID and waits for authoritative removal");
+        await Capture("command-panel-cancel-construction");
+        before = _commands.Count;
+        KeyStroke(input, Key.Escape);
+        Check(_commands.Count == before + 1 && _commands[^1] == "CANCEL_BUILD 701", "Escape cancels owned construction");
+        Receive("CONSTRUCTION 701 35 9");
+        Expect("Same-team construction funded by someone else cannot be canceled");
+        before = _commands.Count;
+        Units.RequestCancelConstruction(site);
+        Check(_commands.Count == before, "The current builder or team does not replace the payer");
+        Receive("CONSTRUCTION 701 35 7");
+        Receive("CONSTRUCTION 701 100 7");
+        Expect("Completed construction no longer offers cancellation");
+        Units.RequestCancelConstruction(site);
+        Check(_commands.Count == before, "Completed buildings cannot be canceled");
+        Receive("CONSTRUCTION 701 35 7");
+        Receive("BUILDING 3 701 2 -15 18 0");
+        Expect("Enemy construction cannot be canceled");
+        Units.RequestCancelConstruction(site);
+        Check(_commands.Count == before, "Wrong-team cancellation cannot be sent");
+        Receive("BUILDING 3 701 1 -15 18 0");
+        Receive("REMOVE 701");
+        Receive("STOCK 0 212");
+        Units.RequestCancelConstruction(site);
+        Check(_commands.Count == before && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == "212", "Server removal and refund apply once; stale building references cannot cancel");
+        SelectBuilding(201);
     }
 
     private void CheckNoWorkerTrain(string message)

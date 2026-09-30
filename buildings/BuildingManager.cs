@@ -17,10 +17,23 @@ public partial class BuildingManager : Node3D
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
     private uint _localTeam;
+    private RallyMarker _rallyMarker;
     public IReadOnlyCollection<Building> LiveBuildings => _buildings.Values;
     public Building SelectedBuilding => _selected;
     public event Action SelectionChanged;
+    public event Action ProductionChanged;
+    public Func<Building, bool> VisibilityCheck { get; set; }
     public uint LayoutVersion { get; private set; }
+
+    public bool CanInspect(Building building) => GodotObject.IsInstanceValid(building) && building.IsInsideTree() &&
+        building.IsVisibleInTree() && !building.IsQueuedForDeletion() &&
+        _buildings.TryGetValue(building.BuildingId, out Building registered) && registered == building &&
+        (building.SideId == _localTeam || VisibilityCheck == null || VisibilityCheck(building));
+
+    public override void _Process(double delta)
+    {
+        if (_selected != null && !CanInspect(_selected)) ClearSelection();
+    }
 
     public bool TryGetBuilding(uint id, out Building building) => _buildings.TryGetValue(id, out building);
     public PackedScene SceneFor(uint type) => type switch
@@ -33,21 +46,30 @@ public partial class BuildingManager : Node3D
     {
         if (_localTeam == team) return;
         _localTeam = team;
-        foreach (Building building in _buildings.Values) building.SetLocalTeam(team);
+        foreach (Building building in _buildings.Values)
+        {
+            building.SetLocalTeam(team);
+            if (building.SideId != team)
+            {
+                building.ApplyProduction(new ProductionSnapshot(building.BuildingId, 0, Array.Empty<uint>()));
+                building.Rally = null;
+            }
+        }
+        RefreshRally();
     }
 
     public void SelectSingle(Building building)
     {
         Building previousSelection = _selected;
         ClearSelectionCore();
-        if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() ||
-            !_buildings.TryGetValue(building.BuildingId, out Building registered) || registered != building)
+        if (!CanInspect(building))
         {
             if (previousSelection != null) SelectionChanged?.Invoke();
             return;
         }
         _selected = building;
         building.SetSelected(true);
+        RefreshRally();
         if (previousSelection != _selected) SelectionChanged?.Invoke();
     }
 
@@ -62,6 +84,7 @@ public partial class BuildingManager : Node3D
     {
         if (GodotObject.IsInstanceValid(_selected)) _selected.SetSelected(false);
         _selected = null;
+        if (_rallyMarker != null) _rallyMarker.Visible = false;
     }
 
     public void HandleSpawn(string[] parts)
@@ -80,8 +103,14 @@ public partial class BuildingManager : Node3D
             if (existing.BuildingType == type)
             {
                 bool selectedSideChanged = _selected == existing && existing.SideId != sideId;
+                if (existing.SideId != sideId)
+                {
+                    existing.ApplyProduction(new ProductionSnapshot(id, 0, Array.Empty<uint>()));
+                    existing.Rally = null;
+                }
                 existing.ApplySnapshot(id, sideId, x, z, yaw);
                 LayoutVersion++;
+                if (_selected == existing) RefreshRally();
                 if (selectedSideChanged) SelectionChanged?.Invoke();
             }
             return;
@@ -110,10 +139,13 @@ public partial class BuildingManager : Node3D
 
     public void HandleConstruction(string[] parts)
     {
-        if (parts.Length != 3 || !uint.TryParse(parts[1], out uint id) || id == 0 ||
+        if (parts.Length is not (3 or 4) || !uint.TryParse(parts[1], out uint id) || id == 0 ||
             !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int percent) ||
             percent < 0 || percent > 100 || !_buildings.TryGetValue(id, out Building building)) return;
-        if (building.ConstructionPercent == percent) return;
+        uint owner = 0;
+        if (parts.Length == 4 && !uint.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out owner)) return;
+        if (building.ConstructionPercent == percent && building.ConstructionOwnerId == owner) return;
+        building.ConstructionOwnerId = owner;
         building.ApplyConstruction(percent);
         if (_selected == building) SelectionChanged?.Invoke();
     }
@@ -123,9 +155,46 @@ public partial class BuildingManager : Node3D
         if (_buildings.TryGetValue(snapshot.Id, out Building building)) building.ApplyServerState(snapshot.State);
     }
 
+    public void HandleProduction(string[] parts)
+    {
+        if (!ProductionSnapshot.TryParse(parts, out var snapshot) ||
+            !_buildings.TryGetValue(snapshot.BuildingId, out Building building) ||
+            _localTeam == 0 || building.SideId != _localTeam ||
+            building.BuildingType is not (BuildingCatalog.TownHall or BuildingCatalog.Barracks)) return;
+        foreach (uint type in snapshot.UnitTypes)
+            if (!building.CanTrain(type)) return;
+        if (building.ApplyProduction(snapshot) && _selected == building) ProductionChanged?.Invoke();
+    }
+
     public void HandleRemove(string[] parts)
     {
         if (parts.Length == 2 && uint.TryParse(parts[1], out uint id)) Remove(id);
+    }
+
+    public void HandleRally(string[] parts)
+    {
+        if (!RallySnapshot.TryParse(parts, out var rally) ||
+            !_buildings.TryGetValue(rally.BuildingId, out Building building) ||
+            _localTeam == 0 || building.SideId != _localTeam || !building.IsProducer ||
+            (rally.ResourceId != 0 && building.BuildingType != BuildingCatalog.TownHall)) return;
+        building.Rally = rally.Enabled ? rally : null;
+        if (_selected == building) RefreshRally();
+    }
+
+    private void RefreshRally()
+    {
+        if (_selected == null || _localTeam == 0 || _selected.SideId != _localTeam ||
+            _selected.Rally is not RallySnapshot { Enabled: true } rally)
+        {
+            if (_rallyMarker != null) _rallyMarker.Visible = false;
+            return;
+        }
+        if (_rallyMarker == null)
+        {
+            _rallyMarker = new RallyMarker { Name = "RallyMarker" };
+            AddChild(_rallyMarker);
+        }
+        _rallyMarker.ShowPoint(_selected.GlobalPosition, rally);
     }
 
     public void Clear()

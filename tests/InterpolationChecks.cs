@@ -47,7 +47,7 @@ public partial class InterpolationChecks : Main
     private void CheckSteadyAndSparseMovement()
     {
         Receive("UNIT 1 101 7 0 0 1");
-        Receive("UNIT 1 202 0 10 0 2");
+        Receive("UNIT 3 202 0 10 0 2");
         Unit own = GetUnit(), enemy = GetUnit(202);
         Units.SelectSingle(own);
         Units.RequestAttack(enemy);
@@ -101,7 +101,7 @@ public partial class InterpolationChecks : Main
     {
         BeginSession();
         Receive("UNIT 1 101 7 0 0 1");
-        Receive("UNIT 1 202 0 10 0 2");
+        Receive("UNIT 3 202 0 10 0 2");
         Receive("TICK 10");
         Receive("POS 101 1 0");
         Step(.15); // TCP의 같은 틱이 여러 렌더 프레임에 나뉘어 도착합니다.
@@ -146,7 +146,7 @@ public partial class InterpolationChecks : Main
         Receive("UNIT 1 101 7 50 0 1");
         Step(.01);
         At(GetUnit(), 50, "Duplicate UNIT snapshots discard old paths immediately");
-        Receive("UNIT 1 202 0 20 0 2");
+        Receive("UNIT 3 202 0 20 0 2");
         Step(.01);
         At(GetUnit(202), 20, "New units never interpolate from the origin");
         Unit hidden = GetUnit(202);
@@ -154,7 +154,7 @@ public partial class InterpolationChecks : Main
         Receive("HIDE 202");
         Receive("POS 202 40 0");
         Check(!Units.TryGetUnit(202, out _) && !hidden.IsInsideTree(), "Hide removes pending movement immediately");
-        Receive("UNIT 1 202 0 80 0 2");
+        Receive("UNIT 3 202 0 80 0 2");
         Step(.01);
         At(GetUnit(202), 80, "Reappearance starts a new history");
         Unit dying = GetUnit();

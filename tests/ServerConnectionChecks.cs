@@ -68,7 +68,7 @@ public partial class ServerConnectionChecks : Node
                 }
                 var minions = units.Where(u => u.OwnerId == 0 && u.HasServerState && u.HealthBar.MaxHP > 0).ToArray();
                 // 전장의 안개 이후에는 상대 웨이브가 출생 직후 보이지 않는 것이 정상입니다.
-                bool fullWave = new uint[] { 1, 2 }.All(type => minions.Any(u => u.Team == _team && u.UnitType == type));
+                bool fullWave = new uint[] { UnitCatalog.MinionMelee, UnitCatalog.MinionRanged }.All(type => minions.Any(u => u.Team == _team && u.UnitType == type));
                 if (!game.Map.IsSynchronized || own == null || !fullWave || !_movedTeams.Contains(_team) ||
                     !buildingsReady || !_sawTowerShot || !_sawProbeDamage || !_sawProbeRemoval) continue;
                 if (own.Team != _team) throw new InvalidOperationException("WELCOME and own UNIT team mismatch");

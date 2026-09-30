@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Linq;
 
 public partial class UnitManager : Node3D
 {
@@ -9,11 +10,15 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene WorkerScene;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
+    [Export] public PackedScene MinionKnightScene;
+    [Export] public PackedScene MinionArcherScene;
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
     public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
     public uint LocalTeam => _localTeam;
+    // 소유하지 않은 유닛은 정보만 살펴보고 명령/부대 지정에는 넣지 않는다.
+    public Unit InspectedUnit { get; private set; }
     public bool TryGetUnit(uint id, out Unit unit) => _units.TryGetValue(id, out unit);
     public event Action SelectionChanged;
     public event Action PositionsRendered;
@@ -76,18 +81,42 @@ public partial class UnitManager : Node3D
         if (playerChanged || selectionChanged) SelectionChanged?.Invoke();
     }
 
-    public void RequestTrainWorker()
+    public void RequestTrainWorker() => RequestTrain(0);
+
+    private bool CanUseSelectedBuilding(Building building) => _localPlayerId != 0 && _localTeam != 0 &&
+        _selectedUnitIds.Count == 0 && InspectedUnit == null && GodotObject.IsInstanceValid(Buildings) &&
+        GodotObject.IsInstanceValid(building) && building == Buildings.SelectedBuilding && Buildings.CanInspect(building) &&
+        building.SideId == _localTeam;
+
+    public bool CanCancelTraining(Building building, uint jobId) => jobId != 0 && CanUseSelectedBuilding(building) &&
+        !building.IsUnderConstruction && building.ProductionJobs.Any(job => job.Id == jobId && job.OwnerId == _localPlayerId);
+
+    public void RequestCancelTraining(Building building, uint jobId)
     {
-        if (_localPlayerId == 0 || _localTeam == 0 || _selectedUnitIds.Count > 0 ||
+        if (CanCancelTraining(building, jobId)) CommandRequested?.Invoke(Protocol.BuildCancelTrain(building.BuildingId, jobId));
+    }
+
+    public bool CanCancelConstruction(Building building) => CanUseSelectedBuilding(building) &&
+        building.IsUnderConstruction && building.ConstructionOwnerId == _localPlayerId;
+
+    public void RequestCancelConstruction(Building building)
+    {
+        if (CanCancelConstruction(building)) CommandRequested?.Invoke(Protocol.BuildCancelConstruction(building.BuildingId));
+    }
+
+    public void RequestTrain(uint unitType)
+    {
+        if (_localPlayerId == 0 || _localTeam == 0 || _selectedUnitIds.Count > 0 || InspectedUnit != null ||
             !GodotObject.IsInstanceValid(Buildings)) return;
 
-        Building hall = Buildings.SelectedBuilding;
-        if (!GodotObject.IsInstanceValid(hall) || hall.IsQueuedForDeletion() || !hall.IsInsideTree() ||
-            hall.BuildingType != 0 || hall.SideId != _localTeam ||
-            !Buildings.TryGetBuilding(hall.BuildingId, out Building registered) || registered != hall) return;
+        Building producer = Buildings.SelectedBuilding;
+        if (!GodotObject.IsInstanceValid(producer) || producer.IsQueuedForDeletion() || !producer.IsInsideTree() ||
+            !producer.CanTrain(unitType) || producer.IsUnderConstruction || producer.SideId != _localTeam ||
+            producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ||
+            !Buildings.TryGetBuilding(producer.BuildingId, out Building registered) || registered != producer) return;
 
         // 생성 가능 여부와 비용은 서버에서 결정하고, UNIT 응답을 받은 뒤 표시합니다.
-        CommandRequested?.Invoke(Protocol.BuildTrain(0));
+        CommandRequested?.Invoke(Protocol.BuildTrain(producer.BuildingId, unitType));
     }
 
     public bool TryGetSelectedWorker(out Unit worker)
@@ -165,6 +194,11 @@ public partial class UnitManager : Node3D
     // 모든 일반 우클릭의 진입점. 새 대상의 기본 행동은 이곳에 추가합니다.
     public void RequestContextOrder(Node3D target, Vector3 point)
     {
+        if (GodotObject.IsInstanceValid(Buildings) && Buildings.SelectedBuilding is Building producer && _selectedUnitIds.Count == 0)
+        {
+            RequestRally(producer, target, point);
+            return;
+        }
         switch (target)
         {
             case Unit unit:
@@ -190,6 +224,30 @@ public partial class UnitManager : Node3D
                 RequestMove(point);
                 break;
         }
+    }
+
+    private void RequestRally(Building producer, Node3D target, Vector3 point)
+    {
+        if (!CanUseSelectedBuilding(producer) || !producer.IsProducer || !point.IsFinite()) return;
+        if (target != null && (!GodotObject.IsInstanceValid(target) || !target.IsInsideTree() || target.IsQueuedForDeletion())) return;
+        if (target == producer)
+        {
+            CommandRequested?.Invoke(Protocol.BuildRallyClear(producer.BuildingId));
+            return;
+        }
+        if (target is ResourceNode resource)
+        {
+            if (!GodotObject.IsInstanceValid(Resources) || resource.Amount <= 0 ||
+                !Resources.TryGetResource(resource.ResourceId, out var registered) || registered != resource) return;
+            if (producer.BuildingType == BuildingCatalog.TownHall)
+            {
+                CommandRequested?.Invoke(Protocol.BuildRallyGather(producer.BuildingId, resource.ResourceId));
+                return;
+            }
+            point = resource.GlobalPosition;
+        }
+        // 위치 표시는 RALLY 응답이 온 뒤에만 변경한다. 이동/채집 결정도 서버에서 처리한다.
+        CommandRequested?.Invoke(Protocol.BuildRallyMove(producer.BuildingId, point.X, point.Z));
     }
 
     public void RequestGather(ResourceNode target)
@@ -263,7 +321,7 @@ public partial class UnitManager : Node3D
 
     public void HandleSpawn(string[] parts)
     {
-        // UNIT type id owner x z team. 미니언은 기존 기사/궁수 씬으로 표시합니다.
+        // UNIT type id owner x z team. 타입 0~2는 RTS, 3~4는 미니언 전용입니다.
         if (parts.Length != 7)
             return;
 
@@ -275,6 +333,8 @@ public partial class UnitManager : Node3D
 
         if (!uint.TryParse(parts[3], out uint ownerID))
             return;
+
+        if ((ownerID == 0) != UnitCatalog.IsMinion(unitType)) return;
 
         if (!uint.TryParse(parts[6], out uint team) || team == 0)
             return;
@@ -294,9 +354,11 @@ public partial class UnitManager : Node3D
 
         PackedScene scene = unitType switch
         {
-            0 => WorkerScene,
-            1 => KnightScene,
-            2 => ArcherScene,
+            UnitCatalog.Worker => WorkerScene,
+            UnitCatalog.Knight => KnightScene,
+            UnitCatalog.Archer => ArcherScene,
+            UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
+            UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
             _ => null
         };
 
@@ -320,6 +382,7 @@ public partial class UnitManager : Node3D
             existing.ApplyServerPosition(x, z);
             if (_interpolation.HasTick) existing.CapturePosition(_interpolation.CurrentTick);
             ValidateSelection();
+            if (InspectedUnit == existing) SelectionChanged?.Invoke();
             return;
         }
 
@@ -365,6 +428,7 @@ public partial class UnitManager : Node3D
 
         unit.SetSelected(false);
         bool selectionChanged = _selectedUnitIds.Remove(unitId);
+        if (InspectedUnit == unit) { InspectedUnit = null; selectionChanged = true; }
         ForgetGroupUnit(unitId);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Name = $"Dying_{unitId}";
@@ -379,6 +443,7 @@ public partial class UnitManager : Node3D
             !_units.Remove(id, out Unit unit)) return;
         unit.SetSelected(false);
         bool selectionChanged = _selectedUnitIds.Remove(id);
+        if (InspectedUnit == unit) { InspectedUnit = null; selectionChanged = true; }
         ForgetGroupUnit(id);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Hide();
@@ -389,15 +454,18 @@ public partial class UnitManager : Node3D
 
     public void SelectSingle(Unit unit)
     {
-        if (!CanControl(unit))
+        if (!CanInspect(unit))
         {
             ClearSelection();
             return;
         }
 
-        bool selectionChanged = _selectedUnitIds.Count != 1 || !_selectedUnitIds.Contains(unit.UnitId);
+        bool controllable = CanControl(unit);
+        bool selectionChanged = controllable ? _selectedUnitIds.Count != 1 || !_selectedUnitIds.Contains(unit.UnitId)
+            : InspectedUnit != unit || _selectedUnitIds.Count > 0;
         ClearSelectionCore();
-        SelectUnit(unit);
+        if (controllable) SelectUnit(unit);
+        else { InspectedUnit = unit; unit.SetSelected(true); }
         if (selectionChanged) SelectionChanged?.Invoke();
     }
 
@@ -409,6 +477,10 @@ public partial class UnitManager : Node3D
 
     public bool CanControl(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() &&
         !unit.IsQueuedForDeletion() && !unit.IsDying && _localPlayerId != 0 && unit.OwnerId == _localPlayerId &&
+        _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
+
+    public bool CanInspect(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() && unit.IsVisibleInTree() &&
+        !unit.IsQueuedForDeletion() && !unit.IsDying && _localPlayerId != 0 &&
         _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
 
     public void ToggleSelection(Unit unit)
@@ -489,18 +561,25 @@ public partial class UnitManager : Node3D
 
     public void ClearSelection()
     {
-        bool selectionChanged = _selectedUnitIds.Count > 0;
+        bool selectionChanged = _selectedUnitIds.Count > 0 || InspectedUnit != null;
         ClearSelectionCore();
         if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     private void ClearSelectionCore()
     {
+        ClearInspection();
         _targetIndicator.Clear();
         foreach (uint id in _selectedUnitIds)
             if (_units.TryGetValue(id, out Unit unit))
                 unit.SetSelected(false);
         _selectedUnitIds.Clear();
+    }
+
+    private void ClearInspection()
+    {
+        if (GodotObject.IsInstanceValid(InspectedUnit)) InspectedUnit.SetSelected(false);
+        InspectedUnit = null;
     }
 
     public void SelectBox(Rect2 rect) => SelectBoxWithMode(rect, false);
@@ -522,6 +601,8 @@ public partial class UnitManager : Node3D
 
     private void ApplyCandidates(List<Unit> candidates, bool toggle, bool additive = false)
     {
+        bool inspected = InspectedUnit != null;
+        ClearInspection();
         var previousSelection = new HashSet<uint>(_selectedUnitIds);
         bool remove = toggle && candidates.Count > 0 && candidates.TrueForAll(unit => _selectedUnitIds.Contains(unit.UnitId));
         if (!toggle && !additive) ClearSelectionCore();
@@ -533,11 +614,13 @@ public partial class UnitManager : Node3D
                 unit.SetSelected(false);
             }
             else SelectUnit(unit);
-        if (!previousSelection.SetEquals(_selectedUnitIds)) SelectionChanged?.Invoke();
+        if (inspected || !previousSelection.SetEquals(_selectedUnitIds)) SelectionChanged?.Invoke();
     }
 
     private bool ValidateSelection(bool notify = true)
     {
+        bool inspectionRemoved = InspectedUnit != null && !CanInspect(InspectedUnit);
+        if (inspectionRemoved) ClearInspection();
         int removed = _selectedUnitIds.RemoveWhere(id =>
         {
             if (!_units.TryGetValue(id, out Unit unit))
@@ -548,8 +631,8 @@ public partial class UnitManager : Node3D
             return true;
         });
         if (_selectedUnitIds.Count == 0) _targetIndicator.Clear();
-        if (notify && removed > 0) SelectionChanged?.Invoke();
-        return removed > 0;
+        if (notify && (removed > 0 || inspectionRemoved)) SelectionChanged?.Invoke();
+        return removed > 0 || inspectionRemoved;
     }
 
 }

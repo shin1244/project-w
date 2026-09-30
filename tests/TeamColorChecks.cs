@@ -25,7 +25,7 @@ public partial class TeamColorChecks : Main
             BeginWorld();
             Receive("UNIT 0 101 7 -10 0 1");
             Receive("UNIT 1 102 9 -7 0 1");
-            Receive("UNIT 2 103 0 -4 0 1");
+            Receive("UNIT 4 103 0 -4 0 1");
             Receive("UNIT 1 104 8 2 0 2");
             Receive("BUILDING 0 201 1 -10 8 0");
             Receive("BUILDING 1 202 2 10 8 0");
@@ -39,7 +39,7 @@ public partial class TeamColorChecks : Main
             CheckColors(GetUnit(104), TeamMaterials.EnemyColor, "Enemy unit");
             CheckColors(hall, TeamMaterials.FriendlyColor, "Late WELCOME recolors existing hall");
             CheckColors(GetBuilding(202), TeamMaterials.EnemyColor, "Enemy tower");
-            Receive("UNIT 2 105 0 4 0 2");
+            Receive("UNIT 4 105 0 4 0 2");
             CheckColors(GetUnit(105), TeamMaterials.EnemyColor, "New units inherit known local team");
             Receive("BUILDING 1 203 1 -4 8 0");
             CheckColors(GetBuilding(203), TeamMaterials.FriendlyColor, "New buildings inherit known local team");
