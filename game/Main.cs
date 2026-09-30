@@ -27,6 +27,7 @@ public partial class Main : Node3D
         Fog?.Configure(Map);
         ConnectInput();
         Units.CommandRequested += SendCommand;
+        Units.PositionsRendered += OnPositionsRendered;
 
         _net = GetNode<NetClient>("/root/Net");
         _net.MessageReceived += OnMessage;
@@ -140,6 +141,9 @@ public partial class Main : Node3D
 
         switch (parts[0])
         {
+            case "TICK":
+                Units.HandleTick(parts);
+                break;
             case "WELCOME":
                 if (parts.Length == 3 && uint.TryParse(parts[1], out uint playerId) && playerId != 0 &&
                     uint.TryParse(parts[2], out uint team) && team != 0)
@@ -212,6 +216,12 @@ public partial class Main : Node3D
         GD.Print($"전송 요청: {command}");
     }
 
+    private void OnPositionsRendered()
+    {
+        Fog?.Invalidate();
+        Minimap?.Invalidate();
+    }
+
     private void RejectMap()
     {
         Stock?.Clear();
@@ -264,7 +274,10 @@ public partial class Main : Node3D
         }
 
         if (GodotObject.IsInstanceValid(Units))
+        {
             Units.CommandRequested -= SendCommand;
+            Units.PositionsRendered -= OnPositionsRendered;
+        }
         if (_net != null)
         {
             _net.MessageReceived -= OnMessage;

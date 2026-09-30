@@ -16,6 +16,7 @@ public partial class UnitManager : Node3D
     public uint LocalTeam => _localTeam;
     public bool TryGetUnit(uint id, out Unit unit) => _units.TryGetValue(id, out unit);
     public event Action SelectionChanged;
+    public event Action PositionsRendered;
     private readonly HashSet<uint> _selectedUnitIds = new();
     private readonly Dictionary<int, HashSet<uint>> _controlGroups = new();
     private const int MaxSelectedUnits = 64;
@@ -23,14 +24,27 @@ public partial class UnitManager : Node3D
     private uint _localPlayerId;
     private uint _localTeam;
     private readonly CommandTargetIndicator _targetIndicator = new();
+    private readonly InterpolationClock _interpolation = new();
 
-    public override void _Process(double delta) => _targetIndicator.Refresh();
+    public override void _Process(double delta)
+    {
+        if (_interpolation.HasTick)
+        {
+            _interpolation.Advance(delta);
+            bool moved = false;
+            foreach (Unit unit in _units.Values)
+                moved |= unit.RenderPosition(_interpolation.RenderTick);
+            if (moved) PositionsRendered?.Invoke();
+        }
+        _targetIndicator.Refresh();
+    }
     public override void _ExitTree() => _targetIndicator.Clear();
 
     public event Action<string> CommandRequested;
 
     public void Clear()
     {
+        _interpolation.Reset();
         ClearSelectionCore();
         // 사망 연출 중인 유닛은 이미 사전에서 빠졌으므로 씬 자식도 함께 정리합니다.
         foreach (Node child in GetChildren())
@@ -198,7 +212,22 @@ public partial class UnitManager : Node3D
             return;
 
         if (_units.TryGetValue(unitId, out Unit unit))
-            unit.ApplyServerPosition(x, z);
+        {
+            if (_interpolation.HasTick) unit.BufferServerPosition(x, z);
+            else unit.ApplyServerPosition(x, z); // 첫 TICK 전의 초기 스냅샷/미리보기
+        }
+    }
+
+    public void HandleTick(string[] parts)
+    {
+        if (parts.Length != 2 || !uint.TryParse(parts[1], NumberStyles.None,
+                CultureInfo.InvariantCulture, out uint tick)) return;
+        bool hadTick = _interpolation.HasTick;
+        long completedTick = _interpolation.CurrentTick;
+        if (!_interpolation.BeginTick(tick)) return;
+        // 다음 TICK이 와야 앞 틱의 POS가 모두 수신되었습니다. 큐가 잠깐 빈 것은 경계가 아닙니다.
+        foreach (Unit unit in _units.Values)
+            unit.CapturePosition(hadTick ? completedTick : _interpolation.CurrentTick - 1);
     }
 
     public void HandleSpawn(string[] parts)
@@ -258,6 +287,7 @@ public partial class UnitManager : Node3D
             if (!CanControl(existing)) ForgetGroupUnit(unitId);
             if (_targetIndicator.Target == existing && !IsEnemy(existing)) _targetIndicator.Clear();
             existing.ApplyServerPosition(x, z);
+            if (_interpolation.HasTick) existing.CapturePosition(_interpolation.CurrentTick);
             ValidateSelection();
             return;
         }
@@ -273,6 +303,7 @@ public partial class UnitManager : Node3D
         AddChild(unit);
 
         unit.ApplyServerPosition(x, z);
+        if (_interpolation.HasTick) unit.CapturePosition(_interpolation.CurrentTick);
 
         _units.Add(unitId, unit);
     }

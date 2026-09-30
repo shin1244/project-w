@@ -7,12 +7,13 @@
 
 세 씬은 `units/Unit.tscn`을 상속합니다. 공통 ID·위치 반영은 `units/Unit.cs`, 외형은 각 씬의 `Visual` 아래에 있습니다. 새 모델이 생기면 `Visual` 아래만 바꾸면 됩니다. 루트 원점은 발밑, 정면은 -Z입니다.
 
-`Unit.cs`에는 이동 속도나 공격 판정을 넣지 않습니다. 서버의 X/Z 위치와 행동 상태를 표시하며 보간과 걷기 애니메이션은 아직 없습니다. 일꾼 외형의 애니메이션은 `WorkerAnimation.cs`가 맡습니다.
+`Unit.cs`에는 이동 속도나 공격 판정을 넣지 않습니다. 서버의 X/Z 위치를 2틱(20Hz 기준 100ms) 지연 보간하고 행동 상태를 표시합니다. 걷기 애니메이션은 아직 없습니다. 일꾼 외형의 애니메이션은 `WorkerAnimation.cs`가 맡습니다.
 
 ## 메시지
 
 ```text
 WELCOME 플레이어ID 진영
+TICK 틱번호
 UNIT 타입 유닛ID 소유자ID X Z 진영
 POS 유닛ID X Z
 STATE 유닛ID또는포탑ID IDLE|GATHER|ATTACK 운반량 대상ID 공격횟수
@@ -21,6 +22,16 @@ HIDE 유닛ID
 ```
 
 Main은 UNIT/POS를 UnitManager로, STATE/HP/REMOVE는 UnitManager와 BuildingManager로 전달합니다. STATE는 StateSnapshot에서 한 번 검증하고 ID가 등록된 관리자가 적용합니다. UnitManager는 UNIT을 받았을 때만 Main/Units 아래에 유닛을 만듭니다. 같은 ID는 중복 생성하지 않고 정보를 갱신합니다. 유닛 타입은 ID가 유지되는 동안 동일하다고 가정합니다.
+
+## 이동 보간
+
+서버는 매 틱 시작에 `TICK N`을 보내고 그 뒤 해당 틱의 변경된 `POS`를 보냅니다. 다음 `TICK`이 오면 앞 틱을 완성된 것으로 기록합니다. TCP 수신 큐가 비거나 렌더 프레임이 끝났다는 이유로 틱을 완성하지 않습니다. `POS`가 없는 유닛도 직전 서버 좌표를 기록하므로 정지 중에는 멈추고 다시 출발할 때 해당 구간만 보간합니다.
+
+`network/InterpolationClock.cs`의 `TickRate = 20`, `DelayTicks = 2`가 공통 재생 시점을 정합니다. 정상 수신 시 `TICK N` 도착 시점에는 N-2를 표시하고, 다음 50ms 동안 N-1까지 선형 보간합니다. 이는 수신한 서버 시간 기준 100ms이며 네트워크 전달 시간은 별도로 더해집니다. 작은 수신 간격 변동은 재생 속도 ±10%로 보정합니다. 확정된 마지막 위치를 넘어 예측하지 않고, 긴 지연 후 4틱 넘게 밀리면 최근 구간으로 복귀합니다. 유닛당 최근 8개 위치만 보관합니다.
+
+UNIT 생성·재등장·중복 스냅샷은 즉시 배치하고 보간 이력을 새로 시작합니다. 첫 TICK 전의 POS도 즉시 반영합니다. HIDE/REMOVE는 즉시 처리하고 맵 재동기화·연결 종료 시 시계와 이력을 초기화합니다. 루트 위치를 보간하므로 선택 영역·체력바·대상 표시도 함께 움직이며, 안개와 미니맵은 보간 이동 때도 갱신됩니다.
+
+이번 보간은 위치 표시에 적용합니다. STATE/HP·공격 연출·사망·시야 이탈은 수신 즉시 적용하므로 위치보다 최대 약 100ms 먼저 보일 수 있습니다. 명령 전송은 지연하지 않으며 이동 예측·충돌·경로 계산은 클라이언트에 추가하지 않습니다. 서버 틱 주기를 변경하면 클라이언트의 `TickRate`도 함께 맞춰야 합니다.
 
 소유자 ID는 조종 권한, 진영은 아군/적군을 구분합니다. 소유자 0인 미니언은 선택할 수 없으며 기사/궁수 씬으로 표시합니다. [미니언 동기화](minions.md)를 참고하세요.
 
@@ -56,6 +67,7 @@ ATTACK 202 101 303
 ```text
 dotnet build
 Godot --headless --path . res://tests/UnitSceneChecks.tscn
+Godot --headless --path . res://tests/InterpolationChecks.tscn
 ```
 
 Godot은 설치된 .NET 버전 실행 파일 경로로 바꿉니다. 검증 장면은 실제 서버에 접속하지 않고 UNIT/POS/REMOVE 메시지를 전달합니다.

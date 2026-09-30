@@ -23,6 +23,8 @@ public partial class Unit : Node3D
     private Tween _deathTween;
     private uint _localTeam;
     private TeamMaterials _teamMaterials;
+    private Vector3 _serverPosition;
+    private readonly PositionHistory _positions = new();
 
     public override void _Ready()
     {
@@ -37,7 +39,7 @@ public partial class Unit : Node3D
         if (!IsDying) HealthBar.Apply(health.Current, health.Maximum);
     }
 
-    // 공격자가 가만히 있어도 대상의 최신 POS를 따라 바라봅니다.
+    // 공격자가 가만히 있어도 대상의 보간된 화면 위치를 따라 바라봅니다.
     public override void _Process(double delta) => FaceActionTarget();
 
     public override void _ExitTree()
@@ -67,11 +69,34 @@ public partial class Unit : Node3D
         _teamMaterials?.Apply(Team, _localTeam);
     }
 
-    // 루트는 발밑(Y=0)에 둡니다. 실제 이동 계산은 서버에서만 합니다.
+    // UNIT 스냅샷은 즉시 배치하고 이전 보간 이력을 버립니다.
     public void ApplyServerPosition(float x, float z)
     {
         if (IsDying) return;
-        Vector3 next = new(x, 0f, z);
+        _serverPosition = new Vector3(x, 0f, z);
+        _positions.Clear();
+        ApplyDisplayPosition(_serverPosition);
+    }
+
+    public void BufferServerPosition(float x, float z)
+    {
+        if (!IsDying) _serverPosition = new Vector3(x, 0f, z);
+    }
+
+    public void CapturePosition(long tick) => _positions.Add(tick, _serverPosition);
+
+    public bool RenderPosition(double tick)
+    {
+        if (IsDying) return false;
+        Vector3 next = _positions.Sample(tick, _serverPosition);
+        if (next == GlobalPosition) return false;
+        ApplyDisplayPosition(next);
+        return true;
+    }
+
+    // 루트 전체를 보간해 선택 영역·체력바·대상 표시가 모델과 같은 위치를 따르게 합니다.
+    private void ApplyDisplayPosition(Vector3 next)
+    {
         Vector3 direction = next - GlobalPosition;
         direction.Y = 0f;
         GlobalPosition = next;
@@ -123,6 +148,7 @@ public partial class Unit : Node3D
     {
         if (IsDying) return _deathTween;
         IsDying = true;
+        _positions.Clear();
         HealthBar.Clear();
         SetProcess(false);
         _focusTarget = null;
