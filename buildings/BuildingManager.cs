@@ -56,6 +56,7 @@ public partial class BuildingManager : Node3D
             }
         }
         RefreshRally();
+        RequirementsChanged?.Invoke();
     }
 
     public void SelectSingle(Building building)
@@ -112,6 +113,7 @@ public partial class BuildingManager : Node3D
                 LayoutVersion++;
                 if (_selected == existing) RefreshRally();
                 if (selectedSideChanged) SelectionChanged?.Invoke();
+                RequirementsChanged?.Invoke();
             }
             return;
         }
@@ -130,6 +132,7 @@ public partial class BuildingManager : Node3D
         building.ApplySnapshot(id, sideId, x, z, yaw);
         _buildings.Add(id, building);
         LayoutVersion++;
+        RequirementsChanged?.Invoke();
     }
 
     public void HandleHealth(HealthSnapshot health)
@@ -145,9 +148,11 @@ public partial class BuildingManager : Node3D
         uint owner = 0;
         if (parts.Length == 4 && !uint.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out owner)) return;
         if (building.ConstructionPercent == percent && building.ConstructionOwnerId == owner) return;
+        bool wasUnderConstruction = building.IsUnderConstruction;
         building.ConstructionOwnerId = owner;
         building.ApplyConstruction(percent);
         if (_selected == building) SelectionChanged?.Invoke();
+        if (wasUnderConstruction != building.IsUnderConstruction) RequirementsChanged?.Invoke();
     }
 
     public void HandleState(StateSnapshot snapshot)
@@ -200,10 +205,13 @@ public partial class BuildingManager : Node3D
     public void Clear()
     {
         _localTeam = 0;
+        _unitRequirements.Clear();
+        _buildingRequirements.Clear();
         bool selectionChanged = _selected != null;
         ClearSelectionCore();
         foreach (uint id in new List<uint>(_buildings.Keys)) Remove(id);
         if (selectionChanged) SelectionChanged?.Invoke();
+        RequirementsChanged?.Invoke();
     }
 
     private void Remove(uint id)
@@ -215,6 +223,7 @@ public partial class BuildingManager : Node3D
         RemoveChild(building);
         building.QueueFree();
         if (selectionChanged) SelectionChanged?.Invoke();
+        RequirementsChanged?.Invoke();
     }
 
     private static bool TryCoordinate(string text, out float value)

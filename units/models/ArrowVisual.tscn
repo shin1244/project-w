@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="ShaftMaterial"]
+albedo_color = Color(0.78, 0.62, 0.38, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="PaleMaterial"]
+albedo_color = Color(0.95, 0.91, 0.75, 1)
+emission_enabled = true
+emission = Color(0.18, 0.15, 0.08, 1)
+
+[sub_resource type="BoxMesh" id="Shaft"]
+material = SubResource("ShaftMaterial")
+size = Vector3(0.035, 0.035, 0.76)
+
+[sub_resource type="CylinderMesh" id="Tip"]
+material = SubResource("PaleMaterial")
+top_radius = 0.0
+bottom_radius = 0.075
+height = 0.20
+radial_segments = 4
+rings = 1
+
+[sub_resource type="BoxMesh" id="Feather"]
+material = SubResource("PaleMaterial")
+size = Vector3(0.16, 0.02, 0.18)
+
+[node name="ArrowVisual" type="Node3D"]
+
+[node name="Shaft" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, 0.20)
+cast_shadow = 0
+mesh = SubResource("Shaft")
+
+[node name="Tip" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.23)
+rotation = Vector3(-1.570796, 0, 0)
+cast_shadow = 0
+mesh = SubResource("Tip")
+
+[node name="FeatherA" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, 0.50)
+cast_shadow = 0
+mesh = SubResource("Feather")
+
+[node name="FeatherB" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, 0.50)
+rotation = Vector3(0, 0, 1.570796)
+cast_shadow = 0
+mesh = SubResource("Feather")

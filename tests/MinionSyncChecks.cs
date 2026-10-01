@@ -28,10 +28,10 @@ public partial class MinionSyncChecks : Main
             var sent = new List<string>();
             Units.CommandRequested += sent.Add;
 
-            Receive("WELCOME 7 2"); // 플레이어 ID로 진영을 추측하면 실패하는 사례
+            Receive("WELCOME 7 2 COMMANDER"); // 플레이어 ID로 진영을 추측하면 실패하는 사례
             Receive("UNIT 0 101 7 0 0 2");
-            Receive("UNIT 3 201 0 -2 0 2");
-            Receive("UNIT 4 202 0 2 0 1");
+            Receive("UNIT 100 201 0 -2 0 2");
+            Receive("UNIT 101 202 0 2 0 1");
             Receive("UNIT 0 301 9 0 -2 2");
             Unit own = Units.GetNode<Unit>("Unit_101");
             Unit ally = Units.GetNode<Unit>("Unit_201");
@@ -60,21 +60,21 @@ public partial class MinionSyncChecks : Main
             Receive("HP 202 42 60");
             Check(enemy.GlobalPosition == new Vector3(3, 0, 1) && enemy.HasServerState && enemy.State.FocusId == 101 && enemy.HealthBar.CurrentHP == 42,
                 "Existing position, state and health messages apply to minions");
-            Receive("UNIT 4 202 0 4 1 2");
+            Receive("UNIT 101 202 0 4 1 2");
             int count = sent.Count;
             Units.RequestAttack(enemy);
             Check(Units.GetNode<Unit>("Unit_202") == enemy && enemy.Team == 2 && sent.Count == count,
                 "Duplicate snapshot updates team and stops friendly attacks");
 
-            foreach (string invalid in new[] { "UNIT 3 401 0 0 0", "UNIT 3 401 0 0 0 nope", "UNIT 3 401 0 0 0 0", "UNIT 3 401 0 0 0 2 extra", "UNIT 3 0 0 0 0 2" }) Receive(invalid);
+            foreach (string invalid in new[] { "UNIT 100 401 0 0 0", "UNIT 100 401 0 0 0 nope", "UNIT 100 401 0 0 0 0", "UNIT 100 401 0 0 0 2 extra", "UNIT 100 0 0 0 0 2" }) Receive(invalid);
             Check(Units.GetChildCount() == 4, "Missing or invalid team never spawns a unit");
             Receive("WELCOME 8 nope");
             Receive("WELCOME 8");
             Units.SelectSingle(own);
             Check(Units.SelectedUnitIds.Contains(101u), "Malformed welcome does not change local ownership");
 
-            foreach (string invalid in new[] { "UNIT 1 401 0 0 0 2", "UNIT 2 401 0 0 0 2", "UNIT 3 401 7 0 0 2", "UNIT 4 401 7 0 0 2" }) Receive(invalid);
-            Check(Units.GetChildCount() == 4, "RTS and minion types cannot be interchanged by changing ownership");
+            foreach (string invalid in new[] { "UNIT 1 401 0 0 0 2", "UNIT 2 401 0 0 0 2", "UNIT 100 401 7 0 0 2", "UNIT 101 401 7 0 0 2", "UNIT 3 401 0 0 0 2", "UNIT 4 401 0 0 0 2" }) Receive(invalid);
+            Check(Units.GetChildCount() == 4, "Old minion IDs are rejected; current mercenary and minion types retain their ownership rules");
             Receive("UNIT 0 101 9 0 0 2");
             Check(Units.SelectedUnitIds.Count == 0, "Losing ownership clears selection even when team stays the same");
             Receive("REMOVE 202");
@@ -83,7 +83,7 @@ public partial class MinionSyncChecks : Main
             Receive("UNIT 0 101 7 0 0 2");
             Units.SelectSingle(Units.GetNode<Unit>("Unit_101"));
             Check(Units.SelectedUnitIds.Count == 0, "Map reset clears local player and team until next welcome");
-            Receive("WELCOME 7 2");
+            Receive("WELCOME 7 2 COMMANDER");
             Units.SelectSingle(Units.GetNode<Unit>("Unit_101"));
             Check(Units.SelectedUnitIds.Contains(101u), "Reconnect welcome restores control");
             GD.Print("PASS: new WELCOME/UNIT format, minion lifecycle, team relations, ownership, validation and reset");

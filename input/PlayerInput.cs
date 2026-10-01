@@ -11,6 +11,7 @@ public partial class PlayerInput : Node
 	[Export] public SelectionBox SelectionBox;
 	[Export] public BuildingPlacement Placement;
 	[Export] public CommandPanel Commands;
+	[Export] public HeroSkillPanel Skills;
 
 	public event Action<Unit> UnitClicked;
 	public event Action<Unit, bool, bool> ModifiedUnitSelectionRequested;
@@ -24,7 +25,12 @@ public partial class PlayerInput : Node
 	public event Action<Vector3> AttackGroundClicked;
 	public event Action StopRequested;
 	public event Action HoldRequested;
+	public event Action<int, Unit> SkillTargetClicked;
+	public event Action<int?> SkillTargetingChanged;
 	public bool IsAttackTargeting { get; private set; }
+	public bool IsSkillTargeting => _skillSlot.HasValue;
+	private int? _skillSlot;
+	private int _skillGeneration;
 
 	private const float RayLength = 1000f;
 	private static readonly Plane GroundPlane = new(Vector3.Up, 0);
@@ -46,6 +52,11 @@ public partial class PlayerInput : Node
 	public override void _Ready()
 	{
 		GetWindow().FocusExited += CancelInput;
+		if (GodotObject.IsInstanceValid(Skills))
+		{
+			Skills.TargetingRequested += BeginSkillTargeting;
+			Skills.AvailabilityChanged += OnSkillAvailabilityChanged;
+		}
 		if (GodotObject.IsInstanceValid(Commands))
 		{
 			Commands.BuildMenuOpened += OnBuildMenuOpened;
@@ -58,10 +69,27 @@ public partial class PlayerInput : Node
 	private void BeginAttackTargeting()
 	{
 		if (!GodotObject.IsInstanceValid(Camera)) return;
+		SetSkillTargeting(null);
 		Placement?.Cancel();
 		CancelDrag();
 		_lastGroup = 0;
 		SetAttackTargeting(true);
+	}
+
+	private void BeginSkillTargeting(int slot)
+	{
+		if (slot != 0 || Skills?.CanUseQ != true || !GodotObject.IsInstanceValid(Camera)) return;
+		Placement?.Cancel();
+		Commands?.CancelMenu();
+		CancelDrag();
+		SetAttackTargeting(false);
+		_lastGroup = 0;
+		SetSkillTargeting(slot);
+	}
+
+	private void OnSkillAvailabilityChanged()
+	{
+		if (Skills?.CanUseQ != true) SetSkillTargeting(null);
 	}
 
 	private void QueueStop()
@@ -83,6 +111,7 @@ public partial class PlayerInput : Node
 		Placement?.Cancel();
 		CancelDrag();
 		SetAttackTargeting(false);
+		SetSkillTargeting(null);
 		_lastGroup = 0;
 	}
 
@@ -104,9 +133,10 @@ public partial class PlayerInput : Node
 			GetViewport().SetInputAsHandled();
 			return;
 		}
-		if (IsAttackTargeting && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+		if ((IsAttackTargeting || IsSkillTargeting) && @event is InputEventKey { Pressed: true, Keycode: Key.Escape })
 		{
 			SetAttackTargeting(false);
+			SetSkillTargeting(null);
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -116,6 +146,11 @@ public partial class PlayerInput : Node
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (!_leftPressed && Skills?.TryHandleShortcut(@event) == true)
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (!_leftPressed && Commands?.TryHandleShortcut(@event) == true)
 		{
 			_lastGroup = 0;
@@ -135,6 +170,7 @@ public partial class PlayerInput : Node
 				Placement?.Cancel();
 				Commands?.CancelMenu();
 				SetAttackTargeting(false);
+				SetSkillTargeting(null);
 				_actions.Enqueue(() => ControlGroupRequested?.Invoke(number, save, focus));
 			}
 			GetViewport().SetInputAsHandled();
@@ -182,7 +218,11 @@ public partial class PlayerInput : Node
 
 		if (mouse.ButtonIndex == MouseButton.Left)
 		{
-			if (IsAttackTargeting)
+			if (IsSkillTargeting)
+			{
+				QueueSkillTarget(mouse.Position);
+			}
+			else if (IsAttackTargeting)
 			{
 				// 공격 클릭은 선택을 바꾸지 않으며, 한 번 클릭하면 모드가 종료됩니다.
 				QueueAttack(mouse.Position);
@@ -199,6 +239,12 @@ public partial class PlayerInput : Node
 		}
 		else
 		{
+			if (IsSkillTargeting)
+			{
+				SetSkillTargeting(null);
+				GetViewport().SetInputAsHandled();
+				return;
+			}
 			SetAttackTargeting(false);
 			QueueClick(mouse.ButtonIndex, mouse.Position);
 		}
@@ -264,8 +310,20 @@ public partial class PlayerInput : Node
 		if (IsAttackTargeting == active)
 			return;
 		IsAttackTargeting = active;
-		Input.SetDefaultCursorShape(active ? Input.CursorShape.Cross : Input.CursorShape.Arrow);
+		UpdateTargetCursor();
 	}
+
+	private void SetSkillTargeting(int? slot)
+	{
+		_skillSlot = slot;
+		_skillGeneration++;
+		Skills?.SetTargeting(slot.HasValue);
+		UpdateTargetCursor();
+		SkillTargetingChanged?.Invoke(slot);
+	}
+
+	private void UpdateTargetCursor() => Input.SetDefaultCursorShape(
+		IsAttackTargeting || IsSkillTargeting ? Input.CursorShape.Cross : Input.CursorShape.Arrow);
 
 	private void CancelInput()
 	{
@@ -273,6 +331,7 @@ public partial class PlayerInput : Node
 		Commands?.CancelMenu();
 		CancelDrag();
 		SetAttackTargeting(false);
+		SetSkillTargeting(null);
 		_lastGroup = 0;
 		_actions.Clear();
 	}
@@ -284,6 +343,7 @@ public partial class PlayerInput : Node
 		Placement?.Cancel();
 		Commands?.CancelMenu();
 		SetAttackTargeting(false);
+		SetSkillTargeting(null);
 		_lastGroup = 0;
 	}
 
@@ -311,6 +371,21 @@ public partial class PlayerInput : Node
 				AttackTargetClicked?.Invoke(target);
 			else if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
 				AttackGroundClicked?.Invoke(point);
+		});
+	}
+
+	private void QueueSkillTarget(Vector2 position)
+	{
+		int slot = _skillSlot.Value, generation = _skillGeneration;
+		uint? hero = Skills.HeroUnitId;
+		Vector3 origin = Camera.ProjectRayOrigin(position);
+		Vector3 direction = Camera.ProjectRayNormal(position);
+		_actions.Enqueue(() =>
+		{
+			if (_skillSlot != slot || generation != _skillGeneration || Skills.CanUseQ != true || Skills.HeroUnitId != hero) return;
+			if (FindTarget(origin, direction, SelectionMask | BuildingMask) is not Unit target || !Skills.IsEnemyTarget(target)) return;
+			SetSkillTargeting(null);
+			SkillTargetClicked?.Invoke(slot, target);
 		});
 	}
 
@@ -386,6 +461,11 @@ public partial class PlayerInput : Node
 	public override void _ExitTree()
 	{
 		GetWindow().FocusExited -= CancelInput;
+		if (GodotObject.IsInstanceValid(Skills))
+		{
+			Skills.TargetingRequested -= BeginSkillTargeting;
+			Skills.AvailabilityChanged -= OnSkillAvailabilityChanged;
+		}
 		if (GodotObject.IsInstanceValid(Commands))
 		{
 			Commands.BuildMenuOpened -= OnBuildMenuOpened;
@@ -394,6 +474,8 @@ public partial class PlayerInput : Node
 			Commands.HoldRequested -= QueueHold;
 		}
 		SetAttackTargeting(false);
+		_skillSlot = null;
+		UpdateTargetCursor();
 		_actions.Clear();
 	}
 }

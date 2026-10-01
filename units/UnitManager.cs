@@ -12,6 +12,7 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene ArcherScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
+    [Export] public PackedScene HeroTestScene;
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
@@ -20,6 +21,16 @@ public partial class UnitManager : Node3D
     // 소유하지 않은 유닛은 정보만 살펴보고 명령/부대 지정에는 넣지 않는다.
     public Unit InspectedUnit { get; private set; }
     public bool TryGetUnit(uint id, out Unit unit) => _units.TryGetValue(id, out unit);
+    public PackedScene SceneFor(uint type) => type switch
+    {
+        UnitCatalog.Worker => WorkerScene,
+        UnitCatalog.Knight => KnightScene,
+        UnitCatalog.Archer => ArcherScene,
+        UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
+        UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
+        UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
+        _ => null
+    };
     public event Action SelectionChanged;
     public event Action PositionsRendered;
     private readonly HashSet<uint> _selectedUnitIds = new();
@@ -28,6 +39,7 @@ public partial class UnitManager : Node3D
     private readonly Dictionary<uint, Unit> _units = new();
     private uint _localPlayerId;
     private uint _localTeam;
+    private uint? _controlledHeroType;
     private readonly CommandTargetIndicator _targetIndicator = new();
     private readonly InterpolationClock _interpolation = new();
 
@@ -50,6 +62,7 @@ public partial class UnitManager : Node3D
     public void Clear()
     {
         _interpolation.Reset();
+        _controlledHeroType = null;
         ClearSelectionCore();
         // 사망 연출 중인 유닛은 이미 사전에서 빠졌으므로 씬 자식도 함께 정리합니다.
         foreach (Node child in GetChildren())
@@ -81,7 +94,30 @@ public partial class UnitManager : Node3D
         if (playerChanged || selectionChanged) SelectionChanged?.Invoke();
     }
 
+    // AOS는 선택 입력과 관계없이 서버가 지정한 내 영웅 한 기를 조종한다.
+    public void SetHeroControl(uint? heroType)
+    {
+        if (_controlledHeroType == heroType)
+        {
+            if (heroType.HasValue) ValidateSelection();
+            return;
+        }
+        _controlledHeroType = heroType;
+        _controlGroups.Clear();
+        ClearSelectionCore();
+        if (heroType.HasValue) ValidateSelection(notify: false);
+        SelectionChanged?.Invoke();
+    }
+
     public void RequestTrainWorker() => RequestTrain(0);
+
+    public void RequestHeroSkill(int slot, uint heroId, Unit target)
+    {
+        if (_controlledHeroType != UnitCatalog.HeroTest || slot != 0 ||
+            !TryGetUnit(heroId, out Unit hero) || !CanControl(hero) || hero.State.Activity == UnitActivity.Stun ||
+            !CanInspect(target) || target.Team == _localTeam) return;
+        CommandRequested?.Invoke(Protocol.BuildTargetSkill(slot, target.UnitId));
+    }
 
     private bool CanUseSelectedBuilding(Building building) => _localPlayerId != 0 && _localTeam != 0 &&
         _selectedUnitIds.Count == 0 && InspectedUnit == null && GodotObject.IsInstanceValid(Buildings) &&
@@ -112,6 +148,7 @@ public partial class UnitManager : Node3D
         Building producer = Buildings.SelectedBuilding;
         if (!GodotObject.IsInstanceValid(producer) || producer.IsQueuedForDeletion() || !producer.IsInsideTree() ||
             !producer.CanTrain(unitType) || producer.IsUnderConstruction || producer.SideId != _localTeam ||
+            Buildings.UnitRequirementBlockReason(unitType) != null ||
             producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ||
             !Buildings.TryGetBuilding(producer.BuildingId, out Building registered) || registered != producer) return;
 
@@ -131,6 +168,7 @@ public partial class UnitManager : Node3D
     public bool RequestBuild(uint type, Vector3 position, uint workerId)
     {
         if (!BuildingCatalog.IsPlayerBuildable(type) || !position.IsFinite() || !_selectedUnitIds.Contains(workerId) ||
+            !GodotObject.IsInstanceValid(Buildings) || Buildings.BuildingRequirementBlockReason(type) != null ||
             !_units.TryGetValue(workerId, out Unit worker) || worker.UnitType != 0 || !CanControl(worker)) return false;
         CommandRequested?.Invoke(Protocol.BuildConstruction(type, position.X, position.Z, workerId));
         return true;
@@ -206,6 +244,11 @@ public partial class UnitManager : Node3D
     // 모든 일반 우클릭의 진입점. 새 대상의 기본 행동은 이곳에 추가합니다.
     public void RequestContextOrder(Node3D target, Vector3 point)
     {
+        if (_controlledHeroType.HasValue)
+        {
+            ValidateSelection();
+            if (_selectedUnitIds.Count == 0) return;
+        }
         if (GodotObject.IsInstanceValid(Buildings) && Buildings.SelectedBuilding is Building producer && _selectedUnitIds.Count == 0)
         {
             RequestRally(producer, target, point);
@@ -221,7 +264,8 @@ public partial class UnitManager : Node3D
                 else RequestMove(point);
                 break;
             case ResourceNode resource:
-                RequestGather(resource);
+                if (_controlledHeroType.HasValue) RequestMove(point);
+                else RequestGather(resource);
                 break;
             case Building building:
                 if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() ||
@@ -333,7 +377,7 @@ public partial class UnitManager : Node3D
 
     public void HandleSpawn(string[] parts)
     {
-        // UNIT type id owner x z team. 타입 0~2는 RTS, 3~4는 미니언 전용입니다.
+        // UNIT type id owner x z team. 용병 0~2, 하수인 100~101, 임시 영웅 200.
         if (parts.Length != 7)
             return;
 
@@ -364,15 +408,7 @@ public partial class UnitManager : Node3D
         if (!float.IsFinite(x) || !float.IsFinite(z))
             return;
 
-        PackedScene scene = unitType switch
-        {
-            UnitCatalog.Worker => WorkerScene,
-            UnitCatalog.Knight => KnightScene,
-            UnitCatalog.Archer => ArcherScene,
-            UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
-            UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
-            _ => null
-        };
+        PackedScene scene = SceneFor(unitType);
 
         if (scene == null)
         {
@@ -412,6 +448,7 @@ public partial class UnitManager : Node3D
         if (_interpolation.HasTick) unit.CapturePosition(_interpolation.CurrentTick);
 
         _units.Add(unitId, unit);
+        if (_controlledHeroType.HasValue) ValidateSelection();
     }
 
     public Node3D ResolveFocus(uint id)
@@ -445,6 +482,7 @@ public partial class UnitManager : Node3D
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Name = $"Dying_{unitId}";
         unit.BeginDeath();
+        if (_controlledHeroType.HasValue) selectionChanged |= ValidateSelection(notify: false);
         if (selectionChanged) SelectionChanged?.Invoke();
     }
 
@@ -461,11 +499,13 @@ public partial class UnitManager : Node3D
         unit.Hide();
         RemoveChild(unit);
         unit.QueueFree();
+        if (_controlledHeroType.HasValue) selectionChanged |= ValidateSelection(notify: false);
         if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     public void SelectSingle(Unit unit)
     {
+        if (_controlledHeroType.HasValue) { ValidateSelection(); return; }
         if (!CanInspect(unit))
         {
             ClearSelection();
@@ -489,6 +529,7 @@ public partial class UnitManager : Node3D
 
     public bool CanControl(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() &&
         !unit.IsQueuedForDeletion() && !unit.IsDying && _localPlayerId != 0 && unit.OwnerId == _localPlayerId &&
+        (!_controlledHeroType.HasValue || unit.UnitType == _controlledHeroType.Value && unit.Team == _localTeam) &&
         _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
 
     public bool CanInspect(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() && unit.IsVisibleInTree() &&
@@ -550,6 +591,7 @@ public partial class UnitManager : Node3D
     public void SelectFromPortrait(uint id, bool exclude, bool sameType)
     {
         ValidateSelection();
+        if (_controlledHeroType.HasValue) return;
         if (!_selectedUnitIds.Contains(id) || !_units.TryGetValue(id, out Unit clicked)) return;
         if (!exclude && !sameType)
         {
@@ -573,6 +615,7 @@ public partial class UnitManager : Node3D
 
     public void ClearSelection()
     {
+        if (_controlledHeroType.HasValue) { ValidateSelection(); return; }
         bool selectionChanged = _selectedUnitIds.Count > 0 || InspectedUnit != null;
         ClearSelectionCore();
         if (selectionChanged) SelectionChanged?.Invoke();
@@ -613,6 +656,7 @@ public partial class UnitManager : Node3D
 
     private void ApplyCandidates(List<Unit> candidates, bool toggle, bool additive = false)
     {
+        if (_controlledHeroType.HasValue) { ValidateSelection(); return; }
         bool inspected = InspectedUnit != null;
         ClearInspection();
         var previousSelection = new HashSet<uint>(_selectedUnitIds);
@@ -631,6 +675,17 @@ public partial class UnitManager : Node3D
 
     private bool ValidateSelection(bool notify = true)
     {
+        if (_controlledHeroType.HasValue)
+        {
+            Unit hero = _units.Values.FirstOrDefault(CanControl);
+            bool changed = InspectedUnit != null || (hero == null ? _selectedUnitIds.Count != 0
+                : _selectedUnitIds.Count != 1 || !_selectedUnitIds.Contains(hero.UnitId));
+            if (!changed) return false;
+            ClearSelectionCore();
+            if (hero != null) SelectUnit(hero);
+            if (notify) SelectionChanged?.Invoke();
+            return true;
+        }
         bool inspectionRemoved = InspectedUnit != null && !CanInspect(InspectedUnit);
         if (inspectionRemoved) ClearInspection();
         int removed = _selectedUnitIds.RemoveWhere(id =>

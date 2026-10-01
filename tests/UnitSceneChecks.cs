@@ -33,7 +33,7 @@ public partial class UnitSceneChecks : Main
             Units.KnightScene = GD.Load<PackedScene>("res://units/Knight.tscn");
             Units.ArcherScene = GD.Load<PackedScene>("res://units/Archer.tscn");
             Check(Units.GetChildCount() == 0, "No units before server messages");
-            Receive("WELCOME 7 1");
+            Receive("WELCOME 7 1 COMMANDER");
             Receive("UNIT 1 101 7 -4 2 1");
             Receive("UNIT 2 202 8 5 -3 2");
 
@@ -58,6 +58,7 @@ public partial class UnitSceneChecks : Main
             Receive("UNIT 2 broken 7 0 0 1");
             Check(Units.GetChildCount() == 2 && float.IsFinite(archer.GlobalPosition.X), "Malformed data ignored");
 
+            await CheckRangedFeedback(archer);
             await CheckInput(knight, archer);
             await CheckResources();
 
@@ -95,6 +96,34 @@ public partial class UnitSceneChecks : Main
             GD.PushError(error.ToString());
             GetTree().Quit(1);
         }
+    }
+
+    private async Task CheckRangedFeedback(Unit archer)
+    {
+        Receive("UNIT 101 930 0 3 2 1");
+        Unit minion = Units.GetNode<Unit>("Unit_930");
+        int Shots(Unit unit) => unit.GetChildren().OfType<ArrowFlight>().Count();
+        foreach (Unit shooter in new[] { archer, minion })
+        {
+            Receive($"STATE {shooter.UnitId} ATTACK 0 101 7");
+            Check(Shots(shooter) == 0, "Initial attack snapshots never replay historical arrows");
+            Receive($"STATE {shooter.UnitId} ATTACK 0 101 8");
+            Check(Shots(shooter) == 1, "A new server swing launches one arrow for either archer model");
+            Receive($"STATE {shooter.UnitId} ATTACK 0 101 8");
+            Check(Shots(shooter) == 1, "Repeated attack state cannot duplicate arrows");
+        }
+        await ToSignal(GetTree().CreateTimer(.36), SceneTreeTimer.SignalName.Timeout);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Check(Shots(archer) == 0 && Shots(minion) == 0, "Cosmetic arrows expire without retaining scene nodes");
+        Receive("STATE 202 ATTACK 0 930 9");
+        Receive("STATE 930 ATTACK 0 101 9");
+        ArrowFlight minionShot = minion.GetChildren().OfType<ArrowFlight>().Single();
+        Receive("HIDE 930");
+        Check(!minionShot.IsInsideTree(), "Hiding the shooter also removes its visual projectile");
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Check(Shots(archer) == 0, "Hiding the target cancels the flight without following it through fog");
+        Receive("STATE 202 IDLE 0 0 9");
     }
 
 

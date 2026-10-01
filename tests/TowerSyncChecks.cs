@@ -47,7 +47,7 @@ public partial class TowerSyncChecks : Main
             var commands = new List<string>();
             Units.CommandRequested += commands.Add;
 
-            Receive("WELCOME 7 2");
+            Receive("WELCOME 7 2 COMMANDER");
             Receive("BUILDING 1 501 1 5 0 1.5707963");
             Receive("BUILDING 0 502 2 -6 -5 0");
             Building tower = Buildings.GetNode<Building>("Building_501");

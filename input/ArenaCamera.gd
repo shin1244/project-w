@@ -32,10 +32,12 @@ func _process(delta: float) -> void:
 		set_meta("command_menu_wait_for_release", false)
 	var letters_enabled := not menu_open and not wait_for_release
 	var unit_orders: bool = get_meta("unit_orders_selected", false)
+	var hero_q: bool = get_meta("hero_q_shortcut", false)
 	# A는 공격 대상 지정에 사용합니다. 왼쪽 이동은 Q 또는 왼쪽 방향키입니다.
 	# 건설 메뉴는 Q/W/A/S를 사용하므로 메뉴가 닫힌 뒤 해당 키를 놓을 때까지 문자 이동을 쉽니다.
 	# 내 유닛을 선택했으면 S/D는 정지/홀드에 사용합니다. 방향키는 항상 카메라를 이동합니다.
-	direction.x = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_D)) or Input.is_physical_key_pressed(KEY_RIGHT)) - float((letters_enabled and Input.is_physical_key_pressed(KEY_Q)) or Input.is_physical_key_pressed(KEY_LEFT))
+	# 늑대 영웅의 Q는 스킬 전용이며 사망·쿨다운 중에도 카메라를 움직이지 않는다.
+	direction.x = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_D)) or Input.is_physical_key_pressed(KEY_RIGHT)) - float((letters_enabled and not hero_q and Input.is_physical_key_pressed(KEY_Q)) or Input.is_physical_key_pressed(KEY_LEFT))
 	direction.z = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_S)) or Input.is_physical_key_pressed(KEY_DOWN)) - float((letters_enabled and Input.is_physical_key_pressed(KEY_W)) or Input.is_physical_key_pressed(KEY_UP))
 	if direction.length_squared() > 0:
 		position += direction.normalized() * pan_speed * (size / home_size) * delta

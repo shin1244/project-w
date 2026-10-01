@@ -26,12 +26,12 @@ public partial class SelectionDetailsChecks : Main
             Check(!Single.Visible && !Grid.Visible, "Empty selection has no stale unit/building contents");
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
-            Receive("WELCOME 7 1");
+            Receive("WELCOME 7 1 COMMANDER");
             Receive("SIGHT UNIT 0 8");
             Receive("SIGHT UNIT 1 8");
             Receive("SIGHT UNIT 2 8");
-            Receive("SIGHT UNIT 3 8");
-            Receive("SIGHT UNIT 4 8");
+            Receive("SIGHT UNIT 100 8");
+            Receive("SIGHT UNIT 101 8");
             Receive("SIGHT BUILDING 0 12");
             Receive("SIGHT BUILDING 1 9");
             Receive("STOCK 0 240");
@@ -46,6 +46,7 @@ public partial class SelectionDetailsChecks : Main
             Receive("BUILDING 1 202 2 14 8 0");
             Receive("HP 201 740 1000");
             Receive("HP 202 220 500");
+            await CheckRolePanels();
 
             InvokeMain("SelectUnit", Unit(101));
             await Layout();
@@ -128,23 +129,31 @@ public partial class SelectionDetailsChecks : Main
             Check(Labels().Any(label => label.Text == "요새") && Labels().Any(label => label.Text == "상태   공격 중"), "Type 1 fortress displays its name and server activity");
             var portrait = Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single();
             Texture2D enemyPortrait = portrait.Texture;
-            Receive("WELCOME 7 2");
+            Receive("WELCOME 7 2 COMMANDER");
             Check(portrait.Texture != enemyPortrait, "Team changes still update the selected building's portrait colors");
             Receive("REMOVE 202");
             Check(!Single.Visible, "Building destruction clears details");
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single());
+            Receive("WELCOME 7 2 HERO 200");
+            Receive("EXP 3 40 200");
             Receive($"MAP 2 {Map.MapHash}");
             Check(!Single.Visible && !Grid.Visible, "Map resynchronization clears details");
+            Check(LocalRole == PlayerRole.None && !Skills.Visible && Skills.HeroType == null && UnitInfo.Experience == null,
+                "Map resynchronization clears the previous hero role and skill panel");
             Receive("WORLD_READY");
-            Receive("WELCOME 7 1");
+            Receive("WELCOME 7 1 COMMANDER");
             Receive("UNIT 0 301 7 0 0 1");
             InvokeMain("SelectUnit", Unit(301));
             Receive("UNIT 0 301 9 0 0 1");
             Check(!Single.Visible, "Ownership changes clear the previous unit details");
             Receive("UNIT 0 301 7 0 0 1");
             InvokeMain("SelectUnit", Unit(301));
+            Receive("WELCOME 7 1 HERO 201");
+            Receive("EXP 2 10 150");
             InvokeMain("OnConnectionClosed", "Selection details test disconnect");
             Check(!Single.Visible && !Grid.Visible, "Disconnect clears details");
+            Check(LocalRole == PlayerRole.None && LocalHeroType == null && !Skills.Visible && UnitInfo.Experience == null,
+                "Disconnect cannot retain a hero HUD for the next session");
             Check(_commands == 0, "All inspection and selection gestures send no server commands");
             Check(_details.FindChildren("*", "SubViewport", true, false).Count == 0 &&
                 _details.FindChildren("*", "Node3D", true, false).Count == 0,
@@ -153,6 +162,203 @@ public partial class SelectionDetailsChecks : Main
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
+    }
+
+    private async Task CheckRolePanels()
+    {
+        Check(LocalRole == PlayerRole.Commander && _details.Visible && !Skills.Visible,
+            "COMMANDER welcome retains the RTS information panel");
+        InvokeMain("SelectUnit", Unit(101));
+        Rect2 commandsRect = Commands.GetGlobalRect();
+        Receive("WELCOME 7 1 HERO 200");
+        await Layout();
+        Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Skills.HeroType == 200 && Skills.Visible && !_details.Visible,
+            "HERO welcome stores the hero type and replaces only the middle panel");
+        Check(Skills.GetNode("Content/Slots").GetChildCount() == 5 &&
+            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Select(label => label.Text).SequenceEqual(new[] { "P", "Q", "W", "E", "R" }) &&
+            Skills.GetNode("Content/Slots/Q") is Button,
+            "Hero HUD keeps five minimal slots and exposes the wolf Q button");
+        Check(!Commands.Visible && UnitInfo.Visible && UnitInfo.Size == new Vector2(208, 160) &&
+            UnitInfo.GetGlobalRect().End == commandsRect.End && UnitInfo.FindChildren("*", "Button", true, false).Count == 0,
+            "AOS replaces commands with a smaller read-only information panel at the same bottom-right corner");
+        foreach (string invalid in new[] { "WELCOME 8 2", "WELCOME 8 2 HERO", "WELCOME 8 2 HERO nope", "WELCOME 8 2 HERO -1", "WELCOME 8 2 HERO 4294967296", "WELCOME 8 2 COMMANDER 200", "WELCOME 8 2 OTHER", "WELCOME 0 2 HERO 200", "WELCOME 8 0 HERO 200" }) Receive(invalid);
+        Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Units.LocalTeam == 1 && Skills.Visible,
+            "Invalid welcome messages cannot partially change team, ownership or HUD");
+        CheckHeroVitals();
+        await CheckCompactInfo();
+        InvokeMain("SelectUnit", Unit(999));
+        Check(Skills.Visible && !_details.Visible, "Inspecting another unit does not replace the hero skill bar");
+        var input = GetNode<PlayerInput>("PlayerInput");
+        int clicks = 0;
+        void OnContext(Node3D _, Vector3 __) => clicks++;
+        input.ContextClicked += OnContext;
+        float cameraSize = Units.Camera.Size;
+        foreach (Vector2 position in new[] { Skills.GetGlobalRect().GetCenter(), UnitInfo.GetGlobalRect().GetCenter() })
+        {
+            PushMouse(position, MouseButton.Right, true);
+            PushMouse(position, MouseButton.Right, false);
+            PushMouse(position, MouseButton.WheelUp, true);
+            PushMouse(position, MouseButton.WheelUp, false);
+        }
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+        input.ContextClicked -= OnContext;
+        Check(clicks == 0 && Mathf.IsEqualApprox(cameraSize, Units.Camera.Size) && _commands == 0,
+            "Skill and unit information panels consume mouse input without orders, casts or camera zoom");
+        Receive("WELCOME 7 1 COMMANDER");
+        Receive("EXP 9 100 500");
+        Check(_details.Visible && Commands.Visible && Commands.GetGlobalRect() == commandsRect && !UnitInfo.Visible &&
+            UnitInfo.InspectedUnit == null && UnitInfo.Experience == null && !Skills.Visible && Skills.HeroType == null && LocalHeroType == null && Skills.HeroUnitId == null,
+            "COMMANDER restores the original RTS panels and clears AOS inspection");
+    }
+
+    private async Task CheckCompactInfo()
+    {
+        Label Info(string name) => (Label)UnitInfo.FindChild(name, true, false);
+        var experience = (ProgressBar)UnitInfo.FindChild("Experience", true, false);
+        Check(Info("Level").Text == "Lv.—" && Info("ExperienceText").Text == "— / —",
+            "Missing initial EXP never invents a level or threshold");
+        Receive("EXP 1 35 100"); // Player progress can precede UNIT.
+        Receive("UNIT 200 8005 7 0 -5 1");
+        Receive("HP 8005 185 300");
+        Receive("STATS 8005 20 0.7 1.25 6 10");
+        await Layout();
+        Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Info("HealthText").Text == "185 / 300" &&
+            Info("Level").Text == "Lv.1" && Info("ExperienceText").Text == "35 / 100" && experience.Value == 35 &&
+            Info("Damage").Text == "공격 20" && Info("AttackSpeed").Text == "공속 0.8/초" &&
+            Info("Range").Text == "사거리 0.7" && Info("Sight").Text == "시야 10" && Info("Speed").Text == "이속 6",
+            "Without a click the own hero shows server vitals, all five stats and owner-only progress");
+        Receive("WELCOME 7 1 HERO 200");
+        foreach (string invalid in new[] { "EXP 0 0 100", "EXP 1 -1 100", "EXP 1 100 100", "EXP 1 1 0", "EXP 1 0 -1",
+            "EXP 1 NaN 100", "EXP 1 2", "EXP 1 2 100 extra", "EXP 2147483648 0 100", "EXP 1 9223372036854775808 100" }) Receive(invalid);
+        Check(UnitInfo.Experience == new HeroExperienceSnapshot(1, 35, 100), "Repeated WELCOME and malformed EXP preserve valid progress");
+        Receive("EXP 2 25 150");
+        Receive("HP 8005 203.5 330");
+        Receive("STATS 8005 22 0.7 0.8 6 10");
+        await Layout();
+        Check(Info("Level").Text == "Lv.2" && Info("ExperienceText").Text == "25 / 150" &&
+            Math.Abs(experience.Value - 100.0 / 6) < .01 && Info("HealthText").Text == "203.5 / 330" &&
+            Info("Damage").Text == "공격 22" && Info("AttackSpeed").Text == "공속 1.25/초",
+            "Level-up EXP, HP and STATS update independently without reselection");
+        if (OS.GetCmdlineUserArgs().Contains("--capture-aos-info"))
+        {
+            if (OS.GetCmdlineUserArgs().Contains("--capture-wolf-q"))
+            {
+                Receive("TICK 100");
+                Receive("COOLDOWN 0 220");
+                Receive("TICK 160");
+                await Layout();
+            }
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            using Image image = GetViewport().GetTexture().GetImage();
+            image.SavePng("res://.godot/aos-info.png");
+        }
+        InvokeMain("SelectUnit", Unit(999));
+        await Layout();
+        Check(UnitInfo.InspectedUnit == Unit(999) && Units.SelectedUnitIds.SequenceEqual(new uint[] { 8005 }) &&
+            Info("UnitName").Text == "검방병" && Info("HealthText").Text == "— / —",
+            "Compact inspection keeps the own hero controlled and leaves unknown enemy HP empty");
+        Receive("HP 999 61 100");
+        Receive("STATE 999 ATTACK 0 8005 1");
+        Receive("STATS 999 12 0.7 1 6 8");
+        await Layout();
+        Check(Info("HealthText").Text == "61 / 100" && Info("Activity").Text == "공격 중" &&
+            Info("Damage").Text == "공격 12" && Info("Range").Text == "사거리 0.7" &&
+            !Info("Level").Visible && !experience.IsVisibleInTree() &&
+            Skills.GetNode<Label>("Content/Vitals/Health/Value").Text == "203.5 / 330",
+            "Inspected HP, action and stats update without changing the hero vitals");
+        Check(((TextureRect)UnitInfo.FindChild("Portrait", true, false)).Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
+            "Compact inspection uses the existing enemy portrait");
+        Receive("HP 999 40 100");
+        Receive("STATE 999 HOLD 0 0 1");
+        await Layout();
+        Check(Info("HealthText").Text == "40 / 100" && Info("Activity").Text == "위치 사수", "Inspected values stay live");
+        Receive("EXP 2 75 150");
+        Check(!experience.IsVisibleInTree() && experience.Value == 0, "Own EXP is retained but never attributed to the inspected enemy");
+        Receive("UNIT 100 8810 0 8 0 1");
+        InvokeMain("SelectUnit", Unit(8810));
+        await Layout();
+        Check(Info("UnitName").Text == "근접 미니언" && Info("HealthText").Text == "— / —" &&
+            Info("Damage").Text == "공격 —" && Info("AttackSpeed").Text == "공속 —", "Switching to an allied minion clears the previous unit's values");
+        Receive("STATS 8810 0 0 0 4 8");
+        await Layout();
+        Check(Info("AttackSpeed").Text == "공속 —", "Zero attack interval does not divide by zero or invent an attack speed");
+        Receive("HIDE 8810");
+        Receive("HP 8810 60 60");
+        await Layout();
+        Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Info("HealthText").Text == "203.5 / 330" &&
+            experience.Value == 50, "HIDE returns to the own hero and ignores late HP for the former inspection");
+        Receive("UNIT 100 8810 0 8 0 1");
+        await Layout();
+        Check(UnitInfo.InspectedUnit == null, "A reappearing ID does not silently restore the old inspection");
+        InvokeMain("SelectUnit", Unit(8810));
+        Receive("REMOVE 8810");
+        await Layout();
+        Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005), "An inspected unit's death returns to the own hero");
+        InvokeMain("SelectUnit", Unit(999));
+        InvokeMain("ClearSelection");
+        Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Units.SelectedUnitIds.SequenceEqual(new uint[] { 8005 }),
+            "Clearing inspection leaves the own hero controlled");
+        InvokeMain("SelectUnit", Unit(8005));
+        Check(Info("Level").Visible && experience.Value == 50, "Explicitly inspecting the own hero still shows owner progress");
+        Receive("REMOVE 8005");
+        Receive("HP 8005 300 300");
+        await Layout();
+        Check(UnitInfo.DisplayedUnit == null && Info("HealthText").Text == "— / —" && Info("Level").Text == "Lv.2" && experience.Value == 50,
+            "Hero death clears instance data but retains player level and XP");
+        Receive("UNIT 200 8006 7 0 -5 1");
+        Receive("HP 8006 330 330");
+        await Layout();
+        Check(UnitInfo.DisplayedUnit == Unit(8006) && experience.Value == 50 && Info("Damage").Text == "공격 —",
+            "Respawn with a new ID automatically rebinds the hero without old instance stats");
+        Receive("EXP 10 0 0");
+        Check(Info("Level").Text == "Lv.10" && Info("ExperienceText").Text == "MAX" && experience.Value == 100,
+            "Server zero threshold displays a full max-level bar without hardcoding a cap");
+        Receive("WELCOME 7 2 HERO 200");
+        Check(UnitInfo.Experience == null && UnitInfo.DisplayedUnit == null, "Changing team resets owner progress and the displayed hero");
+        Receive("WELCOME 7 1 HERO 200");
+        Receive("HIDE 8006");
+    }
+
+    private void CheckHeroVitals()
+    {
+        var health = Skills.GetNode<ProgressBar>("Content/Vitals/Health/Bar");
+        var mana = Skills.GetNode<ProgressBar>("Content/Vitals/Mana/Bar");
+        var hpText = Skills.GetNode<Label>("Content/Vitals/Health/Value");
+        var mpText = Skills.GetNode<Label>("Content/Vitals/Mana/Value");
+        Check(hpText.Text == "— / —" && mpText.Text == "— / —", "Vitals remain unknown before authoritative values arrive");
+        Receive("UNIT 200 8001 9 0 0 1");
+        Receive("UNIT 200 8002 7 0 0 2");
+        Receive("HP 8001 300 600");
+        Check(Skills.HeroUnitId == null && health.Value == 0, "Other players and other teams do not bind the hero HUD");
+        Receive("UNIT 200 8001 7 0 0 1");
+        Receive("HP 8001 300 600");
+        Check(Skills.HeroUnitId == 8001 && health.Value == 50 && hpText.Text == "300 / 600" && mpText.Text == "— / —",
+            "UNIT ownership identifies the hero independently of selection; HP changes only the health bar");
+        Check(Units.TryGetUnit(8001, out Unit hero) && hero.UnitType == UnitCatalog.HeroTest && hero.HealthBar.CurrentHP == 300,
+            "The registered hero model and the AOS health bar consume the same HP snapshot");
+        Skills.ApplyMana(8001, 45, 90);
+        Receive("HP 8001 450 600");
+        Receive("HP 8002 1 600");
+        Receive("HP 8001 NaN 600");
+        Skills.ApplyMana(8002, 0, 90);
+        Skills.ApplyMana(8001, float.NaN, 90);
+        Check(health.Value == 75 && mana.Value == 50 && hpText.Text == "450 / 600" && mpText.Text == "45 / 90",
+            "Health and the future mana input update independently and ignore invalid/foreign values");
+        Receive("UNIT 200 8001 7 1 0 1");
+        Receive("WELCOME 7 1 HERO 200");
+        Check(health.Value == 75 && mana.Value == 50, "Repeated snapshots retain current vitals");
+        Receive("REMOVE 8001");
+        Receive("HP 8001 600 600");
+        Check(Skills.HeroUnitId == null && health.Value == 0 && mana.Value == 0 && hpText.Text == "— / —" && mpText.Text == "— / —",
+            "Removing the hero clears both bars and ignores late updates");
+        Receive("UNIT 200 8003 7 0 0 1");
+        Receive("HP 8003 600 600");
+        Check(health.Value == 100 && mpText.Text == "— / —", "A replacement hero starts with fresh values");
+        Receive("UNIT 200 8003 9 0 0 1");
+        Check(Skills.HeroUnitId == null && hpText.Text == "— / —", "Losing ownership clears the former hero's vitals");
+        Receive("HIDE 8002");
+        Receive("HIDE 8003");
     }
 
     private async Task CheckInspection()
@@ -170,7 +376,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATS 999 12 0.5 1 5 8");
         Receive("STATE 999 GUARD 0 0 0");
         Receive("UNIT 2 998 9 10 0 1");
-        Receive("UNIT 3 997 0 8 0 2");
+        Receive("UNIT 100 997 0 8 0 2");
         Receive("STATS 997 4 0.4 1.4 4 6");
         foreach (uint id in new uint[] { 999, 998, 997 })
         {

@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://lobby/MatchScreen.tscn" id="1_screen"]
+[ext_resource type="Script" path="res://lobby/Loading.cs" id="2_loading"]
+
+[node name="Loading" instance=ExtResource("1_screen")]
+script = ExtResource("2_loading")
+
+[node name="Kicker" parent="Center/Card/Content" index="0"]
+text = "매칭 완료"
+
+[node name="Title" parent="Center/Card/Content" index="1"]
+text = "전장 준비 중"
+
+[node name="Description" parent="Center/Card/Content" index="2"]
+text = "매칭이 완료됐어요. 잠시만 기다려주세요."
+
+[node name="Status" parent="Center/Card/Content/StatusArea" index="0"]
+text = "전장을 확인하고 있어요"
+
+[node name="QueueTime" parent="Center/Card/Content/StatusArea" index="1"]
+visible = false
+
+[node name="Progress" parent="Center/Card/Content/StatusArea" index="2"]
+visible = true
+
+[node name="ProgressValue" parent="Center/Card/Content/StatusArea" index="3"]
+visible = true
+
+[node name="PrimaryButton" parent="Center/Card/Content/Actions" index="0"]
+text = "로비로 돌아가기"
+
+[node name="SecondaryButton" parent="Center/Card/Content/Actions" index="1"]
+visible = false
+
+[node name="Footnote" parent="Center/Card/Content" index="5"]
+text = "로딩 화면 미리보기"

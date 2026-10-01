@@ -18,10 +18,21 @@ public partial class BakeSelectionPortraits : Node
             bool soldiersOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--soldiers-only") >= 0;
             bool defensesOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--defenses-only") >= 0;
             bool inspectionOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--inspection-only") >= 0;
-            if (!defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
+            bool heroOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--hero-only") >= 0;
+            bool rangedOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--ranged-only") >= 0;
+            if (rangedOnly)
+                foreach (bool enemy in new[] { false, true })
+                {
+                    portraits.Add("archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/Archer.tscn"), enemy: enemy));
+                    portraits.Add("minion-archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/MinionArcher.tscn"), enemy: enemy));
+                }
+            if (!rangedOnly && (heroOnly || (!soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
+                foreach (bool enemy in new[] { false, true })
+                    portraits.Add(enemy ? "mutant-wolf-enemy" : "mutant-wolf", GetPortrait(GD.Load<PackedScene>("res://units/HeroTest.tscn"), enemy: enemy));
+            if (!rangedOnly && !heroOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
                 foreach (string unit in soldiersOnly ? new[] { "Knight", "Archer" } : new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant(), GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn")));
-            if (inspectionOnly || (!soldiersOnly && !defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0))
+            if (!rangedOnly && !heroOnly && (inspectionOnly || (!soldiersOnly && !defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
             {
                 foreach (string unit in new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant() + "-enemy", GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: true));
@@ -29,7 +40,7 @@ public partial class BakeSelectionPortraits : Node
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add($"minion-{unit.ToLowerInvariant()}{(enemy ? "-enemy" : "")}", GetPortrait(GD.Load<PackedScene>($"res://units/Minion{unit}.tscn"), enemy: enemy));
             }
-            foreach (string building in soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" })
+            foreach (string building in rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" })
                 foreach (bool enemy in new[] { false, true })
                     portraits.Add($"{building.ToLowerInvariant()}-{(enemy ? "enemy" : "ally")}",
                         GetPortrait(GD.Load<PackedScene>($"res://buildings/{building}.tscn"), true, enemy));
@@ -97,14 +108,15 @@ public partial class BakeSelectionPortraits : Node
             RotationDegrees = new Vector3(-40, -35, 0),
             LightColor = new Color("fff0d5"), LightEnergy = 1.6f
         });
+        bool beast = scene.ResourcePath == "res://units/HeroTest.tscn";
         var camera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, Current = true,
-            Size = building ? buildingHeight * 1.5f : unitHeight * .94f,
-            Position = building ? new Vector3(7, 6, -10) : new Vector3(2.4f, 2.5f, -5)
+            Size = building ? buildingHeight * 1.5f : beast ? 3.6f : unitHeight * .94f,
+            Position = building ? new Vector3(7, 6, -10) : beast ? new Vector3(4.8f, 3.1f, -5) : new Vector3(2.4f, 2.5f, -5)
         };
         viewport.AddChild(camera);
-        camera.LookAt(new Vector3(0, building ? buildingHeight * .42f : unitHeight * .48f, 0));
+        camera.LookAt(beast ? new Vector3(.15f, 1.2f, -.3f) : new Vector3(0, building ? buildingHeight * .42f : unitHeight * .48f, 0));
         _cache.Add(key, viewport);
         return viewport.GetTexture();
     }

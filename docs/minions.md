@@ -3,17 +3,18 @@
 현재 서버 메시지 형식은 다음과 같습니다. 이전의 진영 없는 WELCOME/UNIT 형식은 사용하지 않습니다.
 
 ```text
-WELCOME 플레이어ID 진영
+WELCOME 플레이어ID 진영 COMMANDER
+WELCOME 플레이어ID 진영 HERO 영웅종류
 UNIT 타입 유닛ID 소유자ID X Z 진영
-WELCOME 7 1
+WELCOME 7 1 COMMANDER
 UNIT 0 15459 7 -60.00 0.00 1
-UNIT 3 15464 0 -60.00 -6.00 1
-UNIT 4 15480 0 60.00 -6.00 2
+UNIT 100 15464 0 -60.00 -6.00 1
+UNIT 101 15480 0 60.00 -6.00 2
 ```
 
 `OwnerId`는 조종 권한, `Team`은 아군/적군 판정에 사용합니다. 미니언의 소유자는 0이며, 진영은 1 또는 2입니다. 같은 편 미니언과 다른 플레이어의 아군 유닛은 공격 대상으로 지정하지 않습니다. 시야에 보이는 미니언은 클릭하여 정보를 볼 수 있지만, 명령을 받는 선택 목록에는 내 소유 유닛만 포함합니다. 아군 우클릭은 이동, 적 미니언 우클릭은 공격입니다.
 
-미니언은 전용 타입 `UnitMinionMelee`(3), `UnitMinionRanged`(4)이며, 기존 크기의 `MinionKnight.tscn` / `MinionArcher.tscn` 씬으로 표시합니다. 병영 유닛은 별도 타입 `UnitKnight`(1), `UnitArcher`(2)이며 약 30% 더 큰 `Knight.tscn` / `Archer.tscn`을 사용합니다. 서버 `unit_defs.go`에서 네 종류의 정의와 이동·공격 능력치를 각각 수정할 수 있습니다. 미니언은 `Mover`·`Attack`만 가지며 `Production`·`Gather`가 없고 인구는 0입니다. 웨이브는 미니언 타입만 생성하고 병영은 미니언을 생산할 수 없습니다.
+미니언은 전용 타입 `UnitMinionMelee`(100), `UnitMinionRanged`(101)이며, 기존 크기의 `MinionKnight.tscn` / `MinionArcher.tscn` 씬으로 표시합니다. 병영 유닛은 별도 타입 `UnitKnight`(1), `UnitArcher`(2)이며 약 30% 더 큰 `Knight.tscn` / `Archer.tscn`을 사용합니다. 서버 `unit_defs.go`는 용병(0~99), `minion_defs.go`는 하수인(100~199)을 정의하며, 영웅은 200~299 구역을 사용합니다. 각 등급의 정의를 합칠 때 서버가 Class를 지정하고 중복 번호를 검사합니다. 메시지 필드는 그대로이며 이동·공격 능력치는 각 정의에서 조절합니다. 미니언은 `Mover`·`Attack`만 가지며 `Production`·`Gather`가 없고 인구는 0입니다. 웨이브는 미니언 타입만 생성하고 병영은 미니언을 생산할 수 없습니다.
 
 생성·라인 이동·적 탐색·전투는 서버가 처리하고, 클라이언트는 UNIT/POS/STATE/HP/STATS/REMOVE/HIDE를 적용합니다. 아군 미니언도 자신의 타입에 맞는 시야를 제공하며, 시야 밖 상대 미니언은 서버가 보내지 않습니다. HIDE로 숨긴 적은 다시 보일 때 최신 스냅샷으로 재생성합니다. [전장의 안개](fog-of-war.md)를 참고하세요. 별도의 클라이언트 웨이브 타이머나 미니언 생성은 없습니다. 미니언 타입 번호가 바뀌었으므로 서버와 클라이언트를 함께 갱신해야 합니다.
 

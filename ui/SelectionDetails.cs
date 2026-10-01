@@ -344,11 +344,7 @@ public partial class SelectionDetails : PanelContainer
         _cards.Clear();
     }
 
-    private PackedScene UnitScene(uint type) => type switch
-    {
-        UnitCatalog.Worker => Units.WorkerScene, UnitCatalog.Knight => Units.KnightScene, UnitCatalog.Archer => Units.ArcherScene,
-        UnitCatalog.MinionMelee => Units.MinionKnightScene, UnitCatalog.MinionRanged => Units.MinionArcherScene, _ => null
-    };
+    private PackedScene UnitScene(uint type) => Units.SceneFor(type);
 
     private Button PageButton(string text, string tooltip, int direction)
     {
@@ -391,6 +387,7 @@ public partial class SelectionDetails : PanelContainer
         UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중",
         UnitActivity.Guard => "상태   경계 중",
         UnitActivity.Hold => "상태   위치 사수",
+        UnitActivity.Dash => "상태   돌진 중", UnitActivity.Stun => "상태   기절",
         UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
     };
 

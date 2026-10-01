@@ -43,6 +43,11 @@ public partial class BuildingPlacement : Node3D
             return false;
         }
         if (!BuildingCatalog.IsPlayerBuildable(type) || !_preview.Select(type, out _footprint)) return false;
+        if (Buildings.BuildingRequirementBlockReason(type) is string reason)
+        {
+            Notice(reason, true);
+            return false;
+        }
         Active = true;
         _type = type;
         _worker = worker.UnitId;
@@ -78,7 +83,8 @@ public partial class BuildingPlacement : Node3D
             return;
         }
         PlacementPosition = PlacementRules.Snap(Map, point, _footprint);
-        BlockReason = PlacementRules.Check(Map, Buildings, Units, PlacementPosition, _footprint);
+        BlockReason = Buildings.BuildingRequirementBlockReason(_type) ??
+            PlacementRules.Check(Map, Buildings, Units, PlacementPosition, _footprint);
         CanPlace = BlockReason == null;
         _preview.Update(Camera, PlacementPosition, CanPlace);
         SetStatus(CanPlace ? $"{BuildingName} 배치 · 좌클릭: 건설 · 우클릭/Esc: 취소" : $"건설 불가: {BlockReason}", !CanPlace);

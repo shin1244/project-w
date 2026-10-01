@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/HeroSkillPanel.cs" id="1_skills"]
+
+[node name="HeroSkillPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(408, 136)
+layout_mode = 3
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -162.0
+offset_top = -136.0
+offset_right = 246.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 0
+script = ExtResource("1_skills")

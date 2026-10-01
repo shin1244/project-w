@@ -44,11 +44,11 @@ public partial class CommandPanelChecks : Main
             BeginSession(7, 1);
             Receive("SIGHT UNIT 0 8");
             Receive("SIGHT UNIT 1 8");
-            Receive("SIGHT UNIT 3 8");
+            Receive("SIGHT UNIT 100 8");
             Receive("SIGHT BUILDING 0 12");
             Receive("UNIT 0 101 7 -10 0 1");
             Receive("UNIT 1 102 7 -7 0 1");
-            Receive("UNIT 3 103 0 -4 0 1");
+            Receive("UNIT 100 103 0 -4 0 1");
             Receive("UNIT 2 104 9 -1 0 1");
             Receive("UNIT 1 105 8 2 0 2");
             Receive("BUILDING 0 201 1 -10 8 0");
@@ -58,6 +58,7 @@ public partial class CommandPanelChecks : Main
             SelectUnit(101);
             ExpectUnit("An owned worker shows attack, stop and hold in numpad slots 4, 5 and 6");
             CheckTierMenu();
+            CheckRequirements();
             CheckCombatCommands();
             SelectUnit(102);
             ExpectUnit("An owned combat unit shows the same three commands");
@@ -118,18 +119,20 @@ public partial class CommandPanelChecks : Main
             CheckNoWorkerTrain("Removed halls cannot request workers");
 
             SelectBuilding(203);
-            Receive("WELCOME 8 2");
+            Receive("WELCOME 8 2 COMMANDER");
             Expect("Changing the local team refreshes an already selected hall", (7, "일꾼"));
             CheckWorkerTrain();
             Map.StopSync();
             long sentBeforeSyncGate = _wire.Length;
             _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
             Check(_wire.Length == sentBeforeSyncGate, "Main blocks training transmission before world synchronization");
+            Buildings.HandleRequirements("REQUIRES UNIT 0 5".Split(' '));
             Receive($"MAP 2 {Map.MapHash}");
             Expect("A new map synchronization clears the previous selection");
+            Check(Buildings.UnitRequirementBlockReason(0) == null, "New sessions discard old requirement definitions");
             Receive("WORLD_READY");
             CheckNoWorkerTrain("A new session cannot reuse the old player identity");
-            Receive("WELCOME 8 2");
+            Receive("WELCOME 8 2 COMMANDER");
             Receive("BUILDING 0 204 2 10 8 0");
             SelectBuilding(204);
             CheckWorkerTrain();
@@ -157,6 +160,63 @@ public partial class CommandPanelChecks : Main
         if (Units.TryGetSelectedWorker(out _))
             Expect(message, (1, "1티어(Z)"), (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
         else Expect(message, (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
+    }
+
+    private void CheckRequirements()
+    {
+        // 임의의 서버 정의를 사용해 클라이언트에 기술 의존성이 하드코딩되지 않았는지 확인합니다.
+        Receive("REQUIRES UNIT 1 4 5");
+        Receive("REQUIRES BUILDING 5 4");
+        Receive("REQUIRES BUILDING 6 5");
+        Receive("BUILDING 4 901 1 -12 12 0");
+        Receive("BUILDING 5 902 2 12 12 0");
+        Receive("BUILDING 5 903 1 0 12 0");
+        Receive("CONSTRUCTION 903 99");
+        SelectBuilding(901);
+        int sent = _commands.Count;
+        _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
+        Units.RequestTrain(UnitCatalog.Knight);
+        Check(_slots[7].Disabled && !_slots[8].Disabled && _slots[7].TooltipText.Contains("대장간") &&
+            _commands.Count == sent, "Enemy and incomplete prerequisites do not unlock training or direct commands");
+        Receive("CONSTRUCTION 903 100");
+        Check(!_slots[7].Disabled, "Completion immediately refreshes the selected producer");
+        _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_commands.Count == sent + 1 && _commands[^1] == "TRAIN 901 1", "Unlocked training uses the normal request path");
+        Receive("QUEUE 901 40 9901:1:7");
+        Receive("REMOVE 903");
+        Check(_slots[7].Disabled && Buildings.SelectedBuilding.ProductionQueue.Count == 1,
+            "Destroying a prerequisite locks new training without removing already queued work");
+        Receive("REQUIRES UNIT 1 4 invalid");
+        Check(_slots[7].Disabled, "Malformed requirements cannot partially replace a valid definition");
+        Receive("REQUIRES UNIT 1");
+        Check(!_slots[7].Disabled, "An explicit empty requirement list restores training");
+        Receive("REMOVE 901");
+        Receive("REMOVE 902");
+
+        SelectUnit(101);
+        Placement.Cancel();
+        _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_slots[4].Disabled && _slots[5].Disabled && !_slots[7].Disabled,
+            "The build menu derives each lock from its own server requirements");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.A);
+        _slots[4].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(Commands.IsTierOneMenuOpen && !Placement.Active, "Locked buttons and hotkeys leave the build menu open");
+        Receive("BUILDING 4 904 2 0 12 0");
+        Check(_slots[4].Disabled, "Enemy prerequisites do not unlock construction");
+        Receive("BUILDING 4 904 1 0 12 0");
+        Receive("CONSTRUCTION 904 0");
+        Check(_slots[4].Disabled, "Construction sites do not count as complete prerequisites");
+        Receive("CONSTRUCTION 904 100");
+        Check(!_slots[4].Disabled && Commands.IsTierOneMenuOpen, "Completion unlocks the existing open menu");
+        Receive("BUILDING 4 905 1 8 12 0");
+        Receive("REMOVE 904");
+        Check(!_slots[4].Disabled, "One remaining completed friendly prerequisite is sufficient");
+        Receive("BUILDING 4 905 2 8 12 0");
+        Check(_slots[4].Disabled, "Changing the last prerequisite's team immediately relocks construction");
+        Receive("REMOVE 905");
+        Receive("REQUIRES BUILDING 5");
+        Receive("REQUIRES BUILDING 6");
+        Commands.CancelMenu();
     }
 
     private void Expect(string message, params (int Slot, string Text)[] entries)
@@ -581,7 +641,7 @@ public partial class CommandPanelChecks : Main
     {
         Receive($"MAP 2 {Map.MapHash}");
         Receive("WORLD_READY");
-        Receive($"WELCOME {player} {team}");
+        Receive($"WELCOME {player} {team} COMMANDER");
     }
 
     private void Receive(string message) => InvokeMain("OnMessage", message);

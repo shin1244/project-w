@@ -19,13 +19,13 @@
 
 ```text
 WORLD_READY
-WELCOME playerId team
+WELCOME playerId team COMMANDER
 SIGHT UNIT 0 8
 BODY UNIT 0 0.4
 SIGHT UNIT 1 8
 SIGHT UNIT 2 8
-SIGHT UNIT 3 8
-SIGHT UNIT 4 8
+SIGHT UNIT 100 8
+SIGHT UNIT 101 8
 SIGHT BUILDING 0 12
 BODY BUILDING 0 5 5
 SIGHT BUILDING 1 12
@@ -33,7 +33,7 @@ SIGHT BUILDING 1 12
 HIDE unitId
 ```
 
-서버는 WELCOME 다음에 종류별 SIGHT와 BODY를 초기 스냅샷에 포함합니다. BODY UNIT의 마지막 값은 반지름, BODY BUILDING의 두 값은 가로·세로입니다. 병영 유닛(타입 1·2)과 미니언(타입 3·4)의 시야도 각각 독립된 정의를 따릅니다. 클라이언트는 이를 받아 아군 위치로 화면용 마스크를 구성합니다. 적 유닛의 공개 여부와 공격 가능 여부는 서버만 결정합니다. 시야와 몸 크기를 클라이언트에 중복 하드코딩하거나 매 틱 전체 시야 배열을 네트워크로 보내지 않습니다.
+서버는 WELCOME 다음에 종류별 SIGHT와 BODY를 초기 스냅샷에 포함합니다. BODY UNIT의 마지막 값은 반지름, BODY BUILDING의 두 값은 가로·세로입니다. 병영 유닛(타입 1·2)과 미니언(타입 100·101)의 시야도 각각 독립된 정의를 따릅니다. 클라이언트는 이를 받아 아군 위치로 화면용 마스크를 구성합니다. 적 유닛의 공개 여부와 공격 가능 여부는 서버만 결정합니다. 시야와 몸 크기를 클라이언트에 중복 하드코딩하거나 매 틱 전체 시야 배열을 네트워크로 보내지 않습니다.
 
 서버의 종류별 Sight·Radius·Size를 수정하면 서버를 다시 빌드하고 재접속하면 됩니다. 인스턴스별 시야는 STATS의 Sight를 우선하며 변경 즉시 마스크를 갱신합니다. 이번 BODY 프로토콜과 거리 기준 변경은 서버·클라이언트를 함께 갱신해야 합니다.
 

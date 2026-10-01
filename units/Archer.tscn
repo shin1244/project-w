@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
 [ext_resource type="PackedScene" path="res://units/models/ArcherRig.tscn" id="2_model"]
-[ext_resource type="Script" path="res://units/SoldierAnimation.cs" id="3_animation"]
+[ext_resource type="Script" path="res://units/ArcherAnimation.cs" id="3_animation"]
 
 [sub_resource type="CapsuleShape3D" id="Selection"]
 radius = 0.62
@@ -22,5 +22,5 @@ shape = SubResource("Selection")
 [node name="SelectionRing" parent="." index="2"]
 scale = Vector3(1.08, 1, 1.08)
 
-[node name="SoldierAnimation" type="Node" parent="."]
+[node name="ArcherAnimation" type="Node" parent="."]
 script = ExtResource("3_animation")

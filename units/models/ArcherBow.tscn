@@ -1,0 +1,81 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/models/ArrowVisual.tscn" id="1_arrow"]
+
+[sub_resource type="StandardMaterial3D" id="Wood"]
+albedo_color = Color(0.60, 0.42, 0.25, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Leather"]
+albedo_color = Color(0.25, 0.18, 0.14, 1)
+
+[sub_resource type="StandardMaterial3D" id="Linen"]
+albedo_color = Color(0.90, 0.85, 0.69, 1)
+
+[sub_resource type="BoxMesh" id="Limb"]
+material = SubResource("Wood")
+size = Vector3(0.07, 1, 0.075)
+
+[sub_resource type="BoxMesh" id="Grip"]
+material = SubResource("Leather")
+size = Vector3(0.10, 0.23, 0.10)
+
+[sub_resource type="BoxMesh" id="String"]
+material = SubResource("Linen")
+size = Vector3(0.013, 1, 0.013)
+
+[node name="Bow" type="Node3D"]
+
+[node name="Grip" type="MeshInstance3D" parent="."]
+mesh = SubResource("Grip")
+
+[node name="Limb0" type="MeshInstance3D" parent="."]
+position = Vector3(0.26, -0.775, 0)
+rotation = Vector3(0, 0, 0.912908)
+scale = Vector3(1, 0.278029, 1)
+mesh = SubResource("Limb")
+
+[node name="Limb1" type="MeshInstance3D" parent="."]
+position = Vector3(0.09, -0.525, 0)
+rotation = Vector3(0, 0, 0.348771)
+scale = Vector3(1, 0.351141, 1)
+mesh = SubResource("Limb")
+
+[node name="Limb2" type="MeshInstance3D" parent="."]
+position = Vector3(0.015, -0.18, 0)
+rotation = Vector3(0, 0, 0.083141)
+scale = Vector3(1, 0.361248, 1)
+mesh = SubResource("Limb")
+
+[node name="Limb3" type="MeshInstance3D" parent="."]
+position = Vector3(0.015, 0.18, 0)
+rotation = Vector3(0, 0, -0.083141)
+scale = Vector3(1, 0.361248, 1)
+mesh = SubResource("Limb")
+
+[node name="Limb4" type="MeshInstance3D" parent="."]
+position = Vector3(0.09, 0.53, 0)
+rotation = Vector3(0, 0, -0.339293)
+scale = Vector3(1, 0.360555, 1)
+mesh = SubResource("Limb")
+
+[node name="Limb5" type="MeshInstance3D" parent="."]
+position = Vector3(0.26, 0.795, 0)
+rotation = Vector3(0, 0, -0.858439)
+scale = Vector3(1, 0.290689, 1)
+mesh = SubResource("Limb")
+
+[node name="UpperString" type="MeshInstance3D" parent="."]
+position = Vector3(0.37, 0.445, 0)
+scale = Vector3(1, 0.89, 1)
+mesh = SubResource("String")
+
+[node name="LowerString" type="MeshInstance3D" parent="."]
+position = Vector3(0.37, -0.43, 0)
+scale = Vector3(1, 0.86, 1)
+mesh = SubResource("String")
+
+[node name="NockedArrow" parent="." instance=ExtResource("1_arrow")]
+visible = false
+position = Vector3(-0.23, 0, 0)
+rotation = Vector3(0, 1.570796, 0)

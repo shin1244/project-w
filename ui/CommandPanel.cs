@@ -71,6 +71,7 @@ public partial class CommandPanel : PanelContainer
         {
             Buildings.SelectionChanged += OnSelectionChanged;
             Buildings.ProductionChanged += RefreshProduction;
+            Buildings.RequirementsChanged += RefreshProduction;
         }
         GetWindow().FocusExited += OnFocusExited;
         RefreshSelection();
@@ -152,6 +153,18 @@ public partial class CommandPanel : PanelContainer
 
     private void RefreshProduction()
     {
+        if (_display == DisplayMode.TierOne)
+        {
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                uint type = BuildingTypeForSlot(NumpadOrder[i]);
+                if (!BuildingCatalog.IsPlayerBuildable(type)) continue;
+                string reason = Buildings.BuildingRequirementBlockReason(type);
+                _slots[i].Disabled = reason != null;
+                _slots[i].TooltipText = reason ?? "";
+            }
+            return;
+        }
         if (_display == DisplayMode.Construction)
         {
             _slots[8].Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
@@ -174,11 +187,28 @@ public partial class CommandPanel : PanelContainer
             _slots[1].Disabled = count >= ProductionSnapshot.MaxQueue;
             _slots[1].TooltipText = "나무 200 · 인구 2 · 생산 10초" + rallyHint;
         }
+        ApplyUnitRequirement(_slots[0], _display == DisplayMode.TownHall ? UnitCatalog.Worker : UnitCatalog.Knight);
+        if (_display == DisplayMode.Barracks) ApplyUnitRequirement(_slots[1], UnitCatalog.Archer);
     }
+
+    private void ApplyUnitRequirement(Button slot, uint type)
+    {
+        if (Buildings.UnitRequirementBlockReason(type) is not string reason) return;
+        slot.Disabled = true;
+        slot.TooltipText = reason + "\n" + slot.TooltipText;
+    }
+
+    private static uint BuildingTypeForSlot(int number) => number switch
+    {
+        7 => BuildingCatalog.Store, 8 => BuildingCatalog.Supply, 9 => BuildingCatalog.Barracks,
+        4 => BuildingCatalog.Forge, 5 => BuildingCatalog.Tower, _ => uint.MaxValue
+    };
 
     private void RequestSlot(int number)
     {
         RefreshSelection();
+        int index = Array.IndexOf(NumpadOrder, number);
+        if (index < 0 || _slots[index].Disabled) return;
         if (_display is DisplayMode.Units or DisplayMode.Workers && number is 4 or 5 or 6)
         {
             if (number == 4) AttackRequested?.Invoke();
@@ -202,15 +232,7 @@ public partial class CommandPanel : PanelContainer
         else if (_display == DisplayMode.TierOne)
         {
             if (number == 1) { CancelMenu(); return; }
-            uint type = number switch
-            {
-                7 => BuildingCatalog.Store,
-                8 => BuildingCatalog.Supply,
-                9 => BuildingCatalog.Barracks,
-                4 => BuildingCatalog.Forge,
-                5 => BuildingCatalog.Tower,
-                _ => uint.MaxValue
-            };
+            uint type = BuildingTypeForSlot(number);
             if (!BuildingCatalog.IsPlayerBuildable(type)) return;
             // 배치 모드로 들어가기 전에 기본 패널로 돌아갑니다.
             CancelMenu();
@@ -300,6 +322,7 @@ public partial class CommandPanel : PanelContainer
         {
             Buildings.SelectionChanged -= OnSelectionChanged;
             Buildings.ProductionChanged -= RefreshProduction;
+            Buildings.RequirementsChanged -= RefreshProduction;
         }
         GetWindow().FocusExited -= OnFocusExited;
         SetMenuOpen(false);

@@ -1,6 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://units/models/ArcherBow.tscn" id="2_bow"]
+[ext_resource type="Script" path="res://units/ArcherAnimation.cs" id="3_animation"]
 
 [sub_resource type="StandardMaterial3D" id="Cloth"]
 resource_name = "team_cloth"
@@ -52,20 +54,16 @@ bottom_radius = 0.1
 height = 0.8
 radial_segments = 8
 
-[sub_resource type="BoxMesh" id="BowLimb"]
-material = SubResource("Leather")
-size = Vector3(0.065, 0.64, 0.065)
-
-[sub_resource type="BoxMesh" id="BowString"]
-material = SubResource("String")
-size = Vector3(0.018, 1.18, 0.018)
+[sub_resource type="BoxMesh" id="Hand"]
+material = SubResource("Skin")
+size = Vector3(0.15, 0.15, 0.17)
 
 [sub_resource type="BoxMesh" id="Arrow"]
 material = SubResource("String")
 size = Vector3(0.035, 0.55, 0.035)
 
 [node name="Archer" instance=ExtResource("1_base")]
-UnitType = 4
+UnitType = 101
 BodyRadius = 0.4
 
 [node name="Tunic" type="MeshInstance3D" parent="Visual"]
@@ -88,13 +86,32 @@ mesh = SubResource("Leg")
 position = Vector3(0.16, 0.3, 0)
 mesh = SubResource("Leg")
 
-[node name="LeftArm" type="MeshInstance3D" parent="Visual"]
-position = Vector3(-0.36, 1.02, -0.07)
+[node name="LeftArm" type="Node3D" parent="Visual"]
+position = Vector3(-0.36, 1.28, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/LeftArm"]
+position = Vector3(-0.115, -0.23, -0.08)
+rotation = Vector3(0.25, 0, -0.46)
 mesh = SubResource("Arm")
 
-[node name="RightArm" type="MeshInstance3D" parent="Visual"]
-position = Vector3(0.36, 1.02, 0)
+[node name="Hand" type="MeshInstance3D" parent="Visual/LeftArm"]
+position = Vector3(-0.23, -0.45, -0.16)
+mesh = SubResource("Hand")
+
+[node name="Bow" parent="Visual/LeftArm" instance=ExtResource("2_bow")]
+position = Vector3(-0.23, -0.45, -0.16)
+scale = Vector3(0.68, 0.68, 0.68)
+
+[node name="RightArm" type="Node3D" parent="Visual"]
+position = Vector3(0.36, 1.28, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/RightArm"]
+position = Vector3(0, -0.26, 0)
 mesh = SubResource("Arm")
+
+[node name="Hand" type="MeshInstance3D" parent="Visual/RightArm"]
+position = Vector3(0, -0.50, 0)
+mesh = SubResource("Hand")
 
 [node name="Quiver" type="MeshInstance3D" parent="Visual"]
 position = Vector3(0.12, 1.18, 0.31)
@@ -111,16 +128,5 @@ position = Vector3(0.25, 1.69, 0.31)
 rotation = Vector3(0, 0, -0.2)
 mesh = SubResource("Arrow")
 
-[node name="BowUpper" type="MeshInstance3D" parent="Visual"]
-position = Vector3(-0.59, 1.37, -0.22)
-rotation = Vector3(0, 0, -0.38)
-mesh = SubResource("BowLimb")
-
-[node name="BowLower" type="MeshInstance3D" parent="Visual"]
-position = Vector3(-0.59, 0.78, -0.22)
-rotation = Vector3(0, 0, 0.38)
-mesh = SubResource("BowLimb")
-
-[node name="BowString" type="MeshInstance3D" parent="Visual"]
-position = Vector3(-0.47, 1.075, -0.22)
-mesh = SubResource("BowString")
+[node name="ArcherAnimation" type="Node" parent="."]
+script = ExtResource("3_animation")

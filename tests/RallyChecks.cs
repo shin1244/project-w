@@ -31,7 +31,7 @@ public partial class RallyChecks : Main
             Fog.Configure(Map);
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
-            Receive("WELCOME 7 1");
+            Receive("WELCOME 7 1 COMMANDER");
             Receive("SIGHT BUILDING 0 12");
             Receive("SIGHT BUILDING 4 8");
             Receive("BUILDING 0 201 1 -10 0 0");
@@ -132,7 +132,7 @@ public partial class RallyChecks : Main
             Receive($"MAP 2 {Map.MapHash}");
             Check(!marker.Visible && Buildings.SelectedBuilding == null, "Resynchronization clears rally display");
             Receive("WORLD_READY");
-            Receive("WELCOME 7 1");
+            Receive("WELCOME 7 1 COMMANDER");
             Receive("BUILDING 0 201 1 -10 0 0");
             Receive("RALLY 201 GATHER 0 -3 1000000");
             Select(201);

@@ -68,6 +68,18 @@ public partial class BuildingPlacementChecks : Main
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
             Check(Placement.Active && Placement.CanPlace && Placement.PlacementPosition == new Vector3(-10.5f, 0, -3.5f),
                 "The supply preview follows the cursor's ground center and snaps to the map grid");
+            Receive("REQUIRES BUILDING 3 5");
+            Check(!Placement.Begin(BuildingCatalog.Supply) && !Units.RequestBuild(BuildingCatalog.Supply, new Vector3(-10.5f, 0, -3.5f), 101),
+                "Missing prerequisites block both direct placement and command requests");
+            Receive("BUILDING 5 900 1 8 12 0");
+            Check(Placement.Begin(BuildingCatalog.Supply), "Completed prerequisites allow placement");
+            Receive("REMOVE 900");
+            Check(!Placement.TryPlace(Screen(-10.5f, -3.5f)) && Placement.Active &&
+                Placement.BlockReason.Contains("대장간") && _commands.Count == 0,
+                "Losing prerequisites during placement blocks the click without sending BUILD");
+            Receive("REQUIRES BUILDING 3");
+            Placement.UpdatePreview(Screen(-10.5f, -3.5f));
+            Check(Placement.CanPlace, "Placement recovers when the live requirements are satisfied again");
             var ghost = Placement.GetNode<PlacementPreviewImage>("PreviewCanvas/BuildPreview");
             Check(Issue(-20, 0)?.Contains("맵 밖") == true, "Entire footprint must fit inside the map");
             Check(Issue(1, -8)?.Contains("벽이나 나무") == true, "Walls block construction");
@@ -82,7 +94,7 @@ public partial class BuildingPlacementChecks : Main
             Check(_wire.Length == before && Placement.Active && !Placement.CanPlace && Placement.Status.Text.Contains("다른 건물"),
                 "Blocked click shows a reason, stays in placement mode and sends nothing");
             Receive("REMOVE 501");
-            Receive("UNIT 3 303 0 10 5 2");
+            Receive("UNIT 100 303 0 10 5 2");
             Receive("TICK 100");
             Receive("POS 303 -10.5 -3.5");
             Check(Unit(303).GlobalPosition == new Vector3(10, 0, 5) && Issue(-10.5f, -3.5f)?.Contains("유닛") == true,
@@ -212,7 +224,7 @@ public partial class BuildingPlacementChecks : Main
             ChooseBuilding();
             Receive($"MAP 2 {Map.MapHash}");
             Check(!Placement.Active, "Map resynchronization clears placement and stale worker identity");
-            Receive("WORLD_READY"); Receive("WELCOME 7 1"); Receive("UNIT 0 101 7 -12 2 1");
+            Receive("WORLD_READY"); Receive("WELCOME 7 1 COMMANDER"); Receive("UNIT 0 101 7 -12 2 1");
             Invoke("SelectUnit", Unit());
             ChooseBuilding();
             Invoke("OnConnectionClosed", "Placement test disconnect");
@@ -226,7 +238,7 @@ public partial class BuildingPlacementChecks : Main
 
     private void BeginSession()
     {
-        Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1");
+        Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1 COMMANDER");
     }
 
     private void Click(float x, float z)

@@ -42,8 +42,8 @@ public partial class SoldierAnimation : Node
 
         _swing = Mathf.Min(1, _swing + dt / .48f);
         float attack = Mathf.Sin(_swing * Mathf.Pi);
-        bool aiming = _unit.UnitType == 2 && _unit.State.Activity == UnitActivity.Attack;
-        if (_unit.UnitType == 1)
+        bool aiming = _unit.UnitType == UnitCatalog.Archer && _unit.State.Activity == UnitActivity.Attack;
+        if (_unit.UnitType == UnitCatalog.Knight)
         {
             _leftArm.Rotation = new Vector3(-step * .25f - attack * .15f, 0, 0);
             _rightArm.Rotation = new Vector3(step * .5f - attack * 1.5f, 0, -attack * .3f);

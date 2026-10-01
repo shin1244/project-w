@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://units/ArrowFlight.cs" id="1_flight"]
+[ext_resource type="PackedScene" path="res://units/models/ArrowVisual.tscn" id="2_arrow"]
+
+[sub_resource type="StandardMaterial3D" id="TrailMaterial"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.95, 0.87, 0.58, 0.35)
+
+[sub_resource type="BoxMesh" id="TrailMesh"]
+material = SubResource("TrailMaterial")
+size = Vector3(0.026, 0.026, 0.70)
+
+[node name="ArrowFlight" type="Node3D"]
+script = ExtResource("1_flight")
+
+[node name="Arrow" parent="." instance=ExtResource("2_arrow")]
+
+[node name="Trail" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, 0.93)
+cast_shadow = 0
+mesh = SubResource("TrailMesh")

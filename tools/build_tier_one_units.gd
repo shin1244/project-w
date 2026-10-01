@@ -24,7 +24,7 @@ func _initialize() -> void:
 		mat.roughness = .78
 		materials[key] = mat
 	DirAccess.make_dir_recursive_absolute("res://units/models")
-	build_knight()
+	if not "--archer-only" in OS.get_cmdline_user_args(): build_knight()
 	build_archer()
 	print("PASS: baked tier-one knight and archer rigs")
 	quit()
@@ -258,21 +258,13 @@ func build_archer() -> void:
 		if side < 0:
 			beam("team", Vector3(x, 1.48, -.06), Vector3(x - .39, 1.25, -.23), .19, .22)
 			chamfered("skin", Vector3(x - .445, 1.24, -.23), Vector2(.17, .21), Vector2(.19, .22), .18)
-			bow(x - .13)
 		else:
 			chamfered("skin", Vector3(x, 1.15, -.08), Vector2(.19, .22), Vector2(.23, .24), .19)
-			beam("wood", Vector3(x + .015, .85, -.16), Vector3(x + .035, 1.94, -.16), .025, .025)
-			box("linen", Vector3(x + .035, 1.83, -.16), Vector3(.07, .15, .025))
 		finish_part()
+	# Keep the bow separate from the arm so it stays upright while aiming.
+	var held_bow: Node3D = load("res://units/models/ArcherBow.tscn").instantiate()
+	held_bow.name = "Bow"
+	rig.get_node("LeftArm").add_child(held_bow)
+	held_bow.position = Vector3(-.455, -.57, -.23)
+	held_bow.owner = rig
 	save_model("res://units/models/ArcherRig.tscn")
-
-func bow(x: float) -> void:
-	var profile := [Vector2(.04, .38), Vector2(-.18, .55), Vector2(-.30, .88),
-		Vector2(-.33, 1.24), Vector2(-.30, 1.60), Vector2(-.18, 1.94), Vector2(.04, 2.13)]
-	for i in range(profile.size() - 1):
-		var a: Vector2 = profile[i]
-		var b: Vector2 = profile[i + 1]
-		beam("wood", Vector3(x + a.x, a.y, -.23), Vector3(x + b.x, b.y, -.23), .07, .075)
-	beam("linen", Vector3(x + .04, .38, -.23), Vector3(x + .04, 2.13, -.23), .013, .013)
-	box("leather", Vector3(x - .325, 1.24, -.23), Vector3(.092, .23, .10))
-	for y in [.46, 2.05]: box("gold", Vector3(x - .04, y, -.23), Vector3(.10, .055, .085))

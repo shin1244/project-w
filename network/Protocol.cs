@@ -3,6 +3,16 @@ using System.Collections.Generic;
 
 public static class Protocol
 {
+    public static string BuildTargetSkill(int slot, uint targetId)
+        => FormattableString.Invariant($"SKILL {slot} {targetId}");
+
+    public static string BuildMapReady(string hash, PlayerRole role, uint heroType) => role switch
+    {
+        PlayerRole.Commander => $"MAP_READY {hash} COMMANDER",
+        PlayerRole.Hero => FormattableString.Invariant($"MAP_READY {hash} HERO {heroType}"),
+        _ => throw new ArgumentOutOfRangeException(nameof(role))
+    };
+
     public static string BuildStop(IEnumerable<uint> unitIds)
         => $"STOP {string.Join(" ", unitIds)}";
 

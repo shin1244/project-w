@@ -56,13 +56,13 @@ public partial class FogSyncChecks : Main
             Check(Fog.Team == 0, "Fog remains closed before handshake");
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
-            Receive("WELCOME 7 1");
-            foreach (string definition in new[] { "SIGHT UNIT 0 8", "SIGHT UNIT 1 8", "SIGHT UNIT 2 8", "SIGHT UNIT 3 8", "SIGHT UNIT 4 8", "SIGHT BUILDING 0 12", "SIGHT BUILDING 1 12" }) Receive(definition);
+            Receive("WELCOME 7 1 COMMANDER");
+            foreach (string definition in new[] { "SIGHT UNIT 0 8", "SIGHT UNIT 1 8", "SIGHT UNIT 2 8", "SIGHT UNIT 100 8", "SIGHT UNIT 101 8", "SIGHT BUILDING 0 12", "SIGHT BUILDING 1 12" }) Receive(definition);
             Receive("BODY UNIT 0 0.4");
             Receive("BODY BUILDING 1 4 4");
             Receive("UNIT 0 101 7 0 0 1");
-            Receive("UNIT 3 102 0 25 0 1");
-            Receive("UNIT 4 201 0 2 0 2");
+            Receive("UNIT 100 102 0 25 0 1");
+            Receive("UNIT 101 201 0 2 0 2");
             Receive("BUILDING 1 301 1 -40 0 0");
             Receive("BUILDING 0 302 2 60 0 0");
             Fog.RefreshVision();
@@ -98,11 +98,11 @@ public partial class FogSyncChecks : Main
             Check(Fog.IsVisibleAt(new(4.3f, 0, -20)), "Instance sight changes rebuild the contour");
             Receive("HIDE 105");
             Receive("UNIT 1 103 7 -20 -20 1");
-            Receive("SIGHT UNIT 3 3");
+            Receive("SIGHT UNIT 100 3");
             Fog.RefreshVision();
             Check(!Fog.IsVisibleAt(new Vector3(29, 0, 0)) && Fog.IsVisibleAt(new Vector3(-14, 0, -20)),
                 "Changing melee minion sight does not change RTS knight sight");
-            Receive("SIGHT UNIT 3 8");
+            Receive("SIGHT UNIT 100 8");
             Receive("HIDE 103");
             Fog.RefreshVision();
 
@@ -154,7 +154,7 @@ public partial class FogSyncChecks : Main
             Check(Units.ResolveFocus(201) == null && Units.ResolveFocus(101) == own && Buildings.TryGetBuilding(301, out _),
                 "Duplicate/invalid HIDE and late deltas do not recreate units or hide buildings");
 
-            Receive("UNIT 4 201 0 4 1 2");
+            Receive("UNIT 101 201 0 4 1 2");
             Unit returned = Units.GetNode<Unit>("Unit_201");
             bool replayed = false;
             returned.StateChanged += (_, fired) => replayed |= fired;
@@ -181,7 +181,7 @@ public partial class FogSyncChecks : Main
             Receive($"MAP 2 {Map.MapHash}");
             Check(Fog.Team == 0 && !Fog.IsVisibleAt(new Vector3(25, 0, 0)) && Units.LiveUnits.Count == 0, "Reconnect resets sight and units");
             Receive("WORLD_READY");
-            Receive("WELCOME 8 2");
+            Receive("WELCOME 8 2 COMMANDER");
             Receive("SIGHT UNIT 0 8");
             Receive("UNIT 0 401 8 0 0 2");
             Fog.RefreshVision();
@@ -204,7 +204,7 @@ public partial class FogSyncChecks : Main
         Fog.Configure(Map);
         Receive($"MAP 2 {Map.MapHash}");
         Receive("WORLD_READY");
-        Receive("WELCOME 7 1");
+        Receive("WELCOME 7 1 COMMANDER");
         Receive("SIGHT UNIT 0 8");
         Receive("SIGHT BUILDING 0 12");
         Receive("UNIT 0 701 7 -3.5 0.5 1");
@@ -237,7 +237,7 @@ public partial class FogSyncChecks : Main
         Check(Math.Abs(corner - MathF.Sqrt(.5f)) < .0001f, "Closed diagonal corner stops a ray at the first cell boundary");
         Receive($"MAP 2 {Map.MapHash}");
         Receive("WORLD_READY");
-        Receive("WELCOME 7 1");
+        Receive("WELCOME 7 1 COMMANDER");
         Receive("SIGHT UNIT 0 8");
         Receive("UNIT 0 701 7 -3.5 0.5 1");
         Fog.RefreshVision();

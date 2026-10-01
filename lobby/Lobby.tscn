@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://lobby/MatchScreen.tscn" id="1_screen"]
+[ext_resource type="Script" path="res://lobby/Lobby.cs" id="2_lobby"]
+
+[node name="Lobby" instance=ExtResource("1_screen")]
+script = ExtResource("2_lobby")

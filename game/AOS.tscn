@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://game/Main.tscn" id="1_main"]
+
+[node name="AOS" instance=ExtResource("1_main")]
+RequestedRole = 2
+RequestedHeroType = 200

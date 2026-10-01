@@ -190,7 +190,7 @@ public partial class ConstructionSyncChecks : Main
 
     private void BeginSession()
     {
-        Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1");
+        Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1 COMMANDER");
     }
     private string ReadSince(long offset) => Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)offset));
     private static void Check(bool condition, string message)

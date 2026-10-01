@@ -207,7 +207,7 @@ public partial class RtsControlChecks : Main
             KeyPress(Key.Key9);
             await Flush();
             Check(Units.SelectedUnitIds.Count == 64, "Control groups recall a complete 64-unit group");
-            Receive("WELCOME 7 2");
+            Receive("WELCOME 7 2 COMMANDER");
             Units.ClearSelection();
             KeyPress(Key.Key9);
             await Flush();
@@ -219,7 +219,7 @@ public partial class RtsControlChecks : Main
             Click(MiniPoint(destination), MouseButton.Right);
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
-            Receive("WELCOME 7 1");
+            Receive("WELCOME 7 1 COMMANDER");
             Receive("UNIT 0 101 7 -8 -10 1");
             KeyPress(Key.Key4);
             await Flush();
@@ -235,10 +235,232 @@ public partial class RtsControlChecks : Main
             Expect();
             Check(_commands.Count == 1, "Disconnect disables stale group recalls and minimap commands");
 
-            GD.Print("PASS: real Shift click/drag/double-click; group save/recall/double-tap/repeat/64-limit/cleanup; minimap pan/drag/footprint/zoom/padding/focus/cancel; ordered MOVE wire format and session gates");
+            typeof(NetClient).GetField("_writer", Private).SetValue(net, writer);
+            await CheckAosControls();
+
+            GD.Print("PASS: RTS selection/groups/minimap; AOS hero control and independent inspection via real input; ownership/death/respawn/resync and role changes");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
+    }
+
+    private async Task CheckAosControls()
+    {
+        BeginSession();
+        Receive("WELCOME 7 1 HERO 200");
+        Units.Camera.Size = 60;
+        CameraNavigation.FocusGround(Units.Camera, Vector3.Zero);
+        await Flush();
+        int before = _commands.Count;
+        Vector3 destination = new(12, 0, 3);
+        Vector2 ground = Units.Camera.UnprojectPosition(destination);
+        Click(ground, MouseButton.Right);
+        await Flush();
+        Check(_commands.Count == before, "AOS waits for its own hero before sending orders");
+
+        Receive("UNIT 200 501 8 8 -8 2");
+        Receive("UNIT 200 502 9 -8 -8 1");
+        Receive("UNIT 0 503 7 -12 -15 1");
+        Receive("BUILDING 0 201 1 -20 -20 0");
+        Expect();
+        Receive("UNIT 200 500 7 0 -8 1");
+        await Flush();
+        Expect(500);
+        Check(!Commands.Visible && UnitInfo.Visible && UnitInfo.DisplayedUnit == Unit(500),
+            "AOS shows the own hero in the compact information panel without clicking");
+        Check(Unit(500).GetNode<MeshInstance3D>("SelectionRing").Visible && !Units.CanControl(Unit(503)),
+            "AOS automatically selects only the matching owned hero, even when other owned units exist");
+        Click(ground, MouseButton.Right);
+        await Flush();
+        Check(_commands.Count == before + 1 && _commands.Last().StartsWith("MOVE ") && _commands.Last().EndsWith(" 500"),
+            "First world right-click moves the hero without a prior selection click");
+
+        ClickUnit(501);
+        ClickUnit(502);
+        ClickUnit(503, shift: true);
+        ClickUnit(500, shift: true, twice: true);
+        Click(ground, MouseButton.Left);
+        Drag(UnitBox(501, 502).Position, UnitBox(501, 502).End, false);
+        Click(Units.Camera.UnprojectPosition(new Vector3(-20, 1, -20)), MouseButton.Left);
+        await Flush();
+        Units.ClearSelection();
+        Units.SelectFromPortrait(500, true, false);
+        KeyPress(Key.Key1, ctrl: true);
+        KeyPress(Key.Key1);
+        await Flush();
+        Expect(500);
+        Check(Units.InspectedUnit == null && Buildings.SelectedBuilding == null && _commands.Count == before + 1 &&
+            UnitInfo.DisplayedUnit == Unit(500),
+            "Empty clicks, other units, buildings, drag, Shift and group inputs cannot replace or clear the AOS hero");
+
+        ClickUnit(501);
+        await Flush();
+        Expect(500);
+        Check(UnitInfo.InspectedUnit == Unit(501), "AOS left click inspects the enemy while the own hero stays controlled");
+        Click(UnitPoint(501), MouseButton.Right);
+        KeyPress(Key.A);
+        Click(ground, MouseButton.Left);
+        KeyPress(Key.S);
+        KeyPress(Key.D);
+        Click(MiniPoint(destination), MouseButton.Right);
+        await Flush();
+        string[] orders = _commands.Skip(before + 1).ToArray();
+        Check(orders.Length == 5 && orders[0] == "ATTACK 501 500" && orders[1].StartsWith("ATTACK_MOVE ") &&
+            orders[2] == "STOP 500" && orders[3] == "HOLD 500" && orders[4].StartsWith("MOVE ") &&
+            orders.All(order => order.EndsWith(" 500")) && UnitInfo.InspectedUnit == Unit(501),
+            "World, A/S/D and minimap orders address the hero while preserving the inspected enemy");
+        Click(UnitInfo.GetGlobalRect().GetCenter(), MouseButton.Right);
+        await Flush();
+        Check(_commands.Count == before + 6, "Read-only information panel consumes right clicks without issuing orders");
+
+        Receive("UNIT 200 500 9 0 -8 1");
+        Expect();
+        before = _commands.Count;
+        Click(MiniPoint(destination), MouseButton.Right);
+        await Flush();
+        Check(_commands.Count == before, "Losing ownership immediately disables hero commands");
+        Receive("UNIT 200 504 7 0 -8 1");
+        Expect(504);
+        Receive("REMOVE 504");
+        Expect();
+        Units.RequestMove(destination);
+        Units.RequestStop();
+        Check(_commands.Count == before, "A dead hero cannot receive commands");
+        Receive("UNIT 200 505 7 0 -8 1");
+        Expect(505);
+        Receive("HIDE 505");
+        Expect();
+        Receive("UNIT 200 505 7 0 -8 1");
+        Expect(505);
+        Click(MiniPoint(destination), MouseButton.Right);
+        Receive($"MAP 2 {Map.MapHash}");
+        Receive("WORLD_READY");
+        Receive("WELCOME 7 1 HERO 200");
+        Receive("UNIT 200 506 7 0 -8 1");
+        await Flush();
+        Expect(506);
+        Check(_commands.Count == before, "Resync binds the new hero and drops pending commands for the old session");
+
+        await CheckWolfSkill();
+        before = _commands.Count;
+        Receive("WELCOME 7 1 COMMANDER");
+        KeyPress(Key.Q);
+        Check(!_input.IsSkillTargeting && !Skills.CanUseQ, "Returning to RTS removes the hero Q shortcut");
+        Receive("UNIT 0 507 7 -8 -8 1");
+        Expect();
+        await Flush();
+        ClickUnit(507);
+        await Flush();
+        Expect(507);
+        Click(ground, MouseButton.Left);
+        await Flush();
+        Expect();
+        Check(_commands.Count == before, "Returning to RTS restores manual selection and deselection");
+    }
+
+    private async Task CheckWolfSkill()
+    {
+        Receive("UNIT 1 950 8 3 -8 2");
+        Receive("UNIT 1 951 9 -4 -8 1");
+        Receive("TICK 100");
+        await Flush();
+        var button = Skills.GetNode<Button>("Content/Slots/Q");
+        var cooldown = (Label)button.FindChild("Cooldown", true, false);
+        int before = _commands.Count;
+        Check(Skills.CanUseQ && !button.Disabled, "A live owned wolf can arm Q without selecting itself");
+        ClickUnit(950);
+        await Flush();
+        KeyPress(Key.Q, ctrl: true);
+        KeyPress(Key.Q, echo: true);
+        Check(!_input.IsSkillTargeting, "Modified and repeated Q presses do not arm the skill");
+        KeyPress(Key.Q);
+        Check(_input.IsSkillTargeting && !_input.IsAttackTargeting, "Q arms enemy targeting without issuing a command");
+        Check(Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") is { Visible: true } &&
+            Unit(950).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") == null,
+            "Q shows range around the controlled hero, not the inspected enemy");
+        if (OS.GetCmdlineUserArgs().Contains("--capture-skill-range"))
+        {
+            Receive("SIGHT UNIT 200 10");
+            Receive("HP 506 300 300");
+            Fog.RefreshVision();
+            await Flush();
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            using Image image = GetViewport().GetTexture().GetImage();
+            image.SavePng("res://.godot/wolf-q-range.png");
+        }
+        ClickUnit(951);
+        Click(Units.Camera.UnprojectPosition(new Vector3(15, 0, -8)), MouseButton.Left);
+        await Flush();
+        Check(_commands.Count == before && _input.IsSkillTargeting, "Allies and ground cannot consume a unit-targeted skill");
+        ClickUnit(950);
+        ClickUnit(950);
+        await Flush();
+        Check(_commands.Count == before + 1 && _commands.Last() == "SKILL 0 950" && !_input.IsSkillTargeting &&
+            Skills.CanUseQ && UnitInfo.InspectedUnit == Unit(950) && Units.SelectedUnitIds.SequenceEqual(new uint[] { 506 }) &&
+            Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") == null,
+            "Q sends exactly slot and enemy ID, preserves hero control/inspection, and waits for server cooldown");
+        Receive("SKILL 506 0 950");
+        Receive("STATE 506 DASH 0 950 0");
+        Check(Unit(506).State.Activity == UnitActivity.Dash, "Server DASH is accepted for facing and wolf presentation");
+        Receive("COOLDOWN 0 220");
+        Check(!Skills.CanUseQ && button.Disabled && cooldown.Text == "6", "COOLDOWN uses server ready tick, not a copied skill duration");
+        KeyPress(Key.Q);
+        Click(button.GetGlobalRect().GetCenter(), MouseButton.Left);
+        await Flush();
+        Check(!_input.IsSkillTargeting && _commands.Count == before + 1, "Cooldown blocks both keyboard and button casts");
+        Receive("TICK 160");
+        foreach (string invalid in new[] { "COOLDOWN -1 220", "COOLDOWN 5 220", "COOLDOWN 0 -1", "COOLDOWN 0 NaN",
+            "COOLDOWN 0 4294967296", "COOLDOWN 0 220 extra", "COOLDOWN 1 500", "COOLDOWN 0 180", "TICK 120" }) Receive(invalid);
+        Check(cooldown.Text == "3" && Skills.QRemainingSeconds == 3, "Malformed, foreign-slot and stale timing messages cannot alter Q cooldown");
+        Receive("TICK 220");
+        Receive("STATE 506 IDLE 0 0 0");
+        Check(Skills.CanUseQ && cooldown.Text == "", "The server ready tick re-enables Q");
+
+        Click(button.GetGlobalRect().GetCenter(), MouseButton.Left);
+        Check(_input.IsSkillTargeting && Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") is { Visible: true },
+            "The Q button arms targeting and shows the same range as the key");
+        ClickUnit(950);
+        KeyPress(Key.Escape);
+        await Flush();
+        Check(_commands.Count == before + 1 && !_input.IsSkillTargeting &&
+            Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") == null,
+            "Escape removes the range and cancels even a skill click awaiting the physics frame");
+        KeyPress(Key.Q);
+        Click(UnitPoint(950), MouseButton.Right);
+        await Flush();
+        Check(_commands.Count == before + 1 && !_input.IsSkillTargeting, "Right click cancels Q without issuing an accidental attack/move");
+        KeyPress(Key.Q);
+        GetWindow().EmitSignal(Window.SignalName.FocusExited);
+        Check(!_input.IsSkillTargeting, "Window focus loss cancels skill targeting");
+        KeyPress(Key.Q);
+        KeyPress(Key.A);
+        Check(!_input.IsSkillTargeting && _input.IsAttackTargeting, "Attack targeting replaces Q targeting");
+        KeyPress(Key.Q);
+        Check(_input.IsSkillTargeting && !_input.IsAttackTargeting, "Q replaces attack targeting");
+        Receive("STATE 506 STUN 0 0 0");
+        Check(Unit(506).State.Activity == UnitActivity.Stun && !Skills.CanUseQ && !_input.IsSkillTargeting,
+            "Server stun immediately cancels Q and disables the skill");
+        Receive("STATE 506 IDLE 0 0 0");
+        Click(button.GetGlobalRect().GetCenter(), MouseButton.Left);
+        ClickUnit(950);
+        await Flush();
+        Check(_commands.Count == before + 2 && _commands.Last() == "SKILL 0 950", "Button targeting sends the same skill request after stun ends");
+        Receive("COOLDOWN 0 340");
+        Receive("REMOVE 506");
+        KeyPress(Key.Q);
+        Receive("UNIT 200 952 7 0 -8 1");
+        Check(!Skills.CanUseQ && Skills.HeroUnitId == 952 && Skills.QRemainingSeconds == 6,
+            "Cooldown belongs to the player and survives hero death and a new unit ID");
+        Receive("TICK 340");
+        KeyPress(Key.Q);
+        ClickUnit(950);
+        Receive($"MAP 2 {Map.MapHash}");
+        Receive("WORLD_READY");
+        Receive("WELCOME 7 1 HERO 200");
+        Receive("UNIT 200 953 7 0 -8 1");
+        await Flush();
+        Check(_commands.Count == before + 2 && !_input.IsSkillTargeting && Skills.CanUseQ && cooldown.Text == "",
+            "Resync drops queued skill requests and previous cooldowns before binding the new hero");
     }
 
     private Vector3 GroundCenter()
@@ -296,7 +518,7 @@ public partial class RtsControlChecks : Main
     }
     private void Expect(params uint[] ids) => Check(Units.SelectedUnitIds.ToHashSet().SetEquals(ids),
         $"Selection expected [{string.Join(',', ids)}], got [{string.Join(',', Units.SelectedUnitIds)}]");
-    private void BeginSession() { Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1"); }
+    private void BeginSession() { Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1 COMMANDER"); }
     private void Receive(string message) => InvokeMain("OnMessage", message);
     private void InvokeMain(string name, params object[] args) => typeof(Main).GetMethod(name, Private).Invoke(this, args);
     private async Task Flush()

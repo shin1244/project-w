@@ -14,12 +14,22 @@ public partial class Main : Node3D
     [Export] public Minimap Minimap;
     [Export] public CommandPanel Commands;
     [Export] public BuildingPlacement Placement;
+    [Export] public SelectionDetails Details;
+    [Export] public HeroSkillPanel Skills;
+    [Export] public UnitInfoPanel UnitInfo;
+    // 접속 요청값. 실제 역할과 진영은 서버의 WELCOME으로 확정한다.
+    [Export] public PlayerRole RequestedRole { get; set; } = PlayerRole.Commander;
+    [Export] public uint RequestedHeroType { get; set; } = UnitCatalog.HeroTest;
+    public PlayerRole LocalRole { get; private set; }
+    public uint? LocalHeroType { get; private set; }
 
     private NetClient _net;
     private PlayerInput _playerInput;
+    private readonly SkillRangeIndicator _skillRange = new();
 
     public override void _Ready()
     {
+        SetPlayerRole(PlayerRole.None);
         if (Map.SyncError != null)
         {
             ShowStatus(Map.SyncError);
@@ -49,6 +59,8 @@ public partial class Main : Node3D
         _playerInput.AttackGroundClicked += Units.RequestAttackMove;
         _playerInput.StopRequested += Units.RequestStop;
         _playerInput.HoldRequested += Units.RequestHold;
+        _playerInput.SkillTargetClicked += CastHeroSkill;
+        _playerInput.SkillTargetingChanged += ShowSkillRange;
         _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
         _playerInput.ControlGroupRequested += HandleControlGroup;
@@ -68,6 +80,7 @@ public partial class Main : Node3D
 
     private void ModifyUnitSelection(Unit unit, bool shift, bool sameType)
     {
+        if (LocalRole == PlayerRole.Hero) { UnitInfo?.Inspect(unit); return; }
         if (!Units.CanControl(unit))
         {
             // 정보 확인은 일반 클릭으로만 전환하고 Shift 선택은 기존 부대를 유지합니다.
@@ -81,6 +94,7 @@ public partial class Main : Node3D
 
     private void ModifyBoxSelection(Rect2 rect)
     {
+        if (LocalRole == PlayerRole.Hero) { UnitInfo?.Clear(); return; }
         Units.SelectBoxWithMode(rect, true);
         if (Units.SelectedUnitIds.Count > 0) Buildings?.ClearSelection();
     }
@@ -101,24 +115,43 @@ public partial class Main : Node3D
 
     private void SelectUnit(Unit unit)
     {
+        if (LocalRole == PlayerRole.Hero) { UnitInfo?.Inspect(unit); return; }
         Buildings?.ClearSelection();
         Units.SelectSingle(unit);
     }
 
+    private void CastHeroSkill(int slot, Unit target)
+    {
+        if (Map.IsSynchronized && LocalRole == PlayerRole.Hero && Skills is { CanUseQ: true, HeroUnitId: uint id })
+            Units.RequestHeroSkill(slot, id, target);
+    }
+
+    private void ShowSkillRange(int? slot)
+    {
+        _skillRange.Clear();
+        if (slot != 0 || !Map.IsSynchronized || LocalRole != PlayerRole.Hero ||
+            Skills is not { CanUseQ: true, HeroUnitId: uint id } ||
+            !Units.TryGetUnit(id, out Unit hero) || !Units.CanControl(hero)) return;
+        _skillRange.Show(hero, SkillRangeIndicator.WolfQRange, Fog?.UnitBodyRadius(hero) ?? hero.PlacementRadius);
+    }
+
     private void SelectBuilding(Building building)
     {
+        if (LocalRole == PlayerRole.Hero) { UnitInfo?.Clear(); return; }
         Units.ClearSelection();
         Buildings?.SelectSingle(building);
     }
 
     private void ClearSelection()
     {
+        UnitInfo?.Clear();
         Units.ClearSelection();
         Buildings?.ClearSelection();
     }
 
     private void SelectBox(Rect2 rect)
     {
+        if (LocalRole == PlayerRole.Hero) { UnitInfo?.Clear(); return; }
         Buildings?.ClearSelection();
         Units.SelectBox(rect);
     }
@@ -132,6 +165,7 @@ public partial class Main : Node3D
         switch (parts[0])
         {
             case "MAP":
+                SetPlayerRole(PlayerRole.None);
                 _playerInput?.ResetInteraction();
                 Stock?.Clear();
                 Fog?.Reset();
@@ -139,7 +173,12 @@ public partial class Main : Node3D
                 if (!Map.AcceptMap(parts)) { RejectMap(); return; }
                 Units.Clear();
                 Buildings?.Clear();
-                _net.Send($"MAP_READY {Map.MapHash}");
+                if (RequestedRole is not (PlayerRole.Commander or PlayerRole.Hero))
+                {
+                    ShowStatus("접속 역할을 선택해 주세요.");
+                    return;
+                }
+                _net.Send(Protocol.BuildMapReady(Map.MapHash, RequestedRole, RequestedHeroType));
                 return;
             case "TREE":
                 if (!Map.ApplyTree(parts)) RejectMap();
@@ -159,25 +198,30 @@ public partial class Main : Node3D
         {
             case "TICK":
                 Units.HandleTick(parts);
+                Skills?.HandleTick(parts);
                 break;
             case "WELCOME":
-                if (parts.Length == 3 && uint.TryParse(parts[1], out uint playerId) && playerId != 0 &&
-                    uint.TryParse(parts[2], out uint team) && team != 0)
+                if (WelcomeSnapshot.TryParse(parts, out var welcome))
                 {
-                    Units.SetLocalPlayer(playerId, team);
-                    Buildings?.SetLocalTeam(team);
-                    Fog?.SetTeam(team);
-                    Minimap?.SetTeam(team);
+                    Units.SetLocalPlayer(welcome.PlayerId, welcome.Team);
+                    Buildings?.SetLocalTeam(welcome.Team);
+                    Fog?.SetTeam(welcome.Team);
+                    Minimap?.SetTeam(welcome.Team);
+                    SetPlayerRole(welcome.Role, welcome.HeroType, welcome.PlayerId, welcome.Team);
                 }
                 break;
             case "SIGHT":
                 Fog?.HandleSight(parts);
+                break;
+            case "REQUIRES":
+                Buildings?.HandleRequirements(parts);
                 break;
             case "BODY":
                 Fog?.HandleBody(parts);
                 break;
             case "UNIT":
                 Units.HandleSpawn(parts);
+                Skills?.HandleUnit(parts);
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
@@ -205,6 +249,7 @@ public partial class Main : Node3D
                 {
                     Units.HandleHealth(health);
                     Buildings?.HandleHealth(health);
+                    Skills?.HandleHealth(health);
                 }
                 break;
             case "STATS":
@@ -215,11 +260,25 @@ public partial class Main : Node3D
                     Fog?.Invalidate();
                 }
                 break;
+            case "EXP":
+                if (LocalRole == PlayerRole.Hero && HeroExperienceSnapshot.TryParse(parts, out var experience))
+                    UnitInfo?.ApplyExperience(experience);
+                break;
+            case "COOLDOWN":
+                if (LocalRole == PlayerRole.Hero && SkillCooldownSnapshot.TryParse(parts, out var cooldown))
+                    Skills?.ApplyCooldown(cooldown);
+                break;
+            case "SKILL":
+                if (TargetSkillSnapshot.TryParse(parts, out var skill) && Units.TryGetUnit(skill.CasterId, out Unit caster) &&
+                    Units.CanInspect(caster) && caster.UnitType == UnitCatalog.HeroTest)
+                    caster.GetNodeOrNull<BeastAnimation>("BeastAnimation")?.PlaySkill(skill.Slot);
+                break;
             case "STATE":
                 if (StateSnapshot.TryParse(parts, out var state))
                 {
                     Units.HandleState(state);
                     Buildings?.HandleState(state);
+                    Skills?.HandleState(state);
                 }
                 break;
             case "STOCK":
@@ -231,11 +290,13 @@ public partial class Main : Node3D
             case "REMOVE":
                 Units.HandleRemove(parts);
                 Buildings?.HandleRemove(parts);
+                Skills?.HandleRemove(parts);
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
             case "HIDE":
                 Units.HandleHide(parts);
+                Skills?.HandleRemove(parts);
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
@@ -256,6 +317,24 @@ public partial class Main : Node3D
         GD.Print($"전송 요청: {command}");
     }
 
+    private void SetPlayerRole(PlayerRole role, uint? heroType = null, uint playerId = 0, uint team = 0)
+    {
+        LocalRole = role;
+        LocalHeroType = role == PlayerRole.Hero ? heroType : null;
+        if (role == PlayerRole.Hero)
+        {
+            Buildings?.ClearSelection();
+            Placement?.Cancel();
+        }
+        Units?.SetHeroControl(LocalHeroType);
+        Units?.Camera?.SetMeta("hero_q_shortcut", LocalHeroType == UnitCatalog.HeroTest);
+        if (Details != null) Details.Visible = role == PlayerRole.Commander;
+        // 숨겨진 명령 패널은 기존 A/S/D 입력 경로를 계속 제공한다.
+        if (Commands != null) Commands.Visible = role != PlayerRole.Hero;
+        UnitInfo?.SetHero(LocalHeroType, playerId, team);
+        Skills?.SetHero(LocalHeroType, playerId, team);
+    }
+
     private void OnPositionsRendered()
     {
         Fog?.Invalidate();
@@ -264,6 +343,7 @@ public partial class Main : Node3D
 
     private void RejectMap()
     {
+        SetPlayerRole(PlayerRole.None);
         Stock?.Clear();
         Fog?.Reset();
         Minimap?.Reset();
@@ -276,6 +356,7 @@ public partial class Main : Node3D
 
     private void OnConnectionClosed(string reason)
     {
+        SetPlayerRole(PlayerRole.None);
         _playerInput?.ResetInteraction();
         Stock?.Clear();
         Fog?.Reset();
@@ -294,6 +375,7 @@ public partial class Main : Node3D
 
     public override void _ExitTree()
     {
+        _skillRange.Clear();
         if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
         if (_playerInput != null && GodotObject.IsInstanceValid(Units))
         {
@@ -306,6 +388,8 @@ public partial class Main : Node3D
             _playerInput.AttackGroundClicked -= Units.RequestAttackMove;
             _playerInput.StopRequested -= Units.RequestStop;
             _playerInput.HoldRequested -= Units.RequestHold;
+            _playerInput.SkillTargetClicked -= CastHeroSkill;
+            _playerInput.SkillTargetingChanged -= ShowSkillRange;
             _playerInput.ModifiedUnitSelectionRequested -= ModifyUnitSelection;
             _playerInput.ModifiedBoxSelectionRequested -= ModifyBoxSelection;
             _playerInput.ControlGroupRequested -= HandleControlGroup;

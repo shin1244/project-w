@@ -13,6 +13,7 @@ public partial class SelectionPortraits : Node
         {
             "res://units/Worker.tscn" => enemy ? "worker-enemy" : "worker",
             "res://units/Knight.tscn" => enemy ? "knight-enemy" : "knight",
+            "res://units/HeroTest.tscn" => enemy ? "mutant-wolf-enemy" : "mutant-wolf",
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",

@@ -86,6 +86,8 @@ public partial class FogOfWar : MeshInstance3D
 
     public void Invalidate() => _dirty = true;
 
+    public float UnitBodyRadius(Unit unit) => _unitRadii.GetValueOrDefault(unit.UnitType, unit.PlacementRadius);
+
     // 서버의 충돌 몸체를 사용하여 외형 크기와 판정 크기가 섞이지 않도록 합니다.
     public void HandleBody(string[] parts)
     {
@@ -137,7 +139,7 @@ public partial class FogOfWar : MeshInstance3D
                     if (unit.Team == Team && (unit.Stats.HasValue || _unitSight.ContainsKey(unit.UnitType)))
                     {
                         float sight = unit.Stats?.Sight ?? _unitSight[unit.UnitType];
-                        float radius = _unitRadii.GetValueOrDefault(unit.UnitType, unit.PlacementRadius);
+                        float radius = UnitBodyRadius(unit);
                         var body = new RangeBody(new(unit.GlobalPosition.X, unit.GlobalPosition.Z), Vector2.Zero, radius);
                         changed |= UpdateSource(unit.UnitId, body, sight, 0);
                     }

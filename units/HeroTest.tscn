@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://units/models/MutantWolfRig.tscn" id="2_wolf"]
+[ext_resource type="Script" path="res://units/BeastAnimation.cs" id="3_animation"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 0.85
+height = 2.6
+
+[node name="HeroTest" instance=ExtResource("1_base")]
+UnitType = 200
+HealthBarHeight = 2.75
+BodyRadius = 0.5
+
+[node name="Rig" parent="Visual" instance=ExtResource("2_wolf")]
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 1.3, -0.2)
+shape = SubResource("Selection")
+
+[node name="SelectionRing" parent="." index="2"]
+scale = Vector3(1.4, 1, 1.8)
+
+[node name="BeastAnimation" type="Node" parent="."]
+script = ExtResource("3_animation")

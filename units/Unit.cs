@@ -3,7 +3,7 @@ using System;
 
 public partial class Unit : Node3D
 {
-    // UnitCatalog의 서버 타입 번호. RTS 유닛과 미니언은 각자 별도 타입을 사용한다.
+    // UnitCatalog의 서버 타입 번호. 용병·미니언·영웅은 각자 별도 타입을 사용한다.
     [Export] public uint UnitType { get; set; }
     [Export] public float HealthBarHeight { get; set; } = 2.4f;
     // A larger model/picking capsule must not change the authoritative construction footprint.
@@ -23,6 +23,8 @@ public partial class Unit : Node3D
     public Func<uint, Node3D> ResolveFocus { private get; set; }
     private bool _hasServerPosition;
     private Node3D _focusTarget;
+    // Presentation can use the same visible target already resolved for facing.
+    public Node3D ActionTarget => IsAvailable(_focusTarget) ? _focusTarget : null;
     private Tween _deathTween;
     private uint _localTeam;
     private TeamMaterials _teamMaterials;

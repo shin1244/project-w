@@ -28,6 +28,9 @@
 [ext_resource type="PackedScene" path="res://buildings/Barracks.tscn" id="24_barracks"]
 [ext_resource type="PackedScene" path="res://buildings/Store.tscn" id="26_store"]
 [ext_resource type="PackedScene" path="res://buildings/Forge.tscn" id="27_forge"]
+[ext_resource type="PackedScene" path="res://ui/HeroSkillPanel.tscn" id="28_skills"]
+[ext_resource type="PackedScene" path="res://units/HeroTest.tscn" id="29_hero"]
+[ext_resource type="PackedScene" path="res://ui/UnitInfoPanel.tscn" id="30_info"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -38,7 +41,7 @@ ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.35
 tonemap_mode = 2
 
-[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands", "Placement")]
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands", "Placement", "Details", "Skills", "UnitInfo")]
 script = ExtResource("1_0xm2m")
 Units = NodePath("Units")
 Buildings = NodePath("Buildings")
@@ -50,6 +53,9 @@ Fog = NodePath("Camera3D/FogOfWar")
 Minimap = NodePath("SelectionUI/Minimap")
 Commands = NodePath("SelectionUI/CommandPanel")
 Placement = NodePath("BuildingPlacement")
+Details = NodePath("SelectionUI/SelectionDetails")
+Skills = NodePath("SelectionUI/HeroSkillPanel")
+UnitInfo = NodePath("SelectionUI/UnitInfoPanel")
 
 [node name="Units" type="Node3D" parent="." node_paths=PackedStringArray("Camera", "Resources", "Buildings")]
 script = ExtResource("12_units")
@@ -59,6 +65,7 @@ Buildings = NodePath("../Buildings")
 WorkerScene = ExtResource("4_worker")
 KnightScene = ExtResource("2_knight")
 ArcherScene = ExtResource("3_archer")
+HeroTestScene = ExtResource("29_hero")
 
 [node name="Buildings" type="Node3D" parent="." node_paths=PackedStringArray("Units")]
 script = ExtResource("14_buildings")
@@ -104,12 +111,13 @@ Resources = NodePath("../Resources")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=510406117]
 environment = SubResource("Environment_arena")
 
-[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera", "SelectionBox", "Placement", "Commands")]
+[node name="PlayerInput" type="Node" parent="." unique_id=718220092 node_paths=PackedStringArray("Camera", "SelectionBox", "Placement", "Commands", "Skills")]
 script = ExtResource("7_272bh")
 Camera = NodePath("../Camera3D")
 SelectionBox = NodePath("../SelectionUI/SelectionBox")
 Placement = NodePath("../BuildingPlacement")
 Commands = NodePath("../SelectionUI/CommandPanel")
+Skills = NodePath("../SelectionUI/HeroSkillPanel")
 
 [node name="BuildingPlacement" type="Node3D" parent="." node_paths=PackedStringArray("Map", "Units", "Buildings", "Camera", "Status")]
 script = ExtResource("22_placement")
@@ -211,3 +219,10 @@ mouse_filter = 0
 script = ExtResource("20_commands")
 Units = NodePath("../../Units")
 Buildings = NodePath("../../Buildings")
+
+[node name="HeroSkillPanel" parent="SelectionUI" instance=ExtResource("28_skills")]
+visible = false
+
+[node name="UnitInfoPanel" parent="SelectionUI" node_paths=PackedStringArray("Units") instance=ExtResource("30_info")]
+visible = false
+Units = NodePath("../../Units")
