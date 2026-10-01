@@ -41,15 +41,8 @@ Shift를 누른 상태에서 빈 땅·건물·다른 소유자의 유닛을 클�
 
 ## 검증
 
-```text
-dotnet build --no-restore
-Godot --headless --path . --resolution 1152x648 res://tests/RtsControlChecks.tscn
-Godot --headless --path . res://tests/UnitSceneChecks.tscn
-Godot --headless --path . res://tests/SelectionDetailsChecks.tscn
-Godot --headless --path . res://tests/MinimapChecks.tscn
-Godot --headless --path . res://tests/CommandPanelChecks.tscn
-```
+검증: `./tests/run.ps1 -Check RtsControlChecks`. [필수 테스트 안내](../tests/README.md).
 
-`Godot`은 설치된 Godot .NET 실행 파일로 바꿉니다. 테스트는 실제 서버에 연결하지 않고 서버 스냅샷을 주입하며, 실제 Viewport 마우스·키 입력과 메모리에 기록된 네트워크 출력을 검증합니다. 그래픽 렌더러에서 `RtsControlChecks.tscn` 실행 시 `-- --rts-controls-capture`를 덧붙이면 `.godot/rts-controls.png`를 저장합니다.
+테스트는 실제 서버에 연결하지 않고 서버 스냅샷을 주입하며, 실제 Viewport 마우스·키 입력과 메모리에 기록된 네트워크 출력을 검증합니다.
 
 ![현재 카메라 범위를 표시하는 미니맵](images/rts-controls.png)

@@ -9,4 +9,4 @@
 회관 초기 체력은 서버 `building.go`의 townHallMaxHP(임시 1000). 건물 공격/파괴 판정은 아직 추가하지 않았다. 유닛 체력은 기존 정의를 사용한다.
 
 미리보기: `previews/HealthBars.tscn`을 열고 F6. 표시 전용 샘플 체력을 사용한다.
-검증: `tests/HealthBarChecks.tscn`, 서버 `health_test.go`.
+서버 HP 반영은 `MinionSyncChecks`, `TowerSyncChecks`, `SelectionDetailsChecks`에서 확인합니다. 체력바 외형은 `previews/HealthBars.tscn`에서 확인합니다. 서버 판정 검증은 서버 저장소의 `health_test.go`를 참고하세요.

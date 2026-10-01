@@ -47,6 +47,8 @@ public partial class Main : Node3D
         _playerInput.ContextClicked += Units.RequestContextOrder;
         _playerInput.AttackTargetClicked += Units.RequestAttack;
         _playerInput.AttackGroundClicked += Units.RequestAttackMove;
+        _playerInput.StopRequested += Units.RequestStop;
+        _playerInput.HoldRequested += Units.RequestHold;
         _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
         _playerInput.ControlGroupRequested += HandleControlGroup;
@@ -66,7 +68,12 @@ public partial class Main : Node3D
 
     private void ModifyUnitSelection(Unit unit, bool shift, bool sameType)
     {
-        if (!Units.CanControl(unit)) { SelectUnit(unit); return; }
+        if (!Units.CanControl(unit))
+        {
+            // 정보 확인은 일반 클릭으로만 전환하고 Shift 선택은 기존 부대를 유지합니다.
+            if (!shift) SelectUnit(unit);
+            return;
+        }
         Buildings?.ClearSelection();
         if (sameType) Units.SelectSameTypeOnScreen(unit, shift);
         else Units.ToggleSelection(unit);
@@ -297,6 +304,8 @@ public partial class Main : Node3D
             _playerInput.ContextClicked -= Units.RequestContextOrder;
             _playerInput.AttackTargetClicked -= Units.RequestAttack;
             _playerInput.AttackGroundClicked -= Units.RequestAttackMove;
+            _playerInput.StopRequested -= Units.RequestStop;
+            _playerInput.HoldRequested -= Units.RequestHold;
             _playerInput.ModifiedUnitSelectionRequested -= ModifyUnitSelection;
             _playerInput.ModifiedBoxSelectionRequested -= ModifyBoxSelection;
             _playerInput.ControlGroupRequested -= HandleControlGroup;

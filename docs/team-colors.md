@@ -16,6 +16,6 @@
 
 Godot에서 `previews/TeamColors.tscn`을 열고 F6으로 실행하면 동일한 모델의 아군·적군 색상을 비교할 수 있습니다. `-- --capture`로 실행하면 `docs/images/team-colors-preview.png`를 저장합니다. 이 미리보기는 내 진영을 2로 설정하여 팀 번호와 색상이 고정되지 않음을 보여줍니다.
 
-검증: `dotnet build --no-restore`, `TeamColorChecks`, `BuildingSceneChecks`, `ProductionBuildingChecks`, `ConstructionSiteChecks`, `UnitSceneChecks`, `DeathAndTargetChecks`. 공유 재질 불변, 유닛·건물의 진영색, 공사/완공 전환, 팀 변경·재접속·늦은 WELCOME과 기존 선택·사망 처리를 확인합니다.
+진영 색상과 공유 재질 외형은 위 미리보기에서 확인합니다. 진영 변경에 따른 조종 제한과 초기화는 `MinionSyncChecks`, 건물 상태 전환은 `ConstructionSyncChecks`에 남겼습니다. [필수 테스트 안내](../tests/README.md).
 
 ![아군과 적군의 재질 비교](images/team-colors-preview.png)

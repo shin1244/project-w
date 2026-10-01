@@ -16,7 +16,7 @@
 
 `BuildingCatalog`와 서버 `building_defs.go`는 회관 0, 요새 1, 저장소 2, 합숙소 3, 병영 4, 대장간 5, 포탑 6 순서를 공유합니다. 저장소·합숙소·병영·대장간·포탑은 내 일꾼의 1티어 메뉴에서 BUILD를 요청하고, 서버의 BUILDING/CONSTRUCTION 응답으로 부지와 진행률을 반영합니다.
 
-표시 이름 `합숙소`는 기존 `Supply.tscn`을 사용합니다. 저장소의 기본 경로는 `buildings/Store.tscn`, `previews/Store.tscn`, `tools/build_store.gd`이며 이름 키는 `store`입니다. 대장간은 `buildings/Forge.tscn`, `previews/Forge.tscn`, `tools/build_forge.gd`와 `forge`를 사용합니다. 대장간은 병영과 같은 5×3이고 화덕의 불은 정적인 발광 메시입니다. 이번 연결은 비용·공사·완공을 다루며 저장소 자원 반납·추가 보관 경제, 합숙소 인구수, 병영 생산, 대장간 제작/업그레이드 기능을 추가하지 않습니다.
+표시 이름 `합숙소`는 기존 `Supply.tscn`을 사용합니다. 저장소의 기본 경로는 `buildings/Store.tscn`, `previews/Store.tscn`, `tools/build_store.gd`이며 이름 키는 `store`입니다. 대장간은 `buildings/Forge.tscn`, `previews/Forge.tscn`, `tools/build_forge.gd`와 `forge`를 사용합니다. 대장간은 병영과 같은 5×3이고 화덕의 불은 정적인 발광 메시입니다. 비용·공사·완공 외에 합숙소 인구수와 회관·병영 생산·취소·랠리도 연결되어 있습니다. 저장소의 추가 반납·보관 경제와 대장간 제작/업그레이드는 아직 없습니다.
 
 새 건물은 장식을 포함해 하나의 ArrayMesh로 묶었습니다. 합숙소는 삼각형 2,382개·재질 14개, 저장소는 5,566개·13개, 병영은 6,327개·13개, 대장간은 4,560개·15개입니다. 재질의 `banner` 영역은 기존 건물과 동일하게 인스턴스별 진영색을 지원합니다. 네 건물 모두 기본 Entrance는 (0,0,-1.5), 완성된 건물의 체력바 위치는 확대된 전체 모델 높이 위에 있습니다.
 
@@ -131,13 +131,8 @@ Godot --headless --path . --script tools/build_barracks.gd
 Godot --headless --path . --script tools/build_forge.gd
 Godot --path . res://tools/BakeBuildingPreviews.tscn
 Godot --path . res://tools/BakeSelectionPortraits.tscn -- --defenses-only
-Godot --headless --path . res://tests/ProductionBuildingChecks.tscn
-Godot --headless --path . res://tests/BuildingPlacementChecks.tscn
-Godot --headless --path . res://tests/ConstructionSiteChecks.tscn
-Godot --headless --path . res://tests/BuildingSceneChecks.tscn
-Godot --headless --path . res://tests/TowerSyncChecks.tscn
 ```
 
 생성 도구는 해당 씬과 buildings/meshes/의 메시를 덮어쓰므로 외형 수정은 생성 스크립트에 반영합니다. 포탑·합숙소·저장소·병영·대장간 도구는 회관 도구의 메시 생성 함수를 재사용합니다. `BakeBuildingPreviews`는 화면 렌더링이 가능한 환경에서 실행하며 투명 PNG와 크기·지면 기준점이 담긴 `catalog.json`을 함께 갱신합니다. 게임 내보내기 시에도 이 JSON을 포함해야 합니다.
 
-검증은 메시·선택 영역 크기, 진영 색 분리, 직사각형 선택 원, 쇠뇌의 회전 범위, 배치 이미지 재사용·투명도·줌·가림, 서버 메시지 연결·갱신·제거·재접속과 건물 공격 입력을 확인합니다. 실제 서버 검증 장면은 `tests/ServerConnectionChecks.tscn`입니다.
+자동 검증은 `./tests/run.ps1 -Suite Buildings`로 배치·공사·생산·취소·랠리·건물 전투 표시를 확인합니다. 외형은 위 미리보기에서 확인합니다. 실행 환경과 범위는 [필수 테스트 안내](../tests/README.md)를 참고하세요.

@@ -29,8 +29,4 @@
 
 `previews/CombatFeedback.tscn`을 열고 F6을 누르면 세 유닛의 사망 연출이 반복됩니다. 위쪽의 노란/빨간 원은 두 종류의 표시를 비교하는 독립적인 예시입니다.
 
-```text
-dotnet build --no-restore
-Godot --headless --path . res://tests/DeathAndTargetChecks.tscn
-Godot --headless --path . res://tests/UnitSceneChecks.tscn
-```
+명령 대상·사망 후 조종 제외는 `./tests/run.ps1 -Check UnitSceneChecks`, 사망·HIDE 후 위치 반영 중단은 `-Check InterpolationChecks`에서 확인합니다.

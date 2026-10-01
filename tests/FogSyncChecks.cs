@@ -97,14 +97,6 @@ public partial class FogSyncChecks : Main
             Fog.RefreshVision();
             Check(Fog.IsVisibleAt(new(4.3f, 0, -20)), "Instance sight changes rebuild the contour");
             Receive("HIDE 105");
-            if (OS.GetCmdlineUserArgs().Contains("--surface-capture"))
-            {
-                Fog.RefreshVision();
-                await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-                using Image mask = Fog.GetNode<SubViewport>("SmoothVisionMask").GetTexture().GetImage();
-                Check(mask.SavePng("res://.godot/surface-sight-mask.png") == Error.Ok, "Range mask capture saved");
-            }
-
             Receive("UNIT 1 103 7 -20 -20 1");
             Receive("SIGHT UNIT 3 3");
             Fog.RefreshVision();

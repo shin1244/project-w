@@ -76,7 +76,13 @@ public partial class UnitSceneChecks : Main
             Units.SelectSingle(knight);
 
             Receive("REMOVE 101");
+            Check(knight.IsDying && !Units.CanControl(knight) && Units.ResolveFocus(101) == null &&
+                knight.GetNode<Area3D>("SelectionArea").CollisionLayer == 0,
+                "Death immediately removes control, target lookup and picking");
+            Vector3 deathPosition = knight.GlobalPosition;
+            Receive("REMOVE 101");
             Receive("POS 101 99 99");
+            Check(knight.GlobalPosition == deathPosition, "Duplicate removal and stale position cannot move a corpse");
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             Check(!Units.HasNode("Unit_101") && Units.HasNode("Unit_202") && SelectedUnitId == 0, "REMOVE clears the correct unit and selection");

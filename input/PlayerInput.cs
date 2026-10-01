@@ -22,6 +22,8 @@ public partial class PlayerInput : Node
 	public event Action<Node3D, Vector3> ContextClicked;
 	public event Action<Node3D> AttackTargetClicked;
 	public event Action<Vector3> AttackGroundClicked;
+	public event Action StopRequested;
+	public event Action HoldRequested;
 	public bool IsAttackTargeting { get; private set; }
 
 	private const float RayLength = 1000f;
@@ -44,7 +46,36 @@ public partial class PlayerInput : Node
 	public override void _Ready()
 	{
 		GetWindow().FocusExited += CancelInput;
-		if (GodotObject.IsInstanceValid(Commands)) Commands.BuildMenuOpened += OnBuildMenuOpened;
+		if (GodotObject.IsInstanceValid(Commands))
+		{
+			Commands.BuildMenuOpened += OnBuildMenuOpened;
+			Commands.AttackRequested += BeginAttackTargeting;
+			Commands.StopRequested += QueueStop;
+			Commands.HoldRequested += QueueHold;
+		}
+	}
+
+	private void BeginAttackTargeting()
+	{
+		if (!GodotObject.IsInstanceValid(Camera)) return;
+		Placement?.Cancel();
+		CancelDrag();
+		_lastGroup = 0;
+		SetAttackTargeting(true);
+	}
+
+	private void QueueStop()
+	{
+		CancelTargeting();
+		CancelDrag();
+		_actions.Enqueue(() => StopRequested?.Invoke());
+	}
+
+	private void QueueHold()
+	{
+		CancelTargeting();
+		CancelDrag();
+		_actions.Enqueue(() => HoldRequested?.Invoke());
 	}
 
 	private void OnBuildMenuOpened()
@@ -88,7 +119,6 @@ public partial class PlayerInput : Node
 		if (!_leftPressed && Commands?.TryHandleShortcut(@event) == true)
 		{
 			_lastGroup = 0;
-			SetAttackTargeting(false);
 			if (Commands.IsTierOneMenuOpen) Placement?.Cancel();
 			GetViewport().SetInputAsHandled();
 			return;
@@ -116,8 +146,7 @@ public partial class PlayerInput : Node
 			_lastGroup = 0;
 			if (!key.Echo && !_leftPressed && GodotObject.IsInstanceValid(Camera))
 			{
-				Placement?.Cancel();
-				SetAttackTargeting(true);
+				BeginAttackTargeting();
 			}
 			GetViewport().SetInputAsHandled();
 			return;
@@ -357,7 +386,13 @@ public partial class PlayerInput : Node
 	public override void _ExitTree()
 	{
 		GetWindow().FocusExited -= CancelInput;
-		if (GodotObject.IsInstanceValid(Commands)) Commands.BuildMenuOpened -= OnBuildMenuOpened;
+		if (GodotObject.IsInstanceValid(Commands))
+		{
+			Commands.BuildMenuOpened -= OnBuildMenuOpened;
+			Commands.AttackRequested -= BeginAttackTargeting;
+			Commands.StopRequested -= QueueStop;
+			Commands.HoldRequested -= QueueHold;
+		}
 		SetAttackTargeting(false);
 		_actions.Clear();
 	}

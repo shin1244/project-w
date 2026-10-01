@@ -166,6 +166,18 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(command);
     }
 
+    public void RequestStop() => RequestStationaryOrder(false);
+    public void RequestHold() => RequestStationaryOrder(true);
+
+    private void RequestStationaryOrder(bool hold)
+    {
+        ValidateSelection();
+        if (_selectedUnitIds.Count == 0) return;
+        _targetIndicator.Clear();
+        // 각 유닛의 현재 위치와 작업 취소는 서버에서 결정합니다.
+        CommandRequested?.Invoke(hold ? Protocol.BuildHold(_selectedUnitIds) : Protocol.BuildStop(_selectedUnitIds));
+    }
+
     private bool IsEnemy(Node3D target)
     {
         if (_localPlayerId == 0 || _localTeam == 0 || !GodotObject.IsInstanceValid(target) ||

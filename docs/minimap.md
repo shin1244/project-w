@@ -14,6 +14,6 @@
 
 좌클릭·드래그는 카메라 이동, 우클릭은 선택 부대에 기존 `MOVE` 명령을 보냅니다. 현재 선택은 유지하고 A키 공격 대상 지정은 종료합니다. 여백과 휠 입력은 뒤쪽 전장으로 전달하지 않습니다. 미니맵 밖에서 버튼을 놓거나 Esc·우클릭·창 포커스 해제로 미니맵 드래그를 종료합니다. 전장에서 시작한 카메라 중간 버튼 드래그도 미니맵 위에서 버튼을 놓으면 끝납니다. [부대 지정과 상세 조작](rts-controls.md)을 참고하세요.
 
-검증: `dotnet build --no-restore`, `tests/MinimapChecks.tscn`. 정상 그래픽 렌더러로 실행하고 `-- --minimap-capture`를 추가하면 실제 표식 색상과 소멸을 검사한 뒤 `.godot/minimap-preview.png`를 저장합니다.
+검증: `./tests/run.ps1 -Check RtsControlChecks`에서 좌표 변환·이동·드래그·UI 입력 차단을 확인합니다. 지형 구분은 `MapZonesChecks`에서 확인합니다. 표식 색상과 외형은 실행 화면에서 확인합니다.
 
 ![미니맵 표시 예시](images/minimap-preview.png)

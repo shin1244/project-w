@@ -14,6 +14,7 @@ public readonly record struct StateSnapshot(uint Id, UnitState State)
         {
             "IDLE" => UnitActivity.Idle,
             "GUARD" => UnitActivity.Guard,
+            "HOLD" => UnitActivity.Hold,
             "GATHER" => UnitActivity.Gather,
             "ATTACK" => UnitActivity.Attack,
             "BUILD" => UnitActivity.Build,

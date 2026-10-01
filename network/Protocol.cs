@@ -3,6 +3,12 @@ using System.Collections.Generic;
 
 public static class Protocol
 {
+    public static string BuildStop(IEnumerable<uint> unitIds)
+        => $"STOP {string.Join(" ", unitIds)}";
+
+    public static string BuildHold(IEnumerable<uint> unitIds)
+        => $"HOLD {string.Join(" ", unitIds)}";
+
     public static string BuildRallyMove(uint buildingId, float x, float z)
         => FormattableString.Invariant($"RALLY {buildingId} MOVE {x} {z}");
     public static string BuildRallyGather(uint buildingId, uint resourceId)

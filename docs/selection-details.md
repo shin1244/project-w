@@ -18,7 +18,7 @@
 | Ctrl+클릭 | 현재 선택 중 같은 종류만 선택 |
 | Ctrl+Shift+클릭 | 현재 선택 중 같은 종류를 모두 제외 |
 
-체력바는 50% 초과 초록, 25% 초과 노랑, 그 이하 빨강입니다. HP/STATE/STATS를 받기 전에는 `—`를 표시합니다. `STATS id 공격력 사거리 공격간격 이동속도 시야`는 서버 인스턴스의 현재 값이며, 최초 접속·유닛 재등장·능력치 변경 시 갱신합니다. 아직 없는 방어력 수치를 만들지 않습니다. IDLE은 `대기 / 이동`, GUARD는 `경계 중`, BUILD는 `건설 중`입니다. 공사 진행률은 CONSTRUCTION의 0~100 값이며 HP 비율로 계산하지 않습니다. 일꾼이 떠나 공사가 멈춰도 마지막 서버 진행률을 유지합니다.
+체력바는 50% 초과 초록, 25% 초과 노랑, 그 이하 빨강입니다. HP/STATE/STATS를 받기 전에는 `—`를 표시합니다. `STATS id 공격력 사거리 공격간격 이동속도 시야`는 서버 인스턴스의 현재 값이며, 최초 접속·유닛 재등장·능력치 변경 시 갱신합니다. 아직 없는 방어력 수치를 만들지 않습니다. IDLE은 `대기 / 이동`, GUARD는 `경계 중`, HOLD는 `위치 사수`, BUILD는 `건설 중`입니다. 공사 진행률은 CONSTRUCTION의 0~100 값이며 HP 비율로 계산하지 않습니다. 일꾼이 떠나 공사가 멈춰도 마지막 서버 진행률을 유지합니다.
 
 `SelectionDetails.cs`가 선택 변경 이벤트와 서버 데이터로 UI를 갱신합니다. 생성된 유닛 초상화 조작은 `UnitManager.SelectFromPortrait`에서 기존 선택을 좁히며, 생산 초상화는 `CANCEL_TRAIN 건물ID 예약ID`를 보냅니다. 사망, HIDE, 소유권/팀 변경, 맵 재동기화, 접속 종료 시 선택 표시도 갱신합니다. 패널에서 시작한 클릭/휠 입력은 뒤쪽 전장으로 전달하지 않습니다.
 
@@ -26,18 +26,9 @@
 
 외형을 바꿔 PNG를 다시 만들 때만 개발자가 `tools/BakeSelectionPortraits.tscn`을 그래픽 렌더러로 수동 실행합니다. 이 제작 도구는 게임 씬에서 참조하지 않으며, 일반 게임 실행이나 빌드에서 자동 실행되지 않습니다. 생성 후 Godot 편집기가 PNG를 임포트하면 새 이미지가 반영됩니다.
 
-검증:
+검증: `./tests/run.ps1 -Check SelectionDetailsChecks`. [필수 테스트 안내](../tests/README.md).
 
-```text
-dotnet build --no-restore
-Godot --headless --path . res://tests/SelectionDetailsChecks.tscn
-Godot --headless --path . res://tests/CommandPanelChecks.tscn
-Godot --headless --path . res://tests/UnitSceneChecks.tscn
-Godot --headless --path . res://tests/HealthBarChecks.tscn
-Godot --headless --path . res://tests/MinimapChecks.tscn
-```
-
-`Godot`은 설치된 Godot .NET 실행 파일로 바꿉니다. 테스트는 실제 서버에 접속하지 않고 Main 씬에 스냅샷을 주입합니다. `SelectionDetailsChecks.tscn`을 그래픽 렌더러로 실행하면서 `-- --selection-capture`를 추가하면 `.godot/selection-*.png`에 검증 화면을 저장합니다.
+테스트는 실제 서버에 접속하지 않고 Main 씬에 스냅샷을 주입합니다.
 
 ![유닛 단일 선택](images/selection-single.png)
 

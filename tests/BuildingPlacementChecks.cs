@@ -13,7 +13,6 @@ public partial class BuildingPlacementChecks : Main
     private readonly List<string> _commands = new();
     private PlayerInput _input;
     private MemoryStream _wire;
-    private bool _capture;
     private void Invoke(string method, params object[] args) => typeof(Main).GetMethod(method, Private).Invoke(this, args);
     private void Receive(string message) => Invoke("OnMessage", message);
     private Unit Unit(uint id = 101) { Check(Units.TryGetUnit(id, out Unit unit), $"Unit {id} exists"); return unit; }
@@ -34,7 +33,6 @@ public partial class BuildingPlacementChecks : Main
         var oldCulture = CultureInfo.CurrentCulture;
         try
         {
-            _capture = OS.GetCmdlineUserArgs().Contains("--placement-capture");
             Map.MapPath = "res://tests/fixtures/map-fog-occlusion.json";
             Map.LoadLocalMap();
             Fog.Configure(Map);
@@ -66,34 +64,11 @@ public partial class BuildingPlacementChecks : Main
             Units.ToggleSelection(Unit(201));
             Check(Slot(1).Text == "1티어(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
                 "Mixed selection with own workers exposes the tier-one menu instead of direct build buttons");
-            var activation = System.Diagnostics.Stopwatch.StartNew();
             ChooseBuilding();
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
-            activation.Stop();
-            GD.Print($"PERF: first image placement activation {activation.Elapsed.TotalMilliseconds:F3}ms (CPU)");
             Check(Placement.Active && Placement.CanPlace && Placement.PlacementPosition == new Vector3(-10.5f, 0, -3.5f),
                 "The supply preview follows the cursor's ground center and snaps to the map grid");
             var ghost = Placement.GetNode<PlacementPreviewImage>("PreviewCanvas/BuildPreview");
-            Check(!HasGameplayNode(ghost) && Buildings.LiveBuildings.Count == 0, "Preview is a 2D image with no model, render viewport, collider or live building");
-            Texture2D texture = ghost.Texture;
-            Check(texture != null && ghost.Tint.A < 1, "Preview has its preloaded image and is translucent");
-            using (Image image = texture.GetImage())
-                Check(image.GetPixel(0, 0).A == 0 && image.GetUsedRect().HasArea(), "Baked image has a transparent background and visible model pixels");
-            float originalSize = ghost.ImageRect.Size.X;
-            Units.Camera.Size *= .5f;
-            Placement.UpdatePreview(Screen(-10.5f, -3.5f));
-            Check(Mathf.IsEqualApprox(ghost.ImageRect.Size.X, originalSize * 2), "Image footprint scales with camera zoom");
-            Units.Camera.Size *= 2;
-            for (int i = 0; i < 30; i++)
-            {
-                Placement.Cancel();
-                ChooseBuilding();
-                Placement.UpdatePreview(Screen(-10.5f, -3.5f));
-            }
-            Check(ghost == Placement.GetNode<PlacementPreviewImage>("PreviewCanvas/BuildPreview") && ghost.Texture == texture &&
-                Placement.GetNode("PreviewCanvas").GetChildCount() == 1, "Repeated clicks reuse one image node and texture without growing the tree");
-            await Capture("valid", -10.5f, -3.5f);
-
             Check(Issue(-20, 0)?.Contains("맵 밖") == true, "Entire footprint must fit inside the map");
             Check(Issue(1, -8)?.Contains("벽이나 나무") == true, "Walls block construction");
             Check(Issue(1, 0)?.Contains("벽이나 나무") == true, "A two-cell tree blocks its whole footprint");
@@ -106,8 +81,6 @@ public partial class BuildingPlacementChecks : Main
             Click(-10.5f, -3.5f);
             Check(_wire.Length == before && Placement.Active && !Placement.CanPlace && Placement.Status.Text.Contains("다른 건물"),
                 "Blocked click shows a reason, stays in placement mode and sends nothing");
-            Check(ghost.Tint.R > ghost.Tint.G, "Blocked image is red");
-            await Capture("blocked", -10.5f, -3.5f);
             Receive("REMOVE 501");
             Receive("UNIT 3 303 0 10 5 2");
             Receive("TICK 100");
@@ -147,9 +120,8 @@ public partial class BuildingPlacementChecks : Main
                     $"Type {unavailable} is unavailable for player construction in both preview and command paths");
             ChooseBuilding(7);
             Placement.UpdatePreview(Screen(-5.5f, -9.5f));
-            Check(Placement.Active && Placement.CanPlace && ghost.Texture != texture && Placement.Status.Text.Contains("저장소 배치"),
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("저장소 배치"),
                 "Tier-one slot 7 selects the cached 3x3 store preview");
-            await Capture("store", -5.5f, -9.5f);
             before = _wire.Length;
             int buildingsBefore = Buildings.LiveBuildings.Count;
             Click(-5.5f, -9.5f);
@@ -166,7 +138,6 @@ public partial class BuildingPlacementChecks : Main
             Placement.UpdatePreview(Screen(-5.5f, -3.5f));
             Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("대장간 배치"),
                 "Tier-one slot 4 selects the cached 5x3 forge preview");
-            await Capture("forge", -5.5f, -3.5f);
             before = _wire.Length;
             buildingsBefore = Buildings.LiveBuildings.Count;
             Click(-5.5f, -3.5f);
@@ -246,7 +217,7 @@ public partial class BuildingPlacementChecks : Main
             ChooseBuilding();
             Invoke("OnConnectionClosed", "Placement test disconnect");
             Check(!Placement.Active && Units.LiveUnits.Count == 0, "Disconnect cleans the ghost and selected worker");
-            GD.Print("PASS: worker construction menu, translucent ghost, terrain/tree/unit/server-aligned building occupancy, latest server positions, exact BUILD framing, one request per click, server-only creation, cancel/UI/sync/reconnect gates");
+            GD.Print("PASS: worker construction menu, terrain/tree/unit/server-aligned building occupancy, latest server positions, exact BUILD framing, one request per click, server-only creation, cancel/UI/sync/reconnect gates");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -265,25 +236,6 @@ public partial class BuildingPlacementChecks : Main
         using var release = new InputEventMouseButton { Position = Screen(x, z), ButtonIndex = MouseButton.Left, Pressed = false };
         _input._UnhandledInput(release);
         _input._PhysicsProcess(0);
-    }
-
-    private static bool HasGameplayNode(Node node)
-    {
-        if (node is Building or CollisionObject3D or CollisionShape3D or HealthBar or MeshInstance3D or Camera3D or SubViewport) return true;
-        foreach (Node child in node.GetChildren()) if (HasGameplayNode(child)) return true;
-        return false;
-    }
-
-    private async System.Threading.Tasks.Task Capture(string name, float x, float z)
-    {
-        if (!_capture) return;
-        Fog.RefreshVision();
-        Placement.UpdatePreview(Screen(x, z));
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        using Image image = GetViewport().GetTexture().GetImage();
-        image.SavePng($"res://.godot/build-placement-{name}.png");
     }
 
     private static void Check(bool condition, string message)

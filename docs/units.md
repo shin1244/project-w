@@ -31,7 +31,7 @@ WELCOME 플레이어ID 진영
 TICK 틱번호
 UNIT 타입 유닛ID 소유자ID X Z 진영
 POS 유닛ID X Z
-STATE 유닛ID또는건물ID IDLE|GATHER|ATTACK|BUILD 운반량 대상ID 타격번호
+STATE 유닛ID또는건물ID IDLE|GUARD|HOLD|GATHER|ATTACK|BUILD 운반량 대상ID 타격번호
 CONSTRUCTION 건물ID 진행률 비용지불자ID
 QUEUE 건물ID 생산진행률 예약ID:유닛타입:주인ID ...
 REMOVE 유닛ID또는건물ID
@@ -83,14 +83,9 @@ ATTACK 202 101 303
 
 ## 검증
 
-```text
-dotnet build
-Godot --headless --path . res://tests/UnitSceneChecks.tscn
-Godot --headless --path . res://tests/InterpolationChecks.tscn
-Godot --headless --path . res://tests/TierOneUnitChecks.tscn
-```
+검증: `./tests/run.ps1 -Suite Units`. [필수 테스트 안내](../tests/README.md).
 
-Godot은 설치된 .NET 버전 실행 파일 경로로 바꿉니다. 검증 장면은 실제 서버에 접속하지 않고 UNIT/POS/REMOVE 메시지를 전달합니다.
+검증 장면은 실제 서버에 접속하지 않고 UNIT/POS/REMOVE 메시지를 전달합니다.
 
 ## 일반 우클릭과 채집
 
@@ -119,7 +114,9 @@ GATHER 9900 808 809
 
 ## 건설과 이어 짓기
 
-내 일꾼을 선택하고 Z / 넘패드 1 위치의 `1티어` 버튼을 누르면 건설 메뉴를 엽니다. Q 저장소(store, 타입 2), W 합숙소(supply, 3), E 병영(barracks, 4), A 대장간(forge, 5)을 선택할 수 있으며 S 포탑(tower, 6)은 아직 비활성화합니다. 회관은 타입 0, 시작 요새는 1입니다. 메뉴와 배치 취소는 [명령 패널](command-panel.md), 점유 검사는 [건설 배치](../buildings/README.md#건설-배치)를 참고하세요.
+정지·홀드는 각각 `STOP 유닛ID...`, `HOLD 유닛ID...`로 요청합니다. 서버의 각 유닛 현재 위치에서 기존 작업을 중단하고, 정지는 추격 가능한 경계, 홀드는 추격 없는 위치 사수를 시작합니다. 운반 자원과 공사 부지는 유지하고 환급하지 않습니다. [버튼과 단축키](command-panel.md#공격정지홀드)를 참고하세요.
+
+내 일꾼을 선택하고 Z / 넘패드 1 위치의 `1티어` 버튼을 누르면 건설 메뉴를 엽니다. Q 저장소(store, 타입 2), W 합숙소(supply, 3), E 병영(barracks, 4), A 대장간(forge, 5)을 선택할 수 있으며 S 포탑(tower, 6)도 선택할 수 있습니다. 회관은 타입 0, 시작 요새는 1입니다. 메뉴와 배치 취소는 [명령 패널](command-panel.md), 점유 검사는 [건설 배치](../buildings/README.md#건설-배치)를 참고하세요.
 
 ```text
 BUILD 건물타입 x z 일꾼ID

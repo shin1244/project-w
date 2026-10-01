@@ -44,11 +44,4 @@ GATHER는 실제 채집 작업 시간에만 표시됩니다. 나무까지 이동
 
 ## 확인
 
-```text
-dotnet build --no-restore
-Godot --headless --path . res://tests/WorkerAnimationChecks.tscn
-Godot --headless --path . res://tests/UnitSceneChecks.tscn
-go test .
-```
-
-마지막 명령은 서버 폴더에서 실행합니다. 클라이언트 검증은 상태 전환·실제 팔 회전·움직이는 대상 방향·중복 공격·반납·대상의 늦은 스폰/삭제·잘못된 메시지를, 서버 검증은 실제 채집/공격 결과·움직이는 대상에 대한 중복 전송 방지·마지막 공격 상태와 삭제 알림 순서를 확인합니다.
+외형과 팔 회전은 `previews/WorkerAnimations.tscn`에서 확인합니다. 서버 STATE·건설 상태 전환은 `MinionSyncChecks`와 `ConstructionSyncChecks`에 남겼습니다. 실제 채집·공격 결과는 별도 서버 저장소의 검증 범위입니다.

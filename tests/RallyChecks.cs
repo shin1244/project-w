@@ -63,7 +63,6 @@ public partial class RallyChecks : Main
             Check(marker.Visible && marker.GetNode<Node3D>("Flag").GlobalPosition == tree.GlobalPosition && hall.Rally?.ResourceId == tree.ResourceId,
                 "Authoritative resource rally displays a flag at the resource position");
             Receive("QUEUE 201 48 800:0:7");
-            await Capture("rally-auto-gather");
 
             RallySnapshot? accepted = hall.Rally;
             foreach (string invalid in new[] { "RALLY 201 MOVE NaN 0", "RALLY 201 GATHER 1 2 0", "RALLY 201 CLEAR junk", "RALLY 999 MOVE 1 2" }) Receive(invalid);
@@ -76,7 +75,6 @@ public partial class RallyChecks : Main
             Check(a.Rally == null, "Barracks rejects a resource-mode snapshot");
             Receive("RALLY 202 MOVE 4 6");
             Check(marker.Visible && a.Rally?.Position == new Vector3(4, 0, 6), "Barracks has its own rally");
-            await Capture("rally-barracks");
             Select(203);
             Receive("RALLY 203 MOVE 20 8");
             Check(a.Rally?.Position == new Vector3(4, 0, 6), "Changing a different barracks does not overwrite the first");
@@ -190,16 +188,6 @@ public partial class RallyChecks : Main
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-    }
-
-    private async Task Capture(string name)
-    {
-        if (!OS.GetCmdlineUserArgs().Contains("--rally-capture")) return;
-        Fog.RefreshVision();
-        await Flush();
-        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        using Image image = GetViewport().GetTexture().GetImage();
-        Check(image.SavePng($"res://.godot/{name}.png") == Error.Ok, "Save rally preview");
     }
 
     private void Receive(string message) => Invoke("OnMessage", message);

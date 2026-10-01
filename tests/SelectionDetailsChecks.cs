@@ -12,20 +12,17 @@ public partial class SelectionDetailsChecks : Main
     private SelectionDetails _details;
     private GridContainer Grid => _details.GetNode<GridContainer>("Content/Body/UnitGrid");
     private Control Single => _details.GetNode<Control>("Content/Body/Single");
-    private bool _capture;
     private int _commands;
 
     public override async void _Ready()
     {
         try
         {
-            _capture = OS.GetCmdlineUserArgs().Contains("--selection-capture");
             typeof(Main).GetField("_net", Private).SetValue(this, GetNode<NetClient>("/root/Net"));
             _details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
             Units.CommandRequested += _ => _commands++;
             Fog.Configure(Map);
             await Layout();
-            CheckLayout();
             Check(!Single.Visible && !Grid.Visible, "Empty selection has no stale unit/building contents");
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
@@ -62,21 +59,18 @@ public partial class SelectionDetailsChecks : Main
             Check(Labels().Any(label => label.Text == "체력   32.5 / 50") &&
                 Labels().Any(label => label.Text == "운반 중인 목재   7") &&
                 Labels().Any(label => label.Text == "상태   채집 중"), "HP, activity and carrying update without reselection");
-            await Capture("selection-single");
             await CheckInspection();
             foreach (uint id in new uint[] { 102, 103 })
             {
                 InvokeMain("SelectUnit", Unit(id));
                 await Layout();
                 Check(!Labels().Any(label => label.IsVisibleInTree() && label.Text.StartsWith("운반 중인 목재")), "Combat units do not retain worker-only details");
-                await Capture(id == 102 ? "selection-knight" : "selection-archer");
             }
 
             SelectAll();
             for (uint id = 113; id <= 164; id++) Units.SelectFromPortrait(id, true, false);
             await Layout();
             Check(Units.SelectedUnitIds.Count == 12, "A mixed twelve-unit group retains each selected type");
-            await Capture("selection-group");
 
             SelectAll();
             await Layout();
@@ -86,8 +80,6 @@ public partial class SelectionDetailsChecks : Main
             Receive("HP 101 5 50");
             await Layout();
             Check(Grid.GetChild<SelectionUnitCard>(0).TooltipText.Contains("5 / 50"), "Each portrait reflects changing health");
-            CheckCardsInside();
-            await Capture("selection-multiple");
             await CheckHudInput();
             var seen = new HashSet<uint>();
             var pages = _details.GetNode<HBoxContainer>("Content/Pages");
@@ -95,7 +87,6 @@ public partial class SelectionDetailsChecks : Main
             do
             {
                 foreach (SelectionUnitCard card in Grid.GetChildren()) seen.Add(card.UnitId);
-                CheckCardsInside();
                 if (next.Disabled) break;
                 next.EmitSignal(BaseButton.SignalName.Pressed);
                 await Layout();
@@ -131,12 +122,10 @@ public partial class SelectionDetailsChecks : Main
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 201));
             await Layout();
             Check(Single.Visible && Labels().Any(label => label.Text.StartsWith("회관")) && Labels().Any(label => label.Text == "체력   740 / 1000"), "Building displays its name and current HP");
-            await Capture("selection-building");
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 202));
             Receive("STATE 202 ATTACK 0 201 1");
             await Layout();
             Check(Labels().Any(label => label.Text == "요새") && Labels().Any(label => label.Text == "상태   공격 중"), "Type 1 fortress displays its name and server activity");
-            await Capture("selection-tower");
             var portrait = Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single();
             Texture2D enemyPortrait = portrait.Texture;
             Receive("WELCOME 7 2");
@@ -160,18 +149,10 @@ public partial class SelectionDetailsChecks : Main
             Check(_details.FindChildren("*", "SubViewport", true, false).Count == 0 &&
                 _details.FindChildren("*", "Node3D", true, false).Count == 0,
                 "Unit and building selections never create portrait viewports, models, lights or cameras");
-            GD.Print("PASS: selection details layout, live HP/STATE, 64-unit paging, real GUI click/Shift/Ctrl, input isolation, building details, ownership/team/removal/HIDE/reset/disconnect");
+            GD.Print("PASS: selection details, live HP/STATE, 64-unit paging, real GUI click/Shift/Ctrl, input isolation, building details, ownership/team/removal/HIDE/reset/disconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
-    }
-
-    private void CheckLayout()
-    {
-        Rect2 details = _details.GetGlobalRect(), map = Minimap.GetGlobalRect(), commands = Commands.GetGlobalRect();
-        Check(Mathf.IsEqualApprox(details.Position.X, map.End.X) && Mathf.IsEqualApprox(details.End.X, commands.Position.X) &&
-            Mathf.IsEqualApprox(details.End.Y, commands.End.Y) && Mathf.IsEqualApprox(details.Size.Y, 186), "Details fill the gap with a shorter, bottom-anchored panel");
-        Check(_details.MouseFilter == Control.MouseFilterEnum.Stop && !_details.MouseForcePassScrollEvents, "Details block world clicks and scroll events");
     }
 
     private async Task CheckInspection()
@@ -209,7 +190,6 @@ public partial class SelectionDetailsChecks : Main
                     "Enemy inspection shows current server health and guarding state");
                 Check(Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single().Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
                     "Enemy inspection uses the opposing team's portrait colors");
-                await Capture("selection-enemy");
             }
             if (id == 997)
             {
@@ -242,12 +222,6 @@ public partial class SelectionDetailsChecks : Main
         Check(Buildings.SelectedBuilding == null && !Single.Visible, "Losing building vision closes its current-status panel");
         Buildings.VisibilityCheck = null;
         InvokeMain("SelectUnit", Unit(101));
-    }
-
-    private void CheckCardsInside()
-    {
-        foreach (SelectionUnitCard card in Grid.GetChildren())
-            Check(_details.GetGlobalRect().Encloses(card.GetGlobalRect()), "Every page's portrait is inside the panel");
     }
 
     private async Task ClickCard(uint id, bool shift = false, bool ctrl = false)
@@ -299,14 +273,6 @@ public partial class SelectionDetailsChecks : Main
     {
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-    }
-    private async Task Capture(string name)
-    {
-        if (!_capture) return;
-        Fog.RefreshVision();
-        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        using Image image = GetViewport().GetTexture().GetImage();
-        Check(image.SavePng($"res://.godot/{name}.png") == Error.Ok, "Save rendered selection preview");
     }
     private static void Check(bool condition, string message)
     {

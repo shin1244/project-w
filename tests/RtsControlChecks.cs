@@ -235,34 +235,10 @@ public partial class RtsControlChecks : Main
             Expect();
             Check(_commands.Count == 1, "Disconnect disables stale group recalls and minimap commands");
 
-            if (OS.GetCmdlineUserArgs().Contains("--rts-controls-capture")) await Capture();
             GD.Print("PASS: real Shift click/drag/double-click; group save/recall/double-tap/repeat/64-limit/cleanup; minimap pan/drag/footprint/zoom/padding/focus/cancel; ordered MOVE wire format and session gates");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
-    }
-
-    private async Task Capture()
-    {
-        BeginSession();
-        for (int i = 0; i < 12; i++)
-        {
-            Receive($"UNIT {i % 3} {301 + i} 7 {-10 + i % 4 * 4} {-14 + i / 4 * 4} 1");
-            Receive($"HP {301 + i} {40 + i % 3 * 20} 100");
-        }
-        Receive("BUILDING 0 401 1 -22 -12 0");
-        Receive("SIGHT BUILDING 0 12");
-        Receive("SIGHT UNIT 0 8");
-        Receive("SIGHT UNIT 1 8");
-        Receive("SIGHT UNIT 2 8");
-        Units.Camera.Size = 48;
-        CameraNavigation.FocusGround(Units.Camera, new Vector3(-6, 0, -10));
-        Units.SelectBox(GetViewport().GetVisibleRect());
-        Fog.RefreshVision();
-        await Flush();
-        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        using Image image = GetViewport().GetTexture().GetImage();
-        Check(image.SavePng("res://.godot/rts-controls.png") == Error.Ok, "Save RTS controls preview");
     }
 
     private Vector3 GroundCenter()

@@ -10,9 +10,13 @@ public partial class CommandPanel : PanelContainer
 
     public event Action<uint> BuildRequested;
     public event Action BuildMenuOpened;
+    public event Action AttackRequested;
+    public event Action StopRequested;
+    public event Action HoldRequested;
     public bool IsTierOneMenuOpen => _tierOne;
     public const string CameraMenuMeta = "command_menu_open";
     public const string CameraReleaseMeta = "command_menu_wait_for_release";
+    public const string CameraUnitOrdersMeta = "unit_orders_selected";
     private enum DisplayMode { Unset, Empty, Units, Workers, TierOne, TownHall, Barracks, Construction }
     private static readonly int[] NumpadOrder = { 7, 8, 9, 4, 5, 6, 1, 2, 3 };
     private readonly Button[] _slots = new Button[9];
@@ -104,6 +108,13 @@ public partial class CommandPanel : PanelContainer
         }
         if (next != DisplayMode.Workers) SetMenuOpen(false);
         else if (_tierOne) next = DisplayMode.TierOne;
+        if (GodotObject.IsInstanceValid(Units?.Camera))
+        {
+            bool selected = next is DisplayMode.Units or DisplayMode.Workers or DisplayMode.TierOne;
+            if (!selected && Units.Camera.GetMeta(CameraUnitOrdersMeta, false).AsBool())
+                Units.Camera.SetMeta(CameraReleaseMeta, true);
+            Units.Camera.SetMeta(CameraUnitOrdersMeta, selected);
+        }
         if (next == _display) { RefreshProduction(); return; }
         _display = next;
         for (int i = 0; i < _slots.Length; i++)
@@ -131,6 +142,12 @@ public partial class CommandPanel : PanelContainer
             _slots[i].TooltipText = "";
         }
         RefreshProduction();
+        if (next is DisplayMode.Units or DisplayMode.Workers)
+        {
+            _slots[3].TooltipText = "적 클릭: 공격 · 지형 클릭: 공격 이동";
+            _slots[4].TooltipText = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
+            _slots[5].TooltipText = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
+        }
     }
 
     private void RefreshProduction()
@@ -162,7 +179,13 @@ public partial class CommandPanel : PanelContainer
     private void RequestSlot(int number)
     {
         RefreshSelection();
-        if (_display == DisplayMode.Construction && number == 3) Units.RequestCancelConstruction(Buildings.SelectedBuilding);
+        if (_display is DisplayMode.Units or DisplayMode.Workers && number is 4 or 5 or 6)
+        {
+            if (number == 4) AttackRequested?.Invoke();
+            else if (number == 5) StopRequested?.Invoke();
+            else HoldRequested?.Invoke();
+        }
+        else if (_display == DisplayMode.Construction && number == 3) Units.RequestCancelConstruction(Buildings.SelectedBuilding);
         else if (_display is DisplayMode.TownHall or DisplayMode.Barracks && number == 3)
         {
             Building producer = Buildings.SelectedBuilding;
@@ -212,6 +235,9 @@ public partial class CommandPanel : PanelContainer
             Key.E when _tierOne => 9,
             Key.A when _tierOne => 4,
             Key.S when _tierOne => 5,
+            Key.A when _display is DisplayMode.Units or DisplayMode.Workers => 4,
+            Key.S when _display is DisplayMode.Units or DisplayMode.Workers => 5,
+            Key.D when _display is DisplayMode.Units or DisplayMode.Workers => 6,
             Key.Escape when _tierOne => 1,
             Key.Escape when _display is DisplayMode.Construction or DisplayMode.TownHall or DisplayMode.Barracks && !_slots[8].Disabled => 3,
             _ => 0
@@ -277,6 +303,7 @@ public partial class CommandPanel : PanelContainer
         }
         GetWindow().FocusExited -= OnFocusExited;
         SetMenuOpen(false);
+        if (GodotObject.IsInstanceValid(Units?.Camera)) Units.Camera.SetMeta(CameraUnitOrdersMeta, false);
         foreach (StyleBoxFlat style in _styles) style.Dispose();
         _styles.Clear();
     }

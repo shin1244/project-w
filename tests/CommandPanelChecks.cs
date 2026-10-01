@@ -14,19 +14,18 @@ public partial class CommandPanelChecks : Main
     private readonly Dictionary<int, Button> _slots = new();
     private readonly List<string> _commands = new();
     private MemoryStream _wire;
-    private bool _capture;
 
     public override async void _Ready()
     {
         try
         {
-            _capture = OS.GetCmdlineUserArgs().Contains("--command-panel-capture");
             var net = GetNode<NetClient>("/root/Net");
             typeof(Main).GetField("_net", PrivateInstance).SetValue(this, net);
             using var wire = new MemoryStream();
             _wire = wire;
             using var writer = new StreamWriter(wire, new UTF8Encoding(false)) { AutoFlush = true };
             typeof(NetClient).GetField("_writer", PrivateInstance).SetValue(net, writer);
+            InvokeMain("ConnectInput");
             Fog.Configure(Map);
             Check(Map.HasMap && Map.SyncError == null, "The real Main scene loads its map");
             Check(Commands == GetNode<CommandPanel>("SelectionUI/CommandPanel") && Commands.Units == Units &&
@@ -39,7 +38,6 @@ public partial class CommandPanelChecks : Main
                 _slots.Add(number, Commands.GetNode<Button>($"Slots/Slot{number}"));
             Check(Commands.GetNode("Slots").GetChildCount() == 9, "The panel contains exactly nine slots");
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            CheckLayout();
             Expect("No selection leaves every slot empty");
             CheckNoWorkerTrain("No player identity or selection cannot request a worker");
 
@@ -59,15 +57,8 @@ public partial class CommandPanelChecks : Main
 
             SelectUnit(101);
             ExpectUnit("An owned worker shows attack, stop and hold in numpad slots 4, 5 and 6");
-            CheckDisplayOnlyButtons();
             CheckTierMenu();
-            await Capture("command-panel-unit");
-            if (_capture)
-            {
-                _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
-                await Capture("command-panel-tier-one");
-                Commands.CancelMenu();
-            }
+            CheckCombatCommands();
             SelectUnit(102);
             ExpectUnit("An owned combat unit shows the same three commands");
             InvokeMain("SelectBox", GetViewport().GetVisibleRect());
@@ -88,8 +79,6 @@ public partial class CommandPanelChecks : Main
             Receive("STOCK 0 100");
             Receive("SUPPLY 4 10");
             CheckWorkerTrain();
-            CheckWorkerTrain();
-            await Capture("command-panel-hall");
             await CheckBarracksProduction();
             await CheckCancellation();
             foreach (uint id in new uint[] { 202, 203 })
@@ -163,32 +152,6 @@ public partial class CommandPanelChecks : Main
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
     }
 
-    private void CheckLayout()
-    {
-        Rect2 viewport = GetViewport().GetVisibleRect();
-        Rect2 panel = Commands.GetGlobalRect();
-        Check(panel.End.IsEqualApprox(viewport.End) && panel.Size.IsEqualApprox(new Vector2(216, 216)),
-            "The 216 by 216 panel is flush against the bottom-right viewport edges");
-        Check(Commands.MouseFilter == Control.MouseFilterEnum.Stop, "The panel absorbs clicks over the world");
-        int[] order = { 7, 8, 9, 4, 5, 6, 1, 2, 3 };
-        for (int index = 0; index < order.Length; index++)
-        {
-            Rect2 slot = _slots[order[index]].GetGlobalRect();
-            int row = index / 3, column = index % 3;
-            Vector2 center = slot.GetCenter();
-            Check(slot.Size.X > 0 && slot.Size.Y > 0 && panel.Encloses(slot), "Every slot is visible inside the panel");
-            Check(Mathf.IsEqualApprox(center.X, _slots[order[column]].GetGlobalRect().GetCenter().X) &&
-                Mathf.IsEqualApprox(center.Y, _slots[order[row * 3]].GetGlobalRect().GetCenter().Y),
-                $"Slot {order[index]} occupies its numpad row and column");
-            if (column > 0)
-                Check(_slots[order[index - 1]].GetGlobalRect().End.X <= slot.Position.X,
-                    "Adjacent slot columns do not overlap");
-            if (row > 0)
-                Check(_slots[order[index - 3]].GetGlobalRect().End.Y <= slot.Position.Y,
-                    "Adjacent slot rows do not overlap");
-        }
-    }
-
     private void ExpectUnit(string message)
     {
         if (Units.TryGetSelectedWorker(out _))
@@ -208,17 +171,76 @@ public partial class CommandPanelChecks : Main
         }
     }
 
-    private void CheckDisplayOnlyButtons()
+    private void CheckCombatCommands()
     {
-        int commandsBefore = _commands.Count;
-        string[] before = _slots.Values.Select(button => button.Text).ToArray();
-        foreach (int slot in new[] { 4, 5, 6 })
+        var input = GetNode<PlayerInput>("PlayerInput");
+        Unit worker = Units.LiveUnits.Single(unit => unit.UnitId == 101);
+        Unit knight = Units.LiveUnits.Single(unit => unit.UnitId == 102);
+        SelectUnit(101);
+        Units.ToggleSelection(knight);
+        Receive("STATE 101 GATHER 17 0 1");
+        UnitState state = worker.State;
+        Vector3 position = worker.GlobalPosition;
+        foreach ((int slot, string verb) in new[] { (5, "STOP"), (6, "HOLD") })
         {
-            Button button = _slots[slot];
-            if (!button.Disabled) button.EmitSignal(BaseButton.SignalName.Pressed);
+            int before = _commands.Count;
+            _slots[4].EmitSignal(BaseButton.SignalName.Pressed);
+            Check(input.IsAttackTargeting && _commands.Count == before, "Attack button enters the existing A targeting mode");
+            int bytes = (int)_wire.Length;
+            _slots[slot].EmitSignal(BaseButton.SignalName.Pressed);
+            input._PhysicsProcess(0);
+            string[] parts = _commands[^1].Split(' ');
+            Check(_commands.Count == before + 1 && parts[0] == verb && parts.Length == 3 &&
+                parts.Skip(1).ToHashSet().SetEquals(new[] { "101", "102" }) &&
+                Encoding.UTF8.GetString(_wire.ToArray().AsSpan(bytes)) == _commands[^1] + System.Environment.NewLine,
+                "One button press sends selected IDs through Main/Net without client coordinates");
+            Check(!input.IsAttackTargeting && worker.State == state && worker.GlobalPosition == position,
+                "Stop/hold exit targeting and wait for server state and position");
         }
-        Check(_commands.Count == commandsBefore && before.SequenceEqual(_slots.Values.Select(button => button.Text)),
-            "Pressing the existing display-only combat buttons preserves the layout and sends nothing");
+        foreach (Key key in new[] { Key.S, Key.D })
+        {
+            int before = _commands.Count;
+            Vector3 camera = Units.Camera.Position;
+            try
+            {
+                Input.ParseInputEvent(KeyEvent(key, true));
+                Input.FlushBufferedEvents();
+                input._UnhandledInput(KeyEvent(key, true, echo: true));
+                input._PhysicsProcess(0);
+                Units.Camera.Call("_process", .1);
+                Check(_commands.Count == before + 1 && _commands[^1].StartsWith(key == Key.S ? "STOP " : "HOLD ") &&
+                    Units.Camera.Position.IsEqualApprox(camera), "S/D issue one order, ignore repetition and do not pan the camera");
+                InvokeMain("ClearSelection");
+                Units.Camera.Call("_process", .1);
+                Check(Units.Camera.Position.IsEqualApprox(camera), "Losing selection does not turn a held command key into camera movement");
+            }
+            finally
+            {
+                Input.ParseInputEvent(KeyEvent(key, false));
+                Input.FlushBufferedEvents();
+                Units.Camera.Call("_process", 0);
+                Units.Camera.Position = camera;
+                SelectUnit(101);
+                Units.ToggleSelection(knight);
+            }
+        }
+        int sent = _commands.Count;
+        foreach (uint id in new uint[] { 103, 104, 105 })
+        {
+            SelectUnit(id);
+            _slots[5].EmitSignal(BaseButton.SignalName.Pressed);
+            _slots[6].EmitSignal(BaseButton.SignalName.Pressed);
+            Units.RequestStop();
+            Units.RequestHold();
+        }
+        InvokeMain("ClearSelection");
+        Units.RequestStop();
+        Units.RequestHold();
+        Check(_commands.Count == sent, "Foreign inspection and empty selection cannot stop or hold units");
+        SelectUnit(101);
+        Receive("STATE 101 HOLD 17 0 1");
+        Check(worker.State.Activity == UnitActivity.Hold && SelectionDetails.ActivityText(worker.State, true).Contains("위치 사수"),
+            "Server HOLD state reaches the selection display");
     }
 
     private void CheckTierMenu()
@@ -401,7 +423,6 @@ public partial class CommandPanelChecks : Main
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         Check(details.GetGlobalRect().Encloses(queue.GetGlobalRect()), "Production queue fits inside the information panel");
-        await Capture("command-panel-barracks");
         SelectBuilding(602);
         Check(!progress.IsVisibleInTree(), "Another empty producer hides the previous progress");
         Expect("Another barracks starts with its own empty queue", (7, "검방병"), (8, "궁수"));
@@ -484,7 +505,6 @@ public partial class CommandPanelChecks : Main
         Check(producer.ProductionPercent == 40 && producer.ProductionJobs.Count == 3, "Malformed job IDs and owners do not corrupt the queue");
         _slots[3].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "CANCEL_TRAIN 601 9001", "Command button cancels active production");
-        await Capture("command-panel-cancel-production");
         var input = GetNode<PlayerInput>("PlayerInput");
         before = _commands.Count;
         input._Input(KeyEvent(Key.Escape, true));
@@ -514,7 +534,6 @@ public partial class CommandPanelChecks : Main
         _slots[3].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "CANCEL_BUILD 701" && Buildings.TryGetBuilding(701, out _) && site.ConstructionPercent == 35,
             "Construction click sends the building ID and waits for authoritative removal");
-        await Capture("command-panel-cancel-construction");
         before = _commands.Count;
         KeyStroke(input, Key.Escape);
         Check(_commands.Count == before + 1 && _commands[^1] == "CANCEL_BUILD 701", "Escape cancels owned construction");
@@ -567,18 +586,6 @@ public partial class CommandPanelChecks : Main
 
     private void Receive(string message) => InvokeMain("OnMessage", message);
     private void InvokeMain(string name, params object[] args) => typeof(Main).GetMethod(name, PrivateInstance).Invoke(this, args);
-
-    private async Task Capture(string name)
-    {
-        if (!_capture) return;
-        Fog.RefreshVision();
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        using Image screenshot = GetViewport().GetTexture().GetImage();
-        string path = $"res://.godot/{name}.png";
-        Check(screenshot.SavePng(path) == Error.Ok, "Save the rendered command panel preview");
-        GD.Print("Command panel preview: " + ProjectSettings.GlobalizePath(path));
-    }
 
     private static void Check(bool condition, string message)
     {

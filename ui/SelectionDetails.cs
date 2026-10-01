@@ -390,6 +390,7 @@ public partial class SelectionDetails : PanelContainer
     {
         UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중",
         UnitActivity.Guard => "상태   경계 중",
+        UnitActivity.Hold => "상태   위치 사수",
         UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
     };
 
