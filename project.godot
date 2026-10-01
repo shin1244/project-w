@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 [autoload]
 
 Net="*res://network/NetClient.cs"
+MatchSession="*res://network/MatchSession.cs"
 
 [display]
 

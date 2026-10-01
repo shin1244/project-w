@@ -1,82 +1,69 @@
 using Godot;
-using System;
 
-// 현재는 화면 미리보기만 실행한다. 매칭 서버는 QueueRequested/QueueCancelled와 ConfirmMatch에 연결한다.
 public partial class Lobby : Control
 {
-    [Export] public bool PreviewMatching { get; set; } = true;
-    [Export(PropertyHint.Range, "0.1,60,0.1")] public double PreviewMatchDelaySeconds { get; set; } = 5;
-    public event Action QueueRequested;
-    public event Action QueueCancelled;
-    public bool IsQueued { get; private set; }
+    public bool IsQueued => _session?.IsQueued == true;
     public double QueueElapsedSeconds { get; private set; }
     private bool _transitioning;
     private Button _start, _cancel;
     private Label _status, _elapsed;
+    private LineEdit _address;
+    private MatchSession _session;
 
     public override void _Ready()
     {
+        _session = GetNode<MatchSession>("/root/MatchSession");
         _start = GetNode<Button>("%PrimaryButton");
         _cancel = GetNode<Button>("%SecondaryButton");
         _status = GetNode<Label>("%Status");
         _elapsed = GetNode<Label>("%QueueTime");
+        _address = new LineEdit { Text = _session.LobbyUrl, PlaceholderText = "http://서버주소:8080", TooltipText = "호스트에게 받은 로비 서버 주소" };
+        var content = GetNode<VBoxContainer>("Center/Card/Content");
+        content.AddChild(_address);
+        content.MoveChild(_address, 3);
+        _status.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        GetNode<Label>("Header/Row/PreviewBadge").Text = "지인 테스트 · 2 vs 2";
+        GetNode<Label>("%Description").Text = "한 팀의 지휘관과 영웅부터 함께 배정됩니다.";
+        GetNode<Label>("%Footnote").Text = "참가 순서: 1팀 지휘관 → 1팀 영웅 → 2팀 지휘관 → 2팀 영웅\n2명부터 시작할 수 있으며, 빈 자리에 봇은 배치되지 않습니다.";
         _start.Pressed += StartQueue;
         _cancel.Pressed += CancelQueue;
+        _session.Changed += Refresh;
         Refresh();
-        _start.GrabFocus();
     }
 
-    public void StartQueue()
-    {
-        if (IsQueued || _transitioning) return;
-        IsQueued = true;
-        QueueElapsedSeconds = 0;
-        Refresh();
-        _cancel.GrabFocus();
-        QueueRequested?.Invoke();
-    }
+    public void StartQueue() { QueueElapsedSeconds = 0; _session.StartQueue(_address.Text); }
+    public void CancelQueue() { _session.CancelQueue(); QueueElapsedSeconds = 0; Refresh(); }
 
-    public void CancelQueue()
+    private void Refresh()
     {
-        if (!IsQueued || _transitioning) return;
-        IsQueued = false;
-        QueueElapsedSeconds = 0;
-        Refresh();
-        _start.GrabFocus();
-        QueueCancelled?.Invoke();
+        if (_transitioning) return;
+        if (_session.Match != null)
+        {
+            _transitioning = true;
+            if (GetTree().ChangeSceneToFile("res://lobby/Loading.tscn") != Error.Ok)
+            { _transitioning = false; _session.Fail("로딩 화면을 열지 못했습니다."); }
+            return;
+        }
+        _start.Text = IsQueued ? "매칭 중…" : "매칭 시작";
+        _start.Disabled = IsQueued;
+        _cancel.Disabled = !IsQueued;
+        _address.Editable = !IsQueued;
+        _elapsed.Visible = IsQueued;
+        var status = _session.Status;
+        _status.Text = !IsQueued ? _session.ErrorMessage ?? "서버 주소를 확인하고 매칭을 시작하세요" :
+            status == null ? "로비 서버에 연결 중…" :
+            status.State == "starting" ? "게임 서버를 준비하고 있어요" :
+            status.Busy ? $"현재 테스트 경기가 진행 중입니다 · 대기 순서 {status.Position}" :
+            status.Count < 2 ? "1 / 4명 · 함께할 팀원 1명을 기다립니다" :
+            $"{status.Count} / 4명 · {status.Seconds}초 뒤 출발";
     }
 
     public override void _Process(double delta)
     {
-        if (!IsQueued || _transitioning) return;
+        if (!IsQueued) return;
         QueueElapsedSeconds += delta;
         int seconds = (int)QueueElapsedSeconds;
         _elapsed.Text = $"대기 시간  {seconds / 60:00}:{seconds % 60:00}";
-        if (PreviewMatching && QueueElapsedSeconds >= Math.Max(0.1, PreviewMatchDelaySeconds)) ConfirmMatch();
-    }
-
-    // 별도 매칭 서버가 매칭 확정을 알려주면 호출할 진입점. 취소 후 도착한 응답은 무시한다.
-    public void ConfirmMatch()
-    {
-        if (!IsQueued || _transitioning) return;
-        _transitioning = true;
-        Error error = GetTree().ChangeSceneToFile("res://lobby/Loading.tscn");
-        if (error == Error.Ok) return;
-        _transitioning = false;
-        IsQueued = false;
-        QueueElapsedSeconds = 0;
-        Refresh();
-        _status.Text = "로딩 화면을 열지 못했어요. 다시 시도해 주세요.";
-        _start.GrabFocus();
-    }
-
-    private void Refresh()
-    {
-        _start.Text = IsQueued ? "매칭 중…" : "매칭 시작";
-        _start.Disabled = IsQueued;
-        _cancel.Disabled = !IsQueued;
-        _status.Text = IsQueued ? "함께할 상대를 찾고 있어요" : "매칭할 준비가 되었어요";
-        _elapsed.Text = "대기 시간  00:00";
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -85,4 +72,6 @@ public partial class Lobby : Control
         CancelQueue();
         GetViewport().SetInputAsHandled();
     }
+
+    public override void _ExitTree() { if (_session != null) _session.Changed -= Refresh; }
 }

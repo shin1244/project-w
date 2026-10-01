@@ -24,6 +24,7 @@ public partial class Main : Node3D
     public uint? LocalHeroType { get; private set; }
 
     private NetClient _net;
+    private MatchSession _matchSession;
     private PlayerInput _playerInput;
     private readonly SkillRangeIndicator _skillRange = new();
 
@@ -44,7 +45,14 @@ public partial class Main : Node3D
         _net = GetNode<NetClient>("/root/Net");
         _net.MessageReceived += OnMessage;
         _net.ConnectionClosed += OnConnectionClosed;
-        _net.ConnectToServer("127.0.0.1", 7777);
+        _matchSession = GetNodeOrNull<MatchSession>("/root/MatchSession");
+        var match = _matchSession?.Match;
+        if (match != null)
+        {
+            RequestedRole = match.Role == "HERO" ? PlayerRole.Hero : PlayerRole.Commander;
+            RequestedHeroType = match.Hero;
+        }
+        _net.ConnectToServer(match?.Host ?? "127.0.0.1", match?.Port ?? 7777);
     }
 
     private void ConnectInput()
@@ -178,7 +186,9 @@ public partial class Main : Node3D
                     ShowStatus("접속 역할을 선택해 주세요.");
                     return;
                 }
-                _net.Send(Protocol.BuildMapReady(Map.MapHash, RequestedRole, RequestedHeroType));
+                _net.Send(_matchSession?.Match is { } match
+                    ? $"MAP_READY {Map.MapHash} TICKET {match.Ticket}"
+                    : Protocol.BuildMapReady(Map.MapHash, RequestedRole, RequestedHeroType));
                 return;
             case "TREE":
                 if (!Map.ApplyTree(parts)) RejectMap();

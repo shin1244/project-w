@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Threading;
 
 public partial class NetClient : Node
 {
@@ -19,11 +20,12 @@ public partial class NetClient : Node
     {
         Disconnect();
         int session = _session;
-        var tcp = new TcpClient();
+        var tcp = new TcpClient { NoDelay = true };
         _tcp = tcp;
         try
         {
-            await tcp.ConnectAsync(host, port);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await tcp.ConnectAsync(host, port, timeout.Token);
             if (session != _session) { tcp.Dispose(); return; }
             var stream = tcp.GetStream();
             _writer = new StreamWriter(stream) { AutoFlush = true };
