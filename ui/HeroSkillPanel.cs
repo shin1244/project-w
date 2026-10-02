@@ -3,30 +3,51 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-// 늑대 Q만 연결한다. 서버의 COOLDOWN/TICK으로 표시하고 판정은 서버에 맡긴다.
+// 서버의 ABILITY 정의와 COOLDOWN/CONTROL 상태로 표시한다. 특정 영웅을 알지 않는다.
 public partial class HeroSkillPanel : PanelContainer
 {
     public uint? HeroType { get; private set; }
     public uint? HeroUnitId { get; private set; }
     public event Action<int> TargetingRequested;
     public event Action AvailabilityChanged;
-    public bool CanUseQ => HeroType == UnitCatalog.HeroTest && HeroUnitId.HasValue && !_stunned &&
-        (!_readyTick.HasValue || _hasTick && RemainingTicks == 0);
-    public double QRemainingSeconds => RemainingTicks / (double)InterpolationClock.TickRate;
+    private readonly Dictionary<(uint, int), SkillDefinitionSnapshot> _definitions = new();
+    private readonly Dictionary<int, uint> _readyTicks = new();
+    private readonly Dictionary<int, int> _cooldownLengths = new();
     private readonly List<StyleBoxFlat> _styles = new();
-    private uint _playerId, _team;
+    private readonly List<SlotView> _slots = new();
+    private uint _playerId, _team, _tick;
+    private bool _hasTick;
+    private int? _targeting;
+    private ControlRestrictions _restrictions;
+    private UnitActivity _activity;
     private ProgressBar _health, _mana;
     private Label _healthText, _manaText;
-    private Button _qButton;
-    private Label _cooldownText;
-    private ColorRect _cooldownCover;
-    private TextureRect _qIcon;
-    private StyleBoxFlat _qNormal, _qTargeting;
-    private uint _tick;
-    private uint? _readyTick;
-    private int _cooldownTicks;
-    private bool _hasTick, _stunned, _targeting, _lastAvailable;
-    private int RemainingTicks => _readyTick.HasValue && _hasTick ? Math.Max(0, unchecked((int)(_readyTick.Value - _tick))) : 0;
+    private ColorRect _shieldFill;
+    private Control _passive;
+    private float _currentHP, _maxHP, _shield;
+
+    private sealed class SlotView
+    {
+        public Button Button;
+        public Label Cooldown;
+        public TextureRect Icon;
+        public ColorRect Cover;
+        public StyleBoxFlat Normal, Targeting;
+        public string IconId;
+    }
+
+    public SkillDefinitionSnapshot? Definition(int slot) => HeroType.HasValue &&
+        _definitions.TryGetValue((HeroType.Value, slot), out var definition) ? definition : null;
+
+    public bool CanUse(int slot) => Definition(slot) is SkillDefinitionSnapshot definition && HeroUnitId.HasValue &&
+        (_restrictions & (ControlRestrictions.Stun | ControlRestrictions.Silence)) == 0 &&
+        (!definition.MovesCaster || (_restrictions & ControlRestrictions.Root) == 0) &&
+        _activity is not (UnitActivity.Stun or UnitActivity.Dash) &&
+        (!_readyTicks.ContainsKey(slot) || _hasTick && RemainingTicks(slot) == 0);
+
+    private int RemainingTicks(int slot) => _hasTick && _readyTicks.TryGetValue(slot, out uint ready)
+        ? Math.Max(0, unchecked((int)(ready - _tick))) : 0;
+    public double RemainingSeconds(int slot) => RemainingTicks(slot) / (double)InterpolationClock.TickRate;
 
     public override void _Ready()
     {
@@ -36,107 +57,86 @@ public partial class HeroSkillPanel : PanelContainer
         frame.ContentMarginLeft = frame.ContentMarginRight = 12;
         frame.ContentMarginTop = frame.ContentMarginBottom = 10;
         AddThemeStyleboxOverride("panel", frame);
-
-        var contentColumn = new VBoxContainer { Name = "Content", MouseFilter = MouseFilterEnum.Ignore };
-        contentColumn.AddThemeConstantOverride("separation", 8);
-        AddChild(contentColumn);
+        var content = new VBoxContainer { Name = "Content", MouseFilter = MouseFilterEnum.Ignore };
+        content.AddThemeConstantOverride("separation", 8);
+        AddChild(content);
         var vitals = new VBoxContainer { Name = "Vitals", MouseFilter = MouseFilterEnum.Ignore };
         vitals.AddThemeConstantOverride("separation", 4);
-        contentColumn.AddChild(vitals);
+        content.AddChild(vitals);
         (_health, _healthText) = CreateVital(vitals, "Health", "64cf79");
+        _shieldFill = HealthDisplay.CreateShieldFill(_health);
         (_mana, _manaText) = CreateVital(vitals, "Mana", "539fe0");
-
         var row = new HBoxContainer { Name = "Slots", MouseFilter = MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", 8);
-        contentColumn.AddChild(row);
-        var passive = Style("242825", "807653", 4);
-        var active = Style("101c26", "536b69", 4);
-        foreach (string key in new[] { "P", "Q", "W", "E", "R" })
+        content.AddChild(row);
+        var passive = new PanelContainer { Name = "Passive", CustomMinimumSize = new Vector2(64, 64), MouseFilter = MouseFilterEnum.Stop };
+        passive.AddThemeStyleboxOverride("panel", Style("242825", "807653", 4));
+        passive.AddChild(new Label { Name = "Key", Text = "P", MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+        row.AddChild(passive);
+        _passive = passive;
+        for (int i = 0; i < 5; i++) CreateSlot(row, i);
+        Refresh();
+    }
+
+    private void CreateSlot(HBoxContainer row, int slot)
+    {
+        string key = slot < 4 ? new[] { "Q", "W", "E", "R" }[slot] : "5";
+        var view = new SlotView
         {
-            bool isPassive = key == "P";
-            Control slot;
-            if (key == "Q")
-            {
-                _qButton = new Button { FocusMode = FocusModeEnum.None, MouseForcePassScrollEvents = false };
-                _qNormal = Style("27332d", "a48b52", 4);
-                _qTargeting = Style("394333", "efd28c", 4);
-                _qButton.AddThemeStyleboxOverride("normal", _qNormal);
-                _qButton.AddThemeStyleboxOverride("hover", _qTargeting);
-                _qButton.AddThemeStyleboxOverride("pressed", _qTargeting);
-                _qButton.AddThemeStyleboxOverride("disabled", active);
-                _qButton.Pressed += RequestQ;
-                slot = _qButton;
-            }
-            else
-            {
-                var placeholder = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore };
-                placeholder.AddThemeStyleboxOverride("panel", isPassive ? passive : active);
-                slot = placeholder;
-            }
-            slot.Name = isPassive ? "Passive" : key;
-            slot.CustomMinimumSize = new Vector2(isPassive ? 64 : 72, isPassive ? 64 : 72);
-            slot.SizeFlagsHorizontal = isPassive ? SizeFlags.ShrinkBegin : SizeFlags.ExpandFill;
-            slot.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-            row.AddChild(slot);
-            var content = new Control { MouseFilter = MouseFilterEnum.Ignore };
-            slot.AddChild(content);
-            content.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            if (key == "Q")
-            {
-                _qIcon = new TextureRect { Texture = GD.Load<Texture2D>("res://ui/icons/wolf-bite.svg"),
-                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                    MouseFilter = MouseFilterEnum.Ignore };
-                content.AddChild(_qIcon);
-                _qIcon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-                _qIcon.OffsetLeft = _qIcon.OffsetTop = 8;
-                _qIcon.OffsetRight = _qIcon.OffsetBottom = -8;
-                _cooldownCover = new ColorRect { Color = new Color(0, 0, 0, .6f), MouseFilter = MouseFilterEnum.Ignore };
-                content.AddChild(_cooldownCover);
-                _cooldownCover.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-                _cooldownText = new Label { Name = "Cooldown", HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
-                _cooldownText.AddThemeFontSizeOverride("font_size", 23);
-                _cooldownText.AddThemeColorOverride("font_color", new Color("eee5cd"));
-                _cooldownText.AddThemeColorOverride("font_outline_color", new Color("101820"));
-                _cooldownText.AddThemeConstantOverride("outline_size", 3);
-                content.AddChild(_cooldownText);
-                _cooldownText.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-            }
-            var label = new Label { Name = "Key", Text = key, MouseFilter = MouseFilterEnum.Ignore };
-            label.AddThemeFontSizeOverride("font_size", 12);
-            label.AddThemeColorOverride("font_color", new Color(isPassive ? "c7ba88" : "9db7b4"));
-            content.AddChild(label);
-            label.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomLeft);
-            label.OffsetLeft = 8;
-            label.OffsetTop = -23;
-            label.OffsetRight = 28;
-            label.OffsetBottom = -5;
-        }
-        RefreshQ();
+            Button = new Button { Name = key, FocusMode = FocusModeEnum.None, MouseForcePassScrollEvents = false,
+                CustomMinimumSize = new Vector2(72, 72), SizeFlagsHorizontal = SizeFlags.ExpandFill },
+            Normal = Style("27332d", "a48b52", 4), Targeting = Style("394333", "efd28c", 4)
+        };
+        view.Button.AddThemeStyleboxOverride("normal", view.Normal);
+        view.Button.AddThemeStyleboxOverride("hover", view.Targeting);
+        view.Button.AddThemeStyleboxOverride("pressed", view.Targeting);
+        view.Button.AddThemeStyleboxOverride("disabled", Style("101c26", "536b69", 4));
+        view.Button.Pressed += () => Request(slot);
+        row.AddChild(view.Button);
+        view.Icon = new TextureRect { ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore };
+        view.Button.AddChild(view.Icon);
+        view.Icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        view.Icon.OffsetLeft = view.Icon.OffsetTop = 8;
+        view.Icon.OffsetRight = view.Icon.OffsetBottom = -8;
+        view.Cover = new ColorRect { Color = new Color(0, 0, 0, .6f), MouseFilter = MouseFilterEnum.Ignore };
+        view.Button.AddChild(view.Cover);
+        view.Cover.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        view.Cooldown = new Label { Name = "Cooldown", HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore };
+        view.Cooldown.AddThemeFontSizeOverride("font_size", 23);
+        view.Button.AddChild(view.Cooldown);
+        view.Cooldown.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        var label = new Label { Name = "Key", Text = key, MouseFilter = MouseFilterEnum.Ignore };
+        view.Button.AddChild(label);
+        label.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomLeft);
+        label.OffsetLeft = 8; label.OffsetTop = -23;
+        _slots.Add(view);
+    }
+
+    public void HandleDefinition(SkillDefinitionSnapshot definition)
+    {
+        _definitions[(definition.UnitType, definition.Slot)] = definition;
+        Refresh();
     }
 
     public void SetHero(uint? heroType, uint playerId = 0, uint team = 0)
     {
         if (HeroType != heroType || _playerId != playerId || _team != team || !heroType.HasValue)
         {
-            ClearVitals();
-            _readyTick = null;
-            _cooldownTicks = 0;
-            if (!heroType.HasValue) { _hasTick = false; _tick = 0; }
+            ClearVitals(); _readyTicks.Clear(); _cooldownLengths.Clear();
+            if (!heroType.HasValue) { _definitions.Clear(); _hasTick = false; _tick = 0; }
         }
-        HeroType = heroType;
-        _playerId = playerId;
-        _team = team;
+        HeroType = heroType; _playerId = playerId; _team = team;
         Visible = heroType.HasValue;
-        RefreshQ();
+        Refresh();
     }
 
-    // 모델 등록·선택 상태와 무관하게 UNIT의 소유자/타입/진영으로 내 영웅 ID를 찾는다.
     public void HandleUnit(string[] parts)
     {
-        if (!HeroType.HasValue || _playerId == 0 || parts.Length != 7 || parts[0] != "UNIT" ||
+        if (!HeroType.HasValue || _playerId == 0 || parts.Length != 7 ||
             !uint.TryParse(parts[1], out uint type) || !uint.TryParse(parts[2], out uint id) || id == 0 ||
-            !uint.TryParse(parts[3], out uint owner) || !uint.TryParse(parts[6], out uint team) || team == 0 ||
+            !uint.TryParse(parts[3], out uint owner) || !uint.TryParse(parts[6], out uint team) ||
             !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) || !float.IsFinite(x) ||
             !float.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) || !float.IsFinite(z)) return;
         if (owner != _playerId || team != _team || type != HeroType.Value)
@@ -145,97 +145,109 @@ public partial class HeroSkillPanel : PanelContainer
             return;
         }
         if (HeroUnitId == id) return;
-        ClearVitals();
-        HeroUnitId = id;
-        RefreshQ();
+        ClearVitals(); HeroUnitId = id; Refresh();
     }
 
     public void HandleHealth(HealthSnapshot health)
     {
-        if (HeroUnitId == health.Id) ApplyVital(_health, _healthText, health.Current, health.Maximum);
+        if (HeroUnitId != health.Id) return;
+        _currentHP = Mathf.Min(health.Current, health.Maximum);
+        _maxHP = health.Maximum;
+        RefreshHealth();
     }
-
-    public void HandleState(StateSnapshot state)
+    public void HandleShield(ShieldSnapshot shield)
     {
-        if (HeroUnitId != state.Id) return;
-        _stunned = state.State.Activity == UnitActivity.Stun;
-        RefreshQ();
+        if (HeroUnitId != shield.Id) return;
+        _shield = shield.Amount;
+        RefreshHealth();
     }
-
+    private void RefreshHealth()
+    {
+        if (_health == null) return;
+        HealthDisplay.Apply(_health, _shieldFill, _currentHP, _maxHP, _shield);
+        _healthText.Text = HealthDisplay.Text(_currentHP, _maxHP, _shield);
+    }
+    public void HandleState(StateSnapshot state)
+    { if (HeroUnitId == state.Id) { _activity = state.State.Activity; Refresh(); } }
+    public void HandleControl(ControlSnapshot control)
+    { if (HeroUnitId == control.Id) { _restrictions = control.Flags; Refresh(); } }
     public void HandleTick(string[] parts)
     {
-        if (parts.Length != 2 || parts[0] != "TICK" ||
-            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint tick) ||
+        if (parts.Length != 2 || !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint tick) ||
             _hasTick && unchecked((int)(tick - _tick)) <= 0) return;
-        _tick = tick;
-        _hasTick = true;
-        if (_cooldownTicks == 0) _cooldownTicks = RemainingTicks;
-        RefreshQ();
+        _tick = tick; _hasTick = true;
+        foreach (int slot in _readyTicks.Keys)
+            if (!_cooldownLengths.ContainsKey(slot)) _cooldownLengths[slot] = RemainingTicks(slot);
+        Refresh();
     }
-
     public void ApplyCooldown(SkillCooldownSnapshot cooldown)
     {
-        if (HeroType != UnitCatalog.HeroTest || cooldown.Slot != 0 ||
-            _readyTick.HasValue && unchecked((int)(cooldown.ReadyTick - _readyTick.Value)) <= 0) return;
-        _readyTick = cooldown.ReadyTick;
-        _cooldownTicks = RemainingTicks;
-        RefreshQ();
+        if (cooldown.CasterId != HeroUnitId || Definition(cooldown.Slot) == null ||
+            _readyTicks.TryGetValue(cooldown.Slot, out uint previous) && unchecked((int)(cooldown.ReadyTick - previous)) <= 0) return;
+        _readyTicks[cooldown.Slot] = cooldown.ReadyTick;
+        _cooldownLengths[cooldown.Slot] = RemainingTicks(cooldown.Slot);
+        Refresh();
     }
 
     public bool TryHandleShortcut(InputEvent input)
     {
-        if (HeroType != UnitCatalog.HeroTest || input is not InputEventKey { Pressed: true } key ||
-            (key.PhysicalKeycode != Key.None ? key.PhysicalKeycode : key.Keycode) != Key.Q ||
+        if (!HeroType.HasValue || input is not InputEventKey { Pressed: true } key ||
             key.CtrlPressed || key.ShiftPressed || key.AltPressed || key.MetaPressed) return false;
-        if (!key.Echo) RequestQ();
+        int slot = (key.PhysicalKeycode != Key.None ? key.PhysicalKeycode : key.Keycode) switch
+        { Key.Q => 0, Key.W => 1, Key.E => 2, Key.R => 3, _ => -1 };
+        if (slot < 0 || Definition(slot) == null) return false;
+        if (!key.Echo) Request(slot);
         return true;
     }
-
-    private void RequestQ() { if (CanUseQ) TargetingRequested?.Invoke(0); }
-
-    public bool IsEnemyTarget(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() &&
-        unit.IsVisibleInTree() && !unit.IsQueuedForDeletion() && !unit.IsDying && unit.Team != _team;
-
-    public void SetTargeting(bool active) { _targeting = active && CanUseQ; RefreshQ(); }
-
-    private void RefreshQ()
+    private void Request(int slot) { if (CanUse(slot)) TargetingRequested?.Invoke(slot); }
+    public bool AcceptsTarget(int slot, Node3D target)
     {
-        if (_qButton == null) return;
-        bool available = CanUseQ;
-        if (!available) _targeting = false;
-        _qButton.Disabled = !available;
-        _qButton.AddThemeStyleboxOverride("normal", _targeting ? _qTargeting : _qNormal);
-        _qIcon.Visible = HeroType == UnitCatalog.HeroTest;
-        _qIcon.Modulate = available ? Colors.White : new Color(.55f, .55f, .55f);
-        bool cooling = _readyTick.HasValue && (!_hasTick || RemainingTicks > 0);
-        _cooldownCover.Visible = cooling;
-        _cooldownCover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks / (float)Math.Max(1, _cooldownTicks), 0, 1) : 0;
-        _cooldownText.Text = cooling ? _hasTick ? Math.Ceiling(QRemainingSeconds).ToString(CultureInfo.InvariantCulture) : "—" : "";
-        if (_lastAvailable == available) return;
-        _lastAvailable = available;
+        if (Definition(slot) is not SkillDefinitionSnapshot definition || !GodotObject.IsInstanceValid(target) ||
+            !target.IsInsideTree() || target.IsQueuedForDeletion()) return false;
+        uint? team = target switch { Unit u when !u.IsDying => u.Team, Building b => b.SideId, _ => null };
+        return team.HasValue && (definition.Target switch
+        { SkillTargetMode.Enemy => team != _team, SkillTargetMode.Ally => team == _team, _ => false });
+    }
+    public void SetTargeting(int? slot) { _targeting = slot; Refresh(); }
+    private void Refresh()
+    {
+        if (_passive != null) _passive.TooltipText = SkillDescriptions.Passive(HeroType);
+        if (_targeting.HasValue && !CanUse(_targeting.Value)) _targeting = null;
+        for (int slot = 0; slot < _slots.Count; slot++)
+        {
+            var view = _slots[slot]; var definition = Definition(slot);
+            bool available = CanUse(slot);
+            view.Button.Visible = slot < 4 || definition.HasValue;
+            view.Button.Disabled = !available;
+            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id);
+            view.Button.AddThemeStyleboxOverride("normal", _targeting == slot ? view.Targeting : view.Normal);
+            string iconId = definition?.Id;
+            if (view.IconId != iconId)
+            {
+                view.IconId = iconId;
+                string iconPath = $"res://ui/icons/{iconId}.svg";
+                view.Icon.Texture = iconId != null && ResourceLoader.Exists(iconPath) ? GD.Load<Texture2D>(iconPath) : null;
+            }
+            view.Icon.Modulate = available ? Colors.White : new Color(.55f, .55f, .55f);
+            bool cooling = _readyTicks.ContainsKey(slot) && (!_hasTick || RemainingTicks(slot) > 0);
+            view.Cover.Visible = cooling;
+            view.Cover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks(slot) / (float)Math.Max(1, _cooldownLengths.GetValueOrDefault(slot)), 0, 1) : 0;
+            view.Cooldown.Text = cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
+        }
         AvailabilityChanged?.Invoke();
     }
-
-    // 마나 메시지는 서버에 아직 없다. 메시지가 정해지면 검증된 내 영웅 수치를 이곳에 연결한다.
-    public void ApplyMana(uint unitId, float current, float maximum)
-    {
-        if (HeroUnitId == unitId) ApplyVital(_mana, _manaText, current, maximum);
-    }
-
+    public void ApplyMana(uint id, float current, float maximum)
+    { if (HeroUnitId == id) ApplyVital(_mana, _manaText, current, maximum); }
     public void HandleRemove(string[] parts)
-    {
-        if (parts.Length == 2 && uint.TryParse(parts[1], out uint id) && HeroUnitId == id) ClearVitals();
-    }
-
+    { if (parts.Length == 2 && uint.TryParse(parts[1], out uint id) && HeroUnitId == id) ClearVitals(); }
     private void ClearVitals()
     {
-        HeroUnitId = null;
-        _stunned = false;
-        _targeting = false;
-        RefreshQ();
+        HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
+        Refresh();
+        _currentHP = _maxHP = _shield = 0;
         if (_health == null) return;
-        _health.Value = _mana.Value = 0;
-        _healthText.Text = _manaText.Text = "— / —";
+        _shieldFill.Hide();
+        _health.Value = _mana.Value = 0; _healthText.Text = _manaText.Text = "— / —";
     }
 
     private (ProgressBar, Label) CreateVital(VBoxContainer parent, string name, string color)

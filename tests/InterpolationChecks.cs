@@ -9,6 +9,7 @@ public partial class InterpolationChecks : Main
     private void Receive(string message) => Handler.Invoke(this, new object[] { message });
     private Unit GetUnit(uint id = 101) => Units.GetNode<Unit>($"Unit_{id}");
     private void Step(double seconds) => Units._Process(seconds);
+    private const double TickSeconds = 1.0 / 30;
 
     public override void _Ready()
     {
@@ -31,7 +32,7 @@ public partial class InterpolationChecks : Main
             CheckSplitAndBatchedTicks();
             CheckLifecycle();
             CheckHistoryAndClock();
-            GD.Print("PASS: 2-tick/100ms interpolation, shared render time, split/batched ticks, sparse POS, bounded history, jitter, stalls, uint wrap, spawn/hide/remove/reconnect");
+            GD.Print("PASS: 30Hz/50ms interpolation, tick completion, shared render time, split/batched ticks, sparse POS, bounded history, jitter, stalls, uint wrap, spawn/hide/remove/reconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -60,36 +61,41 @@ public partial class InterpolationChecks : Main
         At(own, 0, "POS reception does not jump the display");
         Units.RequestMove(new Vector3(20, 0, 0));
         Check(commands == 1, "Commands are sent immediately during the interpolation delay");
-        Step(.05);
-        At(own, 0, "First interval holds the initial snapshot");
+        Receive("TICK_END 100");
+        Step(TickSeconds);
+        At(own, .5f, "Completed positions render within the first interval at 50ms delay");
+        redraws = 0;
         Receive("TICK 101");
         Receive("POS 101 2 0");
         Receive("POS 202 12 0");
-        Step(.025);
-        At(own, .5f, "Half tick blends the completed positions, two ticks behind");
-        At(enemy, 10.5f, "Own units and minions share one render time");
+        Receive("TICK_END 101");
+        Step(TickSeconds / 2);
+        At(own, 1, "Half interval reaches the previous tick at 50ms delay");
+        At(enemy, 11, "Own units and minions share one render time");
         Check(redraws == 1, "Interpolated movement invalidates dependent displays without a new POS");
         Check(own.GetNode<Area3D>("SelectionArea").GlobalPosition.IsEqualApprox(own.GlobalPosition), "Selection area follows interpolated root");
         Check((-own.GetNode<Node3D>("Visual").GlobalBasis.Z).Dot(Vector3.Right) > .999f, "Movement facing follows rendered displacement");
-        Step(.025);
-        At(own, 1, "Full interval reaches the exact endpoint");
+        Step(TickSeconds / 2);
+        At(own, 1.5f, "Second frame keeps moving without waiting for the next TICK");
         Receive("TICK 102");
-        Step(.05);
+        Receive("TICK_END 102");
+        Step(TickSeconds);
         At(own, 2, "Last movement reaches its endpoint even when no more POS arrive");
         for (uint tick = 103; tick <= 150; tick++)
         {
             Receive($"TICK {tick}");
-            Step(.05);
+            Receive($"TICK_END {tick}");
+            Step(TickSeconds);
             At(own, 2, "Stationary ticks hold their position");
         }
         Receive("TICK 151");
         Receive("POS 101 3 0");
-        Step(.05);
-        At(own, 2, "Restart does not interpolate across the long idle gap");
+        Receive("TICK_END 151");
+        Step(TickSeconds);
+        At(own, 2.5f, "Restart interpolates only its own tick after the idle gap");
         Receive("TICK 152");
-        Step(.025);
-        At(own, 2.5f, "Restart interpolates only its own tick");
-        Step(.025);
+        Receive("TICK_END 152");
+        Step(TickSeconds);
         At(own, 3, "Restart reaches the exact endpoint");
         Receive("STATE 101 ATTACK 0 202 1");
         own._Process(0);
@@ -109,13 +115,15 @@ public partial class InterpolationChecks : Main
         Receive("POS 202 11 0");
         Step(.05);
         At(GetUnit(202), 10, "Late lines of the open tick stay buffered");
-        foreach (string invalid in new[] { "TICK", "TICK -1", "TICK NaN", "TICK 11 extra", "TICK 4294967296", "TICK 10", "TICK 9" }) Receive(invalid);
+        foreach (string invalid in new[] { "TICK", "TICK -1", "TICK NaN", "TICK 11 extra", "TICK 4294967296", "TICK 10", "TICK 9",
+            "TICK_END", "TICK_END -1", "TICK_END NaN", "TICK_END 10 extra", "TICK_END 4294967296", "TICK_END 9", "TICK_END 11" }) Receive(invalid);
         Step(.05);
         At(GetUnit(), 0, "Malformed, duplicate and backwards ticks never seal the current tick");
+        Receive("TICK_END 10");
+        Step(TickSeconds / 2);
+        At(GetUnit(), .55f, "Delayed tick resumes from the frozen endpoint");
+        At(GetUnit(202), 10.55f, "Split packets preserve a shared interpolation fraction");
         Receive("TICK 11");
-        Step(.025);
-        At(GetUnit(), .5f, "Delayed tick resumes from the frozen endpoint");
-        At(GetUnit(202), 10.5f, "Split packets preserve a shared interpolation fraction");
         Receive("POS 101 NaN 0");
         Receive("POS 101 5 Infinity");
         Receive("TICK 12");
@@ -126,6 +134,9 @@ public partial class InterpolationChecks : Main
         At(GetUnit(), 2, "Batched ticks remain distinct and never extrapolate into an unfinished tick");
         Step(1);
         At(GetUnit(), 2, "Network stalls hold the last completed position");
+        Receive("TICK_END 12");
+        Step(TickSeconds);
+        At(GetUnit(), 2, "A stale completion cannot expose the open tick");
         for (uint tick = 14; tick <= 100; tick++)
         {
             Receive($"TICK {tick}");
@@ -194,35 +205,43 @@ public partial class InterpolationChecks : Main
         Check(history.Sample(0, Vector3.One) == Vector3.One, "Empty history uses its supplied snapshot");
 
         var clock = new InterpolationClock();
+        Check(InterpolationClock.TickRate == 30 && InterpolationClock.DelayTicks == 1.5 &&
+            InterpolationClock.DelaySeconds == .05, "30Hz uses an exact 50ms fractional delay");
+        Check(!clock.CompleteTick(100), "Completion before the first tick is ignored");
         clock.BeginTick(100);
         for (uint tick = 100; tick < 160; tick++)
         {
             if (tick != 100) Check(clock.BeginTick(tick), "Accept sequential ticks");
-            for (int frame = 1; frame <= 3; frame++)
+            Check(clock.CompleteTick(tick) && !clock.CompleteTick(tick), "Complete each tick once");
+            for (int frame = 1; frame <= 2; frame++)
             {
                 clock.Advance(1.0 / 60);
-                Check(Math.Abs(clock.RenderTick - (tick - 2 + frame / 3.0)) < .00001,
-                    "60fps maintains a two-tick delay against 20Hz arrivals");
+                Check(Math.Abs(clock.RenderTick - (tick - 1.5 + frame / 2.0)) < .00001,
+                    "60fps advances every frame at 50ms delay against 30Hz arrivals");
             }
         }
         double previous = clock.RenderTick;
         for (uint tick = 160; tick < 200; tick++)
         {
             clock.BeginTick(tick);
-            clock.Advance(tick % 2 == 0 ? .04 : .06);
-            Check(clock.RenderTick >= previous && clock.RenderTick <= clock.CurrentTick - 1,
+            clock.CompleteTick(tick);
+            clock.Advance(TickSeconds + (tick % 2 == 0 ? -.005 : .005));
+            Check(clock.RenderTick >= previous && clock.RenderTick <= clock.CompletedTick,
                 "Jitter never rewinds or runs beyond confirmed time");
             previous = clock.RenderTick;
         }
-        Check(clock.CurrentTick - clock.RenderTick < 2.5, "Jitter correction does not accumulate delay");
+        Check(clock.CurrentTick - clock.RenderTick < 1.5, "Jitter correction does not accumulate delay");
         clock.Reset();
         clock.BeginTick(uint.MaxValue - 1);
-        clock.Advance(.05);
+        clock.CompleteTick(uint.MaxValue - 1);
+        clock.Advance(TickSeconds);
         Check(clock.BeginTick(uint.MaxValue), "Accept the last uint tick");
-        clock.Advance(.05);
+        clock.CompleteTick(uint.MaxValue);
+        clock.Advance(TickSeconds);
         Check(clock.BeginTick(0) && clock.CurrentTick == (long)uint.MaxValue + 1, "Unwrap the uint32 boundary");
+        Check(clock.CompleteTick(0), "Completion survives uint32 wrap");
         previous = clock.RenderTick;
-        clock.Advance(.025);
+        clock.Advance(TickSeconds / 2);
         Check(Math.Abs(clock.RenderTick - previous - .5) < .00001, "Fractional interpolation survives tick wrap");
     }
 

@@ -67,6 +67,21 @@ public sealed class FogLightMesh
 
     public bool Contains(Vector2 point) => _sight >= 0 && _body.DistanceTo(new(point, Vector2.Zero, 0)) <= _sight &&
         Geometry2D.IsPointInPolygon(point - _body.Center, _polygon);
+
+    public bool Intersects(RangeBody target, float cell)
+    {
+        if (_body.DistanceTo(target) > _sight) return false;
+        Vector2 min = target.Center - target.HalfExtents, max = target.Center + target.HalfExtents;
+        if (Contains(_body.Center.Clamp(min, max))) return true;
+        int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(target.HalfExtents.X, target.HalfExtents.Y) * 4 / cell));
+        for (int i = 0; i <= steps; i++)
+        {
+            float t = (float)i / steps;
+            if (Contains(new(Mathf.Lerp(min.X, max.X, t), min.Y)) || Contains(new(Mathf.Lerp(min.X, max.X, t), max.Y)) ||
+                Contains(new(min.X, Mathf.Lerp(min.Y, max.Y, t))) || Contains(new(max.X, Mathf.Lerp(min.Y, max.Y, t)))) return true;
+        }
+        return false;
+    }
     public void Remove()
     {
         _node.Hide();

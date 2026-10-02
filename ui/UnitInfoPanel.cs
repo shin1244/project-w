@@ -19,6 +19,7 @@ public partial class UnitInfoPanel : PanelContainer
     private readonly Dictionary<string, Label> _stats = new();
     private TextureRect _portrait;
     private ProgressBar _health, _experience;
+    private ColorRect _shieldFill;
     private Control _experienceRow;
     private StyleBoxFlat _healthFill;
 
@@ -73,6 +74,7 @@ public partial class UnitInfoPanel : PanelContainer
         status.AddChild(_level);
 
         (_, _health, _healthText) = Vital(content, "Health", "HealthText", 16, "64cf79");
+        _shieldFill = HealthDisplay.CreateShieldFill(_health);
         _healthFill = Style("64cf79", "64cf79");
         _health.AddThemeStyleboxOverride("fill", _healthFill);
         (_experienceRow, _experience, _experienceText) = Vital(content, "Experience", "ExperienceText", 14, "ac945a");
@@ -142,6 +144,7 @@ public partial class UnitInfoPanel : PanelContainer
             _name.Text = _activity.Text = _healthText.Text = _level.Text = _experienceText.Text = "";
             foreach (Label label in _stats.Values) label.Text = "";
             _health.Value = _experience.Value = 0;
+            _shieldFill.Hide();
             return;
         }
         if (!Units.CanInspect(InspectedUnit)) InspectedUnit = null;
@@ -160,7 +163,7 @@ public partial class UnitInfoPanel : PanelContainer
         _activity.Text = unit == null ? "—" : SelectionDetails.ActivityText(unit.State, unit.HasServerState).Replace("상태   ", "");
         _healthText.Text = unit == null ? "— / —" : SelectionDetails.HealthText(unit.HealthBar);
         float ratio = unit?.HealthBar.Ratio ?? 0;
-        _health.Value = ratio * 100;
+        HealthDisplay.Apply(_health, _shieldFill, unit?.HealthBar.CurrentHP ?? 0, unit?.HealthBar.MaxHP ?? 0, unit?.HealthBar.Shield ?? 0);
         _healthFill.BgColor = _healthFill.BorderColor = SelectionDetails.HealthColor(ratio);
         StatsSnapshot? stats = unit?.Stats;
         _stats["Damage"].Text = $"공격 {Number(stats?.Damage)}";

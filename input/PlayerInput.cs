@@ -25,7 +25,7 @@ public partial class PlayerInput : Node
 	public event Action<Vector3> AttackGroundClicked;
 	public event Action StopRequested;
 	public event Action HoldRequested;
-	public event Action<int, Unit> SkillTargetClicked;
+	public event Action<SkillInput> SkillRequested;
 	public event Action<int?> SkillTargetingChanged;
 	public bool IsAttackTargeting { get; private set; }
 	public bool IsSkillTargeting => _skillSlot.HasValue;
@@ -78,18 +78,23 @@ public partial class PlayerInput : Node
 
 	private void BeginSkillTargeting(int slot)
 	{
-		if (slot != 0 || Skills?.CanUseQ != true || !GodotObject.IsInstanceValid(Camera)) return;
+		if (Skills?.CanUse(slot) != true || !GodotObject.IsInstanceValid(Camera)) return;
 		Placement?.Cancel();
 		Commands?.CancelMenu();
 		CancelDrag();
 		SetAttackTargeting(false);
 		_lastGroup = 0;
-		SetSkillTargeting(slot);
+		if (Skills.Definition(slot)?.Target == SkillTargetMode.Self)
+		{
+			SetSkillTargeting(null);
+			SkillRequested?.Invoke(new SkillInput(slot));
+		}
+		else SetSkillTargeting(slot);
 	}
 
 	private void OnSkillAvailabilityChanged()
 	{
-		if (Skills?.CanUseQ != true) SetSkillTargeting(null);
+		if (_skillSlot is int slot && Skills?.CanUse(slot) != true) SetSkillTargeting(null);
 	}
 
 	private void QueueStop()
@@ -317,7 +322,7 @@ public partial class PlayerInput : Node
 	{
 		_skillSlot = slot;
 		_skillGeneration++;
-		Skills?.SetTargeting(slot.HasValue);
+		Skills?.SetTargeting(slot);
 		UpdateTargetCursor();
 		SkillTargetingChanged?.Invoke(slot);
 	}
@@ -382,10 +387,18 @@ public partial class PlayerInput : Node
 		Vector3 direction = Camera.ProjectRayNormal(position);
 		_actions.Enqueue(() =>
 		{
-			if (_skillSlot != slot || generation != _skillGeneration || Skills.CanUseQ != true || Skills.HeroUnitId != hero) return;
-			if (FindTarget(origin, direction, SelectionMask | BuildingMask) is not Unit target || !Skills.IsEnemyTarget(target)) return;
+			if (_skillSlot != slot || generation != _skillGeneration || !Skills.CanUse(slot) || Skills.HeroUnitId != hero) return;
+			if (Skills.Definition(slot)?.Target == SkillTargetMode.Point)
+			{
+				if (GroundPlane.IntersectsRay(origin, direction) is not Vector3 point) return;
+				SetSkillTargeting(null);
+				SkillRequested?.Invoke(new SkillInput(slot, Point: point));
+				return;
+			}
+			Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
+			if (!Skills.AcceptsTarget(slot, target)) return;
 			SetSkillTargeting(null);
-			SkillTargetClicked?.Invoke(slot, target);
+			SkillRequested?.Invoke(new SkillInput(slot, target));
 		});
 	}
 

@@ -13,6 +13,7 @@ public partial class FogOfWar : MeshInstance3D
     private readonly Dictionary<uint, float> _buildingSight = new();
     private readonly Dictionary<uint, float> _unitRadii = new();
     private readonly Dictionary<uint, Vector2> _buildingSizes = new();
+    private readonly Dictionary<uint, bool> _buildingVision = new();
     private Vector2 _origin;
     private Vector2I _size;
     private float _cellSize;
@@ -86,6 +87,16 @@ public partial class FogOfWar : MeshInstance3D
 
     public void Invalidate() => _dirty = true;
 
+    public void HandleBuildingVision(string[] parts)
+    {
+        if (parts.Length != 3 || !uint.TryParse(parts[1], out uint id) || id == 0 ||
+            parts[2] is not ("0" or "1")) return;
+        _buildingVision[id] = parts[2] == "1";
+        Invalidate();
+    }
+
+    public void ForgetBuilding(uint id) => _buildingVision.Remove(id);
+
     public float UnitBodyRadius(Unit unit) => _unitRadii.GetValueOrDefault(unit.UnitType, unit.PlacementRadius);
 
     // 서버의 충돌 몸체를 사용하여 외형 크기와 판정 크기가 섞이지 않도록 합니다.
@@ -110,6 +121,9 @@ public partial class FogOfWar : MeshInstance3D
         _buildingSight.Clear();
         _unitRadii.Clear();
         _buildingSizes.Clear();
+        _buildingVision.Clear();
+        if (GodotObject.IsInstanceValid(Buildings))
+            foreach (Building building in Buildings.LiveBuildings) building.SetFogRevealed(false);
         foreach (FogLightMesh source in _sources.Values) source.Remove();
         _sources.Clear();
         if (_maskViewport != null) _maskViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
@@ -148,7 +162,7 @@ public partial class FogOfWar : MeshInstance3D
                     if (building.SideId == Team && (building.Stats.HasValue || _buildingSight.ContainsKey(building.BuildingType)))
                     {
                         float sight = building.Stats?.Sight ?? _buildingSight[building.BuildingType];
-                        changed |= UpdateSource(building.BuildingId, BuildingBody(building), sight, _occlusion.BuildingToken(building.BuildingId));
+                        changed |= UpdateSource(building.BuildingId, BuildingBody(building), sight, 0);
                     }
         }
         _stale.Clear();
@@ -156,6 +170,8 @@ public partial class FogOfWar : MeshInstance3D
             if (!_seen.Contains(id)) _stale.Add(id);
         foreach (uint id in _stale) { _sources[id].Remove(); _sources.Remove(id); changed = true; }
         if (changed) _maskViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
+        if (GodotObject.IsInstanceValid(Buildings))
+            foreach (Building building in Buildings.LiveBuildings) building.SetFogRevealed(IsBuildingVisible(building));
     }
 
     private bool UpdateSource(uint id, RangeBody body, float sight, int ignore)
@@ -189,16 +205,12 @@ public partial class FogOfWar : MeshInstance3D
         if (_dirty) RefreshVision();
         if (Team == 0) return false;
         if (building.SideId == Team) return true;
-        // 중심은 건물 자체의 차폐 안에 있으므로 시야에 드러난 외벽도 검사한다.
+        if (_buildingVision.TryGetValue(building.BuildingId, out bool visible)) return visible;
+        // 서버 없는 미리보기/초기 스냅샷에서는 실제 외벽의 시야를 확인합니다.
         if (_occlusion == null || _cellSize <= 0) return false;
         RangeBody body = BuildingBody(building);
-        Rect2 bounds = new(body.Center - body.HalfExtents, body.HalfExtents * 2);
-        // 차폐 격자에 걸친 부지도 같은 외곽으로 검사한다. 반 칸에 걸친 건물의 외벽을 놓치지 않는다.
-        Vector2 min = _origin + ((bounds.Position - _origin) / _cellSize).Floor() * _cellSize - Vector2.One * .05f;
-        Vector2 max = _origin + ((bounds.End - _origin) / _cellSize).Ceil() * _cellSize + Vector2.One * .05f;
-        for (int x = 0; x <= 2; x++)
-            for (int z = 0; z <= 2; z++)
-                if (IsVisibleAt(new Vector3(Mathf.Lerp(min.X, max.X, x * .5f), 0, Mathf.Lerp(min.Y, max.Y, z * .5f)))) return true;
+        foreach (FogLightMesh source in _sources.Values)
+            if (source.Intersects(body, _cellSize)) return true;
         return false;
     }
 

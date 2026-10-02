@@ -9,66 +9,30 @@ public sealed class FogOcclusionGrid
     private readonly float _cell;
     private readonly Vector2I _size;
     private readonly bool[] _terrain;
-    private readonly int[] _buildings;
-    private readonly Dictionary<uint, int> _tokens = new();
     private uint _mapVersion = uint.MaxValue;
-    private uint _layoutVersion = uint.MaxValue;
     public uint Revision { get; private set; }
 
     public FogOcclusionGrid(Vector2 origin, float cell, Vector2I size)
     {
         _origin = origin; _cell = cell; _size = size;
         _terrain = new bool[checked(size.X * size.Y)];
-        _buildings = new int[_terrain.Length];
     }
 
-    public void Invalidate() { _mapVersion = uint.MaxValue; _layoutVersion = uint.MaxValue; }
+    public void Invalidate() => _mapVersion = uint.MaxValue;
 
     public void Refresh(MapWorld map, BuildingManager buildings, IReadOnlyDictionary<uint, Vector2> bodySizes = null)
     {
-        uint layout = GodotObject.IsInstanceValid(buildings) ? buildings.LayoutVersion : 0;
-        if (_mapVersion == map.OcclusionVersion && _layoutVersion == layout) return;
-        _mapVersion = map.OcclusionVersion; _layoutVersion = layout;
+        if (_mapVersion == map.OcclusionVersion) return;
+        _mapVersion = map.OcclusionVersion;
         map.CopyVisionObstacles(_terrain);
-        Array.Clear(_buildings);
-        _tokens.Clear();
-        if (GodotObject.IsInstanceValid(buildings))
-            foreach (Building building in buildings.LiveBuildings)
-            {
-                int token = _tokens.Count + 1;
-                _tokens[building.BuildingId] = token;
-                Vector2[] corners;
-                if (bodySizes != null && bodySizes.TryGetValue(building.BuildingType, out Vector2 bodySize))
-                {
-                    Vector2 center = new(building.GlobalPosition.X, building.GlobalPosition.Z);
-                    Vector2 lo = center - bodySize * .5f, hi = center + bodySize * .5f;
-                    corners = new[] { lo, new Vector2(hi.X, lo.Y), hi, new Vector2(lo.X, hi.Y) };
-                }
-                else corners = BuildingFootprint.Corners(building);
-                Rect2 bounds = BuildingFootprint.Bounds(corners);
-                Vector2 min = bounds.Position, max = bounds.End;
-                int x0 = Math.Max(0, Mathf.FloorToInt((min.X - _origin.X) / _cell));
-                int z0 = Math.Max(0, Mathf.FloorToInt((min.Y - _origin.Y) / _cell));
-                int x1 = Math.Min(_size.X - 1, Mathf.CeilToInt((max.X - _origin.X) / _cell) - 1);
-                int z1 = Math.Min(_size.Y - 1, Mathf.CeilToInt((max.Y - _origin.Y) / _cell) - 1);
-                for (int z = z0; z <= z1; z++)
-                    for (int x = x0; x <= x1; x++)
-                    {
-                        if (!BuildingFootprint.Overlaps(new Rect2(_origin + new Vector2(x, z) * _cell, Vector2.One * _cell), corners)) continue;
-                        int i = z * _size.X + x;
-                        _buildings[i] = _buildings[i] == 0 ? token : -1;
-                    }
-            }
         Revision++;
     }
-
-    public int BuildingToken(uint id) => _tokens.TryGetValue(id, out int token) ? token : 0;
 
     private bool Blocked(int x, int z, int ignore)
     {
         if (x < 0 || z < 0 || x >= _size.X || z >= _size.Y) return true;
         int i = z * _size.X + x;
-        return _terrain[i] || (_buildings[i] != 0 && _buildings[i] != ignore);
+        return _terrain[i]; // 건물 충돌은 이동/배치 격자에만 남깁니다.
     }
 
     // 정규화된 방향으로 격자를 통과하며 최초 장애물 경계까지만 반환합니다. 물리 쿼리는 없습니다.

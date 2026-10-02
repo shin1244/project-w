@@ -5,6 +5,10 @@ public static class Protocol
 {
     public static string BuildTargetSkill(int slot, uint targetId)
         => FormattableString.Invariant($"SKILL {slot} {targetId}");
+    public static string BuildPointSkill(int slot, float x, float z)
+        => FormattableString.Invariant($"SKILL {slot} {x} {z}");
+    public static string BuildSelfSkill(int slot)
+        => FormattableString.Invariant($"SKILL {slot}");
 
     public static string BuildMapReady(string hash, PlayerRole role, uint heroType) => role switch
     {

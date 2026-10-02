@@ -18,6 +18,7 @@ public partial class SelectionDetails : PanelContainer
     private GridContainer _grid;
     private TextureRect _portrait;
     private ProgressBar _health;
+    private ColorRect _shieldFill;
     private VBoxContainer _production;
     private ProgressBar _productionProgress;
     private HBoxContainer _productionQueue;
@@ -95,6 +96,7 @@ public partial class SelectionDetails : PanelContainer
         _healthFill = Style("64cf79", "64cf79");
         _health.AddThemeStyleboxOverride("fill", _healthFill);
         information.AddChild(_health);
+        _shieldFill = HealthDisplay.CreateShieldFill(_health);
         _activity = Text("", 14, "d0dcd2");
         _activity.Name = "Activity";
         information.AddChild(_activity);
@@ -260,7 +262,7 @@ public partial class SelectionDetails : PanelContainer
         _activity.Visible = _activity.Text.Length > 0;
         _extra.Visible = _extra.Text.Length > 0;
         SetText(_healthText, $"체력   {HealthText(health)}");
-        _health.Value = health.MaxHP > 0 ? health.Ratio * 100 : 0;
+        HealthDisplay.Apply(_health, _shieldFill, health.CurrentHP, health.MaxHP, health.Shield);
         Color color = HealthColor(health.Ratio);
         if (_healthFill.BgColor != color) _healthFill.BgColor = _healthFill.BorderColor = color;
     }
@@ -379,8 +381,7 @@ public partial class SelectionDetails : PanelContainer
     private static void SetText(Label label, string text) { if (label.Text != text) label.Text = text; }
     private static bool Available(Node node) => GodotObject.IsInstanceValid(node) && node.IsInsideTree() && !node.IsQueuedForDeletion() && node is not Unit { IsDying: true };
     public static string UnitName(uint type) => UnitCatalog.Name(type);
-    public static string HealthText(HealthBar health) => health.MaxHP <= 0 ? "— / —" :
-        $"{health.CurrentHP.ToString("0.#", CultureInfo.InvariantCulture)} / {health.MaxHP.ToString("0.#", CultureInfo.InvariantCulture)}";
+    public static string HealthText(HealthBar health) => HealthDisplay.Text(health.CurrentHP, health.MaxHP, health.Shield);
     public static Color HealthColor(float ratio) => new(ratio > .5f ? "64cf79" : ratio > .25f ? "edbf55" : "e96860");
     public static string ActivityText(UnitState state, bool known) => !known ? "상태   —" : state.Activity switch
     {

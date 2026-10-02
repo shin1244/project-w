@@ -342,10 +342,11 @@ public partial class RtsControlChecks : Main
         Check(_commands.Count == before, "Resync binds the new hero and drops pending commands for the old session");
 
         await CheckWolfSkill();
+        await CheckSkillDefinitions();
         before = _commands.Count;
         Receive("WELCOME 7 1 COMMANDER");
         KeyPress(Key.Q);
-        Check(!_input.IsSkillTargeting && !Skills.CanUseQ, "Returning to RTS removes the hero Q shortcut");
+        Check(!_input.IsSkillTargeting && !Skills.CanUse(0), "Returning to RTS removes the hero Q shortcut");
         Receive("UNIT 0 507 7 -8 -8 1");
         Expect();
         await Flush();
@@ -360,6 +361,7 @@ public partial class RtsControlChecks : Main
 
     private async Task CheckWolfSkill()
     {
+        Receive("ABILITY UNIT 200 0 wolf-bite ENEMY 6 6 1");
         Receive("UNIT 1 950 8 3 -8 2");
         Receive("UNIT 1 951 9 -4 -8 1");
         Receive("TICK 100");
@@ -367,7 +369,7 @@ public partial class RtsControlChecks : Main
         var button = Skills.GetNode<Button>("Content/Slots/Q");
         var cooldown = (Label)button.FindChild("Cooldown", true, false);
         int before = _commands.Count;
-        Check(Skills.CanUseQ && !button.Disabled, "A live owned wolf can arm Q without selecting itself");
+        Check(Skills.CanUse(0) && !button.Disabled, "A live owned wolf can arm Q without selecting itself");
         ClickUnit(950);
         await Flush();
         KeyPress(Key.Q, ctrl: true);
@@ -378,15 +380,23 @@ public partial class RtsControlChecks : Main
         Check(Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") is { Visible: true } &&
             Unit(950).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") == null,
             "Q shows range around the controlled hero, not the inspected enemy");
-        if (OS.GetCmdlineUserArgs().Contains("--capture-skill-range"))
+        if (OS.GetCmdlineUserArgs().Contains("--capture-skill-range") || OS.GetCmdlineUserArgs().Contains("--capture-shield-tooltip"))
         {
             Receive("SIGHT UNIT 200 10");
             Receive("HP 506 300 300");
             Fog.RefreshVision();
             await Flush();
+            if (OS.GetCmdlineUserArgs().Contains("--capture-shield-tooltip"))
+            {
+                GetTree().Root.GuiEmbedSubwindows = true;
+                Receive("SHIELD 506 160");
+                Motion(Skills.GetNode<Control>("Content/Slots/R").GetGlobalRect().GetCenter());
+                await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
+            }
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             using Image image = GetViewport().GetTexture().GetImage();
-            image.SavePng("res://.godot/wolf-q-range.png");
+            image.SavePng(OS.GetCmdlineUserArgs().Contains("--capture-shield-tooltip")
+                ? "res://.godot/shield-tooltip.png" : "res://.godot/wolf-q-range.png");
         }
         ClickUnit(951);
         Click(Units.Camera.UnprojectPosition(new Vector3(15, 0, -8)), MouseButton.Left);
@@ -396,25 +406,25 @@ public partial class RtsControlChecks : Main
         ClickUnit(950);
         await Flush();
         Check(_commands.Count == before + 1 && _commands.Last() == "SKILL 0 950" && !_input.IsSkillTargeting &&
-            Skills.CanUseQ && UnitInfo.InspectedUnit == Unit(950) && Units.SelectedUnitIds.SequenceEqual(new uint[] { 506 }) &&
+            Skills.CanUse(0) && UnitInfo.InspectedUnit == Unit(950) && Units.SelectedUnitIds.SequenceEqual(new uint[] { 506 }) &&
             Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") == null,
             "Q sends exactly slot and enemy ID, preserves hero control/inspection, and waits for server cooldown");
         Receive("SKILL 506 0 950");
         Receive("STATE 506 DASH 0 950 0");
         Check(Unit(506).State.Activity == UnitActivity.Dash, "Server DASH is accepted for facing and wolf presentation");
-        Receive("COOLDOWN 0 220");
-        Check(!Skills.CanUseQ && button.Disabled && cooldown.Text == "6", "COOLDOWN uses server ready tick, not a copied skill duration");
+        Receive("COOLDOWN 506 0 220");
+        Check(!Skills.CanUse(0) && button.Disabled && cooldown.Text == "4", "COOLDOWN 506 uses 30Hz server ticks, not a copied skill duration");
         KeyPress(Key.Q);
         Click(button.GetGlobalRect().GetCenter(), MouseButton.Left);
         await Flush();
         Check(!_input.IsSkillTargeting && _commands.Count == before + 1, "Cooldown blocks both keyboard and button casts");
         Receive("TICK 160");
-        foreach (string invalid in new[] { "COOLDOWN -1 220", "COOLDOWN 5 220", "COOLDOWN 0 -1", "COOLDOWN 0 NaN",
-            "COOLDOWN 0 4294967296", "COOLDOWN 0 220 extra", "COOLDOWN 1 500", "COOLDOWN 0 180", "TICK 120" }) Receive(invalid);
-        Check(cooldown.Text == "3" && Skills.QRemainingSeconds == 3, "Malformed, foreign-slot and stale timing messages cannot alter Q cooldown");
+        foreach (string invalid in new[] { "COOLDOWN 506 -1 220", "COOLDOWN 506 5 220", "COOLDOWN 506 0 -1", "COOLDOWN 506 0 NaN",
+            "COOLDOWN 506 0 4294967296", "COOLDOWN 506 0 220 extra", "COOLDOWN 506 1 500", "COOLDOWN 506 0 180", "TICK 120" }) Receive(invalid);
+        Check(cooldown.Text == "2" && Skills.RemainingSeconds(0) == 2, "Malformed, foreign-slot and stale timing messages cannot alter Q cooldown");
         Receive("TICK 220");
         Receive("STATE 506 IDLE 0 0 0");
-        Check(Skills.CanUseQ && cooldown.Text == "", "The server ready tick re-enables Q");
+        Check(Skills.CanUse(0) && cooldown.Text == "", "The server ready tick re-enables Q");
 
         Click(button.GetGlobalRect().GetCenter(), MouseButton.Left);
         Check(_input.IsSkillTargeting && Unit(506).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") is { Visible: true },
@@ -438,18 +448,18 @@ public partial class RtsControlChecks : Main
         KeyPress(Key.Q);
         Check(_input.IsSkillTargeting && !_input.IsAttackTargeting, "Q replaces attack targeting");
         Receive("STATE 506 STUN 0 0 0");
-        Check(Unit(506).State.Activity == UnitActivity.Stun && !Skills.CanUseQ && !_input.IsSkillTargeting,
+        Check(Unit(506).State.Activity == UnitActivity.Stun && !Skills.CanUse(0) && !_input.IsSkillTargeting,
             "Server stun immediately cancels Q and disables the skill");
         Receive("STATE 506 IDLE 0 0 0");
         Click(button.GetGlobalRect().GetCenter(), MouseButton.Left);
         ClickUnit(950);
         await Flush();
         Check(_commands.Count == before + 2 && _commands.Last() == "SKILL 0 950", "Button targeting sends the same skill request after stun ends");
-        Receive("COOLDOWN 0 340");
+        Receive("COOLDOWN 506 0 340");
         Receive("REMOVE 506");
         KeyPress(Key.Q);
         Receive("UNIT 200 952 7 0 -8 1");
-        Check(!Skills.CanUseQ && Skills.HeroUnitId == 952 && Skills.QRemainingSeconds == 6,
+        Check(!Skills.CanUse(0) && Skills.HeroUnitId == 952 && Skills.RemainingSeconds(0) == 4,
             "Cooldown belongs to the player and survives hero death and a new unit ID");
         Receive("TICK 340");
         KeyPress(Key.Q);
@@ -457,10 +467,53 @@ public partial class RtsControlChecks : Main
         Receive($"MAP 2 {Map.MapHash}");
         Receive("WORLD_READY");
         Receive("WELCOME 7 1 HERO 200");
+        Receive("ABILITY UNIT 200 0 wolf-bite ENEMY 6 6 1");
         Receive("UNIT 200 953 7 0 -8 1");
         await Flush();
-        Check(_commands.Count == before + 2 && !_input.IsSkillTargeting && Skills.CanUseQ && cooldown.Text == "",
+        Check(_commands.Count == before + 2 && !_input.IsSkillTargeting && Skills.CanUse(0) && cooldown.Text == "",
             "Resync drops queued skill requests and previous cooldowns before binding the new hero");
+    }
+
+    private async Task CheckSkillDefinitions()
+    {
+        Receive("ABILITY UNIT 200 1 blessing ALLY 9 12 0");
+        Receive("ABILITY UNIT 200 2 ground-burst POINT 8 4 0");
+        Receive("ABILITY UNIT 200 3 haste SELF 0 10 0");
+        Receive("UNIT 1 960 8 3 -8 2");
+        Receive("UNIT 1 961 9 -4 -8 1");
+        await Flush();
+        int before = _commands.Count;
+        KeyPress(Key.W);
+        ClickUnit(960);
+        await Flush();
+        Check(_input.IsSkillTargeting && _commands.Count == before, "Ally skills reject enemy targets");
+        ClickUnit(961);
+        await Flush();
+        Check(_commands.Count == before + 1 && _commands.Last() == "SKILL 1 961", "W targets another player's ally using its server definition");
+        KeyPress(Key.E);
+        Click(Units.Camera.UnprojectPosition(new Vector3(10, 0, -8)), MouseButton.Left);
+        await Flush();
+        Check(_commands.Count == before + 2 && _commands.Last().StartsWith("SKILL 2 ") && _commands.Last().Split(' ').Length == 4,
+            "Point skills send coordinates through the same targeting flow");
+        KeyPress(Key.R);
+        Check(_commands.Count == before + 3 && _commands.Last() == "SKILL 3" && !_input.IsSkillTargeting,
+            "Self skills cast without a target click");
+        KeyPress(Key.W);
+        Receive("CONTROL 953 4");
+        Check(!_input.IsSkillTargeting && !Skills.CanUse(1), "Silence cancels targeting independently of displayed activity");
+        Receive("CONTROL 953 2");
+        Check(!Skills.CanUse(0) && Skills.CanUse(1), "Root blocks movement skills and permits stationary skills");
+        Receive("CONTROL 953 8");
+        Check(Skills.CanUse(0) && Skills.CanUse(1), "Disarm leaves skills available");
+        Receive("CONTROL 953 0");
+        Receive("COOLDOWN 960 1 900");
+        foreach (string invalid in new[] { "ABILITY UNIT 200 1 blessing ALLY NaN 12 0", "ABILITY UNIT 200 1 ../bad ALLY 9 12 0",
+            "ABILITY UNIT 200 1 blessing ALLY 9 12 2", "CONTROL 953 16", "UNIT 200 962 7 NaN -8 1" }) Receive(invalid);
+        Check(Skills.Definition(1)?.Range == 9 && Skills.CanUse(1) && Skills.HeroUnitId == 953,
+            "Malformed definitions, controls, unit positions and another caster's cooldown do not change the skill state");
+        foreach (string valid in new[] { "SKILL 953 1 961", "SKILL 953 2 10 -8", "SKILL 953 3" })
+            Check(SkillActivationSnapshot.TryParse(valid.Split(' '), out _), "All activation forms support presentation");
+        Check(!SkillActivationSnapshot.TryParse("SKILL 953 2 NaN 0".Split(' '), out _), "Invalid activation coordinates are rejected");
     }
 
     private Vector3 GroundCenter()

@@ -5,6 +5,7 @@ public partial class HealthBar : Control
 {
     public float CurrentHP { get; private set; }
     public float MaxHP { get; private set; }
+    public float Shield { get; private set; }
     public float Ratio => MaxHP > 0 ? Mathf.Clamp(CurrentHP / MaxHP, 0, 1) : 0;
     private Node3D _owner;
     private float _worldHeight;
@@ -34,6 +35,13 @@ public partial class HealthBar : Control
         QueueRedraw();
     }
 
+    public void ApplyShield(float amount)
+    {
+        if (!float.IsFinite(amount) || amount < 0) return;
+        Shield = amount;
+        QueueRedraw();
+    }
+
     public void SetSelected(bool selected)
     {
         _selected = selected;
@@ -57,6 +65,7 @@ public partial class HealthBar : Control
     public void Clear()
     {
         _hasHealth = false;
+        Shield = 0;
         SetProcess(false);
         Hide();
     }
@@ -80,6 +89,10 @@ public partial class HealthBar : Control
         DrawRect(new Rect2(Vector2.One, inner), new Color("343b42"));
         Color fill = Ratio > .5f ? new Color("64cf79")
             : Ratio > .25f ? new Color("edbf55") : new Color("e96860");
-        DrawRect(new Rect2(Vector2.One, new Vector2(inner.X * Ratio, inner.Y)), fill);
+        float hp = HealthDisplay.HealthFraction(CurrentHP, MaxHP, Shield);
+        float shield = HealthDisplay.ShieldFraction(CurrentHP, MaxHP, Shield);
+        DrawRect(new Rect2(Vector2.One, new Vector2(inner.X * hp, inner.Y)), fill);
+        if (shield > 0)
+            DrawRect(new Rect2(new Vector2(1 + inner.X * hp, 1), new Vector2(inner.X * shield, inner.Y)), HealthDisplay.ShieldColor);
     }
 }

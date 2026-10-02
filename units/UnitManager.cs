@@ -111,12 +111,29 @@ public partial class UnitManager : Node3D
 
     public void RequestTrainWorker() => RequestTrain(0);
 
-    public void RequestHeroSkill(int slot, uint heroId, Unit target)
+    public void RequestHeroSkill(SkillDefinitionSnapshot definition, uint heroId, SkillInput input)
     {
-        if (_controlledHeroType != UnitCatalog.HeroTest || slot != 0 ||
-            !TryGetUnit(heroId, out Unit hero) || !CanControl(hero) || hero.State.Activity == UnitActivity.Stun ||
-            !CanInspect(target) || target.Team == _localTeam) return;
-        CommandRequested?.Invoke(Protocol.BuildTargetSkill(slot, target.UnitId));
+        if (!_controlledHeroType.HasValue || definition.UnitType != _controlledHeroType || input.Slot != definition.Slot ||
+            !TryGetUnit(heroId, out Unit hero) || !CanControl(hero) || hero.State.Activity is UnitActivity.Stun or UnitActivity.Dash) return;
+        switch (definition.Target)
+        {
+            case SkillTargetMode.Self:
+                CommandRequested?.Invoke(Protocol.BuildSelfSkill(input.Slot));
+                break;
+            case SkillTargetMode.Point when input.Point is Vector3 point && float.IsFinite(point.X) && float.IsFinite(point.Z):
+                CommandRequested?.Invoke(Protocol.BuildPointSkill(input.Slot, point.X, point.Z));
+                break;
+            case SkillTargetMode.Enemy:
+            case SkillTargetMode.Ally:
+                uint id, team;
+                if (input.Target is Unit unit && CanInspect(unit)) { id = unit.UnitId; team = unit.Team; }
+                else if (input.Target is Building building && GodotObject.IsInstanceValid(Buildings) && Buildings.CanInspect(building))
+                { id = building.BuildingId; team = building.SideId; }
+                else return;
+                if ((team == _localTeam) != (definition.Target == SkillTargetMode.Ally)) return;
+                CommandRequested?.Invoke(Protocol.BuildTargetSkill(input.Slot, id));
+                break;
+        }
     }
 
     private bool CanUseSelectedBuilding(Building building) => _localPlayerId != 0 && _localTeam != 0 &&
@@ -225,6 +242,7 @@ public partial class UnitManager : Node3D
             Unit unit => !unit.IsDying && unit.Team != _localTeam &&
                 _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit,
             Building building => building.SideId != _localTeam && GodotObject.IsInstanceValid(Buildings) &&
+                Buildings.CanInspect(building) &&
                 Buildings.TryGetBuilding(building.BuildingId, out Building registered) && registered == building,
             _ => false
         };
@@ -335,6 +353,11 @@ public partial class UnitManager : Node3D
         if (_units.TryGetValue(health.Id, out Unit unit)) unit.ApplyHealth(health);
     }
 
+    public void HandleShield(ShieldSnapshot shield)
+    {
+        if (_units.TryGetValue(shield.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyShield(shield.Amount);
+    }
+
     public void HandlePosition(string[] parts)
     {
         if (parts.Length != 4)
@@ -370,9 +393,17 @@ public partial class UnitManager : Node3D
         bool hadTick = _interpolation.HasTick;
         long completedTick = _interpolation.CurrentTick;
         if (!_interpolation.BeginTick(tick)) return;
-        // 다음 TICK이 와야 앞 틱의 POS가 모두 수신되었습니다. 큐가 잠깐 빈 것은 경계가 아닙니다.
+        // 다음 TICK도 앞 틱의 완료를 보장합니다. 큐가 잠깐 빈 것은 경계가 아닙니다.
         foreach (Unit unit in _units.Values)
             unit.CapturePosition(hadTick ? completedTick : _interpolation.CurrentTick - 1);
+    }
+
+    public void HandleTickEnd(string[] parts)
+    {
+        if (parts.Length != 2 || !uint.TryParse(parts[1], NumberStyles.None,
+                CultureInfo.InvariantCulture, out uint tick) || !_interpolation.CompleteTick(tick)) return;
+        foreach (Unit unit in _units.Values)
+            unit.CapturePosition(_interpolation.CurrentTick);
     }
 
     public void HandleSpawn(string[] parts)

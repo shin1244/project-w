@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://ui/HeroSkillPanel.cs" id="1_skills"]
+[ext_resource type="Theme" path="res://ui/SkillTooltipTheme.tres" id="2_tooltip"]
 
 [node name="HeroSkillPanel" type="PanelContainer"]
 custom_minimum_size = Vector2(408, 136)
@@ -16,4 +17,5 @@ offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 0
+theme = ExtResource("2_tooltip")
 script = ExtResource("1_skills")

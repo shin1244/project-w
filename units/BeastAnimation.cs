@@ -1,7 +1,7 @@
 using Godot;
 
 // 표시 위치와 서버 타격 번호만 사용한다. 이동·공격 판정은 바꾸지 않는다.
-public partial class BeastAnimation : Node
+public partial class BeastAnimation : Node, ISkillPresentation
 {
     private Unit _unit;
     private Node3D _body, _head, _jaw, _arm, _forearm, _tail;

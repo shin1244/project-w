@@ -45,6 +45,8 @@ public partial class Building : Node3D
     private MeshInstance3D _selection;
     private uint _localTeam;
     private TeamMaterials _teamMaterials;
+    private BuildingFogReveal _fogReveal;
+    public bool IsFogRevealed => _fogReveal?.Enabled ?? false;
     private Node3D _visual;
     private bool _completedVisualVisible, _completedTurretVisible;
     private CollisionShape3D _selectionShape;
@@ -101,6 +103,18 @@ public partial class Building : Node3D
             AddChild(_selection);
         }
         if (_selection != null) _selection.Visible = selected;
+    }
+
+    public void SetFogRevealed(bool revealed)
+    {
+        if (revealed && _fogReveal == null)
+        {
+            _fogReveal = new BuildingFogReveal();
+            _fogReveal.Include(_visual);
+            _fogReveal.Include(_turret);
+            _fogReveal.Include(_constructionSite);
+        }
+        _fogReveal?.SetEnabled(revealed);
     }
 
     public void ApplyServerState(UnitState state)
@@ -201,6 +215,7 @@ public partial class Building : Node3D
             {
                 _constructionSite = ConstructionSite.Create(GetMeta("footprint").AsVector2I());
                 AddChild(_constructionSite);
+                _fogReveal?.Include(_constructionSite);
             }
             _constructionSite.SetPercent(ConstructionPercent);
             _constructionSite.Show();
@@ -253,6 +268,8 @@ public partial class Building : Node3D
     {
         _recoil?.Kill();
         _shotTraces.Clear();
+        _fogReveal?.Dispose();
+        _fogReveal = null;
         _teamMaterials?.Dispose();
         _teamMaterials = null;
     }
@@ -272,11 +289,13 @@ public partial class Building : Node3D
         if (SideId == sideId) return;
         SideId = sideId;
         _teamMaterials?.Apply(SideId, _localTeam);
+        _fogReveal?.RefreshColors();
     }
 
     public void SetLocalTeam(uint team)
     {
         _localTeam = team;
         _teamMaterials?.Apply(SideId, _localTeam);
+        _fogReveal?.RefreshColors();
     }
 }

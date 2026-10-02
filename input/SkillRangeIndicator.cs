@@ -3,8 +3,6 @@ using Godot;
 // 대상 지정 중에만 보이는 사거리 안내. 시전 가능 여부는 서버가 판단한다.
 public sealed class SkillRangeIndicator
 {
-    // 서버 hero_defs.go의 늑대 슬롯 0 Range. 아직 스킬 정의를 보내는 메시지는 없다.
-    public const float WolfQRange = 6f;
     private MeshInstance3D _ring;
 
     public void Show(Unit hero, float reach, float bodyRadius)

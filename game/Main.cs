@@ -67,7 +67,7 @@ public partial class Main : Node3D
         _playerInput.AttackGroundClicked += Units.RequestAttackMove;
         _playerInput.StopRequested += Units.RequestStop;
         _playerInput.HoldRequested += Units.RequestHold;
-        _playerInput.SkillTargetClicked += CastHeroSkill;
+        _playerInput.SkillRequested += CastHeroSkill;
         _playerInput.SkillTargetingChanged += ShowSkillRange;
         _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
@@ -128,19 +128,21 @@ public partial class Main : Node3D
         Units.SelectSingle(unit);
     }
 
-    private void CastHeroSkill(int slot, Unit target)
+    private void CastHeroSkill(SkillInput input)
     {
-        if (Map.IsSynchronized && LocalRole == PlayerRole.Hero && Skills is { CanUseQ: true, HeroUnitId: uint id })
-            Units.RequestHeroSkill(slot, id, target);
+        if (Map.IsSynchronized && LocalRole == PlayerRole.Hero && Skills?.CanUse(input.Slot) == true &&
+            Skills.HeroUnitId is uint id && Skills.Definition(input.Slot) is SkillDefinitionSnapshot definition)
+            Units.RequestHeroSkill(definition, id, input);
     }
 
     private void ShowSkillRange(int? slot)
     {
         _skillRange.Clear();
-        if (slot != 0 || !Map.IsSynchronized || LocalRole != PlayerRole.Hero ||
-            Skills is not { CanUseQ: true, HeroUnitId: uint id } ||
+        if (!slot.HasValue || !Map.IsSynchronized || LocalRole != PlayerRole.Hero ||
+            Skills?.CanUse(slot.Value) != true || Skills.HeroUnitId is not uint id ||
+            Skills.Definition(slot.Value) is not SkillDefinitionSnapshot definition ||
             !Units.TryGetUnit(id, out Unit hero) || !Units.CanControl(hero)) return;
-        _skillRange.Show(hero, SkillRangeIndicator.WolfQRange, Fog?.UnitBodyRadius(hero) ?? hero.PlacementRadius);
+        _skillRange.Show(hero, definition.Range, Fog?.UnitBodyRadius(hero) ?? hero.PlacementRadius);
     }
 
     private void SelectBuilding(Building building)
@@ -210,6 +212,9 @@ public partial class Main : Node3D
                 Units.HandleTick(parts);
                 Skills?.HandleTick(parts);
                 break;
+            case "TICK_END":
+                Units.HandleTickEnd(parts);
+                break;
             case "WELCOME":
                 if (WelcomeSnapshot.TryParse(parts, out var welcome))
                 {
@@ -229,6 +234,9 @@ public partial class Main : Node3D
             case "BODY":
                 Fog?.HandleBody(parts);
                 break;
+            case "BUILDING_VISION":
+                Fog?.HandleBuildingVision(parts);
+                break;
             case "UNIT":
                 Units.HandleSpawn(parts);
                 Skills?.HandleUnit(parts);
@@ -242,6 +250,7 @@ public partial class Main : Node3D
                 break;
             case "CONSTRUCTION":
                 Buildings?.HandleConstruction(parts);
+                Fog?.Invalidate();
                 break;
             case "QUEUE":
                 Buildings?.HandleProduction(parts);
@@ -262,6 +271,14 @@ public partial class Main : Node3D
                     Skills?.HandleHealth(health);
                 }
                 break;
+            case "SHIELD":
+                if (ShieldSnapshot.TryParse(parts, out var shield))
+                {
+                    Units.HandleShield(shield);
+                    Buildings?.HandleShield(shield);
+                    Skills?.HandleShield(shield);
+                }
+                break;
             case "STATS":
                 if (StatsSnapshot.TryParse(parts, out var stats))
                 {
@@ -278,10 +295,17 @@ public partial class Main : Node3D
                 if (LocalRole == PlayerRole.Hero && SkillCooldownSnapshot.TryParse(parts, out var cooldown))
                     Skills?.ApplyCooldown(cooldown);
                 break;
+            case "ABILITY":
+                if (SkillDefinitionSnapshot.TryParse(parts, out var definition)) Skills?.HandleDefinition(definition);
+                break;
+            case "CONTROL":
+                if (ControlSnapshot.TryParse(parts, out var control)) Skills?.HandleControl(control);
+                break;
             case "SKILL":
-                if (TargetSkillSnapshot.TryParse(parts, out var skill) && Units.TryGetUnit(skill.CasterId, out Unit caster) &&
-                    Units.CanInspect(caster) && caster.UnitType == UnitCatalog.HeroTest)
-                    caster.GetNodeOrNull<BeastAnimation>("BeastAnimation")?.PlaySkill(skill.Slot);
+                if (SkillActivationSnapshot.TryParse(parts, out var skill) && Units.TryGetUnit(skill.CasterId, out Unit caster) &&
+                    Units.CanInspect(caster))
+                    foreach (Node child in caster.GetChildren())
+                        if (child is ISkillPresentation presentation) presentation.PlaySkill(skill.Slot);
                 break;
             case "STATE":
                 if (StateSnapshot.TryParse(parts, out var state))
@@ -298,6 +322,7 @@ public partial class Main : Node3D
                 Stock?.HandleSupply(parts);
                 break;
             case "REMOVE":
+                if (parts.Length == 2 && uint.TryParse(parts[1], out uint removedBuilding)) Fog?.ForgetBuilding(removedBuilding);
                 Units.HandleRemove(parts);
                 Buildings?.HandleRemove(parts);
                 Skills?.HandleRemove(parts);
@@ -398,7 +423,7 @@ public partial class Main : Node3D
             _playerInput.AttackGroundClicked -= Units.RequestAttackMove;
             _playerInput.StopRequested -= Units.RequestStop;
             _playerInput.HoldRequested -= Units.RequestHold;
-            _playerInput.SkillTargetClicked -= CastHeroSkill;
+            _playerInput.SkillRequested -= CastHeroSkill;
             _playerInput.SkillTargetingChanged -= ShowSkillRange;
             _playerInput.ModifiedUnitSelectionRequested -= ModifyUnitSelection;
             _playerInput.ModifiedBoxSelectionRequested -= ModifyBoxSelection;

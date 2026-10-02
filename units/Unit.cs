@@ -29,7 +29,7 @@ public partial class Unit : Node3D
     private uint _localTeam;
     private TeamMaterials _teamMaterials;
     private Vector3 _serverPosition;
-    // 배치 검사는 2틱 늦은 표시 위치 대신 현재까지 수신한 서버 위치를 사용합니다.
+    // 배치 검사는 50ms 늦은 표시 위치 대신 현재까지 수신한 서버 위치를 사용합니다.
     public Vector3 ServerPosition => _hasServerPosition ? _serverPosition : GlobalPosition;
     public float PlacementRadius { get; private set; }
     private readonly PositionHistory _positions = new();

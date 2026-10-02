@@ -109,10 +109,27 @@ public partial class FogSyncChecks : Main
             Building knownEnemy = Buildings.GetNode<Building>("Building_302");
             Buildings.SelectSingle(knownEnemy);
             Check(Buildings.SelectedBuilding == null, "Known buildings inside fog cannot be inspected");
-            Receive("POS 101 54 0");
+            Receive("POS 101 49.2 0");
             Buildings.SelectSingle(knownEnemy); // Checks pending vision without waiting for the render throttle.
-            Check(Buildings.SelectedBuilding == knownEnemy, "A visible outer wall allows inspection even when the building center is occluded");
+            Check(Buildings.SelectedBuilding == knownEnemy && knownEnemy.IsFogRevealed && !Fog.IsVisibleAt(knownEnemy.GlobalPosition),
+                "A visible outer wall reveals the whole building without lighting the ground at its center");
+            var reveal = knownEnemy.GetNode<MeshInstance3D>("Visual/FogReveal");
+            var revealMaterial = (StandardMaterial3D)reveal.GetSurfaceOverrideMaterial(0);
+            Check(revealMaterial.RenderPriority == 121 && !revealMaterial.NoDepthTest &&
+                revealMaterial.DepthDrawMode == BaseMaterial3D.DepthDrawModeEnum.Disabled,
+                "Building-only reveal preserves depth occlusion and does not write the terrain mask");
+            if (OS.GetCmdlineUserArgs().Contains("--capture-building-fog")) await CaptureBuildingFog(camera, knownEnemy);
+            Receive("BUILDING_VISION 302 0");
+            Fog.RefreshVision();
+            Check(!knownEnemy.IsFogRevealed && !Buildings.CanInspect(knownEnemy), "Server-hidden building stays dark despite local interpolation");
+            foreach (string bad in new[] { "BUILDING_VISION 302 2", "BUILDING_VISION 302 1 extra", "BUILDING_VISION -1 1", "BUILDING_VISION 0 1" }) Receive(bad);
+            Fog.RefreshVision();
+            Check(!knownEnemy.IsFogRevealed, "Malformed building visibility is ignored");
+            Receive("BUILDING_VISION 302 1");
+            Fog.RefreshVision();
+            Check(knownEnemy.IsFogRevealed && Buildings.CanInspect(knownEnemy), "Server visibility controls both reveal and inspection");
             Receive("POS 101 0 0");
+            Receive("BUILDING_VISION 302 0");
             Buildings._Process(0);
             Check(Buildings.SelectedBuilding == null, "Current building inspection closes as the scout leaves");
 
@@ -217,14 +234,14 @@ public partial class FogSyncChecks : Main
         Check(Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Felling a tree reopens its full footprint immediately");
         Receive("BUILDING 0 801 2 0 0 0");
         Fog.RefreshVision();
-        Check(!Fog.IsVisibleAt(new Vector3(-1, 0, .5f)) && !Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Another building blocks vision through the gap");
+        Check(Fog.IsVisibleAt(new Vector3(-1, 0, .5f)) && Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Buildings do not block vision through the gap");
         Receive("BODY BUILDING 0 2 2");
         Fog.RefreshVision();
-        Check(Fog.IsVisibleAt(new(-1.5f, 0, .5f)) && !Fog.IsVisibleAt(new(3.5f, 0, .5f)), "Server body size also updates obstacle occlusion");
+        Check(Fog.IsVisibleAt(new(-1.5f, 0, .5f)) && Fog.IsVisibleAt(new(3.5f, 0, .5f)), "Building size changes never introduce vision blockers");
         Receive("BODY BUILDING 0 5 5");
         Receive("REMOVE 801");
         Fog.RefreshVision();
-        Check(Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Building destruction opens vision");
+        Check(Fog.IsVisibleAt(new Vector3(3.5f, 0, .5f)), "Building destruction preserves already-open vision");
         Receive("BUILDING 0 802 1 -5.5 6.5 0");
         Fog.RefreshVision();
         Check(Fog.IsVisibleAt(new Vector3(-10.5f, 0, 6.5f)), "Building source ignores its own footprint");
@@ -245,4 +262,32 @@ public partial class FogSyncChecks : Main
     }
 
     private static void Check(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
+
+    private async System.Threading.Tasks.Task CaptureBuildingFog(Camera3D camera, Building building)
+    {
+        Transform3D previous = camera.Transform;
+        camera.Projection = Camera3D.ProjectionType.Orthogonal;
+        camera.Size = 23;
+        camera.Position = new Vector3(56, 22, 18);
+        camera.LookAt(new Vector3(56, 0, 0));
+        var environment = new WorldEnvironment { Environment = new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new Color("26323c"),
+            AmbientLightSource = Godot.Environment.AmbientSource.Color, AmbientLightColor = Colors.White, AmbientLightEnergy = .65f
+        }};
+        AddChild(environment);
+        var light = new DirectionalLight3D { RotationDegrees = new Vector3(-55, -25, 0), LightEnergy = 1, ShadowEnabled = true };
+        AddChild(light);
+        foreach (bool enabled in new[] { false, true })
+        {
+            building.SetFogRevealed(enabled);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            using Image capture = GetViewport().GetTexture().GetImage();
+            capture.SavePng($"res://.godot/check-logs/building-fog-{(enabled ? "visible" : "dark")}.png");
+        }
+        light.QueueFree(); environment.QueueFree();
+        camera.Projection = Camera3D.ProjectionType.Perspective;
+        camera.Transform = previous;
+    }
 }

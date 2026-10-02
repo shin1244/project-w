@@ -140,6 +140,11 @@ public partial class BuildingManager : Node3D
         if (_buildings.TryGetValue(health.Id, out Building building)) building.ApplyHealth(health);
     }
 
+    public void HandleShield(ShieldSnapshot shield)
+    {
+        if (_buildings.TryGetValue(shield.Id, out Building building)) building.HealthBar.ApplyShield(shield.Amount);
+    }
+
     public void HandleConstruction(string[] parts)
     {
         if (parts.Length is not (3 or 4) || !uint.TryParse(parts[1], out uint id) || id == 0 ||

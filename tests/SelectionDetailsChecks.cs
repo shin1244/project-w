@@ -174,8 +174,8 @@ public partial class SelectionDetailsChecks : Main
         await Layout();
         Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Skills.HeroType == 200 && Skills.Visible && !_details.Visible,
             "HERO welcome stores the hero type and replaces only the middle panel");
-        Check(Skills.GetNode("Content/Slots").GetChildCount() == 5 &&
-            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Select(label => label.Text).SequenceEqual(new[] { "P", "Q", "W", "E", "R" }) &&
+        Check(Skills.GetNode("Content/Slots").GetChildren().OfType<Control>().Count(slot => slot.Visible) == 5 &&
+            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "P", "Q", "W", "E", "R" }) &&
             Skills.GetNode("Content/Slots/Q") is Button,
             "Hero HUD keeps five minimal slots and exposes the wolf Q button");
         Check(!Commands.Visible && UnitInfo.Visible && UnitInfo.Size == new Vector2(208, 160) &&
@@ -185,6 +185,7 @@ public partial class SelectionDetailsChecks : Main
         Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Units.LocalTeam == 1 && Skills.Visible,
             "Invalid welcome messages cannot partially change team, ownership or HUD");
         CheckHeroVitals();
+        await CheckShieldSync();
         await CheckCompactInfo();
         InvokeMain("SelectUnit", Unit(999));
         Check(Skills.Visible && !_details.Visible, "Inspecting another unit does not replace the hero skill bar");
@@ -359,6 +360,42 @@ public partial class SelectionDetailsChecks : Main
         Check(Skills.HeroUnitId == null && hpText.Text == "— / —", "Losing ownership clears the former hero's vitals");
         Receive("HIDE 8002");
         Receive("HIDE 8003");
+    }
+
+    private async Task CheckShieldSync()
+    {
+        Receive("UNIT 200 8020 7 0 0 1");
+        Receive("SHIELD 8020 150"); // A shield may arrive before HP.
+        Receive("HP 8020 300 300");
+        await Layout();
+        var fill = Skills.GetNode<ColorRect>("Content/Vitals/Health/Bar/Shield");
+        var hpText = Skills.GetNode<Label>("Content/Vitals/Health/Value");
+        Check(Unit(8020).HealthBar.Shield == 150 && fill.Visible && hpText.Text == "300 / 300  (+150)" &&
+            UnitInfo.GetNode<Label>("Body/Content/HealthRow/HealthText").Text.Contains("(+150)"),
+            "Shield snapshot reaches the world bar, hero HUD and inspected health");
+        Check(Math.Abs(fill.AnchorLeft - 2f / 3) < .001 && fill.AnchorRight == 1,
+            "Shield exceeding maximum HP is shown within the bar");
+        foreach (string invalid in new[] { "SHIELD 8020 -1", "SHIELD 8020 NaN", "SHIELD 8020 Infinity", "SHIELD 0 50", "SHIELD 8020 10 extra" }) Receive(invalid);
+        Receive("SHIELD 999 50");
+        Check(Unit(8020).HealthBar.Shield == 150 && hpText.Text.Contains("(+150)"), "Invalid and foreign shields do not change the hero HUD");
+        Receive("SHIELD 8020 70");
+        Check(Unit(8020).HealthBar.Shield == 70 && hpText.Text.Contains("(+70)"), "Absorbed shield updates without an HP message");
+        Receive("SHIELD 8020 0");
+        Check(!fill.Visible && hpText.Text == "300 / 300", "Zero shield clears the overlay and amount");
+        Receive("SHIELD 201 40");
+        Check(Buildings.TryGetBuilding(201, out Building building) && building.HealthBar.Shield == 40,
+            "Building shields use the same snapshot");
+        Receive("SHIELD 201 0");
+        Receive("SHIELD 8020 80");
+        Receive("HIDE 8020");
+        Receive("SHIELD 8020 999");
+        Receive("UNIT 200 8020 7 0 0 1");
+        Receive("HP 8020 300 300");
+        Check(Unit(8020).HealthBar.Shield == 0 && !fill.Visible, "HIDE/reappearance discards old and late shields");
+        Receive("SHIELD 8020 90");
+        Receive("REMOVE 8020");
+        Check(!fill.Visible && hpText.Text == "— / —", "Death clears the hero shield display");
+        Receive("SHIELD 999 0");
     }
 
     private async Task CheckInspection()
