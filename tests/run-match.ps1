@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$GodotPath = $env:GODOT_BIN,
-    [ValidateSet(2,3,4)][int]$Players = 2,
+    [ValidateSet(1,2,3,4)][int]$Players = 2,
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
@@ -71,6 +71,7 @@ try {
     for ($i=1; $i -le $Players; $i++) {
         $arguments = @('--headless', '--path', $projectRoot, '--log-file', "$logRoot/engine-$i.log", '--resolution', '1152x648', 'res://tests/MatchFlowChecks.tscn', '--', "--lobby-url=$url")
         if ($Players -eq 2) { $arguments += '--check-cancellation' }
+        if ($Players -eq 1) { $arguments += '--practice' }
         $client = Start-Hidden $GodotPath $arguments $projectRoot "$logRoot/client-$i.log"
         $clients += $client
         $jobs += $client
@@ -90,6 +91,7 @@ try {
     }
     for ($cycle=1; $cycle -le 2; $cycle++) {
         $expected = @('team 1, COMMANDER', 'team 1, HERO', 'team 2, COMMANDER', 'team 2, HERO') | Select-Object -First $Players
+        if ($Players -eq 1) { $expected = if ($cycle -eq 1) { @('team 1, HERO') } else { @('team 1, COMMANDER') } }
         foreach ($seat in $expected) {
             if (@($results | Where-Object { $_ -like "PASS: cycle $cycle, $Players players, $seat,*" }).Count -ne 1) { throw "Missing/duplicate seat: cycle $cycle, $seat" }
         }

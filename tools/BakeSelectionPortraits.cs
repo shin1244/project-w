@@ -15,10 +15,11 @@ public partial class BakeSelectionPortraits : Node
             Error result = DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
             if (result != Error.Ok) throw new System.InvalidOperationException($"Cannot create portrait directory: {result}");
             var portraits = new Dictionary<string, Texture2D>();
+            bool golemOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--golem-only") >= 0;
             bool soldiersOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--soldiers-only") >= 0;
             bool defensesOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--defenses-only") >= 0;
             bool inspectionOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--inspection-only") >= 0;
-            bool heroOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--hero-only") >= 0;
+            bool heroOnly = golemOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--hero-only") >= 0;
             bool rangedOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--ranged-only") >= 0;
             if (rangedOnly)
                 foreach (bool enemy in new[] { false, true })
@@ -27,8 +28,10 @@ public partial class BakeSelectionPortraits : Node
                     portraits.Add("minion-archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/MinionArcher.tscn"), enemy: enemy));
                 }
             if (!rangedOnly && (heroOnly || (!soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
-                foreach (bool enemy in new[] { false, true })
-                    portraits.Add(enemy ? "mutant-wolf-enemy" : "mutant-wolf", GetPortrait(GD.Load<PackedScene>("res://units/HeroTest.tscn"), enemy: enemy));
+                foreach (string hero in golemOnly ? new[] { "HeroGolem" } : new[] { "HeroTest", "HeroGolem" })
+                    foreach (bool enemy in new[] { false, true })
+                        portraits.Add((hero == "HeroGolem" ? "rune-golem" : "mutant-wolf") + (enemy ? "-enemy" : ""),
+                            GetPortrait(GD.Load<PackedScene>($"res://units/{hero}.tscn"), enemy: enemy));
             if (!rangedOnly && !heroOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
                 foreach (string unit in soldiersOnly ? new[] { "Knight", "Archer" } : new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant(), GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn")));
@@ -109,10 +112,11 @@ public partial class BakeSelectionPortraits : Node
             LightColor = new Color("fff0d5"), LightEnergy = 1.6f
         });
         bool beast = scene.ResourcePath == "res://units/HeroTest.tscn";
+        bool golem = scene.ResourcePath == "res://units/HeroGolem.tscn";
         var camera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, Current = true,
-            Size = building ? buildingHeight * 1.5f : beast ? 3.6f : unitHeight * .94f,
+            Size = building ? buildingHeight * 1.5f : beast ? 3.6f : golem ? 3.7f : unitHeight * .94f,
             Position = building ? new Vector3(7, 6, -10) : beast ? new Vector3(4.8f, 3.1f, -5) : new Vector3(2.4f, 2.5f, -5)
         };
         viewport.AddChild(camera);

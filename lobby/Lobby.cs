@@ -8,6 +8,7 @@ public partial class Lobby : Control
     private Button _start, _cancel;
     private Label _status, _elapsed;
     private LineEdit _address;
+    private OptionButton _heroChoice, _modeChoice;
     private MatchSession _session;
 
     public override void _Ready()
@@ -21,10 +22,26 @@ public partial class Lobby : Control
         var content = GetNode<VBoxContainer>("Center/Card/Content");
         content.AddChild(_address);
         content.MoveChild(_address, 3);
+        _heroChoice = new OptionButton { TooltipText = "영웅 역할로 배정되면 선택한 영웅으로 입장합니다." };
+        _heroChoice.AddItem("영웅 선택 · 돌연변이 늑대", (int)UnitCatalog.HeroTest);
+        _heroChoice.AddItem("영웅 선택 · 룬 골렘", (int)UnitCatalog.HeroGolem);
+        _heroChoice.Select(_session.SelectedHero == UnitCatalog.HeroGolem ? 1 : 0);
+        _heroChoice.ItemSelected += index => _session.SelectedHero = (uint)_heroChoice.GetItemId((int)index);
+        content.AddChild(_heroChoice);
+        content.MoveChild(_heroChoice, 4);
+        _modeChoice = new OptionButton();
+        _modeChoice.AddItem("일반 매칭 · 2~4명 + 빈자리 AI");
+        _modeChoice.AddItem("혼자 연습 · 영웅 + AI 3명");
+        _modeChoice.AddItem("혼자 연습 · 지휘관 + AI 3명");
+        _modeChoice.Select(_session.PracticeRole == "HERO" ? 1 : _session.PracticeRole == "COMMANDER" ? 2 : 0);
+        _modeChoice.ItemSelected += index => { _session.PracticeRole = index == 1 ? "HERO" : index == 2 ? "COMMANDER" : ""; Refresh(); };
+        content.AddChild(_modeChoice);
+        content.MoveChild(_modeChoice, 3);
+        content.AddThemeConstantOverride("separation", 12);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         GetNode<Label>("Header/Row/PreviewBadge").Text = "지인 테스트 · 2 vs 2";
-        GetNode<Label>("%Description").Text = "한 팀의 지휘관과 영웅부터 함께 배정됩니다.";
-        GetNode<Label>("%Footnote").Text = "참가 순서: 1팀 지휘관 → 1팀 영웅 → 2팀 지휘관 → 2팀 영웅\n2명부터 시작할 수 있으며, 빈 자리에 봇은 배치되지 않습니다.";
+        GetNode<Label>("%Description").Text = "지휘관과 영웅이 힘을 합쳐 적 본진을 파괴하세요.";
+        GetNode<Label>("%Footnote").Text = "일반 매칭은 같은 팀 지휘관 → 영웅 순서로 배정됩니다.\n빈자리는 AI가 맡습니다. 혼자 연습도 서버 연결이 필요합니다.";
         _start.Pressed += StartQueue;
         _cancel.Pressed += CancelQueue;
         _session.Changed += Refresh;
@@ -44,10 +61,12 @@ public partial class Lobby : Control
             { _transitioning = false; _session.Fail("로딩 화면을 열지 못했습니다."); }
             return;
         }
-        _start.Text = IsQueued ? "매칭 중…" : "매칭 시작";
+        _start.Text = IsQueued ? "매칭 중…" : _session.PracticeRole == "" ? "매칭 시작" : "AI 연습 시작";
         _start.Disabled = IsQueued;
         _cancel.Disabled = !IsQueued;
         _address.Editable = !IsQueued;
+        _heroChoice.Disabled = IsQueued;
+        _modeChoice.Disabled = IsQueued;
         _elapsed.Visible = IsQueued;
         var status = _session.Status;
         _status.Text = !IsQueued ? _session.ErrorMessage ?? "서버 주소를 확인하고 매칭을 시작하세요" :

@@ -17,6 +17,7 @@ public partial class PlayerInput : Node
 	public event Action<Unit, bool, bool> ModifiedUnitSelectionRequested;
 	public event Action<Rect2> ModifiedBoxSelectionRequested;
 	public event Action<int, bool, bool> ControlGroupRequested;
+	public event Action CameraHomeRequested;
 	public event Action<Building> BuildingClicked;
 	public event Action SelectionCleared;
 	// target: Unit / Building / ResourceNode / null(땅).
@@ -27,6 +28,7 @@ public partial class PlayerInput : Node
 	public event Action HoldRequested;
 	public event Action<SkillInput> SkillRequested;
 	public event Action<int?> SkillTargetingChanged;
+	public event Action<bool> AttackTargetingChanged;
 	public bool IsAttackTargeting { get; private set; }
 	public bool IsSkillTargeting => _skillSlot.HasValue;
 	private int? _skillSlot;
@@ -151,6 +153,14 @@ public partial class PlayerInput : Node
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (@event is InputEventKey { Pressed: true } homeKey &&
+			(homeKey.PhysicalKeycode == Key.Space || homeKey.Keycode == Key.Space))
+		{
+			if (!homeKey.Echo && !_leftPressed && !homeKey.CtrlPressed && !homeKey.AltPressed && !homeKey.MetaPressed)
+				_actions.Enqueue(() => CameraHomeRequested?.Invoke());
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (!_leftPressed && Skills?.TryHandleShortcut(@event) == true)
 		{
 			GetViewport().SetInputAsHandled();
@@ -316,6 +326,7 @@ public partial class PlayerInput : Node
 			return;
 		IsAttackTargeting = active;
 		UpdateTargetCursor();
+		AttackTargetingChanged?.Invoke(active);
 	}
 
 	private void SetSkillTargeting(int? slot)

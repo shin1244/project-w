@@ -145,7 +145,7 @@ public partial class CommandPanel : PanelContainer
         RefreshProduction();
         if (next is DisplayMode.Units or DisplayMode.Workers)
         {
-            _slots[3].TooltipText = "적 클릭: 공격 · 지형 클릭: 공격 이동";
+            _slots[3].TooltipText = "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소";
             _slots[4].TooltipText = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
             _slots[5].TooltipText = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
         }

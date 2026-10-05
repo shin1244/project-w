@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 // 입력·통신과 각 관리자를 연결합니다. 개별 오브젝트의 상태는 관리자에게 맡깁니다.
 public partial class Main : Node3D
@@ -22,14 +24,19 @@ public partial class Main : Node3D
     [Export] public uint RequestedHeroType { get; set; } = UnitCatalog.HeroTest;
     public PlayerRole LocalRole { get; private set; }
     public uint? LocalHeroType { get; private set; }
+    public MatchResultSnapshot Result { get; private set; }
 
     private NetClient _net;
     private MatchSession _matchSession;
     private PlayerInput _playerInput;
-    private readonly SkillRangeIndicator _skillRange = new();
+    private BattleGuide _battleGuide;
+    private bool _autoFrameStart, _startingViewPlaced;
+    private readonly RangeIndicator _skillRange = new("SkillRangeRing", new Color(.22f, .95f, .78f, .95f));
+    private readonly List<RangeIndicator> _attackRanges = new();
 
     public override void _Ready()
     {
+        _autoFrameStart = true;
         SetPlayerRole(PlayerRole.None);
         if (Map.SyncError != null)
         {
@@ -57,6 +64,11 @@ public partial class Main : Node3D
 
     private void ConnectInput()
     {
+        if (GetNodeOrNull<CanvasLayer>("SelectionUI") is CanvasLayer ui)
+        {
+            _battleGuide = new BattleGuide { Name = "BattleGuide", Skills = Skills };
+            ui.AddChild(_battleGuide);
+        }
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += SelectUnit;
         _playerInput.BuildingClicked += SelectBuilding;
@@ -69,9 +81,12 @@ public partial class Main : Node3D
         _playerInput.HoldRequested += Units.RequestHold;
         _playerInput.SkillRequested += CastHeroSkill;
         _playerInput.SkillTargetingChanged += ShowSkillRange;
+        _playerInput.AttackTargetingChanged += OnAttackTargetingChanged;
+        Units.SelectionChanged += RefreshAttackRanges;
         _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
         _playerInput.ControlGroupRequested += HandleControlGroup;
+        _playerInput.CameraHomeRequested += FocusHome;
         if (Commands != null) Commands.BuildRequested += BeginPlacement;
         if (Minimap != null)
         {
@@ -121,6 +136,41 @@ public partial class Main : Node3D
         CameraNavigation.FocusGround(Units.Camera, point);
     }
 
+    private void FocusHome()
+    {
+        if (!Map.IsSynchronized || Result != null) return;
+        if (TryGetHomePosition(out Vector3 home)) CameraNavigation.FocusGround(Units.Camera, home);
+    }
+
+    private bool TryGetHomePosition(out Vector3 home)
+    {
+        home = default;
+        if (LocalRole == PlayerRole.Hero)
+        {
+            foreach (Unit unit in Units.LiveUnits)
+                if (unit.UnitType == LocalHeroType && Units.CanControl(unit))
+                {
+                    home = unit.GlobalPosition;
+                    return true;
+                }
+        }
+        else if (LocalRole == PlayerRole.Commander) return Map.TryGetBasePosition(Units.LocalTeam, out home);
+        return false;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_autoFrameStart && !_startingViewPlaced) FrameStartingView();
+    }
+
+    private void FrameStartingView()
+    {
+        if (!Map.IsSynchronized || Result != null || !TryGetHomePosition(out Vector3 home)) return;
+        Units.Camera.Size = LocalRole == PlayerRole.Hero ? 38 : 52;
+        CameraNavigation.FocusGround(Units.Camera, home);
+        _startingViewPlaced = true;
+    }
+
     private void SelectUnit(Unit unit)
     {
         if (LocalRole == PlayerRole.Hero) { UnitInfo?.Inspect(unit); return; }
@@ -152,6 +202,29 @@ public partial class Main : Node3D
         Buildings?.SelectSingle(building);
     }
 
+    private void OnAttackTargetingChanged(bool active) => RefreshAttackRanges();
+
+    private void ClearAttackRanges()
+    {
+        foreach (RangeIndicator ring in _attackRanges) ring.Clear();
+        _attackRanges.Clear();
+    }
+
+    private void RefreshAttackRanges()
+    {
+        ClearAttackRanges();
+        if (_playerInput?.IsAttackTargeting != true || !Map.IsSynchronized || Result != null ||
+            LocalRole is not (PlayerRole.Hero or PlayerRole.Commander)) return;
+        foreach (uint id in Units.SelectedUnitIds)
+        {
+            if (!Units.TryGetUnit(id, out Unit unit) || !Units.CanControl(unit) ||
+                !unit.IsVisibleInTree() || unit.Stats is not { Interval: > 0 } stats) continue;
+            var ring = new RangeIndicator("AttackRangeRing", new Color(1f, .76f, .25f, .95f));
+            ring.Show(unit, stats.Range, Fog?.UnitBodyRadius(unit) ?? unit.PlacementRadius);
+            _attackRanges.Add(ring);
+        }
+    }
+
     private void ClearSelection()
     {
         UnitInfo?.Clear();
@@ -171,10 +244,12 @@ public partial class Main : Node3D
         string[] parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
             return;
+        if (Result != null) return;
 
         switch (parts[0])
         {
             case "MAP":
+                _startingViewPlaced = false;
                 SetPlayerRole(PlayerRole.None);
                 _playerInput?.ResetInteraction();
                 Stock?.Clear();
@@ -208,9 +283,24 @@ public partial class Main : Node3D
 
         switch (parts[0])
         {
+            case "MATCH_END":
+                if (MatchResultSnapshot.TryParse(parts, out var result))
+                {
+                    Result = result;
+                    _playerInput?.ResetInteraction();
+                    Placement?.Cancel();
+                    _skillRange.Clear();
+                    ProcessMode = ProcessModeEnum.Disabled;
+                    _matchSession?.Finish(result, Units.LocalTeam);
+                }
+                break;
             case "TICK":
                 Units.HandleTick(parts);
                 Skills?.HandleTick(parts);
+                _battleGuide?.HandleTick(parts);
+                break;
+            case "RESPAWN":
+                if (LocalRole == PlayerRole.Hero) Skills?.HandleRespawn(parts);
                 break;
             case "TICK_END":
                 Units.HandleTickEnd(parts);
@@ -233,9 +323,17 @@ public partial class Main : Node3D
                 break;
             case "BODY":
                 Fog?.HandleBody(parts);
+                RefreshAttackRanges();
                 break;
             case "BUILDING_VISION":
                 Fog?.HandleBuildingVision(parts);
+                Minimap?.Invalidate();
+                break;
+            case "BUILDING_HIDE":
+                if (parts.Length == 2 && uint.TryParse(parts[1], out uint hiddenBuilding)) Fog?.ForgetBuilding(hiddenBuilding);
+                Buildings?.HandleRemove(parts);
+                Fog?.Invalidate();
+                Minimap?.Invalidate();
                 break;
             case "UNIT":
                 Units.HandleSpawn(parts);
@@ -282,7 +380,12 @@ public partial class Main : Node3D
             case "STATS":
                 if (StatsSnapshot.TryParse(parts, out var stats))
                 {
-                    if (Units.TryGetUnit(stats.Id, out Unit statsUnit)) statsUnit.Stats = stats;
+                    if (Units.TryGetUnit(stats.Id, out Unit statsUnit))
+                    {
+                        statsUnit.Stats = stats;
+                        if (Units.SelectedUnitIds.Contains(stats.Id))
+                            RefreshAttackRanges();
+                    }
                     if (Buildings != null && Buildings.TryGetBuilding(stats.Id, out Building statsBuilding)) statsBuilding.Stats = stats;
                     Fog?.Invalidate();
                 }
@@ -306,6 +409,15 @@ public partial class Main : Node3D
                     Units.CanInspect(caster))
                     foreach (Node child in caster.GetChildren())
                         if (child is ISkillPresentation presentation) presentation.PlaySkill(skill.Slot);
+                break;
+            case "WOLF":
+                if (WolfEffectSnapshot.TryParse(parts, out var wolf) &&
+                    Units.TryGetUnit(wolf.UnitId, out Unit wolfUnit) && wolfUnit.UnitType == UnitCatalog.HeroTest &&
+                    Units.CanInspect(wolfUnit))
+                {
+                    wolfUnit.WolfEffects = wolf;
+                    Skills?.HandleWolfEffects(wolf);
+                }
                 break;
             case "STATE":
                 if (StateSnapshot.TryParse(parts, out var state))
@@ -347,7 +459,7 @@ public partial class Main : Node3D
 
     private void SendCommand(string command)
     {
-        if (!Map.IsSynchronized) return;
+        if (!Map.IsSynchronized || Result != null) return;
         _net.Send(command);
         GD.Print($"전송 요청: {command}");
     }
@@ -362,8 +474,11 @@ public partial class Main : Node3D
             Placement?.Cancel();
         }
         Units?.SetHeroControl(LocalHeroType);
-        Units?.Camera?.SetMeta("hero_q_shortcut", LocalHeroType == UnitCatalog.HeroTest);
+        Units?.Camera?.SetMeta("hero_q_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
+        Units?.Camera?.SetMeta("hero_w_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
         if (Details != null) Details.Visible = role == PlayerRole.Commander;
+        if (Stock != null) Stock.Visible = role == PlayerRole.Commander;
+        _battleGuide?.SetRole(role, team);
         // 숨겨진 명령 패널은 기존 A/S/D 입력 경로를 계속 제공한다.
         if (Commands != null) Commands.Visible = role != PlayerRole.Hero;
         UnitInfo?.SetHero(LocalHeroType, playerId, team);
@@ -391,6 +506,7 @@ public partial class Main : Node3D
 
     private void OnConnectionClosed(string reason)
     {
+        if (Result != null) return;
         SetPlayerRole(PlayerRole.None);
         _playerInput?.ResetInteraction();
         Stock?.Clear();
@@ -411,6 +527,7 @@ public partial class Main : Node3D
     public override void _ExitTree()
     {
         _skillRange.Clear();
+        ClearAttackRanges();
         if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
         if (_playerInput != null && GodotObject.IsInstanceValid(Units))
         {
@@ -425,9 +542,11 @@ public partial class Main : Node3D
             _playerInput.HoldRequested -= Units.RequestHold;
             _playerInput.SkillRequested -= CastHeroSkill;
             _playerInput.SkillTargetingChanged -= ShowSkillRange;
+            _playerInput.AttackTargetingChanged -= OnAttackTargetingChanged;
             _playerInput.ModifiedUnitSelectionRequested -= ModifyUnitSelection;
             _playerInput.ModifiedBoxSelectionRequested -= ModifyBoxSelection;
             _playerInput.ControlGroupRequested -= HandleControlGroup;
+            _playerInput.CameraHomeRequested -= FocusHome;
             if (GodotObject.IsInstanceValid(Minimap))
             {
                 Minimap.CameraMoveRequested -= MoveCameraFromMinimap;
@@ -437,6 +556,7 @@ public partial class Main : Node3D
 
         if (GodotObject.IsInstanceValid(Units))
         {
+            Units.SelectionChanged -= RefreshAttackRanges;
             Units.CommandRequested -= SendCommand;
             Units.PositionsRendered -= OnPositionsRendered;
         }

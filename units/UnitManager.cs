@@ -13,6 +13,7 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene HeroTestScene;
+    [Export] public PackedScene HeroGolemScene;
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
@@ -29,6 +30,7 @@ public partial class UnitManager : Node3D
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
+        UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
         _ => null
     };
     public event Action SelectionChanged;

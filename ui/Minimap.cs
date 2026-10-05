@@ -135,7 +135,7 @@ public partial class Minimap : Control
         if (GodotObject.IsInstanceValid(Buildings))
             foreach (Building building in Buildings.LiveBuildings)
             {
-                if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() ||
+                if (!GodotObject.IsInstanceValid(building) || !building.IsVisibleInTree() || building.IsQueuedForDeletion() ||
                     !TryWorldToMap(building.GlobalPosition, out Vector2 point)) continue;
                 float side = building.BuildingType == 0 ? 8 : 6;
                 point = KeepMarkerInside(point, side * .5f + 1, mapRect);
@@ -149,8 +149,11 @@ public partial class Minimap : Control
                 if (!GodotObject.IsInstanceValid(unit) || unit.IsDying || unit.IsQueuedForDeletion() ||
                     !TryWorldToMap(unit.GlobalPosition, out Vector2 point)) continue;
                 point = KeepMarkerInside(point, UnitRadius + 1, mapRect);
-                DrawCircle(point, UnitRadius + .8f, MarkerOutline, antialiased: true);
-                DrawCircle(point, UnitRadius, unit.Team == Team ? AllyColor : EnemyColor, antialiased: true);
+                bool ownHero = UnitCatalog.IsHero(unit.UnitType) && Units.CanControl(unit);
+                float radius = ownHero ? 4.5f : UnitRadius;
+                DrawCircle(point, radius + 1, MarkerOutline, antialiased: true);
+                DrawCircle(point, radius, ownHero ? new Color("f5e4a5") : unit.Team == Team ? AllyColor : EnemyColor, antialiased: true);
+                if (ownHero) DrawCircle(point, radius + 2.5f, Colors.White, filled: false, width: 1);
             }
     }
 

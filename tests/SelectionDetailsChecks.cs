@@ -175,7 +175,7 @@ public partial class SelectionDetailsChecks : Main
         Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Skills.HeroType == 200 && Skills.Visible && !_details.Visible,
             "HERO welcome stores the hero type and replaces only the middle panel");
         Check(Skills.GetNode("Content/Slots").GetChildren().OfType<Control>().Count(slot => slot.Visible) == 5 &&
-            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "P", "Q", "W", "E", "R" }) &&
+            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "패시브", "Q", "W", "E", "R" }) &&
             Skills.GetNode("Content/Slots/Q") is Button,
             "Hero HUD keeps five minimal slots and exposes the wolf Q button");
         Check(!Commands.Visible && UnitInfo.Visible && UnitInfo.Size == new Vector2(208, 160) &&
@@ -451,18 +451,20 @@ public partial class SelectionDetailsChecks : Main
         Check(!Single.Visible && Units.InspectedUnit == null, "Inspected minion death clears the info panel");
 
         Building enemy = Buildings.LiveBuildings.Single(building => building.BuildingId == 202);
-        bool visible = false;
-        Buildings.VisibilityCheck = _ => visible;
+        Buildings.VisibilityCheck = Fog.IsBuildingVisible;
+        Receive("BUILDING_VISION 202 0");
         InvokeMain("SelectBuilding", enemy);
         Check(Buildings.SelectedBuilding == null, "A building hidden by fog cannot be inspected");
-        visible = true;
+        Receive("BUILDING_VISION 202 1");
         Receive("STATS 202 15 7 1.5 0 11");
         InvokeMain("SelectBuilding", enemy);
         await Layout();
         Check(Single.Visible && Labels().Any(label => label.Text.Contains("공격력 15") && label.Text.Contains("사거리 7")), "Visible enemy buildings show combat stats");
-        visible = false;
+        Receive("BUILDING_VISION 202 0");
         await Layout();
         Check(Buildings.SelectedBuilding == null && !Single.Visible, "Losing building vision closes its current-status panel");
+        Receive("BUILDING_VISION 202 1");
+        Fog.RefreshVision();
         Buildings.VisibilityCheck = null;
         InvokeMain("SelectUnit", Unit(101));
     }

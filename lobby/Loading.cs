@@ -27,7 +27,7 @@ public partial class Loading : Control
         foreach (string name in new[] { "Background", "Header", "Center" }) GetNode(name).Reparent(overlay);
         if (_session.Match == null) { Fail("매칭 정보가 없습니다. 로비에서 다시 시작해 주세요."); return; }
         var match = _session.Match;
-        GetNode<Label>("%Description").Text = $"{match.Team}팀 · {(match.Role == "HERO" ? "영웅" : "지휘관")} · 참가자 {match.Players}명";
+        GetNode<Label>("%Description").Text = $"{match.Team}팀 · {(match.Role == "HERO" ? "영웅" : "지휘관")} · 플레이어 {match.Players - match.Bots}명 + AI {match.Bots}명";
         if (ResourceLoader.LoadThreadedRequest(GamePath) != Error.Ok) Fail("전장 리소스를 불러오지 못했습니다.");
     }
 

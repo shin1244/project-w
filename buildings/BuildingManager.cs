@@ -26,9 +26,9 @@ public partial class BuildingManager : Node3D
     public uint LayoutVersion { get; private set; }
 
     public bool CanInspect(Building building) => GodotObject.IsInstanceValid(building) && building.IsInsideTree() &&
-        building.IsVisibleInTree() && !building.IsQueuedForDeletion() &&
+        !building.IsQueuedForDeletion() &&
         _buildings.TryGetValue(building.BuildingId, out Building registered) && registered == building &&
-        (building.SideId == _localTeam || VisibilityCheck == null || VisibilityCheck(building));
+        (building.SideId == _localTeam || VisibilityCheck == null || VisibilityCheck(building)) && building.IsVisibleInTree();
 
     public override void _Process(double delta)
     {
@@ -130,6 +130,8 @@ public partial class BuildingManager : Node3D
         building.ResolveFocus = id => GodotObject.IsInstanceValid(Units) ? Units.ResolveFocus(id) : null;
         AddChild(building);
         building.ApplySnapshot(id, sideId, x, z, yaw);
+        // Prevent even one frame of an unconfirmed enemy model/health bar.
+        building.Visible = sideId == _localTeam || VisibilityCheck == null || VisibilityCheck(building);
         _buildings.Add(id, building);
         LayoutVersion++;
         RequirementsChanged?.Invoke();

@@ -21,6 +21,14 @@ public partial class MapWorld : Node3D
     public Vector2 GridOrigin => new(_map.OriginX, _map.OriginZ);
     public float CellSize => _map.CellSize;
     public Vector2I GridSize => new(_map.Rows[0].Length, _map.Rows.Length);
+    public bool TryGetBasePosition(uint team, out Vector3 position)
+    {
+        position = default;
+        if (_map == null || team == 0 || team > _map.Bases.Length) return false;
+        float[] coordinates = _map.Bases[(int)team - 1];
+        position = new Vector3(coordinates[0], 0, coordinates[1]);
+        return true;
+    }
     public void CopyVisionObstacles(bool[] destination) => _visionBlocked.CopyTo(destination, 0);
     public bool IsTerrainBlocked(int x, int z) => _map == null || x < 0 || z < 0 ||
         x >= GridSize.X || z >= GridSize.Y || _visionBlocked[z * GridSize.X + x];

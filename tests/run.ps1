@@ -18,7 +18,7 @@ $suites = [ordered]@{
     Units = @('UnitSceneChecks', 'InterpolationChecks', 'MinionSyncChecks')
     Buildings = @('BuildingPlacementChecks', 'ConstructionSyncChecks', 'CommandPanelChecks', 'RallyChecks', 'TowerSyncChecks')
     World = @('MapSyncChecks', 'MapZonesChecks', 'FogSyncChecks', 'check_arena')
-    UI = @('RtsControlChecks', 'SelectionDetailsChecks', 'CommandPanelChecks')
+    UI = @('RtsControlChecks', 'SelectionDetailsChecks', 'CommandPanelChecks', 'MatchResultChecks')
 }
 $all = @($suites.Values | ForEach-Object { $_ } | Select-Object -Unique)
 $selected = if ($Check) { @($Check | Select-Object -Unique) } elseif ($Suite -eq 'All') { $all } else { $suites[$Suite] }

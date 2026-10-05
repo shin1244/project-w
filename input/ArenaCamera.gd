@@ -4,24 +4,53 @@ extends Camera3D
 @export var pan_speed := 55.0
 @export var minimum_size := 22.0
 @export var maximum_size := 125.0
+@export var edge_pan_enabled := false
+@export var edge_margin := 18.0
 var home_position: Vector3
 var home_size: float
 var dragging := false
+var window_focused := false
+var mouse_inside := false
+var mouse_position := Vector2.ZERO
 
 func _ready() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	size = maxf(size, 184.0 * viewport_size.y / maxf(viewport_size.x, 1.0))
 	home_position = position
 	home_size = size
-	get_window().focus_exited.connect(_cancel_drag)
+	window_focused = get_window().has_focus()
+	get_window().focus_entered.connect(func(): window_focused = true)
+	get_window().focus_exited.connect(_focus_lost)
+	get_window().mouse_entered.connect(func(): mouse_inside = true)
+	get_window().mouse_exited.connect(func(): mouse_inside = false)
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		mouse_position = event.position
+		mouse_inside = get_viewport().get_visible_rect().has_point(mouse_position)
 	# UI가 놓기 입력을 소비해도 전장에서 시작한 카메라 드래그는 끝낸다.
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE and not event.pressed:
 		_cancel_drag()
 
 func _cancel_drag() -> void:
 	dragging = false
+
+func _focus_lost() -> void:
+	window_focused = false
+	_cancel_drag()
+
+func _edge_direction() -> Vector3:
+	# 미니맵·선택 드래그 및 가운데 버튼 이동과 가장자리 이동이 겹치지 않게 한다.
+	if not edge_pan_enabled or not window_focused or not mouse_inside or dragging or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		return Vector3.ZERO
+	var rect := get_viewport().get_visible_rect()
+	var mouse := mouse_position
+	if not rect.has_point(mouse):
+		return Vector3.ZERO
+	return Vector3(
+		float(mouse.x >= rect.end.x - edge_margin) - float(mouse.x < rect.position.x + edge_margin),
+		0,
+		float(mouse.y >= rect.end.y - edge_margin) - float(mouse.y < rect.position.y + edge_margin))
 
 func _process(delta: float) -> void:
 	var direction := Vector3.ZERO
@@ -33,12 +62,14 @@ func _process(delta: float) -> void:
 	var letters_enabled := not menu_open and not wait_for_release
 	var unit_orders: bool = get_meta("unit_orders_selected", false)
 	var hero_q: bool = get_meta("hero_q_shortcut", false)
+	var hero_w: bool = get_meta("hero_w_shortcut", false)
 	# A는 공격 대상 지정에 사용합니다. 왼쪽 이동은 Q 또는 왼쪽 방향키입니다.
 	# 건설 메뉴는 Q/W/A/S를 사용하므로 메뉴가 닫힌 뒤 해당 키를 놓을 때까지 문자 이동을 쉽니다.
 	# 내 유닛을 선택했으면 S/D는 정지/홀드에 사용합니다. 방향키는 항상 카메라를 이동합니다.
-	# 늑대 영웅의 Q는 스킬 전용이며 사망·쿨다운 중에도 카메라를 움직이지 않는다.
+	# 영웅의 Q/W는 사망·쿨다운 중에도 스킬 전용이다.
 	direction.x = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_D)) or Input.is_physical_key_pressed(KEY_RIGHT)) - float((letters_enabled and not hero_q and Input.is_physical_key_pressed(KEY_Q)) or Input.is_physical_key_pressed(KEY_LEFT))
-	direction.z = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_S)) or Input.is_physical_key_pressed(KEY_DOWN)) - float((letters_enabled and Input.is_physical_key_pressed(KEY_W)) or Input.is_physical_key_pressed(KEY_UP))
+	direction.z = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_S)) or Input.is_physical_key_pressed(KEY_DOWN)) - float((letters_enabled and not hero_w and Input.is_physical_key_pressed(KEY_W)) or Input.is_physical_key_pressed(KEY_UP))
+	direction += _edge_direction()
 	if direction.length_squared() > 0:
 		position += direction.normalized() * pan_speed * (size / home_size) * delta
 		clamp_position()

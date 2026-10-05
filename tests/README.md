@@ -19,8 +19,8 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | Units | UnitScene, Interpolation, MinionSync | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간 |
 | Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시 |
 | World | MapSync, MapZones, FogSync, check_arena | 맵 해시·나무·도로·차폐·지형 충돌 |
-| UI | RtsControl, SelectionDetails, CommandPanel | 부대 지정·미니맵 조작·초상화 선택·생산 UI |
-| All | 중복을 제거한 15개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
+| UI | RtsControl, SelectionDetails, CommandPanel, MatchResult | 부대 지정·미니맵 조작·초상화 선택·생산 UI·승패와 로비 복귀 |
+| All | 중복을 제거한 16개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
 
 표에서 `check_arena`를 제외한 이름에는 `Checks` 접미사가 붙는다. 한 기능만 바꿨으면 `-Check 이름`이 우선이며, 관련 그룹을 실행했다면 기본 검사까지 추가 실행할 필요는 없다. 문서·외형만 바꿨다면 자동 테스트는 생략할 수 있다.
 

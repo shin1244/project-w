@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
 [ext_resource type="PackedScene" path="res://units/models/MutantWolfRig.tscn" id="2_wolf"]
 [ext_resource type="Script" path="res://units/BeastAnimation.cs" id="3_animation"]
+[ext_resource type="Script" path="res://units/WolfEffectsVisual.cs" id="4_effects"]
 
 [sub_resource type="CapsuleShape3D" id="Selection"]
 radius = 0.85
@@ -24,3 +25,6 @@ scale = Vector3(1.4, 1, 1.8)
 
 [node name="BeastAnimation" type="Node" parent="."]
 script = ExtResource("3_animation")
+
+[node name="WolfEffects" type="Node3D" parent="."]
+script = ExtResource("4_effects")

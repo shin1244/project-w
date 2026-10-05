@@ -91,6 +91,7 @@ current = true
 size = 102.0
 far = 400.0
 script = ExtResource("6_camera")
+edge_pan_enabled = true
 
 [node name="FogOfWar" type="MeshInstance3D" parent="Camera3D" node_paths=PackedStringArray("Units", "Buildings")]
 script = ExtResource("18_fog")

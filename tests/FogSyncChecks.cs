@@ -121,7 +121,8 @@ public partial class FogSyncChecks : Main
             if (OS.GetCmdlineUserArgs().Contains("--capture-building-fog")) await CaptureBuildingFog(camera, knownEnemy);
             Receive("BUILDING_VISION 302 0");
             Fog.RefreshVision();
-            Check(!knownEnemy.IsFogRevealed && !Buildings.CanInspect(knownEnemy), "Server-hidden building stays dark despite local interpolation");
+            Check(!knownEnemy.Visible && !knownEnemy.IsFogRevealed && !Buildings.CanInspect(knownEnemy),
+                "Server-hidden building has no model, health bar or minimap visibility despite local interpolation");
             foreach (string bad in new[] { "BUILDING_VISION 302 2", "BUILDING_VISION 302 1 extra", "BUILDING_VISION -1 1", "BUILDING_VISION 0 1" }) Receive(bad);
             Fog.RefreshVision();
             Check(!knownEnemy.IsFogRevealed, "Malformed building visibility is ignored");
@@ -132,6 +133,26 @@ public partial class FogSyncChecks : Main
             Receive("BUILDING_VISION 302 0");
             Buildings._Process(0);
             Check(Buildings.SelectedBuilding == null, "Current building inspection closes as the scout leaves");
+
+            Receive("BUILDING_HIDE 302");
+            Check(!Buildings.TryGetBuilding(302, out _) && !knownEnemy.IsInsideTree() && !Buildings.CanInspect(knownEnemy),
+                "Building hide immediately removes model, selection, collision and minimap registry");
+            Receive("HP 302 1 2000");
+            Receive("CONSTRUCTION 302 50 8");
+            Check(!Buildings.TryGetBuilding(302, out _), "Late hidden-building deltas cannot recreate it");
+            Receive("BUILDING 0 302 2 60 0 0");
+            Building rediscovered = Buildings.GetNode<Building>("Building_302");
+            Check(!rediscovered.Visible, "An unconfirmed enemy spawn never flashes through fog");
+            Receive("CONSTRUCTION 302 100 8");
+            Receive("HP 302 1700 2000");
+            Receive("BUILDING_VISION 302 1");
+            Fog.RefreshVision();
+            Check(rediscovered.Visible && rediscovered != knownEnemy && rediscovered.HealthBar.CurrentHP == 1700 &&
+                !rediscovered.IsUnderConstruction, "Rediscovery restores current state to a fresh building");
+            Receive("BUILDING_HIDE 302");
+            Receive("BUILDING_HIDE 302");
+            Receive("BUILDING_HIDE 301 extra");
+            Check(Buildings.TryGetBuilding(301, out _), "Malformed hide cannot remove an allied building");
 
             // 빈 땅은 반지름 0인 대상이다. 유닛 반지름 0.4 + 시야 8의 경계가 유지되어야 한다.
             Receive("POS 101 0.23 0.37");

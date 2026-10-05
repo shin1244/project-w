@@ -54,6 +54,7 @@ public partial class CommandPanelChecks : Main
             Receive("BUILDING 0 201 1 -10 8 0");
             Receive("BUILDING 1 202 1 -4 8 0");
             Receive("BUILDING 0 203 2 10 8 0");
+            Receive("BUILDING_VISION 203 1");
 
             SelectUnit(101);
             ExpectUnit("An owned worker shows attack, stop and hold in numpad slots 4, 5 and 6");
@@ -449,6 +450,7 @@ public partial class CommandPanelChecks : Main
         Receive("BUILDING 4 603 1 10 15 0");
         Receive("CONSTRUCTION 603 20");
         Receive("BUILDING 4 604 2 20 15 0");
+        Receive("BUILDING_VISION 604 1"); // 조회할 적 건물은 실제 시야 스냅샷도 필요하다.
         Receive("HP 601 800 800");
         Receive("STATS 601 0 0 0 0 6");
         SelectBuilding(601);

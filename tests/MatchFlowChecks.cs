@@ -12,6 +12,7 @@ public partial class MatchFlowChecks : Node
     private bool _waitingToQueue = true;
     private bool _sawLoading;
     private bool _checkCancellation;
+    private bool _practice;
 
     public override void _Ready()
     {
@@ -19,6 +20,7 @@ public partial class MatchFlowChecks : Node
         _session.RememberAddress = false;
         _url = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--lobby-url="))?[12..];
         _checkCancellation = OS.GetCmdlineUserArgs().Contains("--check-cancellation");
+        _practice = OS.GetCmdlineUserArgs().Contains("--practice");
         if (_url == null) { GD.PushError("Use tests/run-match.ps1"); GetTree().Quit(1); return; }
         Callable.From(() => {
             var lobby = GD.Load<PackedScene>("res://lobby/Lobby.tscn").Instantiate();
@@ -37,6 +39,8 @@ public partial class MatchFlowChecks : Node
             if (_waitingToQueue && GetTree().CurrentScene is Lobby)
             {
                 _waitingToQueue = false;
+                _session.SelectedHero = _cycles == 0 ? UnitCatalog.HeroTest : UnitCatalog.HeroGolem;
+                _session.PracticeRole = _practice ? (_cycles == 0 ? "HERO" : "COMMANDER") : "";
                 // Check rapid cancel/requeue in the two-client run. With four clients,
                 // cancelling an already-full match intentionally cancels that match for everyone.
                 if (_checkCancellation)
@@ -55,7 +59,13 @@ public partial class MatchFlowChecks : Node
             if (_cycles == 1 && _firstMatch == match.MatchId) throw new Exception("Reused previous world");
             _played += delta;
             if (_played < 1.5) return;
-            GD.Print($"PASS: cycle {_cycles+1}, {match.Players} players, team {match.Team}, {match.Role}, lobby/queue/loading/game");
+            if (match.Players != 4 || (_practice && (match.Bots != 3 || match.Role != _session.PracticeRole)))
+                throw new Exception("Invalid bot-filled match");
+            if (match.Role == "HERO" && (match.Hero != _session.SelectedHero ||
+                !game.Units.LiveUnits.Any(unit => unit.UnitType == match.Hero && game.Units.CanControl(unit)) ||
+                game.UnitInfo.Experience is not { Level: 1, Current: 0 }))
+                throw new Exception("Selected hero or initial experience missing");
+            GD.Print($"PASS: cycle {_cycles+1}, {match.Players - match.Bots} players, team {match.Team}, {match.Role}, AI {match.Bots}, lobby/queue/loading/game");
             _firstMatch = match.MatchId;
             _cycles++;
             _played = 0;

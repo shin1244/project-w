@@ -22,9 +22,15 @@ public partial class HeroSkillPanel : PanelContainer
     private UnitActivity _activity;
     private ProgressBar _health, _mana;
     private Label _healthText, _manaText;
+    private Label _status;
+    private uint? _respawnTick;
+    private bool _dead;
+    public bool IsRespawning => _dead || _respawnTick.HasValue;
+    public string StatusText => _status?.Text ?? "";
     private ColorRect _shieldFill;
     private Control _passive;
     private float _currentHP, _maxHP, _shield;
+    private WolfEffectSnapshot _wolfEffects;
 
     private sealed class SlotView
     {
@@ -66,12 +72,21 @@ public partial class HeroSkillPanel : PanelContainer
         (_health, _healthText) = CreateVital(vitals, "Health", "64cf79");
         _shieldFill = HealthDisplay.CreateShieldFill(_health);
         (_mana, _manaText) = CreateVital(vitals, "Mana", "539fe0");
+        _mana.GetParent<Control>().Hide(); // 마나를 실제로 받기 전에는 빈 수치를 표시하지 않는다.
+        _status = new Label { Name = "Status", HorizontalAlignment = HorizontalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore };
+        _status.AddThemeFontSizeOverride("font_size", 13);
+        _status.AddThemeColorOverride("font_color", new Color("bfcec5"));
+        vitals.AddChild(_status);
         var row = new HBoxContainer { Name = "Slots", MouseFilter = MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", 8);
         content.AddChild(row);
         var passive = new PanelContainer { Name = "Passive", CustomMinimumSize = new Vector2(64, 64), MouseFilter = MouseFilterEnum.Stop };
         passive.AddThemeStyleboxOverride("panel", Style("242825", "807653", 4));
-        passive.AddChild(new Label { Name = "Key", Text = "P", MouseFilter = MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+        var passiveLabel = new Label { Name = "Key", Text = "패시브", MouseFilter = MouseFilterEnum.Ignore,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        passiveLabel.AddThemeFontSizeOverride("font_size", 12);
+        passive.AddChild(passiveLabel);
         row.AddChild(passive);
         _passive = passive;
         for (int i = 0; i < 5; i++) CreateSlot(row, i);
@@ -124,6 +139,7 @@ public partial class HeroSkillPanel : PanelContainer
     {
         if (HeroType != heroType || _playerId != playerId || _team != team || !heroType.HasValue)
         {
+            _dead = false; _respawnTick = null;
             ClearVitals(); _readyTicks.Clear(); _cooldownLengths.Clear();
             if (!heroType.HasValue) { _definitions.Clear(); _hasTick = false; _tick = 0; }
         }
@@ -145,7 +161,7 @@ public partial class HeroSkillPanel : PanelContainer
             return;
         }
         if (HeroUnitId == id) return;
-        ClearVitals(); HeroUnitId = id; Refresh();
+        ClearVitals(); HeroUnitId = id; _dead = false; _respawnTick = null; Refresh();
     }
 
     public void HandleHealth(HealthSnapshot health)
@@ -209,6 +225,50 @@ public partial class HeroSkillPanel : PanelContainer
         { SkillTargetMode.Enemy => team != _team, SkillTargetMode.Ally => team == _team, _ => false });
     }
     public void SetTargeting(int? slot) { _targeting = slot; Refresh(); }
+    public void HandleWolfEffects(WolfEffectSnapshot effects)
+    {
+        if (HeroType != UnitCatalog.HeroTest || HeroUnitId != effects.UnitId) return;
+        _wolfEffects = effects;
+        RefreshStatus();
+    }
+    public void HandleRespawn(string[] parts)
+    {
+        if (!HeroType.HasValue || parts.Length != 2 || !uint.TryParse(parts[1], NumberStyles.None,
+            CultureInfo.InvariantCulture, out uint tick)) return;
+        _respawnTick = tick;
+        _dead = true;
+        Refresh();
+    }
+
+    private void RefreshStatus()
+    {
+        if (_status == null) return;
+        if (_respawnTick is uint ready)
+        {
+            int remaining = Math.Max(0, unchecked((int)(ready - _tick)));
+            _status.Text = !_hasTick ? "전사 · 본진 부활 대기 중" : remaining > 0
+                ? $"전사 · {Math.Ceiling(remaining / (double)InterpolationClock.TickRate):0}초 후 본진에서 부활"
+                : "전사 · 본진의 부활 위치를 확보하는 중";
+        }
+        else if (!HeroUnitId.HasValue) _status.Text = _dead ? "전사 · 부활 대기 중" : "내 영웅을 기다리는 중…";
+        else if (_targeting is int slot)
+            _status.Text = $"{(Definition(slot)?.Target == SkillTargetMode.Ally ? "아군" : "적")}을 클릭해 기술 사용 · Esc 취소";
+        else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = "기절 · 잠시 행동할 수 없습니다";
+        else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = "침묵 · 이동과 일반 공격은 가능합니다";
+        else if (_wolfEffects.DrainReady || _wolfEffects.AuraUntil != 0 && unchecked((int)(_wolfEffects.AuraUntil - _tick)) > 0)
+        {
+            string drain = _wolfEffects.DrainReady ? "W · 흡혈 50% 대기" : "";
+            int ticks = Math.Max(0, unchecked((int)(_wolfEffects.AuraUntil - _tick)));
+            string aura = _wolfEffects.AuraUntil != 0 && ticks > 0
+                ? $"E · 지속 피해 {Math.Ceiling(ticks / (double)InterpolationClock.TickRate):0}초" : "";
+            _status.Text = drain + (drain != "" && aura != "" ? " / " : "") + aura;
+        }
+        else if (_maxHP > 0 && _currentHP / _maxHP < .25f) _status.Text = "체력 위험 · 뒤로 물러나 회복하세요";
+        else _status.Text = "내 영웅 · 스킬에 마우스를 올리면 설명";
+        _status.Modulate = IsRespawning || _maxHP > 0 && _currentHP / _maxHP < .25f
+            ? new Color("ffc393") : Colors.White;
+    }
+
     private void Refresh()
     {
         if (_passive != null) _passive.TooltipText = SkillDescriptions.Passive(HeroType);
@@ -234,20 +294,30 @@ public partial class HeroSkillPanel : PanelContainer
             view.Cover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks(slot) / (float)Math.Max(1, _cooldownLengths.GetValueOrDefault(slot)), 0, 1) : 0;
             view.Cooldown.Text = cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
         }
+        RefreshStatus();
         AvailabilityChanged?.Invoke();
     }
     public void ApplyMana(uint id, float current, float maximum)
-    { if (HeroUnitId == id) ApplyVital(_mana, _manaText, current, maximum); }
+    {
+        if (HeroUnitId != id || !float.IsFinite(current) || !float.IsFinite(maximum) || current < 0 || maximum <= 0) return;
+        ApplyVital(_mana, _manaText, current, maximum);
+        _mana.GetParent<Control>().Show();
+    }
     public void HandleRemove(string[] parts)
-    { if (parts.Length == 2 && uint.TryParse(parts[1], out uint id) && HeroUnitId == id) ClearVitals(); }
+    {
+        if (parts.Length == 2 && uint.TryParse(parts[1], out uint id) && HeroUnitId == id)
+        { _dead = parts[0] == "REMOVE"; ClearVitals(); }
+    }
     private void ClearVitals()
     {
+        _wolfEffects = default;
         HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
         Refresh();
         _currentHP = _maxHP = _shield = 0;
         if (_health == null) return;
         _shieldFill.Hide();
         _health.Value = _mana.Value = 0; _healthText.Text = _manaText.Text = "— / —";
+        _mana.GetParent<Control>().Hide();
     }
 
     private (ProgressBar, Label) CreateVital(VBoxContainer parent, string name, string color)

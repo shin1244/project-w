@@ -14,9 +14,10 @@ public sealed class MatchAssignment
     public string Role { get; set; }
     public uint Hero { get; set; }
     public int Players { get; set; }
+    public int Bots { get; set; }
     public bool IsValid => !string.IsNullOrWhiteSpace(MatchId) && !string.IsNullOrWhiteSpace(Host) &&
-        Port is > 0 and <= 65535 && Ticket?.Length == 32 && Team is 1 or 2 && Players is >= 2 and <= 4 &&
-        (Role == "COMMANDER" && Hero == 0 || Role == "HERO" && Hero == UnitCatalog.HeroTest);
+        Port is > 0 and <= 65535 && Ticket?.Length == 32 && Team is 1 or 2 && Players is >= 2 and <= 4 && Bots >= 0 && Bots < Players &&
+        (Role == "COMMANDER" && Hero == 0 || Role == "HERO" && UnitCatalog.IsHero(Hero));
 }
 
 public sealed class QueueStatus
@@ -36,6 +37,9 @@ public partial class MatchSession : Node
     public event Action Changed;
     public string LobbyUrl { get; private set; } = "http://127.0.0.1:8080";
     public bool RememberAddress { get; set; } = true;
+    public uint SelectedHero { get; set; } = UnitCatalog.HeroTest;
+    public string PracticeRole { get; set; } = "";
+    public MatchResultSnapshot Result { get; private set; }
     public string ErrorMessage { get; private set; }
     public bool IsQueued { get; private set; }
     public bool Started { get; private set; }
@@ -49,6 +53,7 @@ public partial class MatchSession : Node
     private int _generation;
     private double _heartbeat;
     private CanvasLayer _gameMenu;
+    private MatchResultPanel _results;
     private Task _pollTask = Task.CompletedTask;
     private Task _cleanupTask = Task.CompletedTask;
 
@@ -65,6 +70,8 @@ public partial class MatchSession : Node
     public void StartQueue(string url)
     {
         if (IsQueued || Match != null) return;
+        if (!UnitCatalog.IsHero(SelectedHero)) { Fail("선택할 수 없는 영웅입니다."); return; }
+        if (PracticeRole is not ("" or "HERO" or "COMMANDER")) { Fail("선택할 수 없는 연습 모드입니다."); return; }
         if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != "http" && uri.Scheme != "https") || uri.AbsolutePath != "/" || uri.Query != "" || uri.Fragment != "" || uri.UserInfo != "")
         { Fail("서버 주소를 http://주소:8080 형식으로 입력해 주세요."); return; }
@@ -76,10 +83,12 @@ public partial class MatchSession : Node
             config.Save("user://network.cfg");
         }
         ErrorMessage = null;
+        Result = null;
         Started = false;
         Status = null;
         IsQueued = true;
-        _queueUrl = $"{LobbyUrl}/queue/{Guid.NewGuid():N}";
+        _queueUrl = $"{LobbyUrl}/queue/{Guid.NewGuid():N}?hero={SelectedHero}";
+        if (PracticeRole != "") _queueUrl += $"&practice={PracticeRole}";
         int generation = ++_generation;
         Changed?.Invoke();
         _pollTask = PollQueue(_queueUrl, generation, _cleanupTask);
@@ -175,11 +184,25 @@ public partial class MatchSession : Node
     public void ReturnToLobby()
     {
         InGame = false;
+        _results?.QueueFree();
+        _results = null;
+        Result = null;
         _gameMenu?.QueueFree();
         _gameMenu = null;
         _net.Disconnect();
         CancelQueue();
         GetTree().ChangeSceneToFile("res://lobby/Lobby.tscn");
+    }
+
+    public void Finish(MatchResultSnapshot result, uint localTeam)
+    {
+        if (Result != null) return;
+        Result = result;
+        _gameMenu?.Hide();
+        _results = new MatchResultPanel { Result = result, LocalTeam = localTeam };
+        _results.BackRequested += ReturnToLobby;
+        AddChild(_results);
+        Changed?.Invoke();
     }
 
     private void OnMessage(string message)
@@ -189,11 +212,11 @@ public partial class MatchSession : Node
         else if (!Started && message.StartsWith("ERR ", StringComparison.Ordinal)) Fail(message[4..]);
     }
 
-    private void OnClosed(string reason) { if (Match != null) Fail(reason); }
+    private void OnClosed(string reason) { if (Match != null && Result == null) Fail(reason); }
 
     public override void _Process(double delta)
     {
-        if (Match == null) { _heartbeat = 0; return; }
+        if (Match == null || Result != null) { _heartbeat = 0; return; }
         _heartbeat += delta;
         if (_heartbeat >= 10) { _heartbeat = 0; _net.Send("PING"); }
     }

@@ -68,6 +68,9 @@ public partial class SelectionDetails : PanelContainer
         var emptyTitle = Text("선택한 대상이 없습니다", 18, "a8b9b1");
         emptyTitle.HorizontalAlignment = HorizontalAlignment.Center;
         empty.AddChild(emptyTitle);
+        var emptyHint = Text("일꾼 선택 → 나무 우클릭으로 목재 채집\n여러 유닛은 드래그로 선택 · Space로 본진 보기", 14, "8fa6ae");
+        emptyHint.HorizontalAlignment = HorizontalAlignment.Center;
+        empty.AddChild(emptyHint);
         _empty = empty;
 
         _single = new HBoxContainer { Name = "Single", MouseFilter = MouseFilterEnum.Ignore };

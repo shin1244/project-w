@@ -237,11 +237,151 @@ public partial class RtsControlChecks : Main
 
             typeof(NetClient).GetField("_writer", Private).SetValue(net, writer);
             await CheckAosControls();
+            await CheckGolemSkills();
+            await CheckCameraNavigation();
+            await CheckBattleClarity();
+            await CheckAttackRangeIndicators();
+            await CheckWolfWE();
 
-            GD.Print("PASS: RTS selection/groups/minimap; AOS hero control and independent inspection via real input; ownership/death/respawn/resync and role changes");
+            GD.Print("PASS: RTS selection/groups/minimap; edge pan and Space hero/base focus; AOS control/inspection, ownership/death/respawn/resync and role changes");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
+    }
+
+    private async Task CheckWolfWE()
+    {
+        BeginSession();
+        Receive("WELCOME 7 1 HERO 200");
+        Receive("ABILITY UNIT 200 1 wolf-drain SELF 0 8 0");
+        Receive("ABILITY UNIT 200 2 wolf-aura SELF 0 12 0");
+        Receive("UNIT 200 1400 7 -6 -8 1");
+        Receive("UNIT 200 1401 9 6 -8 1");
+        Receive("TICK 600");
+        int before = _commands.Count;
+        KeyPress(Key.W); KeyPress(Key.E);
+        Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 1", "SKILL 2" }) && !_input.IsSkillTargeting &&
+            Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Wolf W/E cast immediately and W is reserved for the skill");
+        Check(Skills.GetNode<Button>("Content/Slots/W").TooltipText.Contains("50%") &&
+            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("30%"), "W/E descriptions show their actual effects");
+        Receive("WOLF 1400 1 750");
+        Receive("WOLF 1401 0 0");
+        await Flush();
+        var effects = Unit(1400).GetNode<Node3D>("WolfEffects");
+        Check(effects.GetNode<MeshInstance3D>("DrainReady").Visible && effects.GetNode<MeshInstance3D>("DamageAura").Visible &&
+            Skills.StatusText.Contains("50%") && Skills.StatusText.Contains("5초"),
+            "Authoritative snapshots show W readiness and the remaining E duration for the owned hero");
+        foreach (string invalid in new[] { "WOLF 1400 2 0", "WOLF 1400 0 -1", "WOLF 1400 0 NaN", "WOLF 0 0 0", "WOLF 1400 0 0 extra" }) Receive(invalid);
+        Check(Unit(1400).WolfEffects.DrainReady && Unit(1400).WolfEffects.AuraUntil == 750,
+            "Malformed effect snapshots cannot erase valid state");
+        Receive("COOLDOWN 1400 1 840");
+        Receive("COOLDOWN 1400 2 960");
+        KeyPress(Key.W); KeyPress(Key.E);
+        Check(_commands.Count == before + 2, "W/E cooldowns block repeat casts");
+        Receive("TICK 630");
+        Check(Skills.StatusText.Contains("4초"), "E duration uses server ticks");
+        Receive("WOLF 1400 1 0");
+        await Flush();
+        Check(effects.GetNode<MeshInstance3D>("DrainReady").Visible && !effects.GetNode<MeshInstance3D>("DamageAura").Visible,
+            "E expiration preserves an unused W");
+        Receive("WOLF 1400 0 0");
+        await Flush();
+        Check(!effects.GetNode<MeshInstance3D>("DrainReady").Visible, "W consumption removes its ready effect");
+        Receive("WOLF 1400 1 750");
+        Receive("REMOVE 1400");
+        await Flush();
+        Check(!effects.GetNode<MeshInstance3D>("DamageAura").Visible && !Skills.StatusText.Contains("50%"),
+            "Death clears visual and HUD buffs");
+        Receive("UNIT 200 1402 7 -6 -8 1");
+        Check(!Unit(1402).WolfEffects.DrainReady && Unit(1402).WolfEffects.AuraUntil == 0 && !Skills.CanUse(1),
+            "Respawn starts without buffs while retaining the server cooldown");
+    }
+
+    private async Task CheckAttackRangeIndicators()
+    {
+        BeginSession();
+        Units.Camera.Size = 60;
+        CameraNavigation.FocusGround(Units.Camera, Vector3.Zero);
+        foreach (string message in new[]
+        {
+            "BODY UNIT 1 0.5", "BODY UNIT 2 0.6",
+            "UNIT 1 1300 7 -6 -8 1", "UNIT 2 1301 7 6 -8 1", "UNIT 0 1302 7 0 -8 1",
+            "UNIT 2 1303 8 12 -8 2", "UNIT 2 1304 9 18 -8 1",
+            "STATS 1300 20 1 1 5 10", "STATS 1302 0 0 0 5 10",
+            "STATS 1303 20 8 1 5 10", "STATS 1304 20 8 1 5 10"
+        }) Receive(message);
+        Units.SelectSingle(Unit(1300));
+        Units.ToggleSelection(Unit(1301));
+        Units.ToggleSelection(Unit(1302));
+        int before = _commands.Count;
+        KeyPress(Key.A);
+        Check(Ring(1300) is { Visible: true } && Ring(1301) == null && Ring(1302) == null &&
+            Ring(1303) == null && Ring(1304) == null && _commands.Count == before,
+            "A previews only selected controllable attackers with known stats, without issuing orders");
+        Receive("STATS 1301 20 8 1 5 10");
+        Check(Mathf.IsEqualApprox(Radius(1300), 1.5f) && Mathf.IsEqualApprox(Radius(1301), 8.6f),
+            "Mixed selections use each unit's authoritative range plus collision body, including late stats");
+        Receive("STATS 1301 20 10 1 5 10");
+        Receive("BODY UNIT 2 0.8");
+        Check(Mathf.IsEqualApprox(Radius(1301), 10.8f), "Range and body updates refresh an active preview");
+        Unit(1301).Position += Vector3.Right;
+        Check(Ring(1301).GlobalPosition.DistanceTo(Unit(1301).GlobalPosition + Vector3.Up * .07f) < .001f,
+            "Range preview follows the rendered unit position");
+        KeyPress(Key.Escape);
+        Check(Ring(1300) == null && Ring(1301) == null, "Esc removes all attack range previews");
+        KeyPress(Key.A);
+        Click(Units.Camera.UnprojectPosition(new Vector3(12, 0, 3)), MouseButton.Left);
+        await Flush();
+        Check(!_input.IsAttackTargeting && Ring(1300) == null && Ring(1301) == null &&
+            _commands.Count == before + 1 && _commands.Last().StartsWith("ATTACK_MOVE "),
+            "Attack-move click removes the previews and retains the existing order");
+        KeyPress(Key.A);
+        Units.SelectSingle(Unit(1301));
+        Check(Ring(1300) == null && Ring(1301) != null, "Changing selection replaces the active previews");
+        GetWindow().EmitSignal(Window.SignalName.FocusExited);
+        Check(!_input.IsAttackTargeting && Ring(1301) == null, "Focus loss cancels the preview");
+        KeyPress(Key.A);
+        Unit hidden = Unit(1301);
+        Receive("HIDE 1301");
+        Check(hidden.GetNodeOrNull<MeshInstance3D>("AttackRangeRing") == null, "HIDE removes a stale preview immediately");
+
+        foreach (uint type in new[] { UnitCatalog.HeroTest, UnitCatalog.HeroGolem })
+        {
+            BeginSession();
+            Receive($"WELCOME 7 1 HERO {type}");
+            Receive($"UNIT {type} 1310 7 -6 -8 1");
+            Receive($"UNIT {type} 1311 9 6 -8 1");
+            Receive("STATS 1310 24 1 1.2 5 10");
+            Receive("STATS 1311 24 1 1.2 5 10");
+            UnitInfo.Inspect(Unit(1311));
+            KeyPress(Key.A);
+            Check(Ring(1310) != null && Ring(1311) == null, "Hero preview follows ownership, not the inspected ally");
+            Click(Units.Camera.UnprojectPosition(new Vector3(12, 0, 3)), MouseButton.Right);
+            await Flush();
+            Check(!_input.IsAttackTargeting && Ring(1310) == null, "Right-click exits the attack preview");
+            KeyPress(Key.A);
+            Unit dead = Unit(1310);
+            Receive("REMOVE 1310");
+            Check(dead.GetNodeOrNull<MeshInstance3D>("AttackRangeRing") == null, "Death clears the ring before its death animation");
+            Receive($"UNIT {type} 1312 7 -6 -8 1");
+            Receive("STATS 1312 24 1 1.2 5 10");
+            KeyPress(Key.A);
+            Check(Ring(1312) != null, "Respawn uses the new hero ID");
+            Receive($"ABILITY UNIT {type} 0 test-target ENEMY 7 4 0");
+            KeyPress(Key.Q);
+            Check(Ring(1312) == null && Unit(1312).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") != null,
+                "Skill targeting replaces the attack preview with the skill's own range");
+            KeyPress(Key.A);
+            Check(Ring(1312) != null && Unit(1312).GetNodeOrNull<MeshInstance3D>("SkillRangeRing") == null,
+                "A replaces the skill range preview");
+            Unit old = Unit(1312);
+            BeginSession();
+            Check(old.GetNodeOrNull<MeshInstance3D>("AttackRangeRing") == null && !_input.IsAttackTargeting,
+                "Map reset removes active previews and targeting");
+        }
+
+        MeshInstance3D Ring(uint id) => Unit(id).GetNodeOrNull<MeshInstance3D>("AttackRangeRing");
+        float Radius(uint id) => (((TorusMesh)Ring(id).Mesh).InnerRadius + ((TorusMesh)Ring(id).Mesh).OuterRadius) / 2;
     }
 
     private async Task CheckAosControls()
@@ -514,6 +654,192 @@ public partial class RtsControlChecks : Main
         foreach (string valid in new[] { "SKILL 953 1 961", "SKILL 953 2 10 -8", "SKILL 953 3" })
             Check(SkillActivationSnapshot.TryParse(valid.Split(' '), out _), "All activation forms support presentation");
         Check(!SkillActivationSnapshot.TryParse("SKILL 953 2 NaN 0".Split(' '), out _), "Invalid activation coordinates are rejected");
+    }
+
+    private async Task CheckGolemSkills()
+    {
+        BeginSession();
+        Receive("WELCOME 7 1 HERO 201");
+        foreach (string message in new[] {
+            "ABILITY UNIT 201 0 golem-slam SELF 0 6 0", "ABILITY UNIT 201 1 golem-shell SELF 0 12 0",
+            "ABILITY UNIT 201 2 golem-charge ENEMY 7 10 1", "ABILITY UNIT 201 3 golem-quake SELF 0 30 0",
+            "EXP 1 0 100", "UNIT 201 970 7 0 -8 1", "HP 970 420 420", "UNIT 1 971 8 3 -8 2" }) Receive(message);
+        await Flush();
+        Expect(970);
+        Check(Unit(970).GetNodeOrNull<GolemAnimation>("GolemAnimation") != null &&
+            UnitInfo.Experience is { Level: 1, Current: 0 }, "Golem binds its model and initial experience");
+        Check(Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Golem reserves W for its shield, including cooldown");
+        int before = _commands.Count;
+        KeyPress(Key.Q); KeyPress(Key.W); KeyPress(Key.R);
+        Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 0", "SKILL 1", "SKILL 3" }),
+            "Golem Q/W/R cast immediately without a target click");
+        KeyPress(Key.E); ClickUnit(971);
+        await Flush();
+        Check(_commands.Last() == "SKILL 2 971", "Golem E selects an enemy through the normal input path");
+        Receive("SKILL 970 0"); Receive("SKILL 970 1"); Receive("SHIELD 970 105"); Receive("COOLDOWN 970 1 360");
+        Receive("SKILL 970 3");
+        await Flush();
+        Check(Unit(970).GetNode<MeshInstance3D>("GolemAnimation/StoneShield").Visible && !Skills.CanUse(1),
+            "Server shield activates the effect and cooldown blocks W");
+        Receive("SHIELD 970 0"); Receive("CONTROL 970 2");
+        await Flush();
+        Check(!Unit(970).GetNode<MeshInstance3D>("GolemAnimation/StoneShield").Visible &&
+            !Skills.CanUse(2) && Skills.CanUse(0), "Shield depletion hides the effect; root only blocks the dash");
+    }
+
+    private async Task CheckCameraNavigation()
+    {
+        Camera3D camera = Units.Camera;
+        Vector2 screen = GetViewport().GetVisibleRect().Size;
+        camera.Size = 60;
+        camera.SetProcess(false); // 가장자리 이동은 일정한 delta로 검증한다.
+        GetWindow().EmitSignal(Window.SignalName.FocusEntered);
+        GetWindow().EmitSignal(Window.SignalName.MouseEntered);
+        try
+        {
+            float step = 55 * camera.Size / camera.Get("home_size").AsSingle() * .1f;
+            foreach ((Vector2 point, Vector3 direction) in new[]
+            {
+                (new Vector2(1, screen.Y / 2), Vector3.Left),
+                (new Vector2(screen.X - 1, screen.Y / 2), Vector3.Right),
+                (new Vector2(screen.X / 2, 1), Vector3.Forward),
+                (new Vector2(screen.X / 2, screen.Y - 1), Vector3.Back),
+                (screen - Vector2.One, new Vector3(1, 0, 1).Normalized()),
+                (screen / 2, Vector3.Zero),
+                (new Vector2(-1, screen.Y / 2), Vector3.Zero)
+            })
+            {
+                CameraNavigation.FocusGround(camera, Vector3.Zero);
+                Motion(point);
+                Vector3 before = camera.Position;
+                camera.Call("_process", .1);
+                Check((camera.Position - before).DistanceTo(direction * step) < .001f,
+                    $"Edge pan follows {point}, with equal straight/diagonal speed and no motion outside the viewport");
+            }
+
+            Motion(new Vector2(screen.X - 1, screen.Y / 2));
+            Vector3 stopped = camera.Position;
+            using (var press = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true, Position = screen / 2 })
+            {
+                Input.ParseInputEvent(press);
+                Input.FlushBufferedEvents();
+                camera.Call("_process", .1);
+                Check(camera.Position.IsEqualApprox(stopped), "Left-button dragging suppresses edge pan");
+                using var release = new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = screen / 2 };
+                Input.ParseInputEvent(release);
+                Input.FlushBufferedEvents();
+            }
+            using (var press = new InputEventMouseButton { ButtonIndex = MouseButton.Middle, Pressed = true })
+            {
+                camera.Call("_unhandled_input", press);
+                camera.Call("_process", .1);
+                Check(camera.Position.IsEqualApprox(stopped), "Middle-button dragging suppresses edge pan");
+                press.Pressed = false;
+                camera.Call("_input", press);
+            }
+            GetWindow().EmitSignal(Window.SignalName.MouseExited);
+            camera.Call("_process", .1);
+            Check(camera.Position.IsEqualApprox(stopped), "Leaving the window stops edge pan even with a stale edge position");
+            GetWindow().EmitSignal(Window.SignalName.MouseEntered);
+            GetWindow().EmitSignal(Window.SignalName.FocusExited);
+            camera.Call("_process", .1);
+            Check(camera.Position.IsEqualApprox(stopped), "Unfocused window cannot edge pan");
+            GetWindow().EmitSignal(Window.SignalName.FocusEntered);
+            camera.Call("_process", 100);
+            Check(camera.Position.X <= 80 && camera.Position.X > stopped.X, "Edge pan resumes on focus and respects map bounds");
+        }
+        finally
+        {
+            Motion(screen / 2);
+            GetWindow().EmitSignal(Window.SignalName.FocusExited);
+            camera.SetProcess(true);
+        }
+
+        int commandsBefore = _commands.Count;
+        foreach (uint team in new uint[] { 1, 2 })
+        {
+            BeginSession();
+            Receive($"WELCOME 7 {team} COMMANDER");
+            Receive($"UNIT 0 1000 7 0 -8 {team}");
+            Units.SelectSingle(Unit(1000));
+            CameraNavigation.FocusGround(camera, Vector3.Zero);
+            KeyPress(Key.Space);
+            await Flush();
+            Check(GroundCenter().DistanceTo(new Vector3(team == 1 ? -65 : 65, 0, 0)) < .02f,
+                "Commander Space focuses its own base even before building snapshots arrive");
+            Expect(1000);
+            Check(Mathf.IsEqualApprox(camera.Size, 60), "Space preserves camera zoom");
+        }
+        foreach (uint type in new uint[] { UnitCatalog.HeroTest, UnitCatalog.HeroGolem })
+        {
+            BeginSession();
+            Receive($"WELCOME 7 2 HERO {type}");
+            Receive($"UNIT {type} 1001 8 12 8 2"); // 같은 편 다른 플레이어의 영웅.
+            Receive($"UNIT {type} 1002 7 -12 -8 2");
+            UnitInfo.Inspect(Unit(1001));
+            KeyPress(Key.Space);
+            await Flush();
+            Check(GroundCenter().DistanceTo(Unit(1002).GlobalPosition) < .02f && UnitInfo.DisplayedUnit == Unit(1001),
+                "Space focuses the owned hero without changing independent inspection");
+            CameraNavigation.FocusGround(camera, Vector3.Zero);
+            KeyPress(Key.Space, echo: true);
+            await Flush();
+            Check(GroundCenter().Length() < .02f, "Space key repeat does not lock the camera");
+            Receive("REMOVE 1002");
+            KeyPress(Key.Space);
+            await Flush();
+            Check(GroundCenter().Length() < .02f, "A dead hero cannot redirect Space to another player's hero");
+            Receive($"UNIT {type} 1003 7 -6 -4 2");
+            KeyPress(Key.Space);
+            await Flush();
+            Check(GroundCenter().DistanceTo(Unit(1003).GlobalPosition) < .02f, "Space follows the respawned hero's new ID");
+        }
+        Check(_commands.Count == commandsBefore, "Camera navigation sends no unit orders");
+    }
+
+    private async Task CheckBattleClarity()
+    {
+        BeginSession();
+        Check(Stock.Visible, "Commanders see the economy HUD");
+        InvokeMain("FrameStartingView");
+        Check(Units.Camera.Size == 52 && GroundCenter().DistanceTo(new Vector3(-65, 0, 0)) < .02f,
+            "Commander begins with a readable view of its own base");
+        Receive("WELCOME 7 1 HERO 201");
+        Check(!Stock.Visible && GetNode<BattleGuide>("SelectionUI/BattleGuide").Visible,
+            "Heroes see role/objective guidance without a misleading 0/0 economy");
+        Receive("UNIT 201 1200 7 -12 -8 1");
+        Receive("HP 1200 420 420");
+        InvokeMain("FrameStartingView");
+        Check(Units.Camera.Size == 38 && GroundCenter().DistanceTo(Unit(1200).GlobalPosition) < .02f,
+            "Hero begins centered at a readable zoom");
+        Check(!Skills.GetNode<Control>("Content/Vitals/Mana").Visible,
+            "Missing mana is hidden instead of displaying unknown values");
+        Receive("UNIT 1 1201 8 -8 -8 2");
+        Receive("HP 1201 40 100");
+        await Flush();
+        Check(Unit(1201).HealthBar.Visible, "An injured enemy's health is readable without selecting it");
+        Unit(1201).Hide();
+        await Flush();
+        Check(!Unit(1201).HealthBar.Visible, "Health bars cannot reveal hidden models");
+        Unit(1201).Show();
+        Receive("HP 1201 100 100");
+        Check(!Unit(1201).HealthBar.Visible, "Full-health unselected units avoid unnecessary bars");
+
+        Receive("TICK 300");
+        Receive("RESPAWN 660"); // 실제 서버는 REMOVE보다 먼저 부활 시점을 보낸다.
+        Receive("REMOVE 1200");
+        Check(Skills.IsRespawning && Skills.StatusText.Contains("12초"), "Death identifies its respawn countdown");
+        Receive("RESPAWN invalid");
+        Receive("TICK 330");
+        Check(Skills.StatusText.Contains("11초"), "Countdown follows server time and ignores malformed messages");
+        Receive("TICK 660");
+        Check(Skills.StatusText.Contains("부활 위치"), "A blocked respawn is not presented as already alive");
+        Receive("UNIT 201 1202 7 -20 -8 1");
+        Receive("HP 1202 420 420");
+        Check(!Skills.IsRespawning && Skills.StatusText.Contains("내 영웅"), "Respawn clears death feedback for the new unit ID");
+        Receive($"MAP 2 {Map.MapHash}");
+        Check(!GetNode<BattleGuide>("SelectionUI/BattleGuide").Visible && !Skills.IsRespawning,
+            "Resynchronization clears stale guidance and respawn state");
     }
 
     private Vector3 GroundCenter()

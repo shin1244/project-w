@@ -171,7 +171,12 @@ public partial class FogOfWar : MeshInstance3D
         foreach (uint id in _stale) { _sources[id].Remove(); _sources.Remove(id); changed = true; }
         if (changed) _maskViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
         if (GodotObject.IsInstanceValid(Buildings))
-            foreach (Building building in Buildings.LiveBuildings) building.SetFogRevealed(IsBuildingVisible(building));
+            foreach (Building building in Buildings.LiveBuildings)
+            {
+                bool visible = IsBuildingVisible(building);
+                building.Visible = visible;
+                building.SetFogRevealed(visible);
+            }
     }
 
     private bool UpdateSource(uint id, RangeBody body, float sight, int ignore)
