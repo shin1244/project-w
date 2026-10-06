@@ -31,6 +31,7 @@
 [ext_resource type="PackedScene" path="res://ui/HeroSkillPanel.tscn" id="28_skills"]
 [ext_resource type="PackedScene" path="res://units/HeroTest.tscn" id="29_hero"]
 [ext_resource type="PackedScene" path="res://ui/UnitInfoPanel.tscn" id="30_info"]
+[ext_resource type="Script" path="res://ui/MinionPanel.cs" id="31_minions"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -41,7 +42,7 @@ ambient_light_sky_contribution = 0.0
 ambient_light_energy = 0.35
 tonemap_mode = 2
 
-[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands", "Placement", "Details", "Skills", "UnitInfo")]
+[node name="Main" type="Node3D" unique_id=536979175 node_paths=PackedStringArray("Units", "Buildings", "Resources", "Map", "SyncStatus", "Stock", "Fog", "Minimap", "Commands", "Placement", "Details", "Skills", "UnitInfo", "Minions")]
 script = ExtResource("1_0xm2m")
 Units = NodePath("Units")
 Buildings = NodePath("Buildings")
@@ -56,6 +57,7 @@ Placement = NodePath("BuildingPlacement")
 Details = NodePath("SelectionUI/SelectionDetails")
 Skills = NodePath("SelectionUI/HeroSkillPanel")
 UnitInfo = NodePath("SelectionUI/UnitInfoPanel")
+Minions = NodePath("SelectionUI/MinionPanel")
 
 [node name="Units" type="Node3D" parent="." node_paths=PackedStringArray("Camera", "Resources", "Buildings")]
 script = ExtResource("12_units")
@@ -223,6 +225,19 @@ Buildings = NodePath("../../Buildings")
 
 [node name="HeroSkillPanel" parent="SelectionUI" instance=ExtResource("28_skills")]
 visible = false
+
+[node name="MinionPanel" type="Control" parent="SelectionUI"]
+visible = false
+layout_mode = 3
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 300.0
+offset_top = -186.0
+offset_right = -216.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("31_minions")
 
 [node name="UnitInfoPanel" parent="SelectionUI" node_paths=PackedStringArray("Units") instance=ExtResource("30_info")]
 visible = false

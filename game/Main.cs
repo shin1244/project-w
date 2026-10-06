@@ -19,6 +19,7 @@ public partial class Main : Node3D
     [Export] public SelectionDetails Details;
     [Export] public HeroSkillPanel Skills;
     [Export] public UnitInfoPanel UnitInfo;
+    [Export] public MinionPanel Minions;
     // 접속 요청값. 실제 역할과 진영은 서버의 WELCOME으로 확정한다.
     [Export] public PlayerRole RequestedRole { get; set; } = PlayerRole.Commander;
     [Export] public uint RequestedHeroType { get; set; } = UnitCatalog.HeroTest;
@@ -64,6 +65,7 @@ public partial class Main : Node3D
 
     private void ConnectInput()
     {
+        if (Units != null && Fog != null) Units.EffectVisibilityCheck = Fog.IsVisibleAt;
         if (GetNodeOrNull<CanvasLayer>("SelectionUI") is CanvasLayer ui)
         {
             _battleGuide = new BattleGuide { Name = "BattleGuide", Skills = Skills };
@@ -88,6 +90,11 @@ public partial class Main : Node3D
         _playerInput.ControlGroupRequested += HandleControlGroup;
         _playerInput.CameraHomeRequested += FocusHome;
         if (Commands != null) Commands.BuildRequested += BeginPlacement;
+        if (Minions != null)
+        {
+            Minions.CommandRequested += SendMinionCommand;
+            Minions.ViewChanged += OnMinionViewChanged;
+        }
         if (Minimap != null)
         {
             Minimap.CameraMoveRequested += MoveCameraFromMinimap;
@@ -99,6 +106,19 @@ public partial class Main : Node3D
     {
         _playerInput?.ResetInteraction();
         Placement?.Begin(type);
+    }
+
+    private void SendMinionCommand(string command)
+    {
+        if (LocalRole == PlayerRole.Commander) SendCommand(command);
+    }
+
+    private void OnMinionViewChanged(bool showMinions)
+    {
+        if (Details != null) Details.Visible = LocalRole == PlayerRole.Commander && !showMinions;
+        _playerInput?.ResetInteraction();
+        Placement?.Cancel();
+        Commands?.CancelMenu();
     }
 
     private void ModifyUnitSelection(Unit unit, bool shift, bool sameType)
@@ -289,6 +309,7 @@ public partial class Main : Node3D
                     Result = result;
                     _playerInput?.ResetInteraction();
                     Placement?.Cancel();
+                    Minions?.SetRole(false);
                     _skillRange.Clear();
                     ProcessMode = ProcessModeEnum.Disabled;
                     _matchSession?.Finish(result, Units.LocalTeam);
@@ -298,6 +319,8 @@ public partial class Main : Node3D
                 Units.HandleTick(parts);
                 Skills?.HandleTick(parts);
                 _battleGuide?.HandleTick(parts);
+                if (parts.Length == 2 && uint.TryParse(parts[1], System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out uint minionTick)) Minions?.SetTick(minionTick);
                 break;
             case "RESPAWN":
                 if (LocalRole == PlayerRole.Hero) Skills?.HandleRespawn(parts);
@@ -408,7 +431,7 @@ public partial class Main : Node3D
                 if (SkillActivationSnapshot.TryParse(parts, out var skill) && Units.TryGetUnit(skill.CasterId, out Unit caster) &&
                     Units.CanInspect(caster))
                     foreach (Node child in caster.GetChildren())
-                        if (child is ISkillPresentation presentation) presentation.PlaySkill(skill.Slot);
+                        if (child is ISkillPresentation presentation) presentation.PlaySkill(skill.Slot, skill.Empowered);
                 break;
             case "WOLF":
                 if (WolfEffectSnapshot.TryParse(parts, out var wolf) &&
@@ -418,6 +441,24 @@ public partial class Main : Node3D
                     wolfUnit.WolfEffects = wolf;
                     Skills?.HandleWolfEffects(wolf);
                 }
+                break;
+            case "GOLEM":
+                if (GolemEffectSnapshot.TryParse(parts, out var golem) &&
+                    Units.TryGetUnit(golem.UnitId, out Unit golemUnit) && golemUnit.UnitType == UnitCatalog.HeroGolem &&
+                    Units.CanInspect(golemUnit))
+                {
+                    golemUnit.GolemEffects = golem;
+                    Skills?.HandleGolemEffects(golem);
+                }
+                break;
+            case "MINION_RULES":
+            case "MINION_OPTION":
+            case "MINION_LANE":
+            case "MINION_WAVE":
+                if (LocalRole == PlayerRole.Commander) Minions?.HandleMessage(parts);
+                break;
+            case "MINION_HEAL":
+                Units.HandleMinionHeal(parts);
                 break;
             case "STATE":
                 if (StateSnapshot.TryParse(parts, out var state))
@@ -429,6 +470,7 @@ public partial class Main : Node3D
                 break;
             case "STOCK":
                 Stock?.HandleStock(parts);
+                if (LocalRole == PlayerRole.Commander) Minions?.HandleStock(parts);
                 break;
             case "SUPPLY":
                 Stock?.HandleSupply(parts);
@@ -448,6 +490,7 @@ public partial class Main : Node3D
                 Minimap?.Invalidate();
                 break;
             case "ERR":
+                Minions?.HandleMessage(parts);
                 Placement?.Notice(message.Length > 4 ? message[4..] : "요청을 처리할 수 없습니다.", true);
                 GD.PushWarning(message);
                 break;
@@ -477,6 +520,12 @@ public partial class Main : Node3D
         Units?.Camera?.SetMeta("hero_q_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
         Units?.Camera?.SetMeta("hero_w_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
         if (Details != null) Details.Visible = role == PlayerRole.Commander;
+        if (Minions != null)
+        {
+            Minions.Clear();
+            Minions.ConfigureLanes(Map?.LaneNames ?? Array.Empty<string>());
+            Minions.SetRole(role == PlayerRole.Commander);
+        }
         if (Stock != null) Stock.Visible = role == PlayerRole.Commander;
         _battleGuide?.SetRole(role, team);
         // 숨겨진 명령 패널은 기존 A/S/D 입력 경로를 계속 제공한다.
@@ -529,6 +578,11 @@ public partial class Main : Node3D
         _skillRange.Clear();
         ClearAttackRanges();
         if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
+        if (GodotObject.IsInstanceValid(Minions))
+        {
+            Minions.CommandRequested -= SendMinionCommand;
+            Minions.ViewChanged -= OnMinionViewChanged;
+        }
         if (_playerInput != null && GodotObject.IsInstanceValid(Units))
         {
             _playerInput.UnitClicked -= SelectUnit;

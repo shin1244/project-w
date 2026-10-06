@@ -1,19 +1,22 @@
 using System.Globalization;
 
-// SKILL 시전자 슬롯 [대상ID | x z]. 효과 표시에는 시전자와 슬롯이 필요하다.
-public readonly record struct SkillActivationSnapshot(uint CasterId, int Slot)
+// SKILL 시전자 슬롯 [대상ID | x z] [EMPOWERED]. 강화 여부는 상태 갱신 순서와 독립적이다.
+public readonly record struct SkillActivationSnapshot(uint CasterId, int Slot, bool Empowered = false)
 {
     public static bool TryParse(string[] parts, out SkillActivationSnapshot snapshot)
     {
         snapshot = default;
-        if (parts.Length is < 3 or > 5 || parts[0] != "SKILL" ||
+        bool empowered = parts.Length > 0 && parts[^1] == "EMPOWERED";
+        int length = parts.Length - (empowered ? 1 : 0);
+        if (length is < 3 or > 5 || parts[0] != "SKILL" ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint caster) || caster == 0 ||
-            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) || slot > 4) return false;
-        if (parts.Length == 4 && (!uint.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out uint target) || target == 0)) return false;
-        if (parts.Length == 5 &&
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) || slot > 4 ||
+            empowered && slot > 2) return false;
+        if (length == 4 && (!uint.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out uint target) || target == 0)) return false;
+        if (length == 5 &&
             (!float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) || !float.IsFinite(x) ||
              !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) || !float.IsFinite(z))) return false;
-        snapshot = new(caster, slot);
+        snapshot = new(caster, slot, empowered);
         return true;
     }
 }

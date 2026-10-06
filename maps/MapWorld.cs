@@ -12,6 +12,7 @@ public partial class MapWorld : Node3D
     [Export] public ResourceManager Resources;
     public string MapHash { get; private set; }
     public bool HasMap => _map != null;
+    public string[] LaneNames => _map?.Lanes?.Select(lane => lane?.Name ?? "").ToArray() ?? Array.Empty<string>();
     public bool IsSynchronized { get; private set; }
     public string SyncError { get; private set; }
     private MapFile _map;
@@ -67,6 +68,12 @@ public partial class MapWorld : Node3D
         public int TreeSize { get; set; } = 1;
         public float[][] Bases { get; set; }
         public string[] Rows { get; set; }
+        public MapLane[] Lanes { get; set; } = Array.Empty<MapLane>();
+    }
+
+    public sealed class MapLane
+    {
+        public string Name { get; set; }
     }
 
     public override void _Ready()

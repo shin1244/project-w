@@ -73,8 +73,31 @@ public partial class MinionSyncChecks : Main
             Units.SelectSingle(own);
             Check(Units.SelectedUnitIds.Contains(101u), "Malformed welcome does not change local ownership");
 
-            foreach (string invalid in new[] { "UNIT 1 401 0 0 0 2", "UNIT 2 401 0 0 0 2", "UNIT 100 401 7 0 0 2", "UNIT 101 401 7 0 0 2", "UNIT 3 401 0 0 0 2", "UNIT 4 401 0 0 0 2" }) Receive(invalid);
+            foreach (string invalid in new[] { "UNIT 1 401 0 0 0 2", "UNIT 2 401 0 0 0 2", "UNIT 100 401 7 0 0 2", "UNIT 101 401 7 0 0 2", "UNIT 102 401 7 0 0 2", "UNIT 3 401 0 0 0 2", "UNIT 4 401 0 0 0 2" }) Receive(invalid);
             Check(Units.GetChildCount() == 4, "Old minion IDs are rejected; current mercenary and minion types retain their ownership rules");
+            Receive("UNIT 102 402 0 3 -2 2");
+            Unit healer = Units.GetNode<Unit>("Unit_402");
+            Check(healer.UnitType == UnitCatalog.MinionHealer && healer.OwnerId == 0 && healer.Team == 2 &&
+                UnitCatalog.IsMinion(healer.UnitType) && Units.SceneFor(healer.UnitType) != null,
+                "Purchased healing minions have their own scene and remain autonomous lane units");
+            Units.SelectSingle(healer);
+            int beforeHealerOrder = sent.Count;
+            Units.RequestMove(Vector3.One);
+            Check(Units.SelectedUnitIds.Count == 0 && sent.Count == beforeHealerOrder,
+                "Commanders cannot directly order purchased healing minions");
+            Receive("HP 402 25 50");
+            Check(healer.HealthBar.CurrentHP == 25, "Healing minions use normal server health snapshots");
+            foreach (string invalid in new[] { "MINION_HEAL 9999 3 -2 4", "MINION_HEAL 101 3 -2 4",
+                "MINION_HEAL 402 NaN -2 4", "MINION_HEAL 402 3 -2 0", "MINION_HEAL 402 3 -2 4 extra" }) Receive(invalid);
+            Check(!Units.GetChildren().OfType<MinionHealPulse>().Any(), "Invalid or unknown-source healing events cannot create a pulse");
+            Receive("MINION_HEAL 402 3 -2 4");
+            Receive("MINION_HEAL 402 3 -2 4");
+            Check(Units.GetChildren().OfType<MinionHealPulse>().Count() == 1 && healer.HealthBar.CurrentHP == 25,
+                "A server healing event creates one visual pulse without predicting any health changes");
+            Receive("REMOVE 402");
+            Check(Units.GetChildren().OfType<MinionHealPulse>().Any(), "The healing pulse survives its source's normal death removal");
+            Receive("HIDE 402");
+            Check(!Units.GetChildren().OfType<MinionHealPulse>().Any(), "Fog hiding cancels the pulse even after source removal");
             Receive("UNIT 0 101 9 0 0 2");
             Check(Units.SelectedUnitIds.Count == 0, "Losing ownership clears selection even when team stays the same");
             Receive("REMOVE 202");

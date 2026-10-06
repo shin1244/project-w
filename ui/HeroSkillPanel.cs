@@ -31,6 +31,7 @@ public partial class HeroSkillPanel : PanelContainer
     private Control _passive;
     private float _currentHP, _maxHP, _shield;
     private WolfEffectSnapshot _wolfEffects;
+    private GolemEffectSnapshot _golemEffects;
 
     private sealed class SlotView
     {
@@ -231,6 +232,12 @@ public partial class HeroSkillPanel : PanelContainer
         _wolfEffects = effects;
         RefreshStatus();
     }
+    public void HandleGolemEffects(GolemEffectSnapshot effects)
+    {
+        if (HeroType != UnitCatalog.HeroGolem || HeroUnitId != effects.UnitId) return;
+        _golemEffects = effects;
+        Refresh();
+    }
     public void HandleRespawn(string[] parts)
     {
         if (!HeroType.HasValue || parts.Length != 2 || !uint.TryParse(parts[1], NumberStyles.None,
@@ -255,6 +262,7 @@ public partial class HeroSkillPanel : PanelContainer
             _status.Text = $"{(Definition(slot)?.Target == SkillTargetMode.Ally ? "아군" : "적")}을 클릭해 기술 사용 · Esc 취소";
         else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = "기절 · 잠시 행동할 수 없습니다";
         else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = "침묵 · 이동과 일반 공격은 가능합니다";
+        else if (_golemEffects.EmpowerReady) _status.Text = "R · 다음 Q/W/E 1회 강화 대기";
         else if (_wolfEffects.DrainReady || _wolfEffects.AuraUntil != 0 && unchecked((int)(_wolfEffects.AuraUntil - _tick)) > 0)
         {
             string drain = _wolfEffects.DrainReady ? "W · 흡혈 50% 대기" : "";
@@ -279,8 +287,9 @@ public partial class HeroSkillPanel : PanelContainer
             bool available = CanUse(slot);
             view.Button.Visible = slot < 4 || definition.HasValue;
             view.Button.Disabled = !available;
-            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id);
-            view.Button.AddThemeStyleboxOverride("normal", _targeting == slot ? view.Targeting : view.Normal);
+            bool empowered = _golemEffects.EmpowerReady && slot < 3;
+            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered);
+            view.Button.AddThemeStyleboxOverride("normal", _targeting == slot || empowered ? view.Targeting : view.Normal);
             string iconId = definition?.Id;
             if (view.IconId != iconId)
             {
@@ -310,7 +319,7 @@ public partial class HeroSkillPanel : PanelContainer
     }
     private void ClearVitals()
     {
-        _wolfEffects = default;
+        _wolfEffects = default; _golemEffects = default;
         HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
         Refresh();
         _currentHP = _maxHP = _shield = 0;

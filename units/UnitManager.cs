@@ -12,6 +12,7 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene ArcherScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
+    [Export] public PackedScene MinionHealerScene;
     [Export] public PackedScene HeroTestScene;
     [Export] public PackedScene HeroGolemScene;
     [Export] public ResourceManager Resources;
@@ -19,6 +20,7 @@ public partial class UnitManager : Node3D
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
     public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
     public uint LocalTeam => _localTeam;
+    public Func<Vector3, bool> EffectVisibilityCheck { get; set; }
     // 소유하지 않은 유닛은 정보만 살펴보고 명령/부대 지정에는 넣지 않는다.
     public Unit InspectedUnit { get; private set; }
     public bool TryGetUnit(uint id, out Unit unit) => _units.TryGetValue(id, out unit);
@@ -29,6 +31,7 @@ public partial class UnitManager : Node3D
         UnitCatalog.Archer => ArcherScene,
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
+        UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
         UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
         _ => null
@@ -69,9 +72,9 @@ public partial class UnitManager : Node3D
         // 사망 연출 중인 유닛은 이미 사전에서 빠졌으므로 씬 자식도 함께 정리합니다.
         foreach (Node child in GetChildren())
         {
-            if (child is not Unit unit) continue;
-            RemoveChild(unit);
-            unit.QueueFree();
+            if (child is not Unit && child is not MinionHealPulse) continue;
+            RemoveChild(child);
+            child.QueueFree();
         }
         _units.Clear();
         _controlGroups.Clear();
@@ -360,6 +363,26 @@ public partial class UnitManager : Node3D
         if (_units.TryGetValue(shield.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyShield(shield.Amount);
     }
 
+    // Only the explicit server death-heal event creates this effect. REMOVE can also mean devour.
+    public void HandleMinionHeal(string[] parts)
+    {
+        if (parts.Length != 5 || parts[0] != "MINION_HEAL" ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
+            !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) ||
+            !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) ||
+            !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float radius) ||
+            !float.IsFinite(x) || !float.IsFinite(z) || !float.IsFinite(radius) || radius <= 0 ||
+            !_units.TryGetValue(id, out Unit source) || source.UnitType != UnitCatalog.MinionHealer ||
+            !CanInspect(source) || HasNode($"MinionHeal_{id}")) return;
+
+        var pulse = new MinionHealPulse {
+            Name = $"MinionHeal_{id}", Radius = radius,
+            VisibilityCheck = EffectVisibilityCheck
+        };
+        AddChild(pulse);
+        pulse.GlobalPosition = new Vector3(x, .08f, z);
+    }
+
     public void HandlePosition(string[] parts)
     {
         if (parts.Length != 4)
@@ -410,7 +433,7 @@ public partial class UnitManager : Node3D
 
     public void HandleSpawn(string[] parts)
     {
-        // UNIT type id owner x z team. 용병 0~2, 하수인 100~101, 임시 영웅 200.
+        // UNIT type id owner x z team. 용병 0~2, 하수인 100~102, 영웅 200~201.
         if (parts.Length != 7)
             return;
 
@@ -522,8 +545,13 @@ public partial class UnitManager : Node3D
     // HIDE는 사망이 아닙니다. 대상 조회·입력에서 즉시 빼고, 재등장 시 새 스냅샷을 받습니다.
     public void HandleHide(string[] parts)
     {
-        if (parts.Length != 2 || !uint.TryParse(parts[1], out uint id) ||
-            !_units.Remove(id, out Unit unit)) return;
+        if (parts.Length != 2 || !uint.TryParse(parts[1], out uint id)) return;
+        if (GetNodeOrNull<MinionHealPulse>($"MinionHeal_{id}") is MinionHealPulse pulse)
+        {
+            RemoveChild(pulse);
+            pulse.QueueFree();
+        }
+        if (!_units.Remove(id, out Unit unit)) return;
         unit.SetSelected(false);
         bool selectionChanged = _selectedUnitIds.Remove(id);
         if (InspectedUnit == unit) { InspectedUnit = null; selectionChanged = true; }

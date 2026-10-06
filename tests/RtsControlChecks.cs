@@ -242,6 +242,7 @@ public partial class RtsControlChecks : Main
             await CheckBattleClarity();
             await CheckAttackRangeIndicators();
             await CheckWolfWE();
+            await CheckMinionFormation(wire);
 
             GD.Print("PASS: RTS selection/groups/minimap; edge pan and Space hero/base focus; AOS control/inspection, ownership/death/respawn/resync and role changes");
             GetTree().Quit();
@@ -685,6 +686,69 @@ public partial class RtsControlChecks : Main
         await Flush();
         Check(!Unit(970).GetNode<MeshInstance3D>("GolemAnimation/StoneShield").Visible &&
             !Skills.CanUse(2) && Skills.CanUse(0), "Shield depletion hides the effect; root only blocks the dash");
+
+        var golem = Unit(970).GetNode<GolemAnimation>("GolemAnimation");
+        golem._Process(1); // 이전 Q 충격파가 끝난 뒤 R만의 연출을 확인한다.
+        Receive("CONTROL 970 0");
+        Receive("SKILL 970 3");
+        Receive("GOLEM 970 1");
+        Receive("COOLDOWN 970 3 900");
+        await Flush();
+        Check(golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
+            !golem.GetNode<MeshInstance3D>("SlamPulse").Visible && Skills.StatusText.Contains("강화 대기"),
+            "R arms the next basic skill without playing an area attack");
+        Check(Skills.GetNode<Button>("Content/Slots/Q").TooltipText.Contains("250%") &&
+            !Skills.GetNode<Button>("Content/Slots/Q").TooltipText.Contains("35%") &&
+            Skills.GetNode<Button>("Content/Slots/W").TooltipText.Contains("40%") &&
+            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("1.5초"),
+            "Ready tooltips show empowered Q without its old slow, W shield and E stun");
+        foreach (string invalid in new[] { "GOLEM 970 2", "GOLEM 0 0", "GOLEM 970 0 extra", "GOLEM 970", "GOLEM 971 1", "GOLEM 9999 1" }) Receive(invalid);
+        Check(Unit(970).GolemEffects.EmpowerReady && !Unit(971).GolemEffects.EmpowerReady,
+            "Malformed, unknown and non-golem snapshots cannot change readiness");
+        KeyPress(Key.E); KeyPress(Key.Escape);
+        Receive("STATE 970 ATTACK 0 971 1");
+        Receive("TICK 900");
+        Check(Unit(970).GolemEffects.EmpowerReady && Skills.CanUse(3),
+            "Canceled targeting, basic attacks and elapsed R cooldown preserve the server's ready state");
+
+        foreach (string activation in new[] { "SKILL 970 0 EMPOWERED", "SKILL 970 1 EMPOWERED", "SKILL 970 2 971 EMPOWERED" })
+            Check(SkillActivationSnapshot.TryParse(activation.Split(' '), out var empowered) && empowered.Empowered,
+                "Empowered self and targeted activations preserve their explicit flag");
+        foreach (string invalid in new[] { "SKILL 970 3 EMPOWERED", "SKILL 970 2 0 EMPOWERED", "SKILL 970 0 EMPOWERED extra", "SKILL 970 0 EMPOWERED EMPOWERED" })
+            Check(!SkillActivationSnapshot.TryParse(invalid.Split(' '), out _), "Malformed empowered activations are rejected");
+        Receive("GOLEM 970 0");
+        Receive("SKILL 970 0 EMPOWERED");
+        await Flush();
+        Check(!golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
+            golem.GetNode<MeshInstance3D>("SlamPulse").Visible && !Skills.StatusText.Contains("강화 대기") &&
+            Skills.GetNode<Button>("Content/Slots/Q").TooltipText.StartsWith("Q · 내려찍기"),
+            "Consumption clears readiness while an explicit empowered Q still plays after that update");
+        Receive("GOLEM 970 1");
+        Receive("SKILL 970 1 EMPOWERED");
+        Receive("GOLEM 970 0");
+        Receive("SHIELD 970 168");
+        await Flush();
+        Check(Unit(970).HealthBar.Shield == 168 && golem.GetNode<MeshInstance3D>("StoneShield").Visible &&
+            !Unit(970).GolemEffects.EmpowerReady, "Empowered W displays the server's shield and consumed state");
+
+        Receive("GOLEM 970 1");
+        Receive("HIDE 970");
+        Receive("GOLEM 970 1"); // 시야에서 사라진 객체에 대한 늦은 메시지는 무시한다.
+        Check(!Skills.StatusText.Contains("강화 대기"), "Hiding the hero clears HUD readiness");
+        Receive("UNIT 201 970 7 0 -8 1");
+        Receive("GOLEM 970 1");
+        await Flush();
+        golem = Unit(970).GetNode<GolemAnimation>("GolemAnimation");
+        Check(Unit(970).GolemEffects.EmpowerReady && golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
+            Skills.StatusText.Contains("강화 대기"), "A visibility snapshot restores the armed ultimate without a new R cast");
+        Receive("REMOVE 970");
+        await Flush();
+        Check(!golem.GetNode<MeshInstance3D>("EmpowerRune").Visible && !Skills.StatusText.Contains("강화 대기"),
+            "Death clears the rune and HUD readiness");
+        Receive("UNIT 201 972 7 0 -8 1");
+        Receive("GOLEM 972 0");
+        Check(!Unit(972).GolemEffects.EmpowerReady && !Skills.StatusText.Contains("강화 대기"),
+            "A respawn starts with no empowered skill");
     }
 
     private async Task CheckCameraNavigation()

@@ -74,7 +74,7 @@ public partial class BeastAnimation : Node, ISkillPresentation
     }
 
     // Only an accepted server SKILL broadcast starts this pose. Movement remains server POS.
-    public void PlaySkill(int slot)
+    public void PlaySkill(int slot, bool empowered = false)
     {
         if (slot == 0 && !_unit.IsDying) _skill = 0;
     }

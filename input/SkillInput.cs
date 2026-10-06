@@ -5,5 +5,5 @@ public readonly record struct SkillInput(int Slot, Node3D Target = null, Vector3
 
 public interface ISkillPresentation
 {
-    void PlaySkill(int slot);
+    void PlaySkill(int slot, bool empowered = false);
 }

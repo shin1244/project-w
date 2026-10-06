@@ -8,7 +8,7 @@ public partial class RuneGolemPreview : Control
     private sealed record View(Unit Unit, Camera3D Camera, Vector3 Home);
     private readonly List<View> _views = new();
     private Control _layout;
-    private bool _walk, _rotate, _enemy, _freeze;
+    private bool _walk, _rotate, _enemy, _freeze, _empowerReady;
     private float _travel, _angle, _attackRemaining;
     private uint _swing;
 
@@ -25,10 +25,10 @@ public partial class RuneGolemPreview : Control
         AddView(new Rect2(24, 125, 1050, 735), new Vector3(5.8f, 3.5f, -6.2f), 3.9f);
         AddView(new Rect2(1090, 125, 486, 345), new Vector3(7, 2.5f, .15f), 3.6f);
         AddView(new Rect2(1090, 515, 486, 345), new Vector3(5, 8, -7), 4.3f);
-        Text("Q 내려찍기   ·   W 돌갑옷   ·   E 바위 돌진   ·   R 지진", new Vector2(38, 881), 1000, 23, "cbbda5");
+        Text("Q 내려찍기   ·   W 돌갑옷   ·   E 바위 돌진   ·   R 룬 각성", new Vector2(38, 881), 1000, 23, "cbbda5");
         Text("측면", new Vector2(1104, 96), 458, 18, "a7b9be");
         Text("게임 시점", new Vector2(1104, 484), 458, 18, "a7b9be");
-        Text("Space 걷기    A 주먹    Q/W/E/R 스킬    Y 회전    T 진영색", new Vector2(26, 952), 1548, 19, "91a6ad");
+        Text("Space 걷기    A 주먹    Q/W/E 스킬    R 다음 스킬 강화    Y 회전    T 진영색", new Vector2(26, 952), 1548, 19, "91a6ad");
         string[] args = OS.GetCmdlineUserArgs();
         _walk = Array.IndexOf(args, "--walk") >= 0;
         if (Array.IndexOf(args, "--attack") >= 0) Attack();
@@ -83,6 +83,7 @@ public partial class RuneGolemPreview : Control
         unit.Initialize((uint)_views.Count + 1, 7, 1);
         unit.SetLocalTeam(1);
         viewport.AddChild(unit);
+        unit.HealthBar.Apply(400, 400);
         unit.ApplyServerPosition(0, 0);
         unit.ApplyServerState(new UnitState(UnitActivity.Idle, 0, 0, 0));
         var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = cameraSize,
@@ -123,11 +124,14 @@ public partial class RuneGolemPreview : Control
     private void Skill(int slot = 0)
     {
         _attackRemaining = .65f;
+        bool empowered = slot < 3 && _empowerReady;
+        _empowerReady = slot == 3;
         foreach (View view in _views)
         {
-            view.Unit.GetNode<GolemAnimation>("GolemAnimation").PlaySkill(slot);
+            view.Unit.GolemEffects = new GolemEffectSnapshot(view.Unit.UnitId, _empowerReady);
+            view.Unit.GetNode<GolemAnimation>("GolemAnimation").PlaySkill(slot, empowered);
             if (slot == 2) view.Unit.ApplyServerState(new UnitState(UnitActivity.Dash, 0, 0, _swing));
-            if (slot == 1) view.Unit.HealthBar.ApplyShield(105);
+            if (slot == 1) view.Unit.HealthBar.ApplyShield(view.Unit.HealthBar.MaxHP * (empowered ? .4f : .25f));
         }
     }
 

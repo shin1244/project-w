@@ -5,22 +5,23 @@
 [ext_resource type="Script" path="res://units/ArcherAnimation.cs" id="3_animation"]
 
 [sub_resource type="CapsuleShape3D" id="Selection"]
-radius = 0.62
-height = 2.7
+radius = 0.6696
+height = 2.916
 
 [node name="Archer" instance=ExtResource("1_base")]
 UnitType = 2
-HealthBarHeight = 3.0
+HealthBarHeight = 3.24
 BodyRadius = 0.4
 
 [node name="Rig" parent="Visual" instance=ExtResource("2_model")]
+scale = Vector3(1.08, 1.08, 1.08)
 
 [node name="CollisionShape3D" parent="SelectionArea" index="0"]
-position = Vector3(0, 1.35, 0)
+position = Vector3(0, 1.458, 0)
 shape = SubResource("Selection")
 
 [node name="SelectionRing" parent="." index="2"]
-scale = Vector3(1.08, 1, 1.08)
+scale = Vector3(1.17, 1, 1.17)
 
 [node name="ArcherAnimation" type="Node" parent="."]
 script = ExtResource("3_animation")

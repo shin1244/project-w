@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-// 미리 저장한 PNG만 읽습니다. 게임 실행 중 모델/카메라/SubViewport를 만들지 않습니다.
+// 미리 저장한 이미지 리소스만 읽습니다. 게임 실행 중 모델/카메라/SubViewport를 만들지 않습니다.
 public partial class SelectionPortraits : Node
 {
     private readonly Dictionary<string, Texture2D> _cache = new();
@@ -18,6 +18,7 @@ public partial class SelectionPortraits : Node
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
+            "res://units/MinionHealer.tscn" => enemy ? "minion-healer-enemy" : "minion-healer",
             "res://buildings/TownHall.tscn" => enemy ? "townhall-enemy" : "townhall-ally",
             "res://buildings/Fortress.tscn" => enemy ? "fortress-enemy" : "fortress-ally",
             "res://buildings/Tower.tscn" => enemy ? "tower-enemy" : "tower-ally",
@@ -30,7 +31,9 @@ public partial class SelectionPortraits : Node
         if (name == null) return null;
         if (!_cache.TryGetValue(name, out Texture2D texture))
         {
-            texture = GD.Load<Texture2D>($"res://ui/portraits/{name}.png");
+            string path = name is "minion-healer" or "minion-healer-enemy"
+                ? $"res://ui/icons/{name}.svg" : $"res://ui/portraits/{name}.png";
+            texture = GD.Load<Texture2D>(path);
             _cache.Add(name, texture);
         }
         return texture;
