@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 // 실제 Main 연결과 Viewport 입력 경로를 사용하며 네트워크 출력만 메모리에 기록합니다.
 public partial class RtsControlChecks : Main
 {
+    [Export] public bool MinionOnly { get; set; }
     private static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     private readonly List<string> _commands = new();
     private PlayerInput _input;
@@ -28,6 +29,13 @@ public partial class RtsControlChecks : Main
             Units.CommandRequested += command => { _commands.Add(command); InvokeMain("SendCommand", command); };
             _input = GetNode<PlayerInput>("PlayerInput");
             Fog.Configure(Map);
+            if (MinionOnly)
+            {
+                await CheckMinionFormation(wire);
+                GD.Print("PASS: minion formation, purchases and drag reordering");
+                GetTree().Quit();
+                return;
+            }
             BeginSession();
             foreach (string message in new[]
             {

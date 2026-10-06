@@ -69,6 +69,18 @@ public partial class MinionFormationPreview : Main
     {
         string[] parts = command.Split(' ');
         int lane = int.Parse(parts[1]);
+        if (parts[0] == "MINION_MOVE")
+        {
+            int from = int.Parse(parts[3]), to = int.Parse(parts[4]);
+            var reordered = _lanes[lane].ToList();
+            uint moved = reordered[from];
+            reordered.RemoveAt(from);
+            reordered.Insert(to, moved);
+            _lanes[lane] = reordered.ToArray();
+            _revisions[lane]++;
+            SendLane(lane);
+            return;
+        }
         uint type = uint.Parse(parts[^1]);
         int price = type switch { 100 => 60, 101 => 80, _ => 140 };
         if (parts[0] == "MINION_ADD") price += 400;

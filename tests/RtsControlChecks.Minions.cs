@@ -82,6 +82,101 @@ public partial class RtsControlChecks
         BeginSession();
         Check(!Minions.IsMinionView && !Minions.IsPickerOpen && !Minions.IsRequestPending,
             "A new match clears purchased options, pending requests and the open picker");
+        await CheckMinionReordering(wire);
+    }
+
+    private async Task CheckMinionReordering(MemoryStream wire)
+    {
+        Receive("UNIT 0 1800 7 -8 -10 1");
+        Units.SelectSingle(Unit(1800));
+        foreach (string message in new[] {
+            "MINION_RULES 12 30", "MINION_OPTION 100 0 60 460", "MINION_OPTION 101 0 80 480",
+            "MINION_OPTION 102 0 140 540", "MINION_LANE 0 7 4 100 101 102 100",
+            "MINION_LANE 1 2 4 100 101 102 100", "STOCK 0 0"
+        }) Receive(message);
+        await Flush();
+        Click(MinionControl("Tabs/MinionTab").GetGlobalRect().GetCenter(), MouseButton.Left);
+        await Flush();
+        int worldCommands = _commands.Count;
+        int before = MinionWire(wire).Length;
+        await BeginMinionDrag(0, 0);
+        await EndMinionDrag(SlotCenter(0, 2));
+        Check(MinionWire(wire).Length == before + 1 && MinionWire(wire).Last() == "MINION_MOVE 0 7 0 2" &&
+            Minions.IsRequestPending && !Minions.IsPickerOpen, "Native drag sends one revisioned move without opening the purchase picker");
+        Check(MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("근접") &&
+            Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Slot2").Disabled,
+            "Reordering works with zero wood, waits for the server and blocks overlapping requests");
+        Receive("MINION_LANE 0 8 4 101 102 100 100");
+        await Flush();
+        Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("원거리") &&
+            MinionControl("Body/Content/Lanes/Rows/Lane0/Slot1").TooltipText.Contains("생명"),
+            "Only the authoritative inserted order updates the portraits");
+        await BeginMinionDrag(0, 2);
+        await EndMinionDrag(SlotCenter(0, 0));
+        Check(MinionWire(wire).Last() == "MINION_MOVE 0 8 2 0", "Dragging backwards uses the final destination slot");
+        Receive("ERR 미니언 편성이 변경되었습니다");
+        Receive("MINION_LANE 0 9 4 100 101 102 100");
+        await Flush();
+        Check(!Minions.IsRequestPending, "Rejected/stale reorder recovers from the current lane snapshot");
+
+        before = MinionWire(wire).Length;
+        await BeginMinionDrag(0, 0);
+        await EndMinionDrag(SlotCenter(1, 2));
+        await BeginMinionDrag(0, 0);
+        await EndMinionDrag(SlotCenter(0, 0));
+        await BeginMinionDrag(0, 0);
+        await EndMinionDrag(new Vector2(600, 250));
+        Check(MinionWire(wire).Length == before && !Minions.IsPickerOpen && _commands.Count == worldCommands,
+            "Another lane, the source slot and the world reject drops without leaking selection or move commands");
+        Expect(1800);
+
+        await BeginMinionDrag(0, 0);
+        KeyPress(Key.Escape);
+        await EndMinionDrag(SlotCenter(0, 2));
+        Check(!GetViewport().GuiIsDragging() && MinionWire(wire).Length == before, "Escape cancels an active native drag");
+        await BeginMinionDrag(0, 0);
+        Click(new Vector2(600, 250), MouseButton.Right);
+        await EndMinionDrag(SlotCenter(0, 2));
+        Check(MinionWire(wire).Length == before && _commands.Count == worldCommands, "Right-click cancels drag without issuing a world move");
+
+        await BeginMinionDrag(0, 0);
+        Vector2 destination = SlotCenter(0, 2);
+        Receive("MINION_LANE 0 10 4 102 101 100 100");
+        await EndMinionDrag(destination);
+        Check(!GetViewport().GuiIsDragging() && MinionWire(wire).Length == before,
+            "A new server revision cancels the captured drag instead of moving a different minion");
+        await BeginMinionDrag(0, 0);
+        Receive("WELCOME 7 1 HERO 201");
+        await EndMinionDrag(destination);
+        Check(!Minions.Visible && !GetViewport().GuiIsDragging() && MinionWire(wire).Length == before,
+            "Role changes cancel drag and prevent commander commands");
+    }
+
+    private Vector2 SlotCenter(int lane, int slot) =>
+        MinionControl($"Body/Content/Lanes/Rows/Lane{lane}/Slot{slot}").GetGlobalRect().GetCenter();
+
+    private async Task BeginMinionDrag(int lane, int slot)
+    {
+        Vector2 start = SlotCenter(lane, slot);
+        GetViewport().PushInput(new InputEventMouseMotion { Position = start, GlobalPosition = start }, true);
+        GetViewport().PushInput(new InputEventMouseButton { Position = start, GlobalPosition = start,
+            ButtonIndex = MouseButton.Left, ButtonMask = MouseButtonMask.Left, Pressed = true }, true);
+        await Flush();
+        Vector2 motion = new(16, 0);
+        GetViewport().PushInput(new InputEventMouseMotion { Position = start + motion, GlobalPosition = start + motion,
+            Relative = motion, ButtonMask = MouseButtonMask.Left }, true);
+        await Flush();
+        Check(GetViewport().GuiIsDragging(), "Dragging a slot starts Godot's native drag operation");
+    }
+
+    private async Task EndMinionDrag(Vector2 destination)
+    {
+        GetViewport().PushInput(new InputEventMouseMotion { Position = destination, GlobalPosition = destination,
+            ButtonMask = MouseButtonMask.Left }, true);
+        await Flush();
+        GetViewport().PushInput(new InputEventMouseButton { Position = destination, GlobalPosition = destination,
+            ButtonIndex = MouseButton.Left, Pressed = false }, true);
+        await Flush();
     }
 
     private Control MinionControl(string path) => Minions.GetNode<Control>(path);

@@ -35,6 +35,7 @@ public partial class MinionPanel : Control
     private int? _pendingLane;
     private MouseButton? _consumedRelease;
     private bool _enabled, _ready, _hasTick, _hasNextWave;
+    private bool _draggingSlot, _suppressSlotClick, _consumeDragRelease;
 
     public override void _Ready()
     {
@@ -137,6 +138,7 @@ public partial class MinionPanel : Control
 
     public void Clear()
     {
+        CancelSlotDrag();
         _lanes.Clear();
         _options.Clear();
         _stock.Clear();
@@ -155,6 +157,7 @@ public partial class MinionPanel : Control
 
     private void SetView(bool minions)
     {
+        CancelSlotDrag();
         bool next = _enabled && minions;
         ClosePicker();
         if (IsMinionView == next) { RefreshView(); return; }
@@ -242,11 +245,12 @@ public partial class MinionPanel : Control
             : "웨이브 정보 대기 중";
     }
 
-    private const string DefaultHint = "미니언 클릭: 종류 변경 · +: 매 웨이브 영구 추가 · 다음 웨이브부터 적용";
+    private const string DefaultHint = "클릭: 종류 변경 · 드래그: 순서 이동(무료) · +: 영구 추가 · 다음 웨이브부터 적용";
 
     private void RebuildLanes()
     {
         if (!_ready) return;
+        CancelSlotDrag();
         ClosePicker();
         ClearChildren(_rows);
         _slotButtons.Clear();
@@ -274,11 +278,15 @@ public partial class MinionPanel : Control
                 int slot = i;
                 uint type = lane.UnitTypes[i];
                 var button = MakeButton($"Slot{i}", "", new Vector2(44, 48));
-                button.TooltipText = $"{MinionName(type)} · {i + 1}번째 생성\n{Description(type)}\n클릭하여 종류 변경";
+                button.TooltipText = $"{MinionName(type)} · {i + 1}번째 생성\n{Description(type)}\n클릭: 종류 변경 · 드래그: 같은 라인에서 무료 순서 이동";
                 button.Disabled = _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
                 AddPortrait(button, type, 3);
                 row.AddChild(button);
                 _slotButtons.Add((button, index, false));
+                button.SetDragForwarding(
+                    Callable.From<Vector2, Variant>(_ => BeginSlotDrag(index, slot, button)),
+                    Callable.From<Vector2, Variant, bool>((_, data) => CanMoveSlot(index, slot, data)),
+                    Callable.From<Vector2, Variant>((_, data) => MoveSlot(index, slot, data)));
                 button.Pressed += () => OpenPicker(index, slot, button);
             }
             var add = MakeButton("Add", "+", new Vector2(44, 48));
@@ -294,7 +302,7 @@ public partial class MinionPanel : Control
 
     private void OpenPicker(int laneIndex, int slot, Control anchor)
     {
-        if (!_enabled || !IsMinionView || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0 ||
+        if (_suppressSlotClick || !_enabled || !IsMinionView || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0 ||
             !_lanes.TryGetValue(laneIndex, out var lane) || slot >= lane.UnitTypes.Length ||
             slot < 0 && lane.UnitTypes.Length >= _rules.Value.MaxSlots) return;
         _pickerLane = laneIndex;
@@ -381,6 +389,68 @@ public partial class MinionPanel : Control
         }
     }
 
+    private Variant BeginSlotDrag(int laneIndex, int slot, Button source)
+    {
+        if (!_enabled || !IsMinionView || !IsVisibleInTree() || source.Disabled || _pendingLane.HasValue ||
+            !_lanes.TryGetValue(laneIndex, out var lane) || slot >= lane.UnitTypes.Length) return default;
+        ClosePicker();
+        _draggingSlot = _suppressSlotClick = true;
+        var preview = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        preview.AddChild(new TextureRect { Texture = Portrait(lane.UnitTypes[slot]),
+            CustomMinimumSize = new Vector2(48, 48), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore });
+        preview.AddChild(Text($"{MinionName(lane.UnitTypes[slot])} · 순서 이동", 13, "ece6cf"));
+        source.SetDragPreview(preview);
+        SetHint("같은 라인의 원하는 칸에 놓으세요 · 무료 · Esc/우클릭 취소");
+        return new Godot.Collections.Dictionary {
+            ["panel"] = GetInstanceId(), ["lane"] = laneIndex, ["revision"] = lane.Revision, ["slot"] = slot
+        };
+    }
+
+    private bool CanMoveSlot(int laneIndex, int destination, Variant data)
+    {
+        if (!_enabled || !IsMinionView || !IsVisibleInTree() || _pendingLane.HasValue ||
+            !_lanes.TryGetValue(laneIndex, out var lane) || destination < 0 || destination >= lane.UnitTypes.Length ||
+            data.VariantType != Variant.Type.Dictionary) return false;
+        var payload = data.AsGodotDictionary();
+        foreach (string key in new[] { "panel", "lane", "revision", "slot" })
+            if (!payload.TryGetValue(key, out var value) || value.VariantType != Variant.Type.Int) return false;
+        long source = payload["slot"].AsInt64();
+        return payload["panel"].AsUInt64() == GetInstanceId() && payload["lane"].AsInt64() == laneIndex &&
+            payload["revision"].AsInt64() == lane.Revision && source >= 0 && source < lane.UnitTypes.Length && source != destination;
+    }
+
+    private void MoveSlot(int laneIndex, int destination, Variant data)
+    {
+        if (!CanMoveSlot(laneIndex, destination, data)) return;
+        var lane = _lanes[laneIndex];
+        int source = data.AsGodotDictionary()["slot"].AsInt32();
+        _draggingSlot = false; // A synchronous preview reply may rebuild the row during this callback.
+        _pendingLane = laneIndex;
+        _pendingRevision = lane.Revision;
+        ClosePicker();
+        SetHint("순서 변경 요청 중…");
+        RefreshPurchases();
+        CommandRequested?.Invoke(FormattableString.Invariant($"MINION_MOVE {laneIndex} {lane.Revision} {source} {destination}"));
+    }
+
+    private void CancelSlotDrag()
+    {
+        if (!_draggingSlot || !IsInsideTree()) return;
+        _consumeDragRelease = true;
+        GetViewport().GuiCancelDrag();
+        _draggingSlot = false;
+    }
+
+    public override void _Notification(int what)
+    {
+        if (what != NotificationDragEnd || !_suppressSlotClick) return;
+        _draggingSlot = false;
+        // The drop release must not also open the purchase picker.
+        Callable.From(() => _suppressSlotClick = false).CallDeferred();
+        if (!_pendingLane.HasValue) SetHint(DefaultHint);
+    }
+
     public void ClosePicker()
     {
         _picker?.Hide();
@@ -406,6 +476,21 @@ public partial class MinionPanel : Control
 
     public override void _Input(InputEvent input)
     {
+        if (_consumeDragRelease && input is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left })
+        {
+            _consumeDragRelease = false;
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_draggingSlot &&
+            (input is InputEventKey { Pressed: true } dragKey && (dragKey.Keycode == Key.Escape || dragKey.PhysicalKeycode == Key.Escape) ||
+             input is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }))
+        {
+            CancelSlotDrag();
+            if (input is InputEventMouseButton) _consumedRelease = MouseButton.Right;
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (input is InputEventMouseButton { Pressed: false } release && _consumedRelease == release.ButtonIndex)
         {
             _consumedRelease = null;
