@@ -69,11 +69,47 @@ public partial class MapWorld : Node3D
         public float[][] Bases { get; set; }
         public string[] Rows { get; set; }
         public MapLane[] Lanes { get; set; } = Array.Empty<MapLane>();
+        public MapActivityArea[] ActivityAreas { get; set; } = Array.Empty<MapActivityArea>();
     }
 
     public sealed class MapLane
     {
         public string Name { get; set; }
+    }
+
+    public sealed class MapActivityArea
+    {
+        public string Id { get; set; }
+        public string Kind { get; set; }
+        public float[] Center { get; set; }
+        public float[] Radii { get; set; }
+        public float[][] Entrances { get; set; } = Array.Empty<float[]>();
+        public float EntranceWidth { get; set; }
+
+        public bool IsValid() => !string.IsNullOrWhiteSpace(Id) && (Kind == "event" || Kind == "jungle") &&
+            IsPoint(Center) && IsPoint(Radii) && Radii.All(radius => radius > 0) &&
+            Entrances != null && Entrances.All(IsPoint) && float.IsFinite(EntranceWidth) &&
+            EntranceWidth >= 0 && (Entrances.Length == 0 || EntranceWidth > 0);
+
+        private static bool IsPoint(float[] point) =>
+            point != null && point.Length == 2 && point.All(float.IsFinite);
+
+        public bool Contains(Vector2 position)
+        {
+            var center = new Vector2(Center[0], Center[1]);
+            var offset = position - center;
+            var normalized = new Vector2(offset.X / Radii[0], offset.Y / Radii[1]);
+            if (normalized.LengthSquared() <= 1) return true;
+            float halfWidth = EntranceWidth * 0.5f;
+            foreach (var entrance in Entrances)
+            {
+                var segment = new Vector2(entrance[0], entrance[1]) - center;
+                float lengthSquared = segment.LengthSquared();
+                float progress = lengthSquared > 0 ? Mathf.Clamp(offset.Dot(segment) / lengthSquared, 0, 1) : 0;
+                if (position.DistanceSquaredTo(center + segment * progress) <= halfWidth * halfWidth) return true;
+            }
+            return false;
+        }
     }
 
     public override void _Ready()
@@ -95,6 +131,9 @@ public partial class MapWorld : Node3D
             map.Bases.Any(b => b == null || b.Length != 2 || b.Any(v => !float.IsFinite(v))) ||
             map.Rows.Any(r => r == null || r.Length != map.Rows[0].Length || r.Any(c => c != '#' && c != '.' && c != 'T' && c != 'R' && c != 'W')))
             throw new InvalidOperationException("잘못된 맵 형식");
+
+        if (map.ActivityAreas == null || map.ActivityAreas.Any(area => area == null || !area.IsValid()))
+            throw new InvalidOperationException("잘못된 이벤트·정글 구역 형식");
 
         var occupied = new bool[map.Rows.Length, map.Rows[0].Length];
         for (int z = 0; z < map.Rows.Length; z++)

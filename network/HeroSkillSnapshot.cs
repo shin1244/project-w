@@ -34,3 +34,18 @@ public readonly record struct SkillCooldownSnapshot(uint CasterId, int Slot, uin
         return true;
     }
 }
+
+// SKILL_ACTIVE 시전자 슬롯 실행중(0|1). 쿨다운이 시작되기 전의 실행 상태를 별도로 동기화한다.
+public readonly record struct SkillActiveSnapshot(uint CasterId, int Slot, bool Active)
+{
+    public static bool TryParse(string[] parts, out SkillActiveSnapshot snapshot)
+    {
+        snapshot = default;
+        if (parts.Length != 4 || parts[0] != "SKILL_ACTIVE" ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint caster) || caster == 0 ||
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) || slot > 4 ||
+            parts[3] is not ("0" or "1")) return false;
+        snapshot = new(caster, slot, parts[3] == "1");
+        return true;
+    }
+}

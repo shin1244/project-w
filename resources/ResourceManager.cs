@@ -52,10 +52,22 @@ public partial class ResourceManager : Node3D
         ResourceNode resource = scene.Instantiate<ResourceNode>();
         resource.Initialize(id);
         resource.Name = $"Resource_{id}";
+        Vary(resource, id);
         AddChild(resource);
         resource.GlobalPosition = position;
         _resources.Add(id, resource);
         return resource;
+    }
+
+    // 같은 종류도 한 그루씩 다르게 보이도록 자원 ID로 회전·크기를 정합니다.
+    // Foliage.gdshader는 이 회전 각도로 나무별 색조를 정합니다.
+    // 모든 클라이언트에서 같고, 선택·클릭 영역과 서버 판정은 바꾸지 않습니다.
+    private static void Vary(ResourceNode resource, uint id)
+    {
+        uint hash = id * 2654435761u;
+        var visual = resource.GetNode<Node3D>("Visual");
+        visual.Rotation = new Vector3(0, (hash >> 8) / 16777216f * Mathf.Tau, 0);
+        visual.Scale = Vector3.One * (0.9f + ((hash >> 4) & 0xFF) / 255f * 0.2f);
     }
 
     public void Remove(uint id)

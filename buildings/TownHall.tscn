@@ -9,6 +9,9 @@ size = Vector3(5, 5.975, 5)
 [node name="TownHall" type="Node3D" unique_id=1657165137]
 script = ExtResource("1_4ryg4")
 HealthBarHeight = 6.4375
+ShotWidth = 0.18
+ShotDuration = 0.2
+ImpactRadius = 0.35
 metadata/footprint = Vector2i(5, 5)
 metadata/front = "-Z"
 
@@ -28,3 +31,6 @@ shape = SubResource("BoxShape3D_wc5ff")
 
 [node name="Entrance" type="Marker3D" parent="." unique_id=314683575]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.5)
+
+[node name="Muzzle" type="Marker3D" parent="." unique_id=1726404619]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, 0)

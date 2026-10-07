@@ -421,6 +421,10 @@ public partial class Main : Node3D
                 if (LocalRole == PlayerRole.Hero && SkillCooldownSnapshot.TryParse(parts, out var cooldown))
                     Skills?.ApplyCooldown(cooldown);
                 break;
+            case "SKILL_ACTIVE":
+                if (LocalRole == PlayerRole.Hero && SkillActiveSnapshot.TryParse(parts, out var activeSkill))
+                    Skills?.ApplyActive(activeSkill);
+                break;
             case "ABILITY":
                 if (SkillDefinitionSnapshot.TryParse(parts, out var definition)) Skills?.HandleDefinition(definition);
                 break;

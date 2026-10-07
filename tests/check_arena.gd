@@ -17,8 +17,7 @@ func check() -> void:
 		assert(is_zero_approx(v.y), "All terrain must be flat at Y=0")
 		positions[Vector3i(roundi(v.x * 2), roundi(v.y * 1000), roundi(v.z * 2))] = true
 	for v: Vector3i in positions:
-		assert(positions.has(Vector3i(-v.x, v.y, v.z)), "X reflection missing")
-		assert(positions.has(Vector3i(v.x, v.y, -v.z)), "Z reflection missing")
+		assert(positions.has(Vector3i(-v.x, v.y, -v.z)), "180-degree rotation missing")
 	for i in range(0, vertices.size(), 3):
 		var normal := (vertices[i + 2] - vertices[i]).cross(vertices[i + 1] - vertices[i])
 		assert(normal.y > 0.0, "Terrain face winding must point up")
@@ -33,8 +32,7 @@ func check() -> void:
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
 			var is_land: bool = rows[z][x] != "#"
-			assert(is_land == (rows[z][rows[z].length() - 1 - x] != "#"), "Grid X symmetry missing")
-			assert(is_land == (rows[rows.size() - 1 - z][x] != "#"), "Grid Z symmetry missing")
+			assert(is_land == (rows[rows.size() - 1 - z][rows[z].length() - 1 - x] != "#"), "Grid rotational symmetry missing")
 			if is_land:
 				land_count += 1
 			# Four samples per 1x1 cell verify both ground and absence of ground outside.

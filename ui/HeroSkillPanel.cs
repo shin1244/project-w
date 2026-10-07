@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-// 서버의 ABILITY 정의와 COOLDOWN/CONTROL 상태로 표시한다. 특정 영웅을 알지 않는다.
+// 서버의 ABILITY 정의와 SKILL_ACTIVE/COOLDOWN/CONTROL, 영웅 효과 상태로 표시한다.
 public partial class HeroSkillPanel : PanelContainer
 {
     public uint? HeroType { get; private set; }
@@ -12,6 +12,7 @@ public partial class HeroSkillPanel : PanelContainer
     public event Action AvailabilityChanged;
     private readonly Dictionary<(uint, int), SkillDefinitionSnapshot> _definitions = new();
     private readonly Dictionary<int, uint> _readyTicks = new();
+    private readonly HashSet<int> _activeSkills = new();
     private readonly Dictionary<int, int> _cooldownLengths = new();
     private readonly List<StyleBoxFlat> _styles = new();
     private readonly List<SlotView> _slots = new();
@@ -39,7 +40,7 @@ public partial class HeroSkillPanel : PanelContainer
         public Label Cooldown;
         public TextureRect Icon;
         public ColorRect Cover;
-        public StyleBoxFlat Normal, Targeting;
+        public StyleBoxFlat Normal, Targeting, Disabled;
         public string IconId;
     }
 
@@ -47,14 +48,17 @@ public partial class HeroSkillPanel : PanelContainer
         _definitions.TryGetValue((HeroType.Value, slot), out var definition) ? definition : null;
 
     public bool CanUse(int slot) => Definition(slot) is SkillDefinitionSnapshot definition && HeroUnitId.HasValue &&
+        !IsActive(slot) &&
         (_restrictions & (ControlRestrictions.Stun | ControlRestrictions.Silence)) == 0 &&
         (!definition.MovesCaster || (_restrictions & ControlRestrictions.Root) == 0) &&
         _activity is not (UnitActivity.Stun or UnitActivity.Dash) &&
         (!_readyTicks.ContainsKey(slot) || _hasTick && RemainingTicks(slot) == 0);
 
+    public bool IsActive(int slot) => _activeSkills.Contains(slot);
+
     private int RemainingTicks(int slot) => _hasTick && _readyTicks.TryGetValue(slot, out uint ready)
         ? Math.Max(0, unchecked((int)(ready - _tick))) : 0;
-    public double RemainingSeconds(int slot) => RemainingTicks(slot) / (double)InterpolationClock.TickRate;
+    public double RemainingSeconds(int slot) => IsActive(slot) ? 0 : RemainingTicks(slot) / (double)InterpolationClock.TickRate;
 
     public override void _Ready()
     {
@@ -101,12 +105,13 @@ public partial class HeroSkillPanel : PanelContainer
         {
             Button = new Button { Name = key, FocusMode = FocusModeEnum.None, MouseForcePassScrollEvents = false,
                 CustomMinimumSize = new Vector2(72, 72), SizeFlagsHorizontal = SizeFlags.ExpandFill },
-            Normal = Style("27332d", "a48b52", 4), Targeting = Style("394333", "efd28c", 4)
+            Normal = Style("27332d", "a48b52", 4), Targeting = Style("394333", "efd28c", 4),
+            Disabled = Style("101c26", "536b69", 4)
         };
         view.Button.AddThemeStyleboxOverride("normal", view.Normal);
         view.Button.AddThemeStyleboxOverride("hover", view.Targeting);
         view.Button.AddThemeStyleboxOverride("pressed", view.Targeting);
-        view.Button.AddThemeStyleboxOverride("disabled", Style("101c26", "536b69", 4));
+        view.Button.AddThemeStyleboxOverride("disabled", view.Disabled);
         view.Button.Pressed += () => Request(slot);
         row.AddChild(view.Button);
         view.Icon = new TextureRect { ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -206,6 +211,19 @@ public partial class HeroSkillPanel : PanelContainer
         Refresh();
     }
 
+    public void ApplyActive(SkillActiveSnapshot skill)
+    {
+        if (skill.CasterId != HeroUnitId || Definition(skill.Slot) == null) return;
+        if (skill.Active)
+        {
+            _activeSkills.Add(skill.Slot);
+            _readyTicks[skill.Slot] = 0;
+            _cooldownLengths.Remove(skill.Slot);
+        }
+        else _activeSkills.Remove(skill.Slot);
+        Refresh();
+    }
+
     public bool TryHandleShortcut(InputEvent input)
     {
         if (!HeroType.HasValue || input is not InputEventKey { Pressed: true } key ||
@@ -230,7 +248,7 @@ public partial class HeroSkillPanel : PanelContainer
     {
         if (HeroType != UnitCatalog.HeroTest || HeroUnitId != effects.UnitId) return;
         _wolfEffects = effects;
-        RefreshStatus();
+        Refresh();
     }
     public void HandleGolemEffects(GolemEffectSnapshot effects)
     {
@@ -288,8 +306,10 @@ public partial class HeroSkillPanel : PanelContainer
             view.Button.Visible = slot < 4 || definition.HasValue;
             view.Button.Disabled = !available;
             bool empowered = _golemEffects.EmpowerReady && slot < 3;
+            bool armed = IsActive(slot);
             view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered);
             view.Button.AddThemeStyleboxOverride("normal", _targeting == slot || empowered ? view.Targeting : view.Normal);
+            view.Button.AddThemeStyleboxOverride("disabled", armed ? view.Targeting : view.Disabled);
             string iconId = definition?.Id;
             if (view.IconId != iconId)
             {
@@ -297,11 +317,12 @@ public partial class HeroSkillPanel : PanelContainer
                 string iconPath = $"res://ui/icons/{iconId}.svg";
                 view.Icon.Texture = iconId != null && ResourceLoader.Exists(iconPath) ? GD.Load<Texture2D>(iconPath) : null;
             }
-            view.Icon.Modulate = available ? Colors.White : new Color(.55f, .55f, .55f);
-            bool cooling = _readyTicks.ContainsKey(slot) && (!_hasTick || RemainingTicks(slot) > 0);
+            view.Icon.Modulate = available || armed ? Colors.White : new Color(.55f, .55f, .55f);
+            bool cooling = !armed && _readyTicks.ContainsKey(slot) && (!_hasTick || RemainingTicks(slot) > 0);
             view.Cover.Visible = cooling;
             view.Cover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks(slot) / (float)Math.Max(1, _cooldownLengths.GetValueOrDefault(slot)), 0, 1) : 0;
-            view.Cooldown.Text = cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
+            view.Cooldown.Text = armed ? definition?.Id == "wolf-drain" ? "대기" : "사용 중"
+                : cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
         }
         RefreshStatus();
         AvailabilityChanged?.Invoke();
@@ -319,6 +340,7 @@ public partial class HeroSkillPanel : PanelContainer
     }
     private void ClearVitals()
     {
+        _activeSkills.Clear();
         _wolfEffects = default; _golemEffects = default;
         HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
         Refresh();

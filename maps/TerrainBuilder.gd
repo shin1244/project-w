@@ -7,6 +7,7 @@ const LANE_WIDTH := 12.0
 const OUTER_BUILD_WIDTH := 3.0
 const WALL_THICKNESS := 2
 const BASE_OUTER_RADIUS := 18.0
+const BASE_MEADOW_RADIUS := 18.0 # Grass kept around each town hall for the opening build.
 const TOP_LANE := [
 	Vector2(-65, 0), Vector2(-58, -14), Vector2(-47, -24),
 	Vector2(-20, -29), Vector2(0, -30), Vector2(20, -29),
@@ -18,6 +19,25 @@ const TRAIL_SEGMENTS := [
 	Vector4(28, 0, 28, 14), Vector4(28, 14, 32, 28), Vector4(0, 0, 0, 30),
 ]
 const TRAIL_WIDTH := 6.0
+const EVENT_RADIUS := 9.0
+const JUNGLE_CENTER := Vector2(15, 13)
+const JUNGLE_RADII := Vector2(7, 6)
+const JUNGLE_ENTRANCE_WIDTH := 4.0
+const MAP_ORIGIN := Vector2(-84, -64)
+const MAP_SIZE := Vector2i(168, 128)
+const EXPANSION_PAD_X := -34.0
+# The perimeter swells gently toward each expansion instead of adding a separate bastion.
+# Raised-cosine profile: zero slope where it meets the original rim; 428 extra cells per side.
+const EXPANSION_SWELL_HEIGHT := 10.0
+const EXPANSION_SWELL_HALF_WIDTH := 41.5
+# A dome-shaped grass bay standing on the lane's road edge: its whole base opens onto
+# the lane for easy access and harassment, and its top curves smoothly into the forest.
+const EXPANSION_BAY_SHIFT := 0.5 # Along the lane, toward the map center.
+const EXPANSION_BAY_HALF_WIDTH := 9.5
+const EXPANSION_BAY_HEIGHT := 7.5
+const EXPANSION_BAY_ROUNDNESS := 2.5 # 2 is a half-ellipse; larger values square the shoulders.
+const EXPANSION_BAY_Z := 37.0 # Site marker inside the bay; a store fits around it.
+const EXPANSION_BUILD_SIZE := 3.0
 
 var arena: Node3D
 var map_data: Dictionary
@@ -40,7 +60,8 @@ func generate(data: Dictionary) -> Node3D:
 	arena = Node3D.new()
 	arena.name = "SymmetricArena"
 	arena.set_meta("dimensions", Vector2(rows[0].length(), rows.size()) * cell_size)
-	arena.set_meta("symmetry", "Reflection across X=0 and Z=0")
+	arena.set_meta("origin", map_origin)
+	arena.set_meta("symmetry", "180-degree rotation around the map center")
 	arena.set_meta("lane_width", LANE_WIDTH)
 	arena.set_meta("note", "R: walkable stone road, no construction. .: buildable grass. T: harvestable forest.")
 	build_terrain()
@@ -71,23 +92,92 @@ func trail_distance(p: Vector2) -> float:
 		distance = minf(distance, segment_distance(q, Vector2(edge.x, edge.y), Vector2(edge.z, edge.w)))
 	return distance
 
+func activity_areas() -> Array:
+	var areas: Array = [{"id": "center_event", "kind": "event", "center": [0.0, 0.0],
+		"radii": [EVENT_RADIUS, EVENT_RADIUS], "entrances": [], "entranceWidth": 0.0}]
+	for side in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		var center: Vector2 = JUNGLE_CENTER * side
+		var label := ("n" if side.y < 0 else "s") + ("w" if side.x < 0 else "e")
+		areas.append({"id": "jungle_" + label, "kind": "jungle", "center": [center.x, center.y],
+			"radii": [JUNGLE_RADII.x, JUNGLE_RADII.y],
+			"entrances": [[6.0 * side.x, 5.0 * side.y], [28.0 * side.x, 13.0 * side.y]],
+			"entranceWidth": JUNGLE_ENTRANCE_WIDTH})
+	return areas
+
+func area_contains(area: Dictionary, p: Vector2) -> bool:
+	var center := Vector2(area["center"][0], area["center"][1])
+	var radii := Vector2(area["radii"][0], area["radii"][1])
+	if ((p - center) / radii).length_squared() <= 1.0:
+		return true
+	for entry in area.get("entrances", []):
+		if segment_distance(p, center, Vector2(entry[0], entry[1])) <= float(area["entranceWidth"]) * 0.5:
+			return true
+	return false
+
+func expansion_sites() -> Array:
+	return [
+		{"id": "team1_expansion", "center": [EXPANSION_PAD_X, -EXPANSION_BAY_Z], "buildSize": [EXPANSION_BUILD_SIZE, EXPANSION_BUILD_SIZE]},
+		{"id": "team2_expansion", "center": [-EXPANSION_PAD_X, EXPANSION_BAY_Z], "buildSize": [EXPANSION_BUILD_SIZE, EXPANSION_BUILD_SIZE]},
+	]
+
+func expansion_local(p: Vector2) -> Vector2:
+	# Team 1's upper site and team 2's lower site are rotational counterparts.
+	var q := p if p.y < 0.0 else -p
+	return Vector2(q.x - EXPANSION_PAD_X, -q.y)
+
+func is_expansion_clearing(p: Vector2) -> bool:
+	# Height is measured from the road edge, so the base follows the lane's curve.
+	var height := lane_distance(p) - LANE_WIDTH * 0.5
+	if not outside_lanes(p) or height < 0.0:
+		return false
+	var q := expansion_local(p)
+	return pow(absf(q.x - EXPANSION_BAY_SHIFT) / EXPANSION_BAY_HALF_WIDTH, EXPANSION_BAY_ROUNDNESS) \
+		+ pow(height / EXPANSION_BAY_HEIGHT, EXPANSION_BAY_ROUNDNESS) <= 1.0
+
+func is_base_meadow(p: Vector2) -> bool:
+	return p.abs().distance_to(Vector2(BASE_X, 0)) <= BASE_MEADOW_RADIUS
+
+# Extra rim depth along the lane, measured from the expansion pad's X.
+func expansion_swell(p: Vector2) -> float:
+	var q := expansion_local(p)
+	if absf(q.x) >= EXPANSION_SWELL_HALF_WIDTH:
+		return 0.0
+	return EXPANSION_SWELL_HEIGHT * 0.5 * (1.0 + cos(PI * q.x / EXPANSION_SWELL_HALF_WIDTH))
+
+func outside_lanes(p: Vector2) -> bool:
+	return not Geometry2D.is_point_in_polygon(Vector2(p.x, -absf(p.y)), PackedVector2Array(TOP_LANE))
+
+func is_expansion_land(p: Vector2) -> bool:
+	# Widen the lane-side rim band itself, so the wall keeps one continuous curve.
+	return outside_lanes(p) and lane_distance(p) <= \
+		LANE_WIDTH * 0.5 + OUTER_BUILD_WIDTH + WALL_THICKNESS + expansion_swell(p)
+
+# Outside the lane loop everything up to the wall is forest, except the town-hall
+# meadows and the expansion bays. Lane and wall cells are excluded by their tiles.
+func is_outer_forest(p: Vector2) -> bool:
+	return outside_lanes(p) and not is_base_meadow(p) and not is_expansion_clearing(p)
+
 # Used only when authoring the map. Gameplay and rendering read its saved R cells.
 func is_road(p: Vector2) -> bool:
+	for area in activity_areas():
+		if area_contains(area, p):
+			return true
 	return lane_distance(p) <= LANE_WIDTH * 0.5 \
 		or trail_distance(p) <= TRAIL_WIDTH * 0.5 \
 		or p.abs().distance_to(Vector2(BASE_X, 0)) <= 11.0 \
 		or p.length() <= 5.0
 
 func is_initial_forest(p: Vector2) -> bool:
-	# Fill all six interior parcels up to the roads, rather than isolated oval groves.
+	# Retain the forest boundary; the road mask carves clearings inside the parcels.
 	# Mirroring into the upper half lets the lane polyline enclose the full interior.
 	# The planting tool excludes every road/wall cell in each complete 2x2 footprint.
-	return Geometry2D.is_point_in_polygon(Vector2(p.x, -absf(p.y)), PackedVector2Array(TOP_LANE))
+	return not outside_lanes(p) or is_outer_forest(p)
 
 func is_arena_land(p: Vector2) -> bool:
-	# Follow the lanes closely: retain a narrow building strip before the wall.
+	# Follow the lanes closely: retain a narrow forest strip before the wall.
 	# Rounded base ends preserve the east/west extent while the north/south rim shrinks.
-	return is_initial_forest(p) \
+	return not outside_lanes(p) \
+		or is_expansion_land(p) \
 		or lane_distance(p) <= LANE_WIDTH * 0.5 + OUTER_BUILD_WIDTH + WALL_THICKNESS \
 		or p.abs().distance_to(Vector2(BASE_X, 0)) <= BASE_OUTER_RADIUS
 
@@ -235,6 +325,20 @@ func build_guides() -> void:
 	var guides := Node3D.new()
 	guides.name = "LayoutGuides"
 	attach(guides)
+	# Future event/monster spawns have named anchors without adding collision props.
+	for area in map_data.get("activityAreas", []):
+		var marker := Marker3D.new()
+		marker.name = area["id"]
+		marker.position = Vector3(area["center"][0], 0, area["center"][1])
+		marker.set_meta("kind", area["kind"])
+		marker.set_meta("radii", Vector2(area["radii"][0], area["radii"][1]))
+		attach(marker, guides)
+	for site in map_data.get("expansionSites", []):
+		var marker := Marker3D.new()
+		marker.name = site["id"]
+		marker.position = Vector3(site["center"][0], 0, site["center"][1])
+		marker.set_meta("kind", "expansion")
+		attach(marker, guides)
 	for entry in [["BlueSpawn", Vector3(-BASE_X, 0, 0)], ["RedSpawn", Vector3(BASE_X, 0, 0)], ["Center", Vector3.ZERO], ["BlueResourceArea", Vector3(-39, 0, 13)], ["RedResourceArea", Vector3(39, 0, 13)]]:
 		var marker := Marker3D.new()
 		marker.name = entry[0]

@@ -271,8 +271,18 @@ public partial class RtsControlChecks : Main
         KeyPress(Key.W); KeyPress(Key.E);
         Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 1", "SKILL 2" }) && !_input.IsSkillTargeting &&
             Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Wolf W/E cast immediately and W is reserved for the skill");
-        Check(Skills.GetNode<Button>("Content/Slots/W").TooltipText.Contains("50%") &&
-            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("30%"), "W/E descriptions show their actual effects");
+        var drainButton = Skills.GetNode<Button>("Content/Slots/W");
+        var drainCooldown = drainButton.GetNode<Label>("Cooldown");
+        var auraButton = Skills.GetNode<Button>("Content/Slots/E");
+        var auraCooldown = auraButton.GetNode<Label>("Cooldown");
+        Check(drainButton.TooltipText.Contains("50%") && drainButton.TooltipText.Contains("일반 공격 또는 Q") &&
+            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("25%") &&
+            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("0.5초마다 10회") &&
+            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("총 11회"), "W/E descriptions show their actual effects");
+        Receive("COOLDOWN 1400 1 0");
+        Receive("SKILL_ACTIVE 1400 1 1");
+        Receive("COOLDOWN 1400 2 0");
+        Receive("SKILL_ACTIVE 1400 2 1");
         Receive("WOLF 1400 1 750");
         Receive("WOLF 1401 0 0");
         await Flush();
@@ -280,23 +290,45 @@ public partial class RtsControlChecks : Main
         Check(effects.GetNode<MeshInstance3D>("DrainReady").Visible && effects.GetNode<MeshInstance3D>("DamageAura").Visible &&
             Skills.StatusText.Contains("50%") && Skills.StatusText.Contains("5초"),
             "Authoritative snapshots show W readiness and the remaining E duration for the owned hero");
+        Check(!Skills.CanUse(1) && drainButton.Disabled && Skills.RemainingSeconds(1) == 0 && drainCooldown.Text == "대기",
+            "Armed W waits for an attack without starting its cooldown or allowing recasts");
+        Check(Skills.IsActive(2) && !Skills.CanUse(2) && auraButton.Disabled &&
+            Skills.RemainingSeconds(2) == 0 && auraCooldown.Text == "사용 중",
+            "E remains active without counting down or allowing recasts");
+        foreach (string invalid in new[] { "SKILL_ACTIVE 1400 2 2", "SKILL_ACTIVE 1400 -1 0", "SKILL_ACTIVE 1400 5 0",
+            "SKILL_ACTIVE 0 2 0", "SKILL_ACTIVE 1400 2 0 extra", "SKILL_ACTIVE 1401 2 0" }) Receive(invalid);
+        Check(Skills.IsActive(2), "Invalid or other-caster active messages cannot clear E");
         foreach (string invalid in new[] { "WOLF 1400 2 0", "WOLF 1400 0 -1", "WOLF 1400 0 NaN", "WOLF 0 0 0", "WOLF 1400 0 0 extra" }) Receive(invalid);
         Check(Unit(1400).WolfEffects.DrainReady && Unit(1400).WolfEffects.AuraUntil == 750,
             "Malformed effect snapshots cannot erase valid state");
-        Receive("COOLDOWN 1400 1 840");
-        Receive("COOLDOWN 1400 2 960");
         KeyPress(Key.W); KeyPress(Key.E);
-        Check(_commands.Count == before + 2, "W/E cooldowns block repeat casts");
+        Check(_commands.Count == before + 2, "Armed W and cooling E block repeat casts");
         Receive("TICK 630");
         Check(Skills.StatusText.Contains("4초"), "E duration uses server ticks");
+        Receive("TICK 750");
+        Check(Skills.IsActive(2) && !Skills.CanUse(2), "E waits for authoritative completion at its final tick");
+        Receive("COOLDOWN 1400 2 1110");
+        Receive("SKILL_ACTIVE 1400 2 0");
         Receive("WOLF 1400 1 0");
         await Flush();
         Check(effects.GetNode<MeshInstance3D>("DrainReady").Visible && !effects.GetNode<MeshInstance3D>("DamageAura").Visible,
             "E expiration preserves an unused W");
+        Check(!Skills.IsActive(2) && Skills.RemainingSeconds(2) == 12 && auraCooldown.Text == "12",
+            "E starts its full twelve-second cooldown after its five-second execution");
+        Receive("TICK 900");
+        KeyPress(Key.W);
+        Check(_commands.Count == before + 2 && !Skills.CanUse(1) && Skills.RemainingSeconds(1) == 0 && drainCooldown.Text == "대기",
+            "W remains armed after more than eight seconds without an attack");
+        Receive("COOLDOWN 1400 1 1140");
+        Receive("SKILL_ACTIVE 1400 1 0");
         Receive("WOLF 1400 0 0");
         await Flush();
-        Check(!effects.GetNode<MeshInstance3D>("DrainReady").Visible, "W consumption removes its ready effect");
-        Receive("WOLF 1400 1 750");
+        Check(!effects.GetNode<MeshInstance3D>("DrainReady").Visible && !Skills.CanUse(1) &&
+            Skills.RemainingSeconds(1) == 8 && drainCooldown.Text == "8",
+            "Attack consumption removes W readiness and starts its full eight-second server cooldown");
+        Receive("TICK 930");
+        Check(drainCooldown.Text == "7", "W cooldown counts down after consumption");
+        Receive("WOLF 1400 0 1000");
         Receive("REMOVE 1400");
         await Flush();
         Check(!effects.GetNode<MeshInstance3D>("DamageAura").Visible && !Skills.StatusText.Contains("50%"),
@@ -304,6 +336,14 @@ public partial class RtsControlChecks : Main
         Receive("UNIT 200 1402 7 -6 -8 1");
         Check(!Unit(1402).WolfEffects.DrainReady && Unit(1402).WolfEffects.AuraUntil == 0 && !Skills.CanUse(1),
             "Respawn starts without buffs while retaining the server cooldown");
+        Receive("TICK 1140");
+        KeyPress(Key.W);
+        Check(Skills.CanUse(1) && _commands.Count == before + 3 && _commands.Last() == "SKILL 1",
+            "W can be armed again after its post-attack cooldown expires");
+        Receive("COOLDOWN 1402 1 0");
+        Receive("SKILL_ACTIVE 1402 1 1");
+        Check(Skills.IsActive(1) && Skills.RemainingSeconds(1) == 0 && !Skills.CanUse(1),
+            "A repeated execution clears the old cooldown and blocks recasting");
     }
 
     private async Task CheckAttackRangeIndicators()

@@ -1,4 +1,112 @@
 {
+  "activityAreas": [
+    {
+      "center": [
+        0.0,
+        0.0
+      ],
+      "entranceWidth": 0.0,
+      "entrances": [],
+      "id": "center_event",
+      "kind": "event",
+      "radii": [
+        9.0,
+        9.0
+      ]
+    },
+    {
+      "center": [
+        -15.0,
+        -13.0
+      ],
+      "entranceWidth": 4.0,
+      "entrances": [
+        [
+          -6.0,
+          -5.0
+        ],
+        [
+          -28.0,
+          -13.0
+        ]
+      ],
+      "id": "jungle_nw",
+      "kind": "jungle",
+      "radii": [
+        7.0,
+        6.0
+      ]
+    },
+    {
+      "center": [
+        15.0,
+        -13.0
+      ],
+      "entranceWidth": 4.0,
+      "entrances": [
+        [
+          6.0,
+          -5.0
+        ],
+        [
+          28.0,
+          -13.0
+        ]
+      ],
+      "id": "jungle_ne",
+      "kind": "jungle",
+      "radii": [
+        7.0,
+        6.0
+      ]
+    },
+    {
+      "center": [
+        -15.0,
+        13.0
+      ],
+      "entranceWidth": 4.0,
+      "entrances": [
+        [
+          -6.0,
+          5.0
+        ],
+        [
+          -28.0,
+          13.0
+        ]
+      ],
+      "id": "jungle_sw",
+      "kind": "jungle",
+      "radii": [
+        7.0,
+        6.0
+      ]
+    },
+    {
+      "center": [
+        15.0,
+        13.0
+      ],
+      "entranceWidth": 4.0,
+      "entrances": [
+        [
+          6.0,
+          5.0
+        ],
+        [
+          28.0,
+          13.0
+        ]
+      ],
+      "id": "jungle_se",
+      "kind": "jungle",
+      "radii": [
+        7.0,
+        6.0
+      ]
+    }
+  ],
   "bases": [
     [
       -65.0,
@@ -10,6 +118,30 @@
     ]
   ],
   "cellSize": 1.0,
+  "expansionSites": [
+    {
+      "buildSize": [
+        3.0,
+        3.0
+      ],
+      "center": [
+        -34.0,
+        -37.0
+      ],
+      "id": "team1_expansion"
+    },
+    {
+      "buildSize": [
+        3.0,
+        3.0
+      ],
+      "center": [
+        34.0,
+        37.0
+      ],
+      "id": "team2_expansion"
+    }
+  ],
   "lanes": [
     {
       "name": "top",
@@ -96,95 +228,131 @@
   ],
   "name": "test",
   "originX": -84.0,
-  "originZ": -46.0,
+  "originZ": -64.0,
   "rows": [
     "########################################################################################################################################################################",
     "########################################################################################################################################################################",
     "########################################################################################################################################################################",
     "########################################################################################################################################################################",
     "########################################################################################################################################################################",
-    "##########################################################################WWWWWWWWWWWWWWWWWWWW##########################################################################",
-    "############################################################WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW############################################################",
-    "#######################################################WWWWWWWWWWWWWWWWWWWWW................WWWWWWWWWWWWWWWWWWWWW#######################################################",
-    "#################################################WWWWWWWWWWWWW............................................WWWWWWWWWWWWW#################################################",
-    "############################################WWWWWWWWWWWWW......................................................WWWWWWWWWWWWW############################################",
-    "#######################################WWWWWWWWWWWW.......................RRRRRRRRRRRRRRRRRRRR.......................WWWWWWWWWWWW#######################################",
-    "##################################WWWWWWWWWWWW...............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...............WWWWWWWWWWWW##################################",
-    "###############################WWWWWWWWWW..............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..............WWWWWWWWWW###############################",
-    "##############################WWWWWW..............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..............WWWWWW##############################",
-    "#############################WWWW............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR............WWWW#############################",
-    "############################WWWW.......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......WWWW############################",
-    "###########################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW###########################",
-    "##########################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW##########################",
-    "########################WWWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWWW########################",
-    "#######################WWWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWWW#######################",
-    "######################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW######################",
-    "#####################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW#####################",
-    "####################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRT.T.T..RRRRRR.T.T.T.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW####################",
-    "###################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...................RRRRRR...................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW###################",
-    "##################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW##################",
-    "#################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........................RRRRRR........................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW#################",
-    "################WWWW...RRRRRRRRRRRRRRRRRRRRRRRT.T..RRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRR.T.T.RRRRRRRRRRRRRRRRRRRRRRR...WWWW################",
-    "################WWW...RRRRRRRRRRRRRRRRRR............RRRRRR.......................RRRRRR.......................RRRRRR............RRRRRRRRRRRRRRRRRR...WWW################",
-    "###############WWW...RRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.RRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRT.T.T.T.T.T..RRRRRRRRRRRRRRRRRR...WWW###############",
-    "############WWWWWW...RRRRRRRRRRRRRRRRR..............RRRRRR.......................RRRRRR.......................RRRRRR..............RRRRRRRRRRRRRRRRR...WWWWWW############",
-    "##########WWWWWWW...RRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.RRRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRRRT.T.T.T.T.T.T..RRRRRRRRRRRRRRRRR...WWWWWWW##########",
-    "########WWWWWW......RRRRRRRRRRRRRRR..................RRRRRR......................RRRRRR......................RRRRRR..................RRRRRRRRRRRRRRR......WWWWWW########",
-    "#######WWWWW.......RRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRR.......WWWWW#######",
-    "######WWWW.........RRRRRRRRRRRRRR....................RRRRRR......................RRRRRR......................RRRRRR....................RRRRRRRRRRRRRR.........WWWW######",
-    "#####WWWW.........RRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRR.........WWWW#####",
-    "####WWWW........RRRRRRRRRRRRRRR......................RRRRRR......................RRRRRR......................RRRRRR......................RRRRRRRRRRRRRRR........WWWW####",
-    "####WWW......RRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRR......WWW####",
-    "###WWW......RRRRRRRRRRRRRRRRRR.......................RRRRRR......................RRRRRR......................RRRRRR.......................RRRRRRRRRRRRRRRRRR......WWW###",
-    "###WWW.....RRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRR.....WWW###",
-    "##WWW.....RRRRRRRRRRRRRRRRRRR........................RRRRRR......................RRRRRR......................RRRRRR........................RRRRRRRRRRRRRRRRRRR.....WWW##",
-    "##WWW....RRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRR....WWW##",
-    "##WW.....RRRRRRRRRRRRRRRRRRRR........................RRRRRR......................RRRRRR......................RRRRRR........................RRRRRRRRRRRRRRRRRRRR.....WW##",
-    "#WWW.....RRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.....................RRRRRRRR.....................RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRR.....WWW#",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "#################################################WWWWWWWWWWWWWWW########################################################################################################",
+    "#############################################WWWWWWWWWWWWWWWWWWWWWW#####################################################################################################",
+    "##########################################WWWWWWWWWT.T.T.T.T..WWWWWWWW##################################################################################################",
+    "########################################WWWWWWWT.T...........T.T.WWWWWWWW###############################################################################################",
+    "######################################WWWWWWT......T.T.T.T.T.....T..WWWWWWWWW###########################################################################################",
+    "####################################WWWWWWT...T.T............T.T...T.T.WWWWWWWWW########################################################################################",
+    "##################################WWWWWWT...T.....T.....T.T......T.....T.T.WWWWWWWWWW###################################################################################",
+    "################################WWWWWWT...T..................T.T...T.T.....T..WWWWWWWWWWWWWWWW##########################################################################",
+    "###############################WWWWWT...T..................T.....T.....T.T...T.T.T.WWWWWWWWWWWWWWWWWWWWWWWWW############################################################",
+    "##############################WWWWT...T...T..................T.T...T.T.....T.......T.T.T.T..WWWWWWWWWWWWWWWWWWWWW#######################################################",
+    "#############################WWWW...T...T........................T.....T.T...T.T.T.........T.T.T.T.T.T.T..WWWWWWWWWWWWW#################################################",
+    "############################WWWWT.T...T......................T.T...T.T...................................T.T.T.WWWWWWWWWWWWW############################################",
+    "###########################WWWW.....T...T.................................RRRRRRRRRRRRRRRRRRRR.................T.T.T.WWWWWWWWWWWW#######################################",
+    "##########################WWWWT.T.T...T......................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..........T.T..WWWWWWWWWWWW##################################",
+    "##########################WWW.......T..................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........T.T.T.WWWWWWWWWW###############################",
+    "#########################WWWT.T.T.T...T...........RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.........T.T..WWWWWW##############################",
+    "########################WWWW........T........RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........T.T.WWWW#############################",
+    "#######################WWWWT.T.T.T.....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......WWWW############################",
+    "#######################WWW.........RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..T.WWWW###########################",
+    "######################WWWT.T.T...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW##########################",
+    "#####################WWWW.......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.WWWWW########################",
+    "#####################WWWT.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWWW#######################",
+    "####################WWW.......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T..WWWW######################",
+    "###################WWWWT.T...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..T.WWWW#####################",
+    "##################WWWW......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRT.T.T..RRRRRR.T.T.T.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW####################",
+    "#################WWWWT.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...................RRRRRR...................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.WWWW###################",
+    "#################WWW.....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW##################",
+    "################WWWT.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........................RRRRRR........................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.WWWW#################",
+    "################WWW....RRRRRRRRRRRRRRRRRRRRRRRT.T..RRRRRRRT.T.T.T.......T.T.T.T..RRRRRR.T.T.T.T.......T.T.T.T.RRRRRRR.T.T.RRRRRRRRRRRRRRRRRRRRRRR...WWWW################",
+    "###############WWW....RRRRRRRRRRRRRRRRRR............RRRRRR........RRRRRR.........RRRRRR.........RRRRRR........RRRRRR............RRRRRRRRRRRRRRRRRR...WWW################",
+    "###############WWW...RRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.RRRRRRT.T...RRRRRRRRRR..T.T..RRRRRR.T.T...RRRRRRRRRR..T.T.RRRRRRT.T.T.T.T.T..RRRRRRRRRRRRRRRRRR...WWW###############",
+    "############WWWWW....RRRRRRRRRRRRRRRRR..............RRRRRR.....RRRRRRRRRRRR......RRRRRR......RRRRRRRRRRRR.....RRRRRR..............RRRRRRRRRRRRRRRRR...WWWWWW############",
+    "##########WWWWWWW...RRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.RRRRRRR....RRRRRRRRRRRR.T.T..RRRRRR.T.T..RRRRRRRRRRRR....RRRRRRRT.T.T.T.T.T.T..RRRRRRRRRRRRRRRRR...WWWWWWW##########",
+    "########WWWWWW......RRRRRRRRRRRRRRR..................RRRRRRRRRRRRRRRRRRRRRRR.....RRRRRR.....RRRRRRRRRRRRRRRRRRRRRRR..................RRRRRRRRRRRRRRR......WWWWWW########",
+    "#######WWWWW.......RRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRT.T..RRRRRR.T.T.RRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRR.......WWWWW#######",
+    "######WWWW.........RRRRRRRRRRRRRR....................RRRRRRRRRRRRRRRRRRRRRRR.....RRRRRR.....RRRRRRRRRRRRRRRRRRRRRRR....................RRRRRRRRRRRRRR.........WWWW######",
+    "#####WWWW.........RRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRT.T..RRRRRR.T.T.RRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRR.........WWWW#####",
+    "####WWWW........RRRRRRRRRRRRRRR......................RRRRRR....RRRRRRRRRRRR......RRRRRR......RRRRRRRRRRRR....RRRRRR......................RRRRRRRRRRRRRRR........WWWW####",
+    "####WWW......RRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T..RRRRRRRRRRRRR..T..RRRRRR.T...RRRRRRRRRRRRR.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRR......WWW####",
+    "###WWW......RRRRRRRRRRRRRRRRRR.......................RRRRRR.....RRRRRRRRRRRRR....RRRRRR....RRRRRRRRRRRRR.....RRRRRR.......................RRRRRRRRRRRRRRRRRR......WWW###",
+    "###WWW.....RRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.RRRRRRRRRRRR.RRRRRRRRRR.RRRRRRRRRRRRT.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRR.....WWW###",
+    "##WWW.....RRRRRRRRRRRRRRRRRRR........................RRRRRR..............RRRRRRRRRRRRRRRRRRRRRR..............RRRRRR........................RRRRRRRRRRRRRRRRRRR.....WWW##",
+    "##WWW....RRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRRRRRT.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRR....WWW##",
+    "##WW.....RRRRRRRRRRRRRRRRRRRR........................RRRRRR.................RRRRRRRRRRRRRRRR.................RRRRRR........................RRRRRRRRRRRRRRRRRRRR.....WW##",
+    "#WWW.....RRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.................RRRRRRRRRRRRRRRR.................RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRR.....WWW#",
     "#WWW....RRRRRRRRRRRRRRRRRRRRRR.......................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......................RRRRRRRRRRRRRRRRRRRRRR....WWW#",
     "#WW.....RRRRRRRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRRRRRRR.....WW#",
     "#WW.....RRRRRRRRRRRRRRRRRRRRRR.......................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......................RRRRRRRRRRRRRRRRRRRRRR.....WW#",
     "#WW.....RRRRRRRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRRRRRRR.....WW#",
     "#WW.....RRRRRRRRRRRRRRRRRRRRRR.......................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......................RRRRRRRRRRRRRRRRRRRRRR.....WW#",
     "#WWW....RRRRRRRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRRRRRRR....WWW#",
-    "#WWW.....RRRRRRRRRRRRRRRRRRRR........................RRRRRR.....................RRRRRRRR.....................RRRRRR........................RRRRRRRRRRRRRRRRRRRR.....WWW#",
-    "##WW.....RRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRR.....WW##",
-    "##WWW....RRRRRRRRRRRRRRRRRRRR........................RRRRRR......................RRRRRR......................RRRRRR........................RRRRRRRRRRRRRRRRRRRR....WWW##",
-    "##WWW.....RRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRR.....WWW##",
-    "###WWW.....RRRRRRRRRRRRRRRRRR........................RRRRRR......................RRRRRR......................RRRRRR........................RRRRRRRRRRRRRRRRRR.....WWW###",
-    "###WWW......RRRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRRR......WWW###",
-    "####WWW......RRRRRRRRRRRRRRRRR.......................RRRRRR......................RRRRRR......................RRRRRR.......................RRRRRRRRRRRRRRRRR......WWW####",
-    "####WWWW........RRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRR........WWWW####",
-    "#####WWWW.........RRRRRRRRRRRRRR.....................RRRRRR......................RRRRRR......................RRRRRR.....................RRRRRRRRRRRRRR.........WWWW#####",
-    "######WWWW.........RRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRR.........WWWW######",
-    "#######WWWWW.......RRRRRRRRRRRRRRR...................RRRRRR......................RRRRRR......................RRRRRR...................RRRRRRRRRRRRRRR.......WWWWW#######",
-    "########WWWWWW......RRRRRRRRRRRRRRR...T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T....RRRRRRRRRRRRRRR......WWWWWW########",
-    "##########WWWWWWW...RRRRRRRRRRRRRRRRR...............RRRRRRR......................RRRRRR......................RRRRRRR...............RRRRRRRRRRRRRRRRR...WWWWWWW##########",
-    "############WWWWWW...RRRRRRRRRRRRRRRRR..T.T.T.T.T.T.RRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRT.T.T.T.T.T...RRRRRRRRRRRRRRRRR...WWWWWW############",
-    "###############WWW...RRRRRRRRRRRRRRRRRR.............RRRRRR.......................RRRRRR.......................RRRRRR.............RRRRRRRRRRRRRRRRRR...WWW###############",
-    "################WWW...RRRRRRRRRRRRRRRRRR......T.T...RRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRR..T.T.......RRRRRRRRRRRRRRRRRR...WWW################",
-    "################WWWW...RRRRRRRRRRRRRRRRRRRRRRR.....RRRRRRR.......................RRRRRR.......................RRRRRRR.....RRRRRRRRRRRRRRRRRRRRRRR...WWWW################",
-    "#################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW#################",
-    "##################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........................RRRRRR........................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW##################",
-    "###################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR............T.T.T..RRRRRR.T.T.T.............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW###################",
-    "####################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......RRRRRR.......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW####################",
-    "#####################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW#####################",
-    "######################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW######################",
-    "#######################WWWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWWW#######################",
-    "########################WWWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWWW########################",
-    "##########################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...WWWW##########################",
-    "###########################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR....WWWW###########################",
-    "############################WWWW.......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......WWWW############################",
-    "#############################WWWW............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR............WWWW#############################",
-    "##############################WWWWWW..............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..............WWWWWW##############################",
-    "###############################WWWWWWWWWW..............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR..............WWWWWWWWWW###############################",
-    "##################################WWWWWWWWWWWW...............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...............WWWWWWWWWWWW##################################",
-    "#######################################WWWWWWWWWWWW.......................RRRRRRRRRRRRRRRRRRRR.......................WWWWWWWWWWWW#######################################",
-    "############################################WWWWWWWWWWWWW......................................................WWWWWWWWWWWWW############################################",
-    "#################################################WWWWWWWWWWWWW............................................WWWWWWWWWWWWW#################################################",
-    "#######################################################WWWWWWWWWWWWWWWWWWWWW................WWWWWWWWWWWWWWWWWWWWW#######################################################",
-    "############################################################WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW############################################################",
-    "##########################################################################WWWWWWWWWWWWWWWWWWWW##########################################################################",
+    "#WWW.....RRRRRRRRRRRRRRRRRRRR........................RRRRRR.................RRRRRRRRRRRRRRRR.................RRRRRR........................RRRRRRRRRRRRRRRRRRRR.....WWW#",
+    "##WW.....RRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T...RRRRRRRRRRRRRRRR..T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRR.....WW##",
+    "##WWW....RRRRRRRRRRRRRRRRRRRR........................RRRRRR...............RRRRRRRRRRRRRRRRRRRR...............RRRRRR........................RRRRRRRRRRRRRRRRRRRR....WWW##",
+    "##WWW.....RRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T........RRRRRRRRRRRRRRRRRRRRRR.......T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRR.....WWW##",
+    "###WWW.....RRRRRRRRRRRRRRRRRR........................RRRRRR.......RRRRRRRRRRRR.RRRRRRRRRR.RRRRRRRRRRRR.......RRRRRR........................RRRRRRRRRRRRRRRRRR.....WWW###",
+    "###WWW......RRRRRRRRRRRRRRRRRRT.T.T.T.T.T.T.T.T.T.T..RRRRRR.T...RRRRRRRRRRRRR.T..RRRRRR.T..RRRRRRRRRRRRR..T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T.RRRRRRRRRRRRRRRRRR......WWW###",
+    "####WWW......RRRRRRRRRRRRRRRRR.......................RRRRRR....RRRRRRRRRRRRR.....RRRRRR.....RRRRRRRRRRRRR....RRRRRR.......................RRRRRRRRRRRRRRRRR......WWW####",
+    "####WWWW........RRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRR....RRRRRRRRRRRR.T.T..RRRRRR.T.T..RRRRRRRRRRRR....RRRRRR.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRR........WWWW####",
+    "#####WWWW.........RRRRRRRRRRRRRR.....................RRRRRRRRRRRRRRRRRRRRRRR.....RRRRRR.....RRRRRRRRRRRRRRRRRRRRRRR.....................RRRRRRRRRRRRRR.........WWWW#####",
+    "######WWWW.........RRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRT.T..RRRRRR.T.T.RRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRR.........WWWW######",
+    "#######WWWWW.......RRRRRRRRRRRRRRR...................RRRRRRRRRRRRRRRRRRRRRRR.....RRRRRR.....RRRRRRRRRRRRRRRRRRRRRRR...................RRRRRRRRRRRRRRR.......WWWWW#######",
+    "########WWWWWW......RRRRRRRRRRRRRRR...T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRT.T..RRRRRR.T.T.RRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T....RRRRRRRRRRRRRRR......WWWWWW########",
+    "##########WWWWWWW...RRRRRRRRRRRRRRRRR...............RRRRRRR....RRRRRRRRRRRR......RRRRRR......RRRRRRRRRRRR....RRRRRRR...............RRRRRRRRRRRRRRRRR...WWWWWWW##########",
+    "############WWWWWW...RRRRRRRRRRRRRRRRR..T.T.T.T.T.T.RRRRRRT.T..RRRRRRRRRRRR.T.T..RRRRRR.T.T..RRRRRRRRRRRR.T.T.RRRRRRT.T.T.T.T.T...RRRRRRRRRRRRRRRRR....WWWWW############",
+    "###############WWW...RRRRRRRRRRRRRRRRRR.............RRRRRR......RRRRRRRRRR.......RRRRRR.......RRRRRRRRRR......RRRRRR.............RRRRRRRRRRRRRRRRRR...WWW###############",
+    "################WWW...RRRRRRRRRRRRRRRRRR......T.T...RRRRRRT.T.T.T.RRRRRRT.T.T.T..RRRRRR.T.T.T.T.RRRRRRT.T.T.T.RRRRRR..T.T.......RRRRRRRRRRRRRRRRRR....WWW###############",
+    "################WWWW.T.RRRRRRRRRRRRRRRRRRRRRRR.....RRRRRRR.......................RRRRRR.......................RRRRRRR.....RRRRRRRRRRRRRRRRRRRRRRRT.T.WWW################",
+    "#################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRR.T.T.T.T.T.T.T.T.T.T.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.....WWW################",
+    "##################WWWW.T.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........................RRRRRR........................RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRT.T..WWW#################",
+    "###################WWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR............T.T.T..RRRRRR.T.T.T.............RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.....WWWW#################",
+    "####################WWWW.T..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......RRRRRR.......RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T..WWWW##################",
+    "#####################WWWW..T.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR......WWWW###################",
+    "######################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRT.T.T..WWW####################",
+    "#######################WWWWW.T.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.......WWW#####################",
+    "########################WWWWW...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T.T.T.WWWW#####################",
+    "##########################WWWW.T.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........WWW######################",
+    "###########################WWWW....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRT.T.T.T..WWW#######################",
+    "############################WWWW.T.T...RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.T..........WWWW#######################",
+    "#############################WWWW....T.T.....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.....T...T.T.T.T.WWWW########################",
+    "##############################WWWWWW.....T.T.T....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR............T.........WWW#########################",
+    "###############################WWWWWWWWWW......T.T.....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...............T...T.T.T..WWW##########################",
+    "##################################WWWWWWWWWWWW.....T.T.T.....RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR...................T...T.......WWWW##########################",
+    "#######################################WWWWWWWWWWWW......T.T.T............RRRRRRRRRRRRRRRRRRRR...T.T...T.T......................T...T.T..WWWW###########################",
+    "############################################WWWWWWWWWWWWW......T.T.T.T.T.T.T.........T.T.T...T.T.....T........................T...T.....WWWW############################",
+    "#################################################WWWWWWWWWWWWW...............T.T.T.T.......T.....T.T...T.T..................T...T...T..WWWW#############################",
+    "#######################################################WWWWWWWWWWWWWWWWWWWWW.........T.T.T...T.T.....T.....T..................T...T...WWWW##############################",
+    "############################################################WWWWWWWWWWWWWWWWWWWWWWWWW......T.....T.T...T.T..................T...T...WWWWW###############################",
+    "##########################################################################WWWWWWWWWWWWWWWW...T.T.....T......T.T.....T.....T...T...WWWWWW################################",
+    "###################################################################################WWWWWWWWWW....T.T...T.T............T.T...T...WWWWWW##################################",
+    "########################################################################################WWWWWWWWW....T.....T.T.T.T.T......T...WWWWWW####################################",
+    "###########################################################################################WWWWWWWWW...T.T...........T.T....WWWWWW######################################",
+    "###############################################################################################WWWWWWWW....T.T.T.T.T.....WWWWWWW########################################",
+    "##################################################################################################WWWWWWWW...........WWWWWWWWW##########################################",
+    "#####################################################################################################WWWWWWWWWWWWWWWWWWWWWW#############################################",
+    "########################################################################################################WWWWWWWWWWWWWWW#################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
+    "########################################################################################################################################################################",
     "########################################################################################################################################################################",
     "########################################################################################################################################################################",
     "########################################################################################################################################################################",

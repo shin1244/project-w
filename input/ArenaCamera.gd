@@ -12,6 +12,7 @@ var dragging := false
 var window_focused := false
 var mouse_inside := false
 var mouse_position := Vector2.ZERO
+var ground_bounds := Rect2(-80, -44, 160, 88)
 
 func _ready() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
@@ -23,6 +24,23 @@ func _ready() -> void:
 	get_window().focus_exited.connect(_focus_lost)
 	get_window().mouse_entered.connect(func(): mouse_inside = true)
 	get_window().mouse_exited.connect(func(): mouse_inside = false)
+	call_deferred("configure_map_bounds")
+
+func configure_map_bounds() -> void:
+	var terrain := get_node_or_null("../Ground/SymmetricArena")
+	if terrain == null or not terrain.has_meta("origin"):
+		return
+	var dimensions: Vector2 = terrain.get_meta("dimensions")
+	ground_bounds = Rect2(terrain.get_meta("origin"), dimensions).grow(-4.0)
+	# Include the north/south bastions when returning to the full-map view.
+	var viewport_size := get_viewport().get_visible_rect().size
+	var fit_width := (dimensions.x + 12.0) * viewport_size.y / maxf(viewport_size.x, 1.0)
+	var fit_depth := dimensions.y * absf(sin(rotation.x)) + 12.0
+	var using_home_size := is_equal_approx(size, home_size)
+	home_size = maxf(home_size, maxf(fit_width, fit_depth))
+	maximum_size = maxf(maximum_size, home_size)
+	if using_home_size:
+		size = home_size
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -92,5 +110,5 @@ func _unhandled_input(event: InputEvent) -> void:
 		size = home_size
 
 func clamp_position() -> void:
-	position.x = clampf(position.x, -80, 80)
-	position.z = clampf(position.z, home_position.z - 44, home_position.z + 44)
+	position.x = clampf(position.x, ground_bounds.position.x, ground_bounds.end.x)
+	position.z = clampf(position.z, home_position.z + ground_bounds.position.y, home_position.z + ground_bounds.end.y)

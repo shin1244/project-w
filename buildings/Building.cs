@@ -8,6 +8,10 @@ public partial class Building : Node3D
 {
     [Export] public uint BuildingType { get; set; }
     [Export] public float HealthBarHeight { get; set; } = 4.7f;
+    // 발사 표시. 굵기·반지름은 카메라가 멀어질수록 비례해 커져 화면에서의 크기를 비슷하게 유지합니다.
+    [Export] public float ShotWidth { get; set; } = .035f;
+    [Export] public float ShotDuration { get; set; } = .09f;
+    [Export] public float ImpactRadius { get; set; } // 0이면 착탄 효과를 표시하지 않습니다.
     public HealthBar HealthBar { get; private set; }
     public uint BuildingId { get; private set; }
     public uint SideId { get; private set; }
@@ -17,7 +21,7 @@ public partial class Building : Node3D
     public int ConstructionPercent { get; private set; } = 100;
     public uint ConstructionOwnerId { get; set; }
     public bool IsUnderConstruction => ConstructionPercent < 100;
-    public bool IsDefense => BuildingType is 1 or 6;
+    public bool IsDefense => BuildingType is BuildingCatalog.TownHall or BuildingCatalog.Fortress or BuildingCatalog.Tower;
     public IReadOnlyList<uint> ProductionQueue { get; private set; } = Array.Empty<uint>();
     public IReadOnlyList<ProductionJob> ProductionJobs { get; private set; } = Array.Empty<ProductionJob>();
     public int ProductionPercent { get; private set; }
@@ -55,7 +59,7 @@ public partial class Building : Node3D
     private ConstructionSite _constructionSite;
     private Marker3D _entrance;
     private Vector3 _entranceOffset;
-    private readonly HashSet<MeshInstance3D> _shotTraces = new();
+    private readonly HashSet<MeshInstance3D> _shotEffects = new();
 
     public override void _Ready()
     {
@@ -67,7 +71,8 @@ public partial class Building : Node3D
         _turret = GetNodeOrNull<Node3D>("Turret");
         _completedTurretVisible = _turret?.Visible ?? false;
         _ballista = GetNodeOrNull<Node3D>("Turret/Ballista");
-        _muzzle = GetNodeOrNull<Marker3D>("Turret/Muzzle");
+        // 회관처럼 회전 포탑이 없는 건물은 고정된 발사 위치를 씁니다.
+        _muzzle = GetNodeOrNull<Marker3D>("Turret/Muzzle") ?? GetNodeOrNull<Marker3D>("Muzzle");
         _entrance = GetNodeOrNull<Marker3D>("Entrance");
         if (_entrance != null) _entranceOffset = _entrance.Position;
         if (_ballista != null) _restPosition = _ballista.Position;
@@ -133,7 +138,7 @@ public partial class Building : Node3D
     public override void _Process(double delta)
     {
         FaceCamera();
-        FaceTarget();
+        if (_turret != null) FaceTarget();
     }
 
     // 직교 카메라는 모든 건물에 같은 시선 방향을 사용합니다. 이동/줌에는 회전하지 않습니다.
@@ -151,10 +156,11 @@ public partial class Building : Node3D
 
     private Node3D FaceTarget()
     {
-        if (IsUnderConstruction || _turret == null || State.Activity != UnitActivity.Attack || State.FocusId == 0) return null;
+        if (IsUnderConstruction || State.Activity != UnitActivity.Attack || State.FocusId == 0) return null;
         Node3D target = ResolveFocus?.Invoke(State.FocusId);
         if (!GodotObject.IsInstanceValid(target) || !target.IsInsideTree() ||
             target.IsQueuedForDeletion() || target is Unit { IsDying: true }) return null;
+        if (_turret == null) return target; // 돌릴 포탑이 없으면 궤적의 대상만 찾습니다.
         Vector3 aim = target.GlobalPosition;
         aim.Y = _turret.GlobalPosition.Y;
         if (aim.DistanceSquaredTo(_turret.GlobalPosition) > .0001f) _turret.LookAt(aim);
@@ -163,11 +169,14 @@ public partial class Building : Node3D
 
     private void PlayShot(Node3D target)
     {
-        if (IsUnderConstruction || _ballista == null) return;
-        _recoil?.Kill();
-        _ballista.Position = _restPosition + new Vector3(0, 0, .15f);
-        _recoil = CreateTween();
-        _recoil.TweenProperty(_ballista, "position", _restPosition, .22).SetTrans(Tween.TransitionType.Quad);
+        if (IsUnderConstruction) return;
+        if (_ballista != null)
+        {
+            _recoil?.Kill();
+            _ballista.Position = _restPosition + new Vector3(0, 0, .15f);
+            _recoil = CreateTween();
+            _recoil.TweenProperty(_ballista, "position", _restPosition, .22).SetTrans(Tween.TransitionType.Quad);
+        }
         if (target == null || _muzzle == null) return;
 
         // 서버는 즉시 피해를 적용합니다. 짧은 궤적은 발사 피드백만 표시합니다.
@@ -175,26 +184,44 @@ public partial class Building : Node3D
         Vector3 end = target.GlobalPosition + Vector3.Up;
         float distance = start.DistanceTo(end);
         if (distance < .01f) return;
-        var trace = new MeshInstance3D
-        {
-            Name = "ShotTrace",
-            Mesh = new BoxMesh { Size = new Vector3(.035f, .035f, distance) },
-            MaterialOverride = new StandardMaterial3D
-            {
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                AlbedoColor = new Color("ffd27b")
-            },
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-        };
-        AddChild(trace);
-        _shotTraces.Add(trace);
+        float zoom = Mathf.Max(1, (GetViewport().GetCamera3D()?.Size ?? 0) / 40f);
+        float width = ShotWidth * zoom;
+        var trace = ShotEffect("ShotTrace", new BoxMesh { Size = new Vector3(width, width, distance) }, new Color("ffd27b"));
         trace.GlobalPosition = (start + end) * .5f;
         trace.LookAt(end);
-        trace.CreateTween().TweenCallback(Callable.From(() =>
+        if (ImpactRadius <= 0) return;
+        float radius = ImpactRadius * zoom;
+        var impact = ShotEffect("ShotImpact", new SphereMesh { Radius = radius, Height = radius * 2 }, new Color("fff0c2"));
+        impact.GlobalPosition = end;
+        impact.Scale = Vector3.One * .4f;
+        impact.CreateTween().TweenProperty(impact, "scale", Vector3.One, ShotDuration)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+    }
+
+    // 발사 효과 하나를 붙이고 ShotDuration 동안 흐려지게 한 뒤 지웁니다.
+    private MeshInstance3D ShotEffect(string name, Mesh mesh, Color color)
+    {
+        var material = new StandardMaterial3D
         {
-            _shotTraces.Remove(trace);
-            trace.QueueFree();
-        })).SetDelay(.09);
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = color
+        };
+        var effect = new MeshInstance3D
+        {
+            Name = name, Mesh = mesh, MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+        };
+        AddChild(effect);
+        _shotEffects.Add(effect);
+        Tween fade = effect.CreateTween();
+        fade.TweenProperty(material, "albedo_color:a", 0f, ShotDuration).SetEase(Tween.EaseType.In);
+        fade.TweenCallback(Callable.From(() =>
+        {
+            _shotEffects.Remove(effect);
+            effect.QueueFree();
+        }));
+        return effect;
     }
 
     public void ApplyConstruction(int percent)
@@ -254,20 +281,20 @@ public partial class Building : Node3D
         _recoil?.Kill();
         _recoil = null;
         if (_ballista != null) _ballista.Position = _restPosition;
-        foreach (MeshInstance3D trace in _shotTraces)
-            if (GodotObject.IsInstanceValid(trace))
+        foreach (MeshInstance3D effect in _shotEffects)
+            if (GodotObject.IsInstanceValid(effect))
             {
-                trace.Hide();
-                RemoveChild(trace);
-                trace.QueueFree();
+                effect.Hide();
+                RemoveChild(effect);
+                effect.QueueFree();
             }
-        _shotTraces.Clear();
+        _shotEffects.Clear();
     }
 
     public override void _ExitTree()
     {
         _recoil?.Kill();
-        _shotTraces.Clear();
+        _shotEffects.Clear();
         _fogReveal?.Dispose();
         _fogReveal = null;
         _teamMaterials?.Dispose();

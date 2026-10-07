@@ -27,19 +27,46 @@ public partial class ForestPreview : Main
                 Buildings.HandleSpawn(new[] { "BUILDING", "1", (id++).ToString(), tower.GetProperty("side").GetRawText(),
                     tower.GetProperty("pos")[0].GetRawText(), tower.GetProperty("pos")[1].GetRawText(), "0" });
         GD.Print($"Forest preview: {Resources.GetChildCount()} trees");
+        // Wait for the camera's deferred map-bound fit before selecting a capture view.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         bool closeUp = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-close");
-        if (!closeUp && !Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture")) return;
+        bool jungle = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-jungle");
+        bool expansion = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-expansion");
+        bool wall = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-wall");
+        if (!closeUp && !jungle && !expansion && !wall && !Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture")) return;
         GetNode<CanvasLayer>("SelectionUI").Hide();
+        if (jungle)
+        {
+            var camera = GetNode<Camera3D>("Camera3D");
+            camera.Size = 58;
+            CameraNavigation.FocusGround(camera, Vector3.Zero);
+        }
         if (closeUp)
         {
             var camera = GetNode<Camera3D>("Camera3D");
             camera.Size = 22;
             camera.Position += new Vector3(10, 0, -3);
         }
+        if (expansion)
+        {
+            var camera = GetNode<Camera3D>("Camera3D");
+            camera.Size = 36;
+            CameraNavigation.FocusGround(camera, new Vector3(-34, 0, -38));
+        }
+        if (wall)
+        {
+            // The north rim beside team 1's meadow shows the wall face without trees in front.
+            var camera = GetNode<Camera3D>("Camera3D");
+            camera.Size = 14;
+            CameraNavigation.FocusGround(camera, new Vector3(-62, 0, -15));
+        }
         for (int i = 0; i < 4; i++)
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        string path = closeUp ? "res://docs/images/terrain-closeup.png" : "res://docs/images/forest-preview.png";
+        string path = wall ? "res://docs/images/wall-closeup.png" :
+            expansion ? "res://docs/images/expansion-preview.png" :
+            jungle ? "res://docs/images/jungle-preview.png" :
+            closeUp ? "res://docs/images/terrain-closeup.png" : "res://docs/images/forest-preview.png";
         Error result = GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit(result == Error.Ok ? 0 : 1);
     }
