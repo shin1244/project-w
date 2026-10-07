@@ -17,7 +17,7 @@ $suites = [ordered]@{
     Smoke = @('MapSyncChecks', 'UnitSceneChecks', 'CommandPanelChecks', 'StockChecks')
     Units = @('UnitSceneChecks', 'InterpolationChecks', 'MinionSyncChecks')
     Buildings = @('BuildingPlacementChecks', 'ConstructionSyncChecks', 'CommandPanelChecks', 'RallyChecks', 'TowerSyncChecks')
-    World = @('MapSyncChecks', 'MapZonesChecks', 'FogSyncChecks', 'check_arena')
+    World = @('MapSyncChecks', 'MapZonesChecks', 'FogSyncChecks', 'TributeChecks', 'SiegeRamChecks', 'check_arena')
     UI = @('RtsControlChecks', 'MinionFormationChecks', 'SelectionDetailsChecks', 'CommandPanelChecks', 'MatchResultChecks')
 }
 $all = @($suites.Values | ForEach-Object { $_ } | Select-Object -Unique)

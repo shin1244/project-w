@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/SiegeRamVisual.cs" id="2_visual"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 0.94
+height = 4.5
+
+[node name="SiegeRam" instance=ExtResource("1_base")]
+UnitType = 300
+HealthBarHeight = 2.8
+BodyRadius = 0.8
+AlwaysShowHealth = true
+
+[node name="Visual" parent="." index="0"]
+script = ExtResource("2_visual")
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 1, -0.1)
+rotation = Vector3(1.5707963, 0, 0)
+shape = SubResource("Selection")
+
+[node name="SelectionRing" parent="." index="2"]
+scale = Vector3(1.65, 1, 3)

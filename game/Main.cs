@@ -26,11 +26,15 @@ public partial class Main : Node3D
     public PlayerRole LocalRole { get; private set; }
     public uint? LocalHeroType { get; private set; }
     public MatchResultSnapshot Result { get; private set; }
+    public TributeSnapshot Tribute { get; private set; }
 
     private NetClient _net;
     private MatchSession _matchSession;
     private PlayerInput _playerInput;
     private BattleGuide _battleGuide;
+    private TributeEventView _tributeView;
+    private TributeEventPanel _tributePanel;
+    private uint _serverTick;
     private bool _autoFrameStart, _startingViewPlaced;
     private readonly RangeIndicator _skillRange = new("SkillRangeRing", new Color(.22f, .95f, .78f, .95f));
     private readonly List<RangeIndicator> _attackRanges = new();
@@ -65,11 +69,15 @@ public partial class Main : Node3D
 
     private void ConnectInput()
     {
+        _tributeView = new TributeEventView { Name = "TributeEvent" };
+        AddChild(_tributeView);
         if (Units != null && Fog != null) Units.EffectVisibilityCheck = Fog.IsVisibleAt;
         if (GetNodeOrNull<CanvasLayer>("SelectionUI") is CanvasLayer ui)
         {
-            _battleGuide = new BattleGuide { Name = "BattleGuide", Skills = Skills };
+            _battleGuide = new BattleGuide { Name = "BattleGuide" };
             ui.AddChild(_battleGuide);
+            _tributePanel = new TributeEventPanel { Name = "TributeEventPanel" };
+            ui.AddChild(_tributePanel);
         }
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += SelectUnit;
@@ -270,6 +278,7 @@ public partial class Main : Node3D
         {
             case "MAP":
                 _startingViewPlaced = false;
+                ResetTribute();
                 SetPlayerRole(PlayerRole.None);
                 _playerInput?.ResetInteraction();
                 Stock?.Clear();
@@ -307,6 +316,7 @@ public partial class Main : Node3D
                 if (MatchResultSnapshot.TryParse(parts, out var result))
                 {
                     Result = result;
+                    ResetTribute();
                     _playerInput?.ResetInteraction();
                     Placement?.Cancel();
                     Minions?.SetRole(false);
@@ -320,7 +330,20 @@ public partial class Main : Node3D
                 Skills?.HandleTick(parts);
                 _battleGuide?.HandleTick(parts);
                 if (parts.Length == 2 && uint.TryParse(parts[1], System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture, out uint minionTick)) Minions?.SetTick(minionTick);
+                    System.Globalization.CultureInfo.InvariantCulture, out uint tick))
+                {
+                    _serverTick = tick;
+                    Minions?.SetTick(tick);
+                    _tributeView?.SetTick(tick);
+                    _tributePanel?.SetTick(tick);
+                }
+                break;
+            case "TRIBUTE":
+                if (TributeSnapshot.TryParse(parts, out var tribute))
+                {
+                    Tribute = tribute;
+                    ApplyTribute();
+                }
                 break;
             case "RESPAWN":
                 if (LocalRole == PlayerRole.Hero) Skills?.HandleRespawn(parts);
@@ -336,6 +359,7 @@ public partial class Main : Node3D
                     Fog?.SetTeam(welcome.Team);
                     Minimap?.SetTeam(welcome.Team);
                     SetPlayerRole(welcome.Role, welcome.HeroType, welcome.PlayerId, welcome.Team);
+                    ApplyTribute();
                 }
                 break;
             case "SIGHT":
@@ -464,6 +488,9 @@ public partial class Main : Node3D
             case "MINION_HEAL":
                 Units.HandleMinionHeal(parts);
                 break;
+            case "RAM_IMPACT":
+                if (RamImpactSnapshot.TryParse(parts, out var impact)) Units.HandleRamImpact(impact);
+                break;
             case "STATE":
                 if (StateSnapshot.TryParse(parts, out var state))
                 {
@@ -544,8 +571,26 @@ public partial class Main : Node3D
         Minimap?.Invalidate();
     }
 
+    private void ApplyTribute()
+    {
+        if (Tribute == null) return;
+        _tributeView?.Apply(Tribute, _serverTick, Units.LocalTeam);
+        _tributePanel?.Apply(Tribute, _serverTick, Units.LocalTeam);
+        Minimap?.SetTribute(Tribute);
+    }
+
+    private void ResetTribute()
+    {
+        Tribute = null;
+        _serverTick = 0;
+        _tributeView?.Reset();
+        _tributePanel?.Reset();
+        Minimap?.SetTribute(null);
+    }
+
     private void RejectMap()
     {
+        ResetTribute();
         SetPlayerRole(PlayerRole.None);
         Stock?.Clear();
         Fog?.Reset();
@@ -560,6 +605,7 @@ public partial class Main : Node3D
     private void OnConnectionClosed(string reason)
     {
         if (Result != null) return;
+        ResetTribute();
         SetPlayerRole(PlayerRole.None);
         _playerInput?.ResetInteraction();
         Stock?.Clear();

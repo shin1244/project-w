@@ -159,8 +159,10 @@ public partial class UnitInfoPanel : PanelContainer
         _empty.Hide();
         _content.Show();
         _name.Text = UnitCatalog.Name(type);
+        _name.TooltipText = UnitCatalog.Description(type);
         _portrait.Texture = _portraits.GetPortrait(Units.SceneFor(type), unit != null && unit.Team != Units.LocalTeam);
-        _activity.Text = unit == null ? "—" : SelectionDetails.ActivityText(unit.State, unit.HasServerState).Replace("상태   ", "");
+        _activity.Text = unit == null ? "—" : unit.UnitType == UnitCatalog.SiegeRam ? "자동 행군" :
+            SelectionDetails.ActivityText(unit.State, unit.HasServerState).Replace("상태   ", "");
         _healthText.Text = unit == null ? "— / —" : SelectionDetails.HealthText(unit.HealthBar);
         float ratio = unit?.HealthBar.Ratio ?? 0;
         HealthDisplay.Apply(_health, _shieldFill, unit?.HealthBar.CurrentHP ?? 0, unit?.HealthBar.MaxHP ?? 0, unit?.HealthBar.Shield ?? 0);

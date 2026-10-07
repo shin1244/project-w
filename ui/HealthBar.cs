@@ -11,7 +11,8 @@ public partial class HealthBar : Control
     private float _worldHeight;
     private bool _hasHealth;
     private bool _selected;
-    private bool ShouldShow => _hasHealth && (_selected || _owner is Unit && CurrentHP > 0 && CurrentHP < MaxHP);
+    private bool ShouldShow => _hasHealth && (_selected || _owner is Unit unit && CurrentHP > 0 &&
+        (unit.AlwaysShowHealth || CurrentHP < MaxHP));
 
     public static HealthBar Attach(Node3D owner, float height, float width = 52)
     {

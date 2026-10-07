@@ -65,12 +65,9 @@ public partial class SelectionDetails : PanelContainer
         var empty = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center };
         body.AddChild(empty);
         empty.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        var emptyTitle = Text("선택한 대상이 없습니다", 18, "a8b9b1");
+        var emptyTitle = Text("선택 없음", 18, "a8b9b1");
         emptyTitle.HorizontalAlignment = HorizontalAlignment.Center;
         empty.AddChild(emptyTitle);
-        var emptyHint = Text("일꾼 선택 → 나무 우클릭으로 목재 채집\n여러 유닛은 드래그로 선택 · Space로 본진 보기", 14, "8fa6ae");
-        emptyHint.HorizontalAlignment = HorizontalAlignment.Center;
-        empty.AddChild(emptyHint);
         _empty = empty;
 
         _single = new HBoxContainer { Name = "Single", MouseFilter = MouseFilterEnum.Ignore };
@@ -245,16 +242,19 @@ public partial class SelectionDetails : PanelContainer
         if (Available(single))
         {
             health = single.HealthBar;
-            SetText(_activity, ActivityText(single.State, single.HasServerState));
+            SetText(_activity, single.UnitType == UnitCatalog.SiegeRam ? "상태   자동 행군" :
+                ActivityText(single.State, single.HasServerState));
+            _activity.TooltipText = UnitCatalog.Description(single.UnitType);
             SetText(_extra, single.UnitType == 0 ? single.HasServerState ? $"운반 중인 목재   {single.State.Carrying}" : "운반 중인 목재   —" : "");
             SetText(_stats, StatsText(single.Stats, true));
         }
         else if (Available(_building))
         {
             health = _building.HealthBar;
+            _activity.TooltipText = "";
             SetText(_activity, _building.IsUnderConstruction ? $"공사 중   {_building.ConstructionPercent}%" :
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
-            SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam ? "내 일꾼으로 우클릭해 이어 짓기" : "");
+            SetText(_extra, "");
             string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
                 _building.Rally is not RallySnapshot r ? " · 우클릭으로 랠리 지정" : r.ResourceId != 0 ? " · 랠리: 자동 채집" : " · 랠리: 이동" : "";
             SetText(_title, BuildingCatalog.Name(_building.BuildingType) + rallyText);
@@ -392,6 +392,7 @@ public partial class SelectionDetails : PanelContainer
         UnitActivity.Guard => "상태   경계 중",
         UnitActivity.Hold => "상태   위치 사수",
         UnitActivity.Dash => "상태   돌진 중", UnitActivity.Stun => "상태   기절",
+        UnitActivity.Channel => "상태   공물 수집 중",
         UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
     };
 

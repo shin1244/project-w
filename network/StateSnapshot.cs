@@ -20,6 +20,7 @@ public readonly record struct StateSnapshot(uint Id, UnitState State)
             "BUILD" => UnitActivity.Build,
             "DASH" => UnitActivity.Dash,
             "STUN" => UnitActivity.Stun,
+            "CHANNEL" => UnitActivity.Channel,
             _ => null
         };
         if (!activity.HasValue) return false;

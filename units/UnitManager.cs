@@ -15,6 +15,7 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene MinionHealerScene;
     [Export] public PackedScene HeroTestScene;
     [Export] public PackedScene HeroGolemScene;
+    [Export] public PackedScene SiegeRamScene;
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
@@ -34,6 +35,7 @@ public partial class UnitManager : Node3D
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
         UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
+        UnitCatalog.SiegeRam => SiegeRamScene ??= GD.Load<PackedScene>("res://units/SiegeRam.tscn"),
         _ => null
     };
     public event Action SelectionChanged;
@@ -42,6 +44,7 @@ public partial class UnitManager : Node3D
     private readonly Dictionary<int, HashSet<uint>> _controlGroups = new();
     private const int MaxSelectedUnits = 64;
     private readonly Dictionary<uint, Unit> _units = new();
+    private readonly HashSet<uint> _ramImpacts = new();
     private uint _localPlayerId;
     private uint _localTeam;
     private uint? _controlledHeroType;
@@ -72,11 +75,12 @@ public partial class UnitManager : Node3D
         // 사망 연출 중인 유닛은 이미 사전에서 빠졌으므로 씬 자식도 함께 정리합니다.
         foreach (Node child in GetChildren())
         {
-            if (child is not Unit && child is not MinionHealPulse) continue;
+            if (child is not Unit && child is not MinionHealPulse && child is not SiegeRamImpact) continue;
             RemoveChild(child);
             child.QueueFree();
         }
         _units.Clear();
+        _ramImpacts.Clear();
         _controlGroups.Clear();
         _localPlayerId = 0;
         _localTeam = 0;
@@ -267,6 +271,19 @@ public partial class UnitManager : Node3D
     // 모든 일반 우클릭의 진입점. 새 대상의 기본 행동은 이곳에 추가합니다.
     public void RequestContextOrder(Node3D target, Vector3 point)
     {
+        // 공물은 영웅의 전용 상호작용이다. RTS 선택/집결 명령으로 흘려보내지 않는다.
+        if (target is TributeEventView tribute)
+        {
+            if (!_controlledHeroType.HasValue || !GodotObject.IsInstanceValid(tribute) ||
+                tribute.IsQueuedForDeletion() || !tribute.IsVisibleInTree() || !tribute.Active || tribute.EventId == 0) return;
+            ValidateSelection();
+            Unit hero = _units.Values.FirstOrDefault(unit => CanControl(unit) && UnitCatalog.IsHero(unit.UnitType) &&
+                (unit.HealthBar.MaxHP == 0 || unit.HealthBar.CurrentHP > 0));
+            if (hero == null) return;
+            _targetIndicator.Clear();
+            CommandRequested?.Invoke(Protocol.BuildTribute(hero.UnitId, tribute.EventId));
+            return;
+        }
         if (_controlledHeroType.HasValue)
         {
             ValidateSelection();
@@ -363,6 +380,13 @@ public partial class UnitManager : Node3D
         if (_units.TryGetValue(shield.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyShield(shield.Amount);
     }
 
+    public void HandleRamImpact(RamImpactSnapshot impact)
+    {
+        if (!_units.TryGetValue(impact.UnitId, out Unit ram) || ram.UnitType != UnitCatalog.SiegeRam ||
+            ram.Team != impact.Team || ram.IsDying || !_ramImpacts.Add(impact.UnitId)) return;
+        SiegeRamImpact.Spawn(this, impact.Position, impact.Team);
+    }
+
     // Only the explicit server death-heal event creates this effect. REMOVE can also mean devour.
     public void HandleMinionHeal(string[] parts)
     {
@@ -433,7 +457,7 @@ public partial class UnitManager : Node3D
 
     public void HandleSpawn(string[] parts)
     {
-        // UNIT type id owner x z team. 용병 0~2, 하수인 100~102, 영웅 200~201.
+        // UNIT type id owner x z team. 하수인·이벤트 유닛은 owner 0으로 자동 행동한다.
         if (parts.Length != 7)
             return;
 
@@ -446,7 +470,7 @@ public partial class UnitManager : Node3D
         if (!uint.TryParse(parts[3], out uint ownerID))
             return;
 
-        if ((ownerID == 0) != UnitCatalog.IsMinion(unitType)) return;
+        if ((ownerID == 0) != UnitCatalog.IsAutonomous(unitType)) return;
 
         if (!uint.TryParse(parts[6], out uint team) || team == 0)
             return;

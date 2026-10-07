@@ -6,6 +6,7 @@ public partial class Unit : Node3D
     // UnitCatalog의 서버 타입 번호. 용병·미니언·영웅은 각자 별도 타입을 사용한다.
     [Export] public uint UnitType { get; set; }
     [Export] public float HealthBarHeight { get; set; } = 2.4f;
+    [Export] public bool AlwaysShowHealth { get; set; }
     // A larger model/picking capsule must not change the authoritative construction footprint.
     [Export] public float BodyRadius { get; set; }
     public HealthBar HealthBar { get; private set; }

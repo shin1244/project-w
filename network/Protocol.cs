@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 public static class Protocol
 {
+    public static string BuildTribute(uint heroId, uint eventId)
+        => FormattableString.Invariant($"TRIBUTE {heroId} {eventId}");
+
     public static string BuildTargetSkill(int slot, uint targetId)
         => FormattableString.Invariant($"SKILL {slot} {targetId}");
     public static string BuildPointSkill(int slot, float x, float z)

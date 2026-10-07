@@ -95,7 +95,15 @@ public partial class HeroSkillPanel : PanelContainer
         row.AddChild(passive);
         _passive = passive;
         for (int i = 0; i < 5; i++) CreateSlot(row, i);
+        MinimumSizeChanged += FitHeight;
         Refresh();
+    }
+
+    private void FitHeight()
+    {
+        float height = GetCombinedMinimumSize().Y;
+        OffsetBottom = 0;
+        OffsetTop = -height;
     }
 
     private void CreateSlot(HBoxContainer row, int slot)
@@ -271,16 +279,16 @@ public partial class HeroSkillPanel : PanelContainer
         if (_respawnTick is uint ready)
         {
             int remaining = Math.Max(0, unchecked((int)(ready - _tick)));
-            _status.Text = !_hasTick ? "전사 · 본진 부활 대기 중" : remaining > 0
-                ? $"전사 · {Math.Ceiling(remaining / (double)InterpolationClock.TickRate):0}초 후 본진에서 부활"
-                : "전사 · 본진의 부활 위치를 확보하는 중";
+            _status.Text = !_hasTick ? "부활 대기 중" : remaining > 0
+                ? $"부활 · {Math.Ceiling(remaining / (double)InterpolationClock.TickRate):0}초"
+                : "부활 위치 확보 중";
         }
-        else if (!HeroUnitId.HasValue) _status.Text = _dead ? "전사 · 부활 대기 중" : "내 영웅을 기다리는 중…";
+        else if (!HeroUnitId.HasValue) _status.Text = _dead ? "부활 대기 중" : "영웅 대기 중";
         else if (_targeting is int slot)
-            _status.Text = $"{(Definition(slot)?.Target == SkillTargetMode.Ally ? "아군" : "적")}을 클릭해 기술 사용 · Esc 취소";
-        else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = "기절 · 잠시 행동할 수 없습니다";
-        else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = "침묵 · 이동과 일반 공격은 가능합니다";
-        else if (_golemEffects.EmpowerReady) _status.Text = "R · 다음 Q/W/E 1회 강화 대기";
+            _status.Text = $"{(Definition(slot)?.Target == SkillTargetMode.Ally ? "아군" : "적")} 대상 지정";
+        else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = "기절";
+        else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = "침묵";
+        else if (_golemEffects.EmpowerReady) _status.Text = "R · 강화 대기";
         else if (_wolfEffects.DrainReady || _wolfEffects.AuraUntil != 0 && unchecked((int)(_wolfEffects.AuraUntil - _tick)) > 0)
         {
             string drain = _wolfEffects.DrainReady ? "W · 흡혈 50% 대기" : "";
@@ -289,8 +297,9 @@ public partial class HeroSkillPanel : PanelContainer
                 ? $"E · 지속 피해 {Math.Ceiling(ticks / (double)InterpolationClock.TickRate):0}초" : "";
             _status.Text = drain + (drain != "" && aura != "" ? " / " : "") + aura;
         }
-        else if (_maxHP > 0 && _currentHP / _maxHP < .25f) _status.Text = "체력 위험 · 뒤로 물러나 회복하세요";
-        else _status.Text = "내 영웅 · 스킬에 마우스를 올리면 설명";
+        else if (_maxHP > 0 && _currentHP / _maxHP < .25f) _status.Text = "체력 위험";
+        else _status.Text = "";
+        _status.Visible = _status.Text.Length > 0;
         _status.Modulate = IsRespawning || _maxHP > 0 && _currentHP / _maxHP < .25f
             ? new Color("ffc393") : Colors.White;
     }

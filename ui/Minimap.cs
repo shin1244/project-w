@@ -11,6 +11,7 @@ public partial class Minimap : Control
     public event Action<Vector3> MoveRequested;
 
     public uint Team { get; private set; }
+    public TributeSnapshot Tribute { get; private set; }
     public static readonly Color AllyColor = new("63e88a");
     public static readonly Color EnemyColor = new("ff635f");
     private static readonly Color MarkerOutline = new("101b1a");
@@ -58,7 +59,8 @@ public partial class Minimap : Control
     }
 
     public void SetTeam(uint team) { Team = team; Invalidate(); }
-    public void Reset() { Team = 0; CancelDrag(); Invalidate(); }
+    public void Reset() { Team = 0; Tribute = null; CancelDrag(); Invalidate(); }
+    public void SetTribute(TributeSnapshot tribute) { Tribute = tribute; Invalidate(); }
     public void Invalidate() => QueueRedraw();
 
     public override void _Process(double delta)
@@ -149,12 +151,33 @@ public partial class Minimap : Control
                 if (!GodotObject.IsInstanceValid(unit) || unit.IsDying || unit.IsQueuedForDeletion() ||
                     !TryWorldToMap(unit.GlobalPosition, out Vector2 point)) continue;
                 point = KeepMarkerInside(point, UnitRadius + 1, mapRect);
+                if (unit.UnitType == UnitCatalog.SiegeRam)
+                {
+                    point = KeepMarkerInside(point, 7, mapRect);
+                    Color ramColor = unit.Team == Team ? AllyColor : EnemyColor;
+                    DrawRect(new Rect2(point - new Vector2(6, 4), new Vector2(12, 8)), MarkerOutline);
+                    DrawRect(new Rect2(point - new Vector2(5, 3), new Vector2(10, 6)), ramColor);
+                    DrawLine(point - new Vector2(2, 3), point - new Vector2(2, -3), MarkerOutline, 2);
+                    DrawLine(point + new Vector2(2, 3), point + new Vector2(2, -3), MarkerOutline, 2);
+                    continue;
+                }
                 bool ownHero = UnitCatalog.IsHero(unit.UnitType) && Units.CanControl(unit);
                 float radius = ownHero ? 4.5f : UnitRadius;
                 DrawCircle(point, radius + 1, MarkerOutline, antialiased: true);
                 DrawCircle(point, radius, ownHero ? new Color("f5e4a5") : unit.Team == Team ? AllyColor : EnemyColor, antialiased: true);
                 if (ownHero) DrawCircle(point, radius + 2.5f, Colors.White, filled: false, width: 1);
             }
+        // 이벤트 위치는 모든 팀에 공개된다. 전장의 안개와 별개로 한타 위치를 안내한다.
+        if (Tribute is { Active: true } tribute && TryWorldToMap(tribute.Position, out Vector2 objective))
+        {
+            objective = KeepMarkerInside(objective, 7, mapRect);
+            Color color = tribute.Channeling ? tribute.CapturerTeam == Team ? AllyColor : EnemyColor : new Color("e5bc69");
+            DrawCircle(objective, 7, MarkerOutline, antialiased: true);
+            Vector2[] diamond = { objective + new Vector2(0, -6), objective + new Vector2(5, 0),
+                objective + new Vector2(0, 6), objective + new Vector2(-5, 0) };
+            DrawColoredPolygon(diamond, color);
+            DrawCircle(objective, 2, new Color("765897"), antialiased: true);
+        }
     }
 
     public bool TryWorldToMap(Vector3 world, out Vector2 local)

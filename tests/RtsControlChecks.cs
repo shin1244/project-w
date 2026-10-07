@@ -948,7 +948,7 @@ public partial class RtsControlChecks : Main
         Check(Skills.StatusText.Contains("부활 위치"), "A blocked respawn is not presented as already alive");
         Receive("UNIT 201 1202 7 -20 -8 1");
         Receive("HP 1202 420 420");
-        Check(!Skills.IsRespawning && Skills.StatusText.Contains("내 영웅"), "Respawn clears death feedback for the new unit ID");
+        Check(!Skills.IsRespawning && Skills.StatusText == "", "Respawn clears death feedback for the new unit ID");
         Receive($"MAP 2 {Map.MapHash}");
         Check(!GetNode<BattleGuide>("SelectionUI/BattleGuide").Visible && !Skills.IsRespawning,
             "Resynchronization clears stale guidance and respawn state");

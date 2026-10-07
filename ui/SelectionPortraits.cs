@@ -19,6 +19,7 @@ public partial class SelectionPortraits : Node
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
             "res://units/MinionHealer.tscn" => enemy ? "minion-healer-enemy" : "minion-healer",
+            "res://units/SiegeRam.tscn" => enemy ? "siege-ram-enemy" : "siege-ram",
             "res://buildings/TownHall.tscn" => enemy ? "townhall-enemy" : "townhall-ally",
             "res://buildings/Fortress.tscn" => enemy ? "fortress-enemy" : "fortress-ally",
             "res://buildings/Tower.tscn" => enemy ? "tower-enemy" : "tower-ally",
@@ -31,7 +32,7 @@ public partial class SelectionPortraits : Node
         if (name == null) return null;
         if (!_cache.TryGetValue(name, out Texture2D texture))
         {
-            string path = name is "minion-healer" or "minion-healer-enemy"
+            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy"
                 ? $"res://ui/icons/{name}.svg" : $"res://ui/portraits/{name}.png";
             texture = GD.Load<Texture2D>(path);
             _cache.Add(name, texture);

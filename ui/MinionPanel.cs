@@ -26,7 +26,7 @@ public partial class MinionPanel : Control
     private HBoxContainer _tabs;
     private VBoxContainer _rows, _choices;
     private ScrollContainer _laneScroll;
-    private Label _timer, _hint, _pickerTitle, _pickerHint;
+    private Label _timer, _hint, _pickerTitle;
     private Button _defaultTab, _minionTab;
     private Control _pickerAnchor;
     private MinionRulesSnapshot? _rules;
@@ -51,10 +51,10 @@ public partial class MinionPanel : Control
         _tabs.AddThemeConstantOverride("separation", 8);
         AddChild(_tabs);
         _tabs.AnchorRight = 1;
-        _tabs.OffsetTop = -38;
+        _tabs.OffsetTop = -34;
         _tabs.OffsetBottom = -6;
-        _defaultTab = MakeButton("DefaultTab", "기존 UI", new Vector2(106, 32));
-        _minionTab = MakeButton("MinionTab", "미니언 UI", new Vector2(106, 32));
+        _defaultTab = MakeButton("DefaultTab", "부대", new Vector2(86, 28));
+        _minionTab = MakeButton("MinionTab", "미니언", new Vector2(86, 28));
         _tabs.AddChild(_defaultTab);
         _tabs.AddChild(_minionTab);
         _defaultTab.Pressed += () => SetView(false);
@@ -86,8 +86,9 @@ public partial class MinionPanel : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _rows.AddThemeConstantOverride("separation", 4);
         _laneScroll.AddChild(_rows);
-        _hint = Text("편성을 불러오는 중…", 12, "a8b9b1");
+        _hint = Text("", 12, "a8b9b1");
         _hint.Name = "Status";
+        _hint.Visible = false;
         content.AddChild(_hint);
 
         _picker = new PanelContainer { Name = "Picker", Visible = false, ZIndex = 30,
@@ -111,8 +112,6 @@ public partial class MinionPanel : Control
         _choices = new VBoxContainer { Name = "Options", MouseFilter = MouseFilterEnum.Ignore };
         _choices.AddThemeConstantOverride("separation", 4);
         pickerContent.AddChild(_choices);
-        _pickerHint = Text("변경한 편성은 다음 웨이브부터 유지됩니다", 11, "9fb3a2");
-        pickerContent.AddChild(_pickerHint);
         Resized += PositionPicker;
         _ready = true;
         Visible = _enabled;
@@ -152,7 +151,7 @@ public partial class MinionPanel : Control
         SetView(false);
         RebuildLanes();
         RefreshTimer();
-        SetHint("편성을 불러오는 중…");
+        SetHint("");
     }
 
     private void SetView(bool minions)
@@ -198,10 +197,10 @@ public partial class MinionPanel : Control
             {
                 _pendingLane = null;
                 SetHint(lane.Revision != _pendingRevision
-                    ? "편성 반영 완료 · 다음 웨이브부터 계속 생성됩니다"
-                    : "최신 편성을 확인했습니다 · 다시 선택해 주세요");
+                    ? ""
+                    : "편성 변경됨 · 다시 선택");
             }
-            else if (!_pendingLane.HasValue) SetHint(DefaultHint);
+            else if (!_pendingLane.HasValue) SetHint("");
             RebuildLanes();
         }
         else if (MinionWaveSnapshot.TryParse(parts, out var wave))
@@ -239,13 +238,10 @@ public partial class MinionPanel : Control
     private void RefreshTimer()
     {
         if (!_ready) return;
-        string cadence = _rules is MinionRulesSnapshot rules ? $" · {rules.IntervalSeconds}초마다" : "";
         _timer.Text = _hasTick && _hasNextWave
-            ? $"다음 웨이브 {Math.Ceiling(Math.Max(0, unchecked((int)(_nextWaveTick - _tick))) / (double)InterpolationClock.TickRate):0}초{cadence}"
+            ? $"웨이브 {Math.Ceiling(Math.Max(0, unchecked((int)(_nextWaveTick - _tick))) / (double)InterpolationClock.TickRate):0}초"
             : "웨이브 정보 대기 중";
     }
-
-    private const string DefaultHint = "클릭: 종류 변경 · 드래그: 순서 이동(무료) · +: 영구 추가 · 다음 웨이브부터 적용";
 
     private void RebuildLanes()
     {
@@ -310,12 +306,11 @@ public partial class MinionPanel : Control
         _pickerRevision = lane.Revision;
         _pickerAnchor = anchor;
         _pickerTitle.Text = slot < 0 ? $"{LaneName(laneIndex)} · 미니언 추가" : $"{LaneName(laneIndex)} · {slot + 1}번 변경";
-        _pickerHint.Text = slot < 0 ? "한 번 구매하면 매 웨이브마다 계속 생성됩니다" : "변경한 편성은 다음 웨이브부터 유지됩니다";
         ClearChildren(_choices);
         _optionButtons.Clear();
         foreach (MinionOptionSnapshot option in _options.Values)
         {
-            var button = MakeButton($"Option{option.UnitType}", "", new Vector2(270, 66));
+            var button = MakeButton($"Option{option.UnitType}", "", new Vector2(270, 54));
             button.TooltipText = $"{MinionName(option.UnitType)}\n{Description(option.UnitType)}";
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 8);
@@ -330,7 +325,6 @@ public partial class MinionPanel : Control
             information.AddThemeConstantOverride("separation", 0);
             row.AddChild(information);
             information.AddChild(Text(MinionName(option.UnitType), 13, "ece6cf"));
-            information.AddChild(Text(Description(option.UnitType), 10, "acbfad"));
             var cost = Text("", 12, "e6d59e");
             cost.Name = "Cost";
             information.AddChild(cost);
@@ -401,7 +395,7 @@ public partial class MinionPanel : Control
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore });
         preview.AddChild(Text($"{MinionName(lane.UnitTypes[slot])} · 순서 이동", 13, "ece6cf"));
         source.SetDragPreview(preview);
-        SetHint("같은 라인의 원하는 칸에 놓으세요 · 무료 · Esc/우클릭 취소");
+        SetHint("");
         return new Godot.Collections.Dictionary {
             ["panel"] = GetInstanceId(), ["lane"] = laneIndex, ["revision"] = lane.Revision, ["slot"] = slot
         };
@@ -448,7 +442,7 @@ public partial class MinionPanel : Control
         _draggingSlot = false;
         // The drop release must not also open the purchase picker.
         Callable.From(() => _suppressSlotClick = false).CallDeferred();
-        if (!_pendingLane.HasValue) SetHint(DefaultHint);
+        if (!_pendingLane.HasValue) SetHint("");
     }
 
     public void ClosePicker()
@@ -581,6 +575,7 @@ public partial class MinionPanel : Control
     {
         if (!_ready) return;
         _hint.Text = text;
+        _hint.Visible = text.Length > 0;
         _hint.AddThemeColorOverride("font_color", new Color(error ? "ed9785" : "a8b9b1"));
     }
 

@@ -8,6 +8,7 @@ public partial class PlayerInput : Node
 	[Export(PropertyHint.Layers3DPhysics)] public uint SelectionMask = 1u << 1;
 	[Export(PropertyHint.Layers3DPhysics)] public uint ResourceMask = 1u << 2;
 	[Export(PropertyHint.Layers3DPhysics)] public uint BuildingMask = 1u << 3;
+	[Export(PropertyHint.Layers3DPhysics)] public uint ObjectiveMask = TributeEventView.PickLayer;
 	[Export] public SelectionBox SelectionBox;
 	[Export] public BuildingPlacement Placement;
 	[Export] public CommandPanel Commands;
@@ -20,7 +21,7 @@ public partial class PlayerInput : Node
 	public event Action CameraHomeRequested;
 	public event Action<Building> BuildingClicked;
 	public event Action SelectionCleared;
-	// target: Unit / Building / ResourceNode / null(땅).
+	// target: Unit / Building / ResourceNode / TributeEventView / null(땅).
 	public event Action<Node3D, Vector3> ContextClicked;
 	public event Action<Node3D> AttackTargetClicked;
 	public event Action<Vector3> AttackGroundClicked;
@@ -466,8 +467,9 @@ public partial class PlayerInput : Node
 		// 같은 광선에서 가장 먼저 닿은 유닛/건물/자원을 고릅니다.
 		if (hit.Count > 0 &&
 			hit["collider"].AsGodotObject() is Area3D area &&
-			area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode) &&
-			!target.IsQueuedForDeletion() && target is not Unit { IsDying: true })
+			area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode or TributeEventView) &&
+			!target.IsQueuedForDeletion() && target is not Unit { IsDying: true } &&
+			(target is not TributeEventView tribute || tribute.Active && tribute.IsVisibleInTree()))
 			return target;
 		return null;
 	}
@@ -477,7 +479,7 @@ public partial class PlayerInput : Node
 		// 이동 목적지는 Y=0 평면, 대상 판별은 유닛/건물/자원 Area3D를 사용합니다.
 		if (GroundPlane.IntersectsRay(origin, direction) is Vector3 point)
 		{
-			Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask | BuildingMask);
+			Node3D target = FindTarget(origin, direction, SelectionMask | ResourceMask | BuildingMask | ObjectiveMask);
 			ContextClicked?.Invoke(target, point);
 		}
 	}
