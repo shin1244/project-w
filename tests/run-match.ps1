@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$GodotPath = $env:GODOT_BIN,
-    [ValidateSet(1,2,3,4)][int]$Players = 2,
+    [ValidateSet(1,2,3,4,5,6)][int]$Players = 2,
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
@@ -90,10 +90,11 @@ try {
         $summaries | Write-Host
     }
     for ($cycle=1; $cycle -le 2; $cycle++) {
-        $expected = @('team 1, COMMANDER', 'team 1, HERO', 'team 2, COMMANDER', 'team 2, HERO') | Select-Object -First $Players
+        $expected = @('team 1, COMMANDER', 'team 1, HERO', 'team 1, HERO', 'team 2, COMMANDER', 'team 2, HERO', 'team 2, HERO') | Select-Object -First $Players
         if ($Players -eq 1) { $expected = if ($cycle -eq 1) { @('team 1, HERO') } else { @('team 1, COMMANDER') } }
-        foreach ($seat in $expected) {
-            if (@($results | Where-Object { $_ -like "PASS: cycle $cycle, $Players players, $seat,*" }).Count -ne 1) { throw "Missing/duplicate seat: cycle $cycle, $seat" }
+        foreach ($group in ($expected | Group-Object)) {
+            $seat = $group.Name
+            if (@($results | Where-Object { $_ -like "PASS: cycle $cycle, $Players players, $seat,*" }).Count -ne $group.Count) { throw "Missing/duplicate seat: cycle $cycle, $seat" }
         }
     }
     Write-Host "PASS: $Players real Godot clients, two fresh matches and return to lobby. Logs: $logRoot"

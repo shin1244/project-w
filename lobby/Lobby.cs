@@ -30,18 +30,18 @@ public partial class Lobby : Control
         content.AddChild(_heroChoice);
         content.MoveChild(_heroChoice, 4);
         _modeChoice = new OptionButton();
-        _modeChoice.AddItem("일반 매칭 · 2~4명 + 빈자리 AI");
-        _modeChoice.AddItem("혼자 연습 · 영웅 + AI 3명");
-        _modeChoice.AddItem("혼자 연습 · 지휘관 + AI 3명");
+        _modeChoice.AddItem("일반 매칭 · 2~6명 + 빈자리 AI");
+        _modeChoice.AddItem("혼자 연습 · 영웅 + AI 5명");
+        _modeChoice.AddItem("혼자 연습 · 지휘관 + AI 5명");
         _modeChoice.Select(_session.PracticeRole == "HERO" ? 1 : _session.PracticeRole == "COMMANDER" ? 2 : 0);
         _modeChoice.ItemSelected += index => { _session.PracticeRole = index == 1 ? "HERO" : index == 2 ? "COMMANDER" : ""; Refresh(); };
         content.AddChild(_modeChoice);
         content.MoveChild(_modeChoice, 3);
         content.AddThemeConstantOverride("separation", 12);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        GetNode<Label>("Header/Row/PreviewBadge").Text = "지인 테스트 · 2 vs 2";
-        GetNode<Label>("%Description").Text = "지휘관과 영웅이 힘을 합쳐 적 본진을 파괴하세요.";
-        GetNode<Label>("%Footnote").Text = "일반 매칭은 같은 팀 지휘관 → 영웅 순서로 배정됩니다.\n빈자리는 AI가 맡습니다. 혼자 연습도 서버 연결이 필요합니다.";
+        GetNode<Label>("Header/Row/PreviewBadge").Text = "지인 테스트 · 3 vs 3";
+        GetNode<Label>("%Description").Text = "팀마다 지휘관 1명과 영웅 2명이 힘을 합쳐 적 본진을 파괴하세요.";
+        GetNode<Label>("%Footnote").Text = "일반 매칭은 같은 팀 지휘관 → 영웅 → 영웅 순서로 배정됩니다.\n빈자리는 AI가 맡습니다. 혼자 연습도 서버 연결이 필요합니다.";
         _start.Pressed += StartQueue;
         _cancel.Pressed += CancelQueue;
         _session.Changed += Refresh;
@@ -73,8 +73,8 @@ public partial class Lobby : Control
             status == null ? "로비 서버에 연결 중…" :
             status.State == "starting" ? "게임 서버를 준비하고 있어요" :
             status.Busy ? $"현재 테스트 경기가 진행 중입니다 · 대기 순서 {status.Position}" :
-            status.Count < 2 ? "1 / 4명 · 함께할 팀원 1명을 기다립니다" :
-            $"{status.Count} / 4명 · {status.Seconds}초 뒤 출발";
+            status.Count < 2 ? "1 / 6명 · 함께할 팀원 1명을 기다립니다" :
+            $"{status.Count} / 6명 · {status.Seconds}초 뒤 출발";
     }
 
     public override void _Process(double delta)

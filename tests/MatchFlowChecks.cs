@@ -41,7 +41,7 @@ public partial class MatchFlowChecks : Node
                 _waitingToQueue = false;
                 _session.SelectedHero = _cycles == 0 ? UnitCatalog.HeroTest : UnitCatalog.HeroGolem;
                 _session.PracticeRole = _practice ? (_cycles == 0 ? "HERO" : "COMMANDER") : "";
-                // Check rapid cancel/requeue in the two-client run. With four clients,
+                // Check rapid cancel/requeue in the two-client run. With six clients,
                 // cancelling an already-full match intentionally cancels that match for everyone.
                 if (_checkCancellation)
                 {
@@ -59,7 +59,7 @@ public partial class MatchFlowChecks : Node
             if (_cycles == 1 && _firstMatch == match.MatchId) throw new Exception("Reused previous world");
             _played += delta;
             if (_played < 1.5) return;
-            if (match.Players != 4 || (_practice && (match.Bots != 3 || match.Role != _session.PracticeRole)))
+            if (match.Players != 6 || (_practice && (match.Bots != 5 || match.Role != _session.PracticeRole)))
                 throw new Exception("Invalid bot-filled match");
             if (match.Role == "HERO" && (match.Hero != _session.SelectedHero ||
                 !game.Units.LiveUnits.Any(unit => unit.UnitType == match.Hero && game.Units.CanControl(unit)) ||

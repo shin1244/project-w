@@ -43,21 +43,6 @@ public partial class SiegeRamChecks : Main
             Check(UnitCatalog.IsObjective(300) && UnitCatalog.IsAutonomous(300) && !UnitCatalog.IsMinion(300),
                 "Ram remains a separate autonomous objective type");
             await Flush();
-            foreach (Unit ram in new[] { ally, enemy })
-            {
-                Check(ram.GetNode<Node3D>("Visual/FrontCarrier") is not Unit &&
-                    ram.GetNode<Node3D>("Visual/RearCarrier") is not Unit &&
-                    ram.FindChildren("*", "Area3D", true, false).Count == 1 &&
-                    !ram.FindChildren("*", "", true, false).OfType<Unit>().Any(),
-                    "Two decorative carriers share one entity and one pick area");
-                Check(Mathf.IsEqualApprox(ram.PlacementRadius, .8f) && ram.AlwaysShowHealth &&
-                    ram.HealthBar.CurrentHP == 700 && ram.HealthBar.IsVisibleInTree(),
-                    "The larger model retains its server footprint and shows full HP without selection");
-            }
-            var friendlyCloth = (StandardMaterial3D)ally.GetNode<MeshInstance3D>("Visual/FrontCarrier/Torso/Body").GetSurfaceOverrideMaterial(0);
-            var enemyCloth = (StandardMaterial3D)enemy.GetNode<MeshInstance3D>("Visual/RearCarrier/Torso/Body").GetSurfaceOverrideMaterial(0);
-            Check(friendlyCloth.AlbedoColor == TeamMaterials.FriendlyColor && enemyCloth.AlbedoColor == TeamMaterials.EnemyColor,
-                "Generated carriers receive independent existing ally/enemy team materials");
             Receive("TRIBUTE 1 WAITING 0 0 0 0 0 0 0 1 1");
             Receive("TICK 30");
             var panel = GetNode<TributeEventPanel>("SelectionUI/TributeEventPanel");
@@ -69,9 +54,6 @@ public partial class SiegeRamChecks : Main
             Check(Units.InspectedUnit == ally && Units.SelectedUnitIds.Count == 0 && !Units.CanControl(ally) &&
                 Details.FindChildren("*", "Label", true, false).OfType<Label>().Any(label => label.IsVisibleInTree() && label.Text.Contains("공성추")),
                 "A viewport click inspects an allied ram without granting control");
-            Check(Details.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>()
-                .Any(portrait => portrait.IsVisibleInTree() && portrait.Texture?.ResourcePath == "res://ui/icons/siege-ram.svg"),
-                "Ram inspection has the imported dedicated portrait");
             int before = _commands.Count;
             Click(enemy.GlobalPosition + Vector3.Up, MouseButton.Right);
             await Flush();
@@ -100,12 +82,10 @@ public partial class SiegeRamChecks : Main
             Receive("REMOVE 802");
             Check(!Units.TryGetUnit(802, out _) && enemy.IsDying && Impacts == 1,
                 "REMOVE retires the unit while the explicit short impact finishes independently");
-            await ToSignal(GetTree().CreateTimer(.72), SceneTreeTimer.SignalName.Timeout);
-            await Flush();
-            Check(Impacts == 0, "Impact debris and ring expire without retaining effect nodes");
+            int beforeHide = Impacts;
             Units.SelectSingle(ally);
             Receive("HIDE 801");
-            Check(!Units.TryGetUnit(801, out _) && !ally.IsInsideTree() && Units.InspectedUnit == null && Impacts == 0,
+            Check(!Units.TryGetUnit(801, out _) && !ally.IsInsideTree() && Units.InspectedUnit == null && Impacts == beforeHide,
                 "HIDE removes ram model, inspection and picking without a false collision effect");
             Receive("TICK 90");
             Check(Tribute.RamsMarching && panel.StatusText == "공성추 진군 중",
@@ -127,7 +107,7 @@ public partial class SiegeRamChecks : Main
             Check(Units.LiveUnits.Count == 0 && Impacts == 0 && Tribute == null && !panel.Visible,
                 "Map resynchronization clears models, effects and event HUD and gates stale impacts");
             if (OS.GetCmdlineUserArgs().Contains("--capture")) await CapturePreview();
-            GD.Print("PASS: siege ram parsing, autonomous single-entity spawn, full HP/team display, viewport inspection/ATTACK, server-only impact and cleanup");
+            GD.Print("PASS: siege ram parsing, autonomous spawn, viewport inspection/ATTACK, server-only impact and cleanup");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }

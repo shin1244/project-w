@@ -16,7 +16,7 @@ public sealed class MatchAssignment
     public int Players { get; set; }
     public int Bots { get; set; }
     public bool IsValid => !string.IsNullOrWhiteSpace(MatchId) && !string.IsNullOrWhiteSpace(Host) &&
-        Port is > 0 and <= 65535 && Ticket?.Length == 32 && Team is 1 or 2 && Players is >= 2 and <= 4 && Bots >= 0 && Bots < Players &&
+        Port is > 0 and <= 65535 && Ticket?.Length == 32 && Team is 1 or 2 && Players == 6 && Bots >= 0 && Bots < Players &&
         (Role == "COMMANDER" && Hero == 0 || Role == "HERO" && UnitCatalog.IsHero(Hero));
 }
 

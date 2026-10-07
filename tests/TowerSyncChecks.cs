@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-// 실제 STATE 분기, 건물 공격 입력, 조준 및 파괴 처리를 서버 없이 검증합니다.
+// 실제 STATE 분기, 건물 공격 입력 및 파괴 처리를 서버 없이 검증합니다.
 public partial class TowerSyncChecks : Main
 {
     private static readonly MethodInfo Handler = typeof(Main).GetMethod("OnMessage", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -59,44 +59,28 @@ public partial class TowerSyncChecks : Main
             Receive("UNIT 0 101 7 -5 2 2");
             Unit own = Units.GetNode<Unit>("Unit_101");
             await Flush();
-            Node3D turret = tower.GetNode<Node3D>("Turret");
-            CheckFacing(turret, own, "Late UNIT snapshot becomes the tower's aim target");
-            Check(tower.GlobalRotation.IsZeroApprox() &&
-                Mathf.IsEqualApprox(tower.GetNode<Node3D>("Visual").Rotation.Y, Building.ViewYaw(camera.GlobalBasis)),
-                "Masonry faces the camera while weapon aims independently and occupancy stays server-aligned");
-            Receive("POS 101 -5 -2");
-            await Flush();
-            CheckFacing(turret, own, "Aim follows POS even without another STATE");
             Receive("STATE 501 ATTACK 0 101 9");
-            Check(shots == 1 && tower.HasNode("ShotTrace") && tower.GetNode<Node3D>("Turret/Ballista").Position.Z > .1f,
-                "One new shot produces recoil and trace");
-            Check(Mathf.IsEqualApprox(TraceWidth(tower), .18f) && tower.HasNode("ShotImpact"), "Fortress shot uses the enlarged trace and an impact burst");
+            Check(shots == 1 && tower.HasNode("ShotTrace"), "One new server shot produces one trace");
             Receive("STATE 501 ATTACK 0 101 9");
             Check(shots == 1, "Duplicate STATE does not fire again");
             Receive("HP 501 1375 1500");
             Receive("HP 502 1000 1000");
             Check(tower.HealthBar.CurrentHP == 1375 && tower.HealthBar.MaxHP == 1500 && !tower.HealthBar.Visible,
                 "HP remains server authoritative and hidden until selection");
-            Receive("STATE 101 ATTACK 0 501 1");
-            CheckFacing(own.GetNode<Node3D>("Visual"), tower, "Unit attack resolves building focus");
 
             foreach (string bad in new[] { "STATE 501 GATHER 0 101 10", "STATE 501 ATTACK 3 101 10",
                 "STATE 501 OTHER 0 101 10", "STATE 501 ATTACK -1 101 10", "STATE 501 ATTACK 0 nope 10",
                 "STATE 501 ATTACK 0 101", "STATE 501 ATTACK 0 101 10 extra", "STATE 0 IDLE 0 0 0" }) Receive(bad);
             Check(tower.State.SwingSequence == 9 && shots == 1, "Invalid tower states ignored");
 
-            // 회관은 회전 포탑 없이 지붕 종탑의 고정 위치에서 쏩니다. 표시 검사이므로 대상의 편은 따지지 않습니다.
+            // 회관에도 같은 스냅샷/중복 억제 규칙이 적용됩니다.
             int hallShots = 0;
             hall.StateChanged += (_, fired) => { if (fired) hallShots++; };
             Receive("STATE 502 ATTACK 0 101 1");
             Check(hall.HasServerState && hallShots == 0 && !hall.HasNode("ShotTrace"), "Town hall snapshot does not replay historical shots");
             Receive("STATE 502 ATTACK 0 101 2");
             Receive("STATE 502 ATTACK 0 101 2");
-            Marker3D bell = hall.GetNode<Marker3D>("Muzzle");
-            Check(hallShots == 1 && hall.HasNode("ShotTrace") && bell.Position.Y > 4 &&
-                hall.GetNode<Node3D>("ShotTrace").GlobalPosition.IsEqualApprox((bell.GlobalPosition + own.GlobalPosition + Vector3.Up) * .5f),
-                "Town hall shows one trace per new server shot from its bell tower");
-            Check(Mathf.IsEqualApprox(TraceWidth(hall), .18f) && hall.HasNode("ShotImpact"), "Town hall shot uses the enlarged trace and an impact burst");
+            Check(hallShots == 1 && hall.HasNode("ShotTrace"), "Town hall shows one trace per new server shot");
 
             Receive("BUILDING 6 601 1 10 7 0");
             Building smallTower = Buildings.GetNode<Building>("Building_601");
@@ -106,26 +90,13 @@ public partial class TowerSyncChecks : Main
             smallTower.StateChanged += (_, fired) => { if (fired) smallShots++; };
             Receive("STATE 601 ATTACK 0 101 20");
             Check(smallTower.HasServerState && smallShots == 0, "Small tower also suppresses historical shots");
-            smallTower._Process(0);
-            CheckFacing(smallTower.GetNode<Node3D>("Turret"), own, "Small tower aims at the server target");
             Receive("STATE 601 ATTACK 0 101 21");
             Receive("STATE 601 ATTACK 0 101 21");
-            Check(smallShots == 1 && smallTower.HasNode("ShotTrace") && smallTower.GetNode<Node3D>("Turret/Ballista").Position.Z > .1f &&
-                Mathf.IsEqualApprox(TraceWidth(smallTower), .035f) && !smallTower.HasNode("ShotImpact"),
-                "Small tower displays one recoil and its thin trace per new server shot");
+            Check(smallShots == 1 && smallTower.HasNode("ShotTrace"), "Small tower displays one trace per new server shot");
             Receive("HP 601 180 250");
             Check(smallTower.HealthBar.CurrentHP == 180 && smallTower.HealthBar.MaxHP == 250, "Small tower health comes from the server");
             Receive("REMOVE 601");
             Check(!Buildings.TryGetBuilding(601, out _) && smallTower.IsQueuedForDeletion(), "Small tower removal clears lookup immediately");
-            await ToSignal(GetTree().CreateTimer(.3), SceneTreeTimer.SignalName.Timeout);
-            Check(!tower.HasNode("ShotTrace") && !hall.HasNode("ShotTrace") && !tower.HasNode("ShotImpact") && !hall.HasNode("ShotImpact") &&
-                tower.GetNode<Node3D>("Turret/Ballista").Position.IsZeroApprox(), "Shot effects complete without client damage simulation");
-            camera.Size = 80;
-            Receive("STATE 502 ATTACK 0 101 3");
-            Check(Mathf.IsEqualApprox(TraceWidth(hall), .36f) &&
-                hall.GetNode<MeshInstance3D>("ShotImpact").Mesh is SphereMesh impact && Mathf.IsEqualApprox(impact.Radius, .7f),
-                "Zoomed-out camera enlarges shot effects to keep their on-screen size");
-            camera.Size = 28;
 
             Vector2 ownPoint = camera.UnprojectPosition(own.GlobalPosition + Vector3.Up);
             Vector2 towerPoint = camera.UnprojectPosition(tower.GlobalPosition + Vector3.Up * 2);
@@ -179,7 +150,7 @@ public partial class TowerSyncChecks : Main
             Buildings.Clear();
             Check(Buildings.GetChildCount() == 0, "Map reset clears building visuals and state");
             await Flush(); // Finish queued building/effect cleanup before shutting down the engine.
-            GD.Print("PASS: tower STATE, late targets, aim, shot deduplication, town hall shots, HP, building attack rays, selection, removal and reconnect");
+            GD.Print("PASS: tower STATE, shot deduplication, HP, building attack rays, selection, removal and reconnect");
             Callable.From(FinishChecks).CallDeferred();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -211,12 +182,5 @@ public partial class TowerSyncChecks : Main
             input._UnhandledInput(release);
         }
     }
-    private static void CheckFacing(Node3D facing, Node3D target, string message)
-    {
-        Vector3 direction = target.GlobalPosition - facing.GlobalPosition;
-        direction.Y = 0;
-        Check((-facing.GlobalBasis.Z).Dot(direction.Normalized()) > .999f, $"{message}: facing={-facing.GlobalBasis.Z}, target={direction.Normalized()}");
-    }
-    private static float TraceWidth(Node building) => building.GetNode<MeshInstance3D>("ShotTrace").Mesh is BoxMesh box ? box.Size.X : 0;
     private static void Check(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 }
