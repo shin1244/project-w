@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 public sealed class MatchAssignment
 {
+    public string AI { get; set; }
     public string MatchId { get; set; }
     public string Host { get; set; }
     public int Port { get; set; }
@@ -16,8 +17,10 @@ public sealed class MatchAssignment
     public int Players { get; set; }
     public int Bots { get; set; }
     public bool IsValid => !string.IsNullOrWhiteSpace(MatchId) && !string.IsNullOrWhiteSpace(Host) &&
-        Port is > 0 and <= 65535 && Ticket?.Length == 32 && Team is 1 or 2 && Players == 6 && Bots >= 0 && Bots < Players &&
-        (Role == "COMMANDER" && Hero == 0 || Role == "HERO" && UnitCatalog.IsHero(Hero));
+        Port is > 0 and <= 65535 && Ticket?.Length == 32 && Players == 8 &&
+        (Role == "SPECTATOR" && Team == 0 && Hero == 0 && Bots == Players ||
+         Team is 1 or 2 && Bots >= 0 && Bots < Players &&
+         (Role == "COMMANDER" && Hero == 0 || Role == "HERO" && UnitCatalog.IsHero(Hero)));
 }
 
 public sealed class QueueStatus
@@ -62,6 +65,15 @@ public partial class MatchSession : Node
         var config = new ConfigFile();
         if (config.Load("user://network.cfg") == Error.Ok)
             LobbyUrl = config.GetValue("network", "lobby_url", LobbyUrl).AsString();
+        foreach (string argument in OS.GetCmdlineUserArgs())
+        {
+            if (argument == "--spectate") PracticeRole = "SPECTATOR";
+            if (argument.StartsWith("--lobby-url=", StringComparison.Ordinal))
+            {
+                LobbyUrl = argument[12..];
+                RememberAddress = false; // A local launcher must not replace the saved remote address.
+            }
+        }
         _net = GetNode<NetClient>("/root/Net");
         _net.MessageReceived += OnMessage;
         _net.ConnectionClosed += OnClosed;
@@ -71,7 +83,7 @@ public partial class MatchSession : Node
     {
         if (IsQueued || Match != null) return;
         if (!UnitCatalog.IsHero(SelectedHero)) { Fail("선택할 수 없는 영웅입니다."); return; }
-        if (PracticeRole is not ("" or "HERO" or "COMMANDER")) { Fail("선택할 수 없는 연습 모드입니다."); return; }
+        if (PracticeRole is not ("" or "HERO" or "COMMANDER" or "SPECTATOR")) { Fail("선택할 수 없는 연습 모드입니다."); return; }
         if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != "http" && uri.Scheme != "https") || uri.AbsolutePath != "/" || uri.Query != "" || uri.Fragment != "" || uri.UserInfo != "")
         { Fail("서버 주소를 http://주소:8080 형식으로 입력해 주세요."); return; }

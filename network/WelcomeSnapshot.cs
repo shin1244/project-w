@@ -1,6 +1,6 @@
 using System.Globalization;
 
-public enum PlayerRole { None, Commander, Hero }
+public enum PlayerRole { None, Commander, Hero, Spectator }
 
 public readonly record struct WelcomeSnapshot(uint PlayerId, uint Team, PlayerRole Role, uint? HeroType)
 {
@@ -9,7 +9,13 @@ public readonly record struct WelcomeSnapshot(uint PlayerId, uint Team, PlayerRo
         snapshot = default;
         if (parts.Length is not (4 or 5) || parts[0] != "WELCOME" ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint playerId) || playerId == 0 ||
-            !uint.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out uint team) || team == 0) return false;
+            !uint.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out uint team)) return false;
+        if (parts.Length == 4 && parts[3] == "SPECTATOR" && team == 0)
+        {
+            snapshot = new(playerId, 0, PlayerRole.Spectator, null);
+            return true;
+        }
+        if (team == 0) return false;
         if (parts.Length == 4 && parts[3] == "COMMANDER")
         {
             snapshot = new(playerId, team, PlayerRole.Commander, null);

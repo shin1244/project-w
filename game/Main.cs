@@ -27,6 +27,12 @@ public partial class Main : Node3D
     public uint? LocalHeroType { get; private set; }
     public MatchResultSnapshot Result { get; private set; }
     public TributeSnapshot Tribute { get; private set; }
+    public HeroShopPanel Shop { get; private set; }
+    public SpectatorPanel Spectator { get; private set; }
+    public IReadOnlyDictionary<uint,ItemCrateView> Crates => _crates;
+    private readonly Dictionary<uint,ItemCrateView> _crates=new();
+    public IReadOnlyDictionary<uint,GoldNuggetView> Nuggets => _nuggets;
+    private readonly Dictionary<uint,GoldNuggetView> _nuggets=new();
 
     private NetClient _net;
     private MatchSession _matchSession;
@@ -61,7 +67,8 @@ public partial class Main : Node3D
         var match = _matchSession?.Match;
         if (match != null)
         {
-            RequestedRole = match.Role == "HERO" ? PlayerRole.Hero : PlayerRole.Commander;
+            if (Spectator != null) Spectator.AIName = match.AI ?? "AI";
+            RequestedRole = match.Role == "SPECTATOR" ? PlayerRole.Spectator : match.Role == "HERO" ? PlayerRole.Hero : PlayerRole.Commander;
             RequestedHeroType = match.Hero;
         }
         _net.ConnectToServer(match?.Host ?? "127.0.0.1", match?.Port ?? 7777);
@@ -78,6 +85,12 @@ public partial class Main : Node3D
             ui.AddChild(_battleGuide);
             _tributePanel = new TributeEventPanel { Name = "TributeEventPanel" };
             ui.AddChild(_tributePanel);
+            Shop=new HeroShopPanel { Name="HeroShop" };
+            ui.AddChild(Shop);
+            Shop.CommandRequested+=SendCommand;
+            Shop.RecallRequested+=RequestRecall;
+            Spectator = new SpectatorPanel { Name = "SpectatorPanel", Units = Units, Map = Map, Visible = false };
+            ui.AddChild(Spectator);
         }
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += SelectUnit;
@@ -90,6 +103,7 @@ public partial class Main : Node3D
         _playerInput.StopRequested += Units.RequestStop;
         _playerInput.HoldRequested += Units.RequestHold;
         _playerInput.SkillRequested += CastHeroSkill;
+        if (Skills != null) Skills.UpgradeRequested += UpgradeHeroSkill;
         _playerInput.SkillTargetingChanged += ShowSkillRange;
         _playerInput.AttackTargetingChanged += OnAttackTargetingChanged;
         Units.SelectionChanged += RefreshAttackRanges;
@@ -123,7 +137,7 @@ public partial class Main : Node3D
 
     private void OnMinionViewChanged(bool showMinions)
     {
-        if (Details != null) Details.Visible = LocalRole == PlayerRole.Commander && !showMinions;
+        if (Details != null) Details.Visible = LocalRole == PlayerRole.Spectator || LocalRole == PlayerRole.Commander && !showMinions;
         _playerInput?.ResetInteraction();
         Placement?.Cancel();
         Commands?.CancelMenu();
@@ -160,6 +174,7 @@ public partial class Main : Node3D
 
     private void MoveCameraFromMinimap(Vector3 point)
     {
+        Spectator?.StopFollowing();
         _playerInput.CancelTargeting();
         CameraNavigation.FocusGround(Units.Camera, point);
     }
@@ -173,6 +188,12 @@ public partial class Main : Node3D
     private bool TryGetHomePosition(out Vector3 home)
     {
         home = default;
+        if (LocalRole == PlayerRole.Spectator && Map.HasMap)
+        {
+            Vector2 center = Map.GridOrigin + new Vector2(Map.GridSize.X, Map.GridSize.Y) * Map.CellSize * .5f;
+            home = new Vector3(center.X, 0, center.Y);
+            return true;
+        }
         if (LocalRole == PlayerRole.Hero)
         {
             foreach (Unit unit in Units.LiveUnits)
@@ -189,6 +210,16 @@ public partial class Main : Node3D
     public override void _Process(double delta)
     {
         if (_autoFrameStart && !_startingViewPlaced) FrameStartingView();
+        Shop?.SetHeroAvailability(Map.IsSynchronized && Result==null && LocalRole==PlayerRole.Hero &&
+            Skills?.CanRecall==true && Shop.Inventory?.CanShop==false);
+    }
+
+    private void RequestRecall()
+    {
+        if (LocalRole!=PlayerRole.Hero || !Map.IsSynchronized || Result!=null ||
+            Skills?.CanRecall!=true || Shop?.Inventory?.CanShop!=false || Skills.HeroUnitId is not uint id) return;
+        _playerInput?.ResetInteraction();
+        SendCommand(Protocol.BuildRecall(id));
     }
 
     private void FrameStartingView()
@@ -204,6 +235,12 @@ public partial class Main : Node3D
         if (LocalRole == PlayerRole.Hero) { UnitInfo?.Inspect(unit); return; }
         Buildings?.ClearSelection();
         Units.SelectSingle(unit);
+    }
+
+    private void UpgradeHeroSkill(int slot)
+    {
+        if (Map.IsSynchronized && LocalRole == PlayerRole.Hero && Skills?.CanUpgrade(slot) == true)
+            SendCommand(Protocol.BuildUpgradeSkill(slot));
     }
 
     private void CastHeroSkill(SkillInput input)
@@ -287,7 +324,8 @@ public partial class Main : Node3D
                 if (!Map.AcceptMap(parts)) { RejectMap(); return; }
                 Units.Clear();
                 Buildings?.Clear();
-                if (RequestedRole is not (PlayerRole.Commander or PlayerRole.Hero))
+                if (RequestedRole is not (PlayerRole.Commander or PlayerRole.Hero) &&
+                    !(RequestedRole == PlayerRole.Spectator && _matchSession?.Match?.Role == "SPECTATOR"))
                 {
                     ShowStatus("접속 역할을 선택해 주세요.");
                     return;
@@ -333,10 +371,25 @@ public partial class Main : Node3D
                     System.Globalization.CultureInfo.InvariantCulture, out uint tick))
                 {
                     _serverTick = tick;
+                    Shop?.SetTick(tick);
+                    foreach (Unit unit in Units.LiveUnits) unit.EffectTick=tick;
                     Minions?.SetTick(tick);
                     _tributeView?.SetTick(tick);
                     _tributePanel?.SetTick(tick);
+                    foreach (var nugget in _nuggets.Values) nugget.SetTick(tick);
                 }
+                break;
+            case "NUGGET":
+                if (GoldNuggetSnapshot.TryParse(parts, out var gold))
+                {
+                    if (!_nuggets.TryGetValue(gold.Id, out var view))
+                    { view = new GoldNuggetView { Name = $"GoldNugget_{gold.Id}" }; _nuggets.Add(gold.Id, view); AddChild(view); }
+                    view.Apply(gold, _serverTick, Units.LocalTeam);
+                }
+                break;
+            case "NUGGET_REMOVE":
+                if (parts.Length == 2 && WireNumber.UInt(parts[1], out uint nuggetId) && _nuggets.Remove(nuggetId, out var collected))
+                { collected.Deactivate(); collected.QueueFree(); }
                 break;
             case "TRIBUTE":
                 if (TributeSnapshot.TryParse(parts, out var tribute))
@@ -344,6 +397,31 @@ public partial class Main : Node3D
                     Tribute = tribute;
                     ApplyTribute();
                 }
+                break;
+            case "ITEM_CATALOG":
+                if (HeroItemDefinition.TryParseCatalog(message,out var catalog)) Shop?.ApplyCatalog(catalog);
+                break;
+            case "TEAM_TIER":
+                Buildings?.HandleTeamTier(parts);
+                break;
+            case "HERO_ITEMS":
+                if (LocalRole==PlayerRole.Hero && HeroInventorySnapshot.TryParse(parts,out var inventory)) Shop?.ApplyInventory(inventory);
+                break;
+            case "ITEM_CRATE":
+                if ((Units.LocalTeam!=0 || LocalRole==PlayerRole.Spectator) && ItemCrateSnapshot.TryParse(parts,out var crate))
+                {
+                    if (!_crates.TryGetValue(crate.Id,out var view))
+                    { view=new ItemCrateView { Name=$"ItemCrate_{crate.Id}" };_crates.Add(crate.Id,view);AddChild(view); }
+                    view.Apply(crate,Units.LocalTeam,Shop?.Catalog.GetValueOrDefault(crate.ItemId)?.Name ?? "보급 상자");
+                }
+                break;
+            case "ITEM_CRATE_REMOVE":
+                if (parts.Length==2 && WireNumber.UInt(parts[1],out uint crateId) && _crates.Remove(crateId,out var removedCrate))
+                { removedCrate.Deactivate();removedCrate.QueueFree(); }
+                break;
+            case "RECALL":
+                if (LocalRole==PlayerRole.Hero && RecallSnapshot.TryParse(parts,out var recall) && Skills?.HeroUnitId==recall.HeroId)
+                    Shop?.SetRecall(recall);
                 break;
             case "RESPAWN":
                 if (LocalRole == PlayerRole.Hero) Skills?.HandleRespawn(parts);
@@ -437,9 +515,25 @@ public partial class Main : Node3D
                     Fog?.Invalidate();
                 }
                 break;
+            case "HERO_SKILLS":
+                if (LocalRole == PlayerRole.Hero && HeroSkillProgressSnapshot.TryParse(parts, out var progress)) Skills?.HandleProgress(progress);
+                break;
+            case "HERO_ABILITY":
+                if (LocalRole == PlayerRole.Hero)
+                {
+                    var abilityParts = (string[])parts.Clone(); abilityParts[0] = "ABILITY";
+                    if (SkillDefinitionSnapshot.TryParse(abilityParts, out var ownAbility)) Skills?.HandleHeroDefinition(ownAbility);
+                }
+                break;
             case "EXP":
                 if (LocalRole == PlayerRole.Hero && HeroExperienceSnapshot.TryParse(parts, out var experience))
                     UnitInfo?.ApplyExperience(experience);
+                break;
+            case "TEAM_EXP":
+                if (TeamExperienceSnapshot.TryParse(parts, out var teamExperience) &&
+                    (LocalRole == PlayerRole.Spectator ||
+                     LocalRole is PlayerRole.Hero or PlayerRole.Commander && teamExperience.Team == Units.LocalTeam))
+                    _battleGuide?.ApplyTeamExperience(teamExperience);
                 break;
             case "COOLDOWN":
                 if (LocalRole == PlayerRole.Hero && SkillCooldownSnapshot.TryParse(parts, out var cooldown))
@@ -479,13 +573,21 @@ public partial class Main : Node3D
                     Skills?.HandleGolemEffects(golem);
                 }
                 break;
+            case "MARSHAL":
+                if (MarshalEffectSnapshot.TryParse(parts,out var marshal) &&
+                    Units.TryGetUnit(marshal.UnitId,out Unit marshalUnit) && marshalUnit.UnitType==UnitCatalog.HeroMarshal && Units.CanInspect(marshalUnit))
+                { marshalUnit.MarshalEffects=marshal;marshalUnit.EffectTick=_serverTick;Skills?.HandleMarshalEffects(marshal); }
+                break;
             case "MINION_RULES":
+            case "MINION_XP_RULE":
+            case "MINION_FREE":
             case "MINION_OPTION":
             case "MINION_LANE":
             case "MINION_WAVE":
                 if (LocalRole == PlayerRole.Commander) Minions?.HandleMessage(parts);
                 break;
             case "MINION_HEAL":
+            case "MEDIC_HEAL":
                 Units.HandleMinionHeal(parts);
                 break;
             case "RAM_IMPACT":
@@ -501,12 +603,14 @@ public partial class Main : Node3D
                 break;
             case "STOCK":
                 Stock?.HandleStock(parts);
+                if (LocalRole == PlayerRole.Commander) Buildings?.HandleCommanderStock(parts);
                 if (LocalRole == PlayerRole.Commander) Minions?.HandleStock(parts);
                 break;
             case "SUPPLY":
                 Stock?.HandleSupply(parts);
                 break;
             case "REMOVE":
+                if (parts.Length==2 && WireNumber.UInt(parts[1],out uint removedHero) && Skills?.HeroUnitId==removedHero) Shop?.SetRecall(default);
                 if (parts.Length == 2 && uint.TryParse(parts[1], out uint removedBuilding)) Fog?.ForgetBuilding(removedBuilding);
                 Units.HandleRemove(parts);
                 Buildings?.HandleRemove(parts);
@@ -515,15 +619,17 @@ public partial class Main : Node3D
                 Minimap?.Invalidate();
                 break;
             case "HIDE":
+                if (parts.Length==2 && WireNumber.UInt(parts[1],out uint hiddenHero) && Skills?.HeroUnitId==hiddenHero) Shop?.SetRecall(default);
                 Units.HandleHide(parts);
                 Skills?.HandleRemove(parts);
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
             case "ERR":
+                Shop?.Notice(message.Length>4 ? message[4..] : "요청을 처리할 수 없습니다.");
                 Minions?.HandleMessage(parts);
                 Placement?.Notice(message.Length > 4 ? message[4..] : "요청을 처리할 수 없습니다.", true);
-                GD.PushWarning(message);
+                GD.Print($"서버 안내: {message}");
                 break;
             default:
                 GD.Print($"받음: {message}");
@@ -533,7 +639,7 @@ public partial class Main : Node3D
 
     private void SendCommand(string command)
     {
-        if (!Map.IsSynchronized || Result != null) return;
+        if (!Map.IsSynchronized || Result != null || LocalRole == PlayerRole.Spectator) return;
         _net.Send(command);
         GD.Print($"전송 요청: {command}");
     }
@@ -541,6 +647,8 @@ public partial class Main : Node3D
     private void SetPlayerRole(PlayerRole role, uint? heroType = null, uint playerId = 0, uint team = 0)
     {
         LocalRole = role;
+        Buildings?.ResetTeamTiers();
+        if (Units != null) Units.CommanderControl = role == PlayerRole.Commander;
         LocalHeroType = role == PlayerRole.Hero ? heroType : null;
         if (role == PlayerRole.Hero)
         {
@@ -548,9 +656,13 @@ public partial class Main : Node3D
             Placement?.Cancel();
         }
         Units?.SetHeroControl(LocalHeroType);
+        Units?.SetSpectator(role == PlayerRole.Spectator);
+        Fog?.SetSpectator(role == PlayerRole.Spectator);
+        if (_playerInput != null) _playerInput.Spectating = role == PlayerRole.Spectator;
+        if (Spectator != null) { Spectator.Visible = role == PlayerRole.Spectator; Spectator.StopFollowing(); }
         Units?.Camera?.SetMeta("hero_q_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
         Units?.Camera?.SetMeta("hero_w_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
-        if (Details != null) Details.Visible = role == PlayerRole.Commander;
+        if (Details != null) Details.Visible = role is PlayerRole.Commander or PlayerRole.Spectator;
         if (Minions != null)
         {
             Minions.Clear();
@@ -560,13 +672,18 @@ public partial class Main : Node3D
         if (Stock != null) Stock.Visible = role == PlayerRole.Commander;
         _battleGuide?.SetRole(role, team);
         // 숨겨진 명령 패널은 기존 A/S/D 입력 경로를 계속 제공한다.
-        if (Commands != null) Commands.Visible = role != PlayerRole.Hero;
+        if (Commands != null) Commands.Visible = role == PlayerRole.Commander;
         UnitInfo?.SetHero(LocalHeroType, playerId, team);
         Skills?.SetHero(LocalHeroType, playerId, team);
+        Shop?.SetRole(role==PlayerRole.Hero);
+        Map?.SetLocalTeam(team);
     }
 
     private void OnPositionsRendered()
     {
+        foreach (var crate in _crates.Values)
+            if (crate.Snapshot.CarrierId!=0 && Units.TryGetUnit(crate.Snapshot.CarrierId,out var carrier))
+                crate.Position=carrier.GlobalPosition;
         Fog?.Invalidate();
         Minimap?.Invalidate();
     }
@@ -581,6 +698,10 @@ public partial class Main : Node3D
 
     private void ResetTribute()
     {
+        foreach (var crate in _crates.Values) { crate.Deactivate();crate.QueueFree(); }
+        _crates.Clear();Shop?.SetRole(false);
+        foreach (var nugget in _nuggets.Values) { nugget.Deactivate(); nugget.QueueFree(); }
+        _nuggets.Clear();
         Tribute = null;
         _serverTick = 0;
         _tributeView?.Reset();
@@ -619,12 +740,13 @@ public partial class Main : Node3D
 
     private void ShowStatus(string message)
     {
-        GD.PushWarning(message);
+        GD.Print($"연결 상태: {message}");
         if (SyncStatus != null) { SyncStatus.Text = message; SyncStatus.Show(); }
     }
 
     public override void _ExitTree()
     {
+        if (GodotObject.IsInstanceValid(Shop)) { Shop.CommandRequested-=SendCommand;Shop.RecallRequested-=RequestRecall; }
         _skillRange.Clear();
         ClearAttackRanges();
         if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
@@ -645,6 +767,7 @@ public partial class Main : Node3D
             _playerInput.StopRequested -= Units.RequestStop;
             _playerInput.HoldRequested -= Units.RequestHold;
             _playerInput.SkillRequested -= CastHeroSkill;
+            if (Skills != null) Skills.UpgradeRequested -= UpgradeHeroSkill;
             _playerInput.SkillTargetingChanged -= ShowSkillRange;
             _playerInput.AttackTargetingChanged -= OnAttackTargetingChanged;
             _playerInput.ModifiedUnitSelectionRequested -= ModifyUnitSelection;

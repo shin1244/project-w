@@ -17,6 +17,23 @@ public readonly record struct MinionRulesSnapshot(int MaxSlots, int IntervalSeco
     }
 }
 
+public readonly record struct MinionExperienceRuleSnapshot(int BaseSlots, int ReductionPerSlot)
+{
+    public int PercentForCount(int count) => System.Math.Max(0, 100 - System.Math.Max(0, count - BaseSlots) * ReductionPerSlot);
+
+    public static bool TryParse(string[] parts, out MinionExperienceRuleSnapshot snapshot)
+    {
+        snapshot = default;
+        if (parts.Length != 3 || parts[0] != "MINION_XP_RULE" ||
+            !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int baseline) ||
+            baseline is < 1 or > MinionRulesSnapshot.SupportedSlotLimit ||
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int reduction) ||
+            reduction is < 0 or > 100) return false;
+        snapshot = new(baseline, reduction);
+        return true;
+    }
+}
+
 public readonly record struct MinionOptionSnapshot(uint UnitType, uint ResourceId, long ReplaceCost, long AddCost)
 {
     public static bool TryParse(string[] parts, out MinionOptionSnapshot snapshot)

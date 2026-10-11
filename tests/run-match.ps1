@@ -2,13 +2,20 @@
 [CmdletBinding()]
 param(
     [string]$GodotPath = $env:GODOT_BIN,
-    [ValidateSet(1,2,3,4,5,6)][int]$Players = 2,
-    [switch]$SkipBuild
+    [ValidateRange(1,8)][int]$Players = 2,
+    [switch]$SkipBuild,
+    [switch]$Spectate,
+    [switch]$RenderCapture,
+    [string]$PolicyDirectory
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $serverRoot = Join-Path (Split-Path $projectRoot -Parent) 'project-w-server'
 $logRoot = Join-Path $projectRoot ".godot/check-logs/match-$Players"
+if ($Spectate) {
+    if ($Players -ne 1) { throw 'Spectator integration uses -Players 1.' }
+    $logRoot = Join-Path $projectRoot '.godot/check-logs/match-spectator'
+}
 if (!$GodotPath -or !(Test-Path -LiteralPath $GodotPath)) { throw 'Set GODOT_BIN or pass -GodotPath (Godot .NET).' }
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 
@@ -18,6 +25,7 @@ function Start-Hidden([string]$File, [string[]]$Arguments, [string]$Directory, [
     $info.WorkingDirectory = $Directory
     $info.UseShellExecute = $false
     $info.CreateNoWindow = $true
+    $info.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
     foreach ($argument in $Arguments) { $info.ArgumentList.Add($argument) }
@@ -59,7 +67,12 @@ try {
     $gamePort = Get-FreePort
     while ($gamePort -eq $lobbyPort) { $gamePort = Get-FreePort }
     $url = "http://127.0.0.1:$lobbyPort"
-    $lobby = Start-Hidden "$logRoot/lobby.exe" @('-listen', "127.0.0.1:$lobbyPort", '-game-host', '127.0.0.1', '-game-port', "$gamePort", '-game-bin', "$logRoot/game.exe", '-wait', '4s') $serverRoot "$logRoot/lobby.log"
+    # Starting eight Godot processes can exceed the short two-client queue window.
+    # A full lobby still starts immediately; allow all eight clients time to load.
+    $queueWait = if ($Players -eq 8) { '15s' } else { '4s' }
+    $lobbyArguments = @('-listen', "127.0.0.1:$lobbyPort", '-game-host', '127.0.0.1', '-game-port', "$gamePort", '-game-bin', "$logRoot/game.exe", '-wait', $queueWait)
+    if ($PolicyDirectory) { $lobbyArguments += @('-rl-policy', (Join-Path $PolicyDirectory 'commander.json'), '-rl-hero-policy', (Join-Path $PolicyDirectory 'hero.json')) }
+    $lobby = Start-Hidden "$logRoot/lobby.exe" $lobbyArguments $serverRoot "$logRoot/lobby.log"
     $jobs += $lobby
     $healthy = $false
     for ($attempt=0; $attempt -lt 30; $attempt++) {
@@ -70,8 +83,12 @@ try {
     $clients = @()
     for ($i=1; $i -le $Players; $i++) {
         $arguments = @('--headless', '--path', $projectRoot, '--log-file', "$logRoot/engine-$i.log", '--resolution', '1152x648', 'res://tests/MatchFlowChecks.tscn', '--', "--lobby-url=$url")
+        if ($RenderCapture) {
+            if (!$Spectate) { throw 'Render capture requires -Spectate.' }
+            $arguments = @('--path', $projectRoot, '--log-file', "$logRoot/engine-$i.log", '--resolution', '1440x900', '--rendering-method', 'gl_compatibility', 'res://tests/MatchFlowChecks.tscn', '--', "--lobby-url=$url", '--capture-spectator')
+        }
         if ($Players -eq 2) { $arguments += '--check-cancellation' }
-        if ($Players -eq 1) { $arguments += '--practice' }
+        if ($Spectate) { $arguments += '--spectate' } elseif ($Players -eq 1) { $arguments += '--practice' }
         $client = Start-Hidden $GodotPath $arguments $projectRoot "$logRoot/client-$i.log"
         $clients += $client
         $jobs += $client
@@ -90,11 +107,13 @@ try {
         $summaries | Write-Host
     }
     for ($cycle=1; $cycle -le 2; $cycle++) {
-        $expected = @('team 1, COMMANDER', 'team 1, HERO', 'team 1, HERO', 'team 2, COMMANDER', 'team 2, HERO', 'team 2, HERO') | Select-Object -First $Players
-        if ($Players -eq 1) { $expected = if ($cycle -eq 1) { @('team 1, HERO') } else { @('team 1, COMMANDER') } }
+        $expected = @('team 1, COMMANDER', 'team 1, HERO', 'team 1, HERO', 'team 1, HERO', 'team 2, COMMANDER', 'team 2, HERO', 'team 2, HERO', 'team 2, HERO') | Select-Object -First $Players
+        if ($Spectate) { $expected = @('team 0, SPECTATOR') }
+        elseif ($Players -eq 1) { $expected = if ($cycle -eq 1) { @('team 1, HERO') } else { @('team 1, COMMANDER') } }
+        $humanSeats = if ($Spectate) { 0 } else { $Players }
         foreach ($group in ($expected | Group-Object)) {
             $seat = $group.Name
-            if (@($results | Where-Object { $_ -like "PASS: cycle $cycle, $Players players, $seat,*" }).Count -ne $group.Count) { throw "Missing/duplicate seat: cycle $cycle, $seat" }
+            if (@($results | Where-Object { $_ -like "PASS: cycle $cycle, $humanSeats players, $seat,*" }).Count -ne $group.Count) { throw "Missing/duplicate seat: cycle $cycle, $seat" }
         }
     }
     Write-Host "PASS: $Players real Godot clients, two fresh matches and return to lobby. Logs: $logRoot"

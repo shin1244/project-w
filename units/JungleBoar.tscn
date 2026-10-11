@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/JungleBoarRig.cs" id="2_rig"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 1.0
+height = 2.1
+
+[node name="JungleBoar" instance=ExtResource("1_base")]
+UnitType = 400
+HealthBarHeight = 2.6
+BodyRadius = 0.6
+
+[node name="Rig" type="Node3D" parent="Visual"]
+scale = Vector3(1.25, 1.25, 1.25)
+script = ExtResource("2_rig")
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 1.05, 0)
+shape = SubResource("Selection")
+
+[node name="SelectionRing" parent="." index="2"]
+scale = Vector3(1.5, 1, 1.5)

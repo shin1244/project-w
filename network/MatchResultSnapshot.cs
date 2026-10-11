@@ -2,7 +2,7 @@ using System.Globalization;
 
 public sealed record MatchResultSnapshot(uint Winner, string Reason, uint Seconds)
 {
-    public string Title(uint localTeam) => Winner == 0 ? "무승부" : Winner == localTeam ? "승리" : "패배";
+    public string Title(uint localTeam) => Winner == 0 ? "무승부" : localTeam == 0 ? $"{Winner}팀 승리" : Winner == localTeam ? "승리" : "패배";
     public string Description => Reason switch
     {
         "BOTH_BASES" => "두 팀의 본진이 동시에 파괴되었습니다.",

@@ -1,0 +1,131 @@
+using Godot;
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+public partial class SupportUpdateChecks : Main
+{
+    private const BindingFlags Private=BindingFlags.Instance|BindingFlags.NonPublic;
+    public override async void _Ready()
+    {
+        try
+        {
+            var net=GetNode<NetClient>("/root/Net");
+            using var wire=new MemoryStream();
+            using var writer=new StreamWriter(wire,new UTF8Encoding(false)) { AutoFlush=true };
+            typeof(NetClient).GetField("_writer",Private).SetValue(net,writer);
+            typeof(Main).GetField("_net",Private).SetValue(this,net);
+            Invoke("ConnectInput");
+            Units.CommandRequested+=command=>Invoke("SendCommand",command);
+            Fog.Configure(Map);
+            Begin();
+            Receive("REQUIRES UNIT 3 4 5");
+            Receive("BUILDING 4 901 1 -6 -4 0");
+            Receive("BUILDING 5 902 2 6 -4 0");
+            Invoke("SelectBuilding",Buildings.GetChildren().OfType<Building>().Single(b=>b.BuildingId==901));
+            var medicButton=Commands.GetNode<Button>("Slots/Slot9");
+            long before=wire.Length;
+            medicButton.EmitSignal(BaseButton.SignalName.Pressed);Units.RequestTrain(3);
+            Check(medicButton.Disabled && wire.Length==before,"Enemy forge must not unlock medic production");
+            Receive("BUILDING 5 902 1 6 -4 0");Receive("CONSTRUCTION 902 99");
+            Check(medicButton.Disabled,"Unfinished forge must not unlock production");
+            Receive("CONSTRUCTION 902 100");
+            Check(!medicButton.Disabled && medicButton.TooltipText.Contains("15초"),"Completed allied forge unlocks medic");
+            medicButton.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(After(wire,before)=="TRAIN 901 3\n","Medic button sends one exact training request");
+            Receive("QUEUE 901 50 9901:3:7");
+            Check(Buildings.SelectedBuilding.ProductionQueue.SequenceEqual(new uint[]{3}),"Medic production queue must parse and display");
+            Receive("REMOVE 902");
+            Check(medicButton.Disabled && Buildings.SelectedBuilding.ProductionQueue.Count==1,"Forge loss relocks new production while preserving paid queue");
+            Receive("UNIT 3 700 7 0 0 1");Receive("HP 700 250 400");Receive("SIGHT UNIT 3 8");
+            Check(Units.TryGetUnit(700,out var medic) && Units.CanControl(medic) &&
+                medic.GetNodeOrNull<Node3D>("Visual/Rig/RightArm/Crystal")!=null,"Medic scene, model and ownership");
+            Receive("MEDIC_HEAL 700 0 0 5");
+            Check(Units.GetNodeOrNull<MinionHealPulse>("MinionHeal_700")!=null && medic.HealthBar.CurrentHP==250,
+                "Server heal pulse is cosmetic and cannot predict HP");
+            Receive("HIDE 700");
+            Check(!Units.HasNode("MinionHeal_700") && !Units.TryGetUnit(700,out _),"Fog HIDE removes medic and pulse");
+
+            ConfigureMinions();
+            CheckLaneExperience(0,100);CheckLaneExperience(1,100);
+            foreach (string malformed in new[]{"MINION_XP_RULE 0 5","MINION_XP_RULE 6 -1","MINION_XP_RULE 6 101","MINION_XP_RULE 6 10 extra","MINION_XP_RULE 99999999999 5"}) Receive(malformed);
+            Receive("MINION_FREE 2");Receive("STOCK 0 0");
+            foreach (string malformed in new[]{"MINION_FREE -1","MINION_FREE 1 extra","MINION_FREE 4294967296"}) Receive(malformed);
+            Check(Minions.FreeAdds==2,"Malformed credit messages cannot replace valid balance");
+            Minions.GetNode<Button>("Tabs/MinionTab").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
+            var creditLabel=Minions.GetNode<Label>("Body/Content/Header/FreeAdds");
+            Check(creditLabel.IsVisibleInTree() && creditLabel.Size.X>60 && Minions.GetGlobalRect().Encloses(creditLabel.GetGlobalRect()),
+                "Free reward count must remain readable inside the actual HUD");
+            Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
+            var option=Minions.GetNode<Button>("Picker/Content/Options/Option102");
+            Check(!option.Disabled && option.FindChildren("Cost","Label",true,false).OfType<Label>().Single().Text.Contains("무료"),
+                "Existing + picker offers free choice without wood");
+            before=wire.Length;option.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(After(wire,before)=="MINION_ADD 0 0 102\n" && Minions.IsRequestPending && Minions.FreeAdds==2,
+                "Free add sends once and waits for authoritative credit and lane response");
+            Receive("MINION_FREE 1");Receive("MINION_LANE 0 1 7 100 100 100 101 101 101 102");await Flush();
+            Check(!Minions.IsRequestPending && Minions.FreeAdds==1,"Server acknowledgement consumes one credit");
+            CheckLaneExperience(0,95);CheckLaneExperience(1,100);
+            var laneLabel=Minions.GetNode<Label>("Body/Content/Lanes/Rows/Lane0/Name");
+            Check(laneLabel.Size.X>=80 && laneLabel.GetLineCount()==3 &&
+                Minions.GetGlobalRect().Encloses(laneLabel.GetGlobalRect()),"Lane experience label fits inside HUD");
+            Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Slot0").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(Minions.GetNode<Button>("Picker/Content/Options/Option102").Disabled,"Replacement still requires wood even with a free addition");
+            Receive("MINION_FREE 0");
+            Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").EmitSignal(BaseButton.SignalName.Pressed);
+            Check(Minions.GetNode<Button>("Picker/Content/Options/Option102").Disabled,"Without credits ordinary prices apply");
+            Receive("MINION_LANE 0 2 8 100 100 100 101 101 101 102 100");CheckLaneExperience(0,90);
+            Receive("MINION_LANE 0 3 12 100 100 100 101 101 101 102 100 100 100 100 100");CheckLaneExperience(0,70);
+            Receive("MINION_FREE 2");Receive($"MAP 2 {Map.MapHash}");
+            Check(Minions.FreeAdds==0 && !Minions.IsPickerOpen,"Map reset drops old credits and picker");
+            Begin();ConfigureMinions(false);
+            Check(!Minions.GetNode<Label>("Body/Content/Lanes/Rows/Lane0/Name").Text.Contains("경험치"),
+                "Map reset clears old experience rule; old servers do not display an assumed rate");
+            Receive("MINION_XP_RULE 6 5");CheckLaneExperience(0,100);Receive("MINION_FREE 1");
+            if (OS.GetCmdlineUserArgs().Contains("--capture") || OS.GetCmdlineUserArgs().Contains("--capture-xp")) await Capture();
+            Receive("WELCOME 7 1 HERO 202");
+            Check(Minions.FreeAdds==0 && !Minions.Visible,"Hero role cannot keep commander reward UI");
+            GD.Print("PASS: medic production/heal; tribute free + choice; lane XP 100/95/90/70%, rule validation, HUD fit and lifecycle reset");
+            GetTree().Quit();
+        }
+        catch(Exception error) { GD.PushError(error.ToString());GetTree().Quit(1); }
+    }
+    private void Begin() { Receive($"MAP 2 {Map.MapHash}");Receive("WORLD_READY");Receive("WELCOME 7 1 COMMANDER"); }
+    private void ConfigureMinions(bool experienceRule=true)
+    {
+        Receive("MINION_RULES 12 30");
+        if (experienceRule) Receive("MINION_XP_RULE 6 5");
+        Receive("MINION_OPTION 100 0 60 460");Receive("MINION_OPTION 101 0 80 480");Receive("MINION_OPTION 102 0 140 540");
+        Receive("MINION_LANE 0 0 6 100 100 100 101 101 101");
+        Receive("MINION_LANE 1 0 6 100 100 100 101 101 101");
+    }
+    private void CheckLaneExperience(int lane,int percent) => Check(
+        Minions.GetNode<Label>($"Body/Content/Lanes/Rows/Lane{lane}/Name").Text.EndsWith($"경험치 {percent}%"),
+        $"Lane {lane} must show server-based experience {percent}%");
+    private async Task Capture()
+    {
+        Receive("SIGHT UNIT 3 8");Receive("SIGHT UNIT 1 8");Receive("SIGHT UNIT 202 10");
+        Receive("SIGHT BUILDING 4 6");Receive("SIGHT BUILDING 5 6");
+        Receive("REQUIRES UNIT 3 4 5");Receive("BUILDING 4 901 1 -5 -4 0");Receive("BUILDING 5 902 1 5 -4 0");
+        Receive("UNIT 3 700 7 0 1 1");Receive("HP 700 400 400");Receive("UNIT 1 701 7 -3 2 1");Receive("HP 701 600 1100");
+        Receive("UNIT 202 702 8 3 2 1");Receive("HP 702 2200 3200");
+        Receive("TICK 600");Receive("MINION_WAVE 900");Receive("SUPPLY 4 20");Receive("STOCK 0 500");
+        bool captureXP=OS.GetCmdlineUserArgs().Contains("--capture-xp");
+        if(captureXP) Receive("MINION_LANE 0 1 7 100 100 100 101 101 101 102");
+        Units.Camera.Size=23;CameraNavigation.FocusGround(Units.Camera,new Vector3(0,0,-1));
+        Invoke("SelectBuilding",Buildings.GetChildren().OfType<Building>().Single(b=>b.BuildingId==901));
+        Minions.GetNode<Button>("Tabs/MinionTab").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
+        Receive("MEDIC_HEAL 700 0 1 5");await Flush();
+        await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+        using Image picture=GetViewport().GetTexture().GetImage();
+        Check(picture.SavePng(captureXP ? "res://docs/images/minion-experience-update.png" : "res://docs/images/medic-tribute-update.png")==Error.Ok,"Save update preview");
+    }
+    private async Task Flush() { await ToSignal(GetTree(),SceneTree.SignalName.PhysicsFrame);await ToSignal(GetTree(),SceneTree.SignalName.ProcessFrame); }
+    private void Receive(string line)=>Invoke("OnMessage",line);
+    private void Invoke(string name,params object[] args)=>typeof(Main).GetMethod(name,Private).Invoke(this,args);
+    private static string After(MemoryStream wire,long before)=>Encoding.UTF8.GetString(wire.ToArray()[(int)before..]).Replace("\r\n","\n");
+    private static void Check(bool condition,string message) { if(!condition) throw new InvalidOperationException(message); }
+}

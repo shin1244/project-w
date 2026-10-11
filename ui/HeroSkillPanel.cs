@@ -9,6 +9,10 @@ public partial class HeroSkillPanel : PanelContainer
     public uint? HeroType { get; private set; }
     public uint? HeroUnitId { get; private set; }
     public event Action<int> TargetingRequested;
+    public event Action<int> UpgradeRequested;
+    public HeroSkillProgressSnapshot? Progress { get; private set; }
+    private Label _points;
+    private readonly Dictionary<int, SkillDefinitionSnapshot> _heroDefinitions = new();
     public event Action AvailabilityChanged;
     private readonly Dictionary<(uint, int), SkillDefinitionSnapshot> _definitions = new();
     private readonly Dictionary<int, uint> _readyTicks = new();
@@ -30,13 +34,21 @@ public partial class HeroSkillPanel : PanelContainer
     public string StatusText => _status?.Text ?? "";
     private ColorRect _shieldFill;
     private Control _passive;
+    private Button _passiveUpgrade;
+    private Label _passiveRank;
     private float _currentHP, _maxHP, _shield;
     private WolfEffectSnapshot _wolfEffects;
     private GolemEffectSnapshot _golemEffects;
+    private MarshalEffectSnapshot _marshalEffects;
+    public bool CanRecall => HeroUnitId.HasValue && !IsRespawning && _currentHP>0 &&
+        (_restrictions & (ControlRestrictions.Stun | ControlRestrictions.Silence))==0 &&
+        _activity is not (UnitActivity.Stun or UnitActivity.Dash);
 
     private sealed class SlotView
     {
-        public Button Button;
+        public Button Button, Upgrade;
+        public Label Rank;
+        public VBoxContainer Column;
         public Label Cooldown;
         public TextureRect Icon;
         public ColorRect Cover;
@@ -45,10 +57,26 @@ public partial class HeroSkillPanel : PanelContainer
     }
 
     public SkillDefinitionSnapshot? Definition(int slot) => HeroType.HasValue &&
-        _definitions.TryGetValue((HeroType.Value, slot), out var definition) ? definition : null;
+        (_heroDefinitions.TryGetValue(slot, out var definition) || _definitions.TryGetValue((HeroType.Value, slot), out definition)) ? definition : null;
+
+    public bool CanUpgrade(int slot) => HeroType.HasValue && slot is >= 0 and <= 4 &&
+        Progress is HeroSkillProgressSnapshot p && p.Points > 0 && !IsActive(slot) &&
+        _activity != UnitActivity.Dash && p.Rank(slot) < (slot == 3 ? 1 : 4) &&
+        (slot != 3 || p.Level >= (p.UltimateLearned ? 10 : 5));
+    public void RequestUpgrade(int slot) { if (CanUpgrade(slot)) UpgradeRequested?.Invoke(slot); }
+    public void HandleProgress(HeroSkillProgressSnapshot progress)
+    {
+        if (HeroType != progress.HeroType) return;
+        Progress = progress; Refresh();
+    }
+    public void HandleHeroDefinition(SkillDefinitionSnapshot definition)
+    {
+        if (HeroType != definition.UnitType) return;
+        _heroDefinitions[definition.Slot] = definition; Refresh();
+    }
 
     public bool CanUse(int slot) => Definition(slot) is SkillDefinitionSnapshot definition && HeroUnitId.HasValue &&
-        !IsActive(slot) &&
+        (slot != 3 || Progress?.UltimateLearned == true) && !IsActive(slot) &&
         (_restrictions & (ControlRestrictions.Stun | ControlRestrictions.Silence)) == 0 &&
         (!definition.MovesCaster || (_restrictions & ControlRestrictions.Root) == 0) &&
         _activity is not (UnitActivity.Stun or UnitActivity.Dash) &&
@@ -83,18 +111,30 @@ public partial class HeroSkillPanel : PanelContainer
         _status.AddThemeFontSizeOverride("font_size", 13);
         _status.AddThemeColorOverride("font_color", new Color("bfcec5"));
         vitals.AddChild(_status);
+        _points = new Label { Name="SkillPoints", HorizontalAlignment=HorizontalAlignment.Center, MouseFilter=MouseFilterEnum.Ignore };
+        _points.AddThemeFontSizeOverride("font_size",13);
+        _points.AddThemeColorOverride("font_color",new Color("efd28c"));
+        content.AddChild(_points);
         var row = new HBoxContainer { Name = "Slots", MouseFilter = MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", 8);
         content.AddChild(row);
-        var passive = new PanelContainer { Name = "Passive", CustomMinimumSize = new Vector2(64, 64), MouseFilter = MouseFilterEnum.Stop };
+        var passiveColumn = new VBoxContainer { Name="PassiveSlot", SizeFlagsHorizontal=SizeFlags.ExpandFill };
+        row.AddChild(passiveColumn);
+        _passiveUpgrade = new Button { Name="Upgrade", Text="+ 강화", FocusMode=FocusModeEnum.None, MouseForcePassScrollEvents=false };
+        _passiveUpgrade.Pressed += () => RequestUpgrade(4);
+        passiveColumn.AddChild(_passiveUpgrade);
+        var passive = new PanelContainer { Name = "Passive", CustomMinimumSize = new Vector2(72, 72), MouseFilter = MouseFilterEnum.Stop };
         passive.AddThemeStyleboxOverride("panel", Style("242825", "807653", 4));
-        var passiveLabel = new Label { Name = "Key", Text = "패시브", MouseFilter = MouseFilterEnum.Ignore,
+        var passiveLabel = new Label { Name = "Key", Text = "P · 패시브", MouseFilter = MouseFilterEnum.Ignore,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         passiveLabel.AddThemeFontSizeOverride("font_size", 12);
         passive.AddChild(passiveLabel);
-        row.AddChild(passive);
+        passiveColumn.AddChild(passive);
+        _passiveRank = new Label { Name="Rank", HorizontalAlignment=HorizontalAlignment.Center, MouseFilter=MouseFilterEnum.Ignore };
+        _passiveRank.AddThemeFontSizeOverride("font_size",12);
+        passiveColumn.AddChild(_passiveRank);
         _passive = passive;
-        for (int i = 0; i < 5; i++) CreateSlot(row, i);
+        for (int i = 0; i < 4; i++) CreateSlot(row, i);
         MinimumSizeChanged += FitHeight;
         Refresh();
     }
@@ -121,7 +161,15 @@ public partial class HeroSkillPanel : PanelContainer
         view.Button.AddThemeStyleboxOverride("pressed", view.Targeting);
         view.Button.AddThemeStyleboxOverride("disabled", view.Disabled);
         view.Button.Pressed += () => Request(slot);
-        row.AddChild(view.Button);
+        view.Column = new VBoxContainer { Name=key+"Slot", SizeFlagsHorizontal=SizeFlags.ExpandFill };
+        row.AddChild(view.Column);
+        view.Upgrade = new Button { Name="Upgrade", Text="+", FocusMode=FocusModeEnum.None, MouseForcePassScrollEvents=false };
+        view.Upgrade.Pressed += () => RequestUpgrade(slot);
+        view.Column.AddChild(view.Upgrade);
+        view.Column.AddChild(view.Button);
+        view.Rank = new Label { Name="Rank", HorizontalAlignment=HorizontalAlignment.Center, MouseFilter=MouseFilterEnum.Ignore };
+        view.Rank.AddThemeFontSizeOverride("font_size",12);
+        view.Column.AddChild(view.Rank);
         view.Icon = new TextureRect { ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore };
         view.Button.AddChild(view.Icon);
@@ -154,6 +202,7 @@ public partial class HeroSkillPanel : PanelContainer
         if (HeroType != heroType || _playerId != playerId || _team != team || !heroType.HasValue)
         {
             _dead = false; _respawnTick = null;
+            Progress = null; _heroDefinitions.Clear();
             ClearVitals(); _readyTicks.Clear(); _cooldownLengths.Clear();
             if (!heroType.HasValue) { _definitions.Clear(); _hasTick = false; _tick = 0; }
         }
@@ -235,11 +284,11 @@ public partial class HeroSkillPanel : PanelContainer
     public bool TryHandleShortcut(InputEvent input)
     {
         if (!HeroType.HasValue || input is not InputEventKey { Pressed: true } key ||
-            key.CtrlPressed || key.ShiftPressed || key.AltPressed || key.MetaPressed) return false;
+            key.ShiftPressed || key.AltPressed || key.MetaPressed) return false;
         int slot = (key.PhysicalKeycode != Key.None ? key.PhysicalKeycode : key.Keycode) switch
-        { Key.Q => 0, Key.W => 1, Key.E => 2, Key.R => 3, _ => -1 };
-        if (slot < 0 || Definition(slot) == null) return false;
-        if (!key.Echo) Request(slot);
+        { Key.Q => 0, Key.W => 1, Key.E => 2, Key.R => 3, Key.P when key.CtrlPressed => 4, _ => -1 };
+        if (slot < 0 || slot < 4 && Definition(slot) == null) return false;
+        if (!key.Echo) { if (key.CtrlPressed) RequestUpgrade(slot); else Request(slot); }
         return true;
     }
     private void Request(int slot) { if (CanUse(slot)) TargetingRequested?.Invoke(slot); }
@@ -247,6 +296,7 @@ public partial class HeroSkillPanel : PanelContainer
     {
         if (Definition(slot) is not SkillDefinitionSnapshot definition || !GodotObject.IsInstanceValid(target) ||
             !target.IsInsideTree() || target.IsQueuedForDeletion()) return false;
+        if (target is Unit { UnitType: UnitCatalog.Worker }) return false;
         uint? team = target switch { Unit u when !u.IsDying => u.Team, Building b => b.SideId, _ => null };
         return team.HasValue && (definition.Target switch
         { SkillTargetMode.Enemy => team != _team, SkillTargetMode.Ally => team == _team, _ => false });
@@ -263,6 +313,11 @@ public partial class HeroSkillPanel : PanelContainer
         if (HeroType != UnitCatalog.HeroGolem || HeroUnitId != effects.UnitId) return;
         _golemEffects = effects;
         Refresh();
+    }
+    public void HandleMarshalEffects(MarshalEffectSnapshot effects)
+    {
+        if (HeroType!=UnitCatalog.HeroMarshal || HeroUnitId!=effects.UnitId) return;
+        _marshalEffects=effects;Refresh();
     }
     public void HandleRespawn(string[] parts)
     {
@@ -289,9 +344,15 @@ public partial class HeroSkillPanel : PanelContainer
         else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = "기절";
         else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = "침묵";
         else if (_golemEffects.EmpowerReady) _status.Text = "R · 강화 대기";
+        else if (_marshalEffects.Marching(_tick) || _marshalEffects.Rallying(_tick))
+        {
+            string march=_marshalEffects.Marching(_tick) ? $"E · 진군 {Math.Ceiling((_marshalEffects.MarchUntil-_tick)/30.0)}초" : "";
+            string rally=_marshalEffects.Rallying(_tick) ? $"R · 부대 소집 {Math.Ceiling((_marshalEffects.RallyUntil-_tick)/30.0)}초" : "";
+            _status.Text=march+(march!="" && rally!="" ? " / " : "")+rally;
+        }
         else if (_wolfEffects.DrainReady || _wolfEffects.AuraUntil != 0 && unchecked((int)(_wolfEffects.AuraUntil - _tick)) > 0)
         {
-            string drain = _wolfEffects.DrainReady ? "W · 흡혈 50% 대기" : "";
+            string drain = _wolfEffects.DrainReady ? $"W · 흡혈 {50+10*((Progress?.W+1 ?? 1)/2)}% 대기" : "";
             int ticks = Math.Max(0, unchecked((int)(_wolfEffects.AuraUntil - _tick)));
             string aura = _wolfEffects.AuraUntil != 0 && ticks > 0
                 ? $"E · 지속 피해 {Math.Ceiling(ticks / (double)InterpolationClock.TickRate):0}초" : "";
@@ -299,6 +360,7 @@ public partial class HeroSkillPanel : PanelContainer
         }
         else if (_maxHP > 0 && _currentHP / _maxHP < .25f) _status.Text = "체력 위험";
         else _status.Text = "";
+        if (_wolfEffects.DevourAttacks > 0) _status.Text += (_status.Text.Length > 0 ? " / " : "")+$"R · 강화 공격 {_wolfEffects.DevourAttacks}회";
         _status.Visible = _status.Text.Length > 0;
         _status.Modulate = IsRespawning || _maxHP > 0 && _currentHP / _maxHP < .25f
             ? new Color("ffc393") : Colors.White;
@@ -306,31 +368,49 @@ public partial class HeroSkillPanel : PanelContainer
 
     private void Refresh()
     {
-        if (_passive != null) _passive.TooltipText = SkillDescriptions.Passive(HeroType);
+        if (_points != null) _points.Text = Progress is HeroSkillProgressSnapshot progress
+            ? $"레벨 {progress.Level} · 강화 포인트 {progress.Points}  [Ctrl + P/Q/W/E/R]" : "궁극기 · 5레벨부터 습득";
+        int passiveRank=Progress?.Passive ?? 0;
+        if (_passive != null) _passive.TooltipText = SkillDescriptions.Passive(HeroType,passiveRank);
+        if (_passiveRank != null) _passiveRank.Text = $"강화 {passiveRank}/4";
+        if (_passiveUpgrade != null)
+        {
+            _passiveUpgrade.Disabled = !CanUpgrade(4);
+            _passiveUpgrade.TooltipText = SkillDescriptions.PassiveUpgrade(HeroType,passiveRank+1)+"\n1포인트 · Ctrl+P";
+        }
         if (_targeting.HasValue && !CanUse(_targeting.Value)) _targeting = null;
         for (int slot = 0; slot < _slots.Count; slot++)
         {
             var view = _slots[slot]; var definition = Definition(slot);
             bool available = CanUse(slot);
-            view.Button.Visible = slot < 4 || definition.HasValue;
+            view.Column.Visible = slot < 4 || definition.HasValue;
+            int rank = Progress?.Rank(slot) ?? 0;
+            bool locked = slot == 3 && Progress?.UltimateLearned != true;
+            bool upgradeLocked = slot == 3 && !locked && Progress?.Level < 10;
+            view.Rank.Text = locked ? "5레벨 습득" : upgradeLocked ? "10레벨 강화" : $"강화 {rank}/{(slot == 3 ? 1 : 4)}";
+            view.Upgrade.Disabled = !CanUpgrade(slot);
+            view.Upgrade.Text = locked ? "습득 +" : "+ 강화";
+            view.Upgrade.TooltipText = locked ? "5레벨부터 1포인트로 궁극기 습득" :
+                (slot == 3 && rank == 0 ? "10레벨부터 1포인트로 궁극기 강화\n" : "")+SkillDescriptions.Upgrade(definition?.Id,rank+1);
+            view.Upgrade.Visible = slot < 4;
             view.Button.Disabled = !available;
             bool empowered = _golemEffects.EmpowerReady && slot < 3;
             bool armed = IsActive(slot);
-            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered);
+            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered, rank);
             view.Button.AddThemeStyleboxOverride("normal", _targeting == slot || empowered ? view.Targeting : view.Normal);
             view.Button.AddThemeStyleboxOverride("disabled", armed ? view.Targeting : view.Disabled);
             string iconId = definition?.Id;
             if (view.IconId != iconId)
             {
                 view.IconId = iconId;
-                string iconPath = $"res://ui/icons/{iconId}.svg";
+                string iconPath = $"res://ui/icons/{(iconId == "golem-up" ? "golem-quake" : iconId)}.svg";
                 view.Icon.Texture = iconId != null && ResourceLoader.Exists(iconPath) ? GD.Load<Texture2D>(iconPath) : null;
             }
             view.Icon.Modulate = available || armed ? Colors.White : new Color(.55f, .55f, .55f);
             bool cooling = !armed && _readyTicks.ContainsKey(slot) && (!_hasTick || RemainingTicks(slot) > 0);
             view.Cover.Visible = cooling;
             view.Cover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks(slot) / (float)Math.Max(1, _cooldownLengths.GetValueOrDefault(slot)), 0, 1) : 0;
-            view.Cooldown.Text = armed ? definition?.Id == "wolf-drain" ? "대기" : "사용 중"
+            view.Cooldown.Text = locked ? "잠김" : armed ? definition?.Id == "wolf-drain" ? "대기" : "사용 중"
                 : cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
         }
         RefreshStatus();
@@ -350,7 +430,7 @@ public partial class HeroSkillPanel : PanelContainer
     private void ClearVitals()
     {
         _activeSkills.Clear();
-        _wolfEffects = default; _golemEffects = default;
+        _wolfEffects = default; _golemEffects = default; _marshalEffects=default;
         HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
         Refresh();
         _currentHP = _maxHP = _shield = 0;

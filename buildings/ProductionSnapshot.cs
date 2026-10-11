@@ -26,14 +26,14 @@ public readonly record struct ProductionSnapshot(uint BuildingId, int Percent, u
             {
                 string[] fields = token.Split(':');
                 if (fields.Length != 3 || !uint.TryParse(fields[0], NumberStyles.None, CultureInfo.InvariantCulture, out uint jobId) ||
-                    jobId == 0 || !ids.Add(jobId) || !uint.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out types[i]) || types[i] > 2 ||
+                    jobId == 0 || !ids.Add(jobId) || !uint.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out types[i]) || !UnitCatalog.IsTrainable(types[i]) ||
                     !uint.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out uint owner) || owner == 0) return false;
                 jobs[i] = new(jobId, types[i], owner);
             }
             else
             {
                 // 이전 스냅샷/오프라인 미리보기는 표시만 허용하며 예약 ID 없이 취소하지 않는다.
-                if (!uint.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out types[i]) || types[i] > 2) return false;
+                if (!uint.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out types[i]) || !UnitCatalog.IsTrainable(types[i])) return false;
                 jobs[i] = new(0, types[i], 0);
             }
         }

@@ -263,14 +263,14 @@ public partial class RtsControlChecks : Main
         KeyPress(Key.W); KeyPress(Key.E);
         Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 1", "SKILL 2" }) && !_input.IsSkillTargeting &&
             Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Wolf W/E cast immediately and W is reserved for the skill");
-        var drainButton = Skills.GetNode<Button>("Content/Slots/W");
+        var drainButton = Skills.GetNode<Button>("Content/Slots/WSlot/W");
         var drainCooldown = drainButton.GetNode<Label>("Cooldown");
-        var auraButton = Skills.GetNode<Button>("Content/Slots/E");
+        var auraButton = Skills.GetNode<Button>("Content/Slots/ESlot/E");
         var auraCooldown = auraButton.GetNode<Label>("Cooldown");
         Check(drainButton.TooltipText.Contains("50%") && drainButton.TooltipText.Contains("일반 공격 또는 Q") &&
-            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("25%") &&
-            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("0.5초마다 10회") &&
-            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("총 11회"), "W/E descriptions show their actual effects");
+            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("25%") &&
+            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("0.5초마다 10회") &&
+            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("즉시 1회"), "W/E descriptions show their actual effects");
         Receive("COOLDOWN 1400 1 0");
         Receive("SKILL_ACTIVE 1400 1 1");
         Receive("COOLDOWN 1400 2 0");
@@ -547,7 +547,7 @@ public partial class RtsControlChecks : Main
         Receive("UNIT 1 951 9 -4 -8 1");
         Receive("TICK 100");
         await Flush();
-        var button = Skills.GetNode<Button>("Content/Slots/Q");
+        var button = Skills.GetNode<Button>("Content/Slots/QSlot/Q");
         var cooldown = (Label)button.FindChild("Cooldown", true, false);
         int before = _commands.Count;
         Check(Skills.CanUse(0) && !button.Disabled, "A live owned wolf can arm Q without selecting itself");
@@ -571,7 +571,7 @@ public partial class RtsControlChecks : Main
             {
                 GetTree().Root.GuiEmbedSubwindows = true;
                 Receive("SHIELD 506 160");
-                Motion(Skills.GetNode<Control>("Content/Slots/R").GetGlobalRect().GetCenter());
+                Motion(Skills.GetNode<Control>("Content/Slots/RSlot/R").GetGlobalRect().GetCenter());
                 await ToSignal(GetTree().CreateTimer(1), SceneTreeTimer.SignalName.Timeout);
             }
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
@@ -660,6 +660,7 @@ public partial class RtsControlChecks : Main
         Receive("ABILITY UNIT 200 1 blessing ALLY 9 12 0");
         Receive("ABILITY UNIT 200 2 ground-burst POINT 8 4 0");
         Receive("ABILITY UNIT 200 3 haste SELF 0 10 0");
+        Receive("HERO_SKILLS 200 5 3 1 0 0 0 0 0");
         Receive("UNIT 1 960 8 3 -8 2");
         Receive("UNIT 1 961 9 -4 -8 1");
         await Flush();
@@ -710,6 +711,7 @@ public partial class RtsControlChecks : Main
         Check(Unit(970).GetNodeOrNull<GolemAnimation>("GolemAnimation") != null &&
             UnitInfo.Experience is { Level: 1, Current: 0 }, "Golem binds its model and initial experience");
         Check(Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Golem reserves W for its shield, including cooldown");
+        Receive("HERO_SKILLS 201 5 3 1 0 0 0 0 0");
         int before = _commands.Count;
         KeyPress(Key.Q); KeyPress(Key.W); KeyPress(Key.R);
         Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 0", "SKILL 1", "SKILL 3" }),
@@ -737,10 +739,10 @@ public partial class RtsControlChecks : Main
         Check(golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
             !golem.GetNode<MeshInstance3D>("SlamPulse").Visible && Skills.StatusText.Contains("강화 대기"),
             "R arms the next basic skill without playing an area attack");
-        Check(Skills.GetNode<Button>("Content/Slots/Q").TooltipText.Contains("250%") &&
-            !Skills.GetNode<Button>("Content/Slots/Q").TooltipText.Contains("35%") &&
-            Skills.GetNode<Button>("Content/Slots/W").TooltipText.Contains("40%") &&
-            Skills.GetNode<Button>("Content/Slots/E").TooltipText.Contains("1.5초"),
+        Check(Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.Contains("150%") &&
+            !Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.Contains("35%") &&
+            Skills.GetNode<Button>("Content/Slots/WSlot/W").TooltipText.Contains("40%") &&
+            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("1초 기절"),
             "Ready tooltips show empowered Q without its old slow, W shield and E stun");
         foreach (string invalid in new[] { "GOLEM 970 2", "GOLEM 0 0", "GOLEM 970 0 extra", "GOLEM 970", "GOLEM 971 1", "GOLEM 9999 1" }) Receive(invalid);
         Check(Unit(970).GolemEffects.EmpowerReady && !Unit(971).GolemEffects.EmpowerReady,
@@ -761,7 +763,7 @@ public partial class RtsControlChecks : Main
         await Flush();
         Check(!golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
             golem.GetNode<MeshInstance3D>("SlamPulse").Visible && !Skills.StatusText.Contains("강화 대기") &&
-            Skills.GetNode<Button>("Content/Slots/Q").TooltipText.StartsWith("Q · 내려찍기"),
+            Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.StartsWith("Q · 내려찍기"),
             "Consumption clears readiness while an explicit empowered Q still plays after that update");
         Receive("GOLEM 970 1");
         Receive("SKILL 970 1 EMPOWERED");

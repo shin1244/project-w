@@ -9,6 +9,13 @@ public partial class FogOfWar : MeshInstance3D
     [Export] public UnitManager Units;
     [Export] public BuildingManager Buildings;
     public uint Team { get; private set; }
+    public bool Spectating { get; private set; }
+    public void SetSpectator(bool enabled)
+    {
+        Spectating = enabled;
+        Visible = !enabled;
+        Invalidate();
+    }
     private readonly Dictionary<uint, float> _unitSight = new();
     private readonly Dictionary<uint, float> _buildingSight = new();
     private readonly Dictionary<uint, float> _unitRadii = new();
@@ -116,6 +123,7 @@ public partial class FogOfWar : MeshInstance3D
 
     public void Reset()
     {
+        SetSpectator(false);
         Team = 0;
         _unitSight.Clear();
         _buildingSight.Clear();
@@ -193,6 +201,7 @@ public partial class FogOfWar : MeshInstance3D
 
     public bool IsVisibleAt(Vector3 position)
     {
+        if (Spectating) return true;
         var point = new Vector2(position.X, position.Z);
         foreach (FogLightMesh source in _sources.Values)
             if (source.Contains(point)) return true;
@@ -207,6 +216,7 @@ public partial class FogOfWar : MeshInstance3D
 
     public bool IsBuildingVisible(Building building)
     {
+        if (Spectating) return true;
         if (_dirty) RefreshVision();
         if (Team == 0) return false;
         if (building.SideId == Team) return true;

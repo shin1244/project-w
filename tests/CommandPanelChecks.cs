@@ -81,6 +81,7 @@ public partial class CommandPanelChecks : Main
             Receive("STOCK 0 100");
             Receive("SUPPLY 4 10");
             CheckWorkerTrain();
+            CheckTownHallTiers();
             await CheckBarracksProduction();
             await CheckCancellation();
             foreach (uint id in new uint[] { 202, 203 })
@@ -223,13 +224,69 @@ public partial class CommandPanelChecks : Main
     private void Expect(string message, params (int Slot, string Text)[] entries)
     {
         var expected = entries.ToDictionary(entry => entry.Slot, entry => entry.Text);
+        bool townHall = expected.GetValueOrDefault(7) == "일꾼";
+        if (townHall) expected[1] = "2티어\n업그레이드(Z)";
         foreach ((int number, Button button) in _slots)
         {
             string text = expected.GetValueOrDefault(number, "");
-            bool disabled = text.Length == 0;
+            bool disabled = text.Length == 0 || (townHall && number == 1);
             Check(button.Text == text && button.Disabled == disabled,
                 $"{message}: slot {number} expected '{text}', got '{button.Text}' (disabled={button.Disabled})");
         }
+    }
+
+    private void CheckTownHallTiers()
+    {
+        SelectBuilding(201);
+        Receive("TEAM_TIER 1 1 201 0 0 0");
+        Receive("STOCK 0 599");
+        int sent = _commands.Count;
+        _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+        Units.RequestUpgradeTownHall();
+        Check(_slots[1].Disabled && _commands.Count == sent, "Town hall upgrade requires 600 wood");
+        Receive("STOCK 0 600");
+        Receive("QUEUE 201 10 9800:0:7");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
+        Check(_slots[1].Disabled && _commands.Count == sent, "Queued worker blocks Z upgrade");
+        Receive("QUEUE 201 0");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
+        Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_TOWNHALL 201" &&
+            Buildings.TeamTier(1).Tier == 1 && Buildings.CommanderWood == 600,
+            "Z sends exactly the selected hall, without predicting tier or charging resources");
+        Receive("TEAM_TIER 1 1 201 2 30 60");
+        sent = _commands.Count;
+        _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+        Units.RequestUpgradeTownHall();
+        Units.RequestTrainWorker();
+        var progress = GetNode<SelectionDetails>("SelectionUI/SelectionDetails").FindChildren("ProductionProgress", "ProgressBar", true, false).OfType<ProgressBar>().Single();
+        Check(_slots[1].Disabled && _slots[7].Disabled && progress.Value == 50 && progress.IsVisibleInTree() &&
+            _commands.Count == sent, "Server progress disables duplicate upgrade and worker production");
+        foreach (string invalid in new[] { "TEAM_TIER 1 1 201 3 30 60", "TEAM_TIER 1 1 201 2 61 60", "TEAM_TIER 1 1 201 0 1 60", "TEAM_TIER 1 4 201 0 0 0", "TEAM_TIER 1 1 201 2 NaN 60" }) Receive(invalid);
+        Check(Buildings.TeamTier(1).Remaining == 30, "Malformed tier snapshots preserve valid progress");
+        Receive("TEAM_TIER 2 2 203 3 45 90");
+        Check(Buildings.TeamTier(2).TargetTier == 3 && Buildings.TeamTier(1).Tier == 1, "Enemy public tier is stored independently");
+        Receive("TEAM_TIER 1 2 201 0 0 0");
+        Receive("STOCK 0 999");
+        Check(_slots[1].Disabled && !_slots[7].Disabled, "Tier two completes and tier three requires 1000 wood");
+        Receive("STOCK 0 1000");
+        _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+        Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_TOWNHALL 201", "Tier three button uses the same authoritative command");
+        Receive("TEAM_TIER 1 3 201 0 0 0");
+        sent = _commands.Count;
+        Units.RequestUpgradeTownHall();
+        Check(_slots[1].Disabled && _commands.Count == sent, "Tier three is the maximum");
+        SelectBuilding(203);
+        Units.RequestUpgradeTownHall();
+        Check(_commands.Count == sent, "Enemy hall cannot be upgraded");
+        Receive("WELCOME 7 1 HERO 200");
+        SelectBuilding(201);
+        Receive("STOCK 0 1000");
+        Units.RequestUpgradeTownHall();
+        Check(_commands.Count == sent && Buildings.TeamTier(1).Tier == 1 && Buildings.TeamTier(2).Tier == 1,
+            "Hero role cannot upgrade and role change clears stale team tiers");
+        Receive("WELCOME 7 1 COMMANDER");
+        SelectBuilding(201);
+        Receive("STOCK 0 100");
     }
 
     private void CheckCombatCommands()
@@ -454,7 +511,7 @@ public partial class CommandPanelChecks : Main
         Receive("HP 601 800 800");
         Receive("STATS 601 0 0 0 0 6");
         SelectBuilding(601);
-        Expect("A completed friendly barracks trains both soldiers", (7, "검방병"), (8, "궁수"));
+        Expect("A completed friendly barracks trains both soldiers", (7, "검방병"), (8, "궁수"), (9, "치유사"));
         Check(_slots[7].TooltipText.Contains("200") && _slots[8].TooltipText.Contains("인구 2"), "Both soldiers display their initial cost and supply");
         int unitCount = Units.LiveUnits.Count;
         string stock = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
@@ -477,7 +534,7 @@ public partial class CommandPanelChecks : Main
         var progress = details.FindChildren("ProductionProgress", "ProgressBar", true, false).OfType<ProgressBar>().Single();
         Check(progress.IsVisibleInTree() && progress.Value == 25 && !progress.ShowPercentage,
             "Server production fills a bar in the information panel without a percent button");
-        Expect("Command slots contain only production actions", (7, "검방병"), (8, "궁수"));
+        Expect("Command slots contain only production actions", (7, "검방병"), (8, "궁수"), (9, "치유사"));
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
         Check(queue.GetChildCount() == 5 && queue.GetChild(0).GetChild<TextureRect>(0).Texture != null &&
             queue.GetChild(1).GetChild<TextureRect>(0).Texture != null && queue.GetChild(2).GetChild<TextureRect>(0).Texture == null,
@@ -487,7 +544,7 @@ public partial class CommandPanelChecks : Main
         Check(details.GetGlobalRect().Encloses(queue.GetGlobalRect()), "Production queue fits inside the information panel");
         SelectBuilding(602);
         Check(!progress.IsVisibleInTree(), "Another empty producer hides the previous progress");
-        Expect("Another barracks starts with its own empty queue", (7, "검방병"), (8, "궁수"));
+        Expect("Another barracks starts with its own empty queue", (7, "검방병"), (8, "궁수"), (9, "치유사"));
         _slots[8].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "TRAIN 602 2", "Changing selection changes the producer ID");
         Receive("QUEUE 602 75 2");
@@ -509,7 +566,7 @@ public partial class CommandPanelChecks : Main
             "A completed unit with no exit keeps its full progress bar and waiting status");
         Receive("QUEUE 601 0");
         Check(!progress.IsVisibleInTree(), "Completing production hides the production area");
-        Expect("Completing all work clears progress and unlocks both buttons", (7, "검방병"), (8, "궁수"));
+        Expect("Completing all work clears progress and unlocks both buttons", (7, "검방병"), (8, "궁수"), (9, "치유사"));
 
         foreach (uint id in new uint[] { 603, 604 })
         {
@@ -524,7 +581,7 @@ public partial class CommandPanelChecks : Main
         Check(Buildings.SelectedBuilding.ProductionQueue.Count == 0, "Enemy production snapshots are ignored");
         SelectBuilding(603);
         Receive("CONSTRUCTION 603 100");
-        Expect("Finishing construction enables production immediately", (7, "검방병"), (8, "궁수"));
+        Expect("Finishing construction enables production immediately", (7, "검방병"), (8, "궁수"), (9, "치유사"));
         Receive("REMOVE 603");
         Expect("Destroying the selected barracks clears its commands and progress");
         count = _commands.Count;
@@ -544,7 +601,7 @@ public partial class CommandPanelChecks : Main
         SelectBuilding(601);
         Receive("QUEUE 601 40 9001:1:7 9002:2:7 9003:1:9");
         Building producer = Buildings.SelectedBuilding;
-        Expect("Owned active production shows cancel", (7, "검방병"), (8, "궁수"), (3, "생산 취소\n(Esc)"));
+        Expect("Owned active production shows cancel", (7, "검방병"), (8, "궁수"), (9, "치유사"), (3, "생산 취소\n(Esc)"));
         Check(_slots[3].TooltipText.Contains("75%"), "Cancellation explains the refund rate");
         var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
@@ -563,7 +620,7 @@ public partial class CommandPanelChecks : Main
             "Cancel click does not predict queue removal, progress or refund");
         Check(Buildings.SelectedBuilding == producer && Units.SelectedUnitIds.Count == 0, "Queue click does not select the world beneath it");
 
-        foreach (string malformed in new[] { "QUEUE 601 50 0:1:7", "QUEUE 601 50 9001:1:0", "QUEUE 601 50 9001:1:7 9001:2:7", "QUEUE 601 50 9001:1:7 2", "QUEUE 601 50 9001:3:7", "QUEUE 601 50 9001:1:7:8" }) Receive(malformed);
+        foreach (string malformed in new[] { "QUEUE 601 50 0:1:7", "QUEUE 601 50 9001:1:0", "QUEUE 601 50 9001:1:7 9001:2:7", "QUEUE 601 50 9001:1:7 2", "QUEUE 601 50 9001:4:7", "QUEUE 601 50 9001:1:7:8" }) Receive(malformed);
         Check(producer.ProductionPercent == 40 && producer.ProductionJobs.Count == 3, "Malformed job IDs and owners do not corrupt the queue");
         _slots[3].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "CANCEL_TRAIN 601 9001", "Command button cancels active production");

@@ -15,7 +15,9 @@ public partial class SelectionPortraits : Node
             "res://units/Knight.tscn" => enemy ? "knight-enemy" : "knight",
             "res://units/HeroTest.tscn" => enemy ? "mutant-wolf-enemy" : "mutant-wolf",
             "res://units/HeroGolem.tscn" => enemy ? "rune-golem-enemy" : "rune-golem",
+            "res://units/HeroMarshal.tscn" => enemy ? "marshal-enemy" : "marshal",
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
+            "res://units/Medic.tscn" => enemy ? "medic-enemy" : "medic",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
             "res://units/MinionHealer.tscn" => enemy ? "minion-healer-enemy" : "minion-healer",
@@ -32,7 +34,7 @@ public partial class SelectionPortraits : Node
         if (name == null) return null;
         if (!_cache.TryGetValue(name, out Texture2D texture))
         {
-            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy"
+            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy" or "marshal" or "marshal-enemy" or "medic" or "medic-enemy"
                 ? $"res://ui/icons/{name}.svg" : $"res://ui/portraits/{name}.png";
             texture = GD.Load<Texture2D>(path);
             _cache.Add(name, texture);

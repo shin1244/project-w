@@ -13,7 +13,7 @@ public partial class MatchResultPanel : CanvasLayer
         var screen = GD.Load<PackedScene>("res://lobby/MatchScreen.tscn").Instantiate<Control>();
         AddChild(screen);
         screen.GetNode<Label>("Header/Row/PreviewBadge").Text = "경기 종료";
-        screen.GetNode<Label>("%Kicker").Text = $"{LocalTeam}팀 · 최종 결과";
+        screen.GetNode<Label>("%Kicker").Text = LocalTeam == 0 ? "관전 · 최종 결과" : $"{LocalTeam}팀 · 최종 결과";
         var title = screen.GetNode<Label>("%Title");
         title.Text = Result.Title(LocalTeam);
         title.AddThemeFontSizeOverride("font_size", 48);

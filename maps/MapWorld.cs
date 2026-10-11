@@ -86,7 +86,7 @@ public partial class MapWorld : Node3D
         public float[][] Entrances { get; set; } = Array.Empty<float[]>();
         public float EntranceWidth { get; set; }
 
-        public bool IsValid() => !string.IsNullOrWhiteSpace(Id) && (Kind == "event" || Kind == "jungle") &&
+        public bool IsValid() => !string.IsNullOrWhiteSpace(Id) && (Kind is "event" or "jungle" or "spawn") &&
             IsPoint(Center) && IsPoint(Radii) && Radii.All(radius => radius > 0) &&
             Entrances != null && Entrances.All(IsPoint) && float.IsFinite(EntranceWidth) &&
             EntranceWidth >= 0 && (Entrances.Length == 0 || EntranceWidth > 0);
@@ -160,10 +160,23 @@ public partial class MapWorld : Node3D
             child.QueueFree();
         }
         using var builder = (RefCounted)GD.Load<GDScript>("res://maps/TerrainBuilder.gd").New();
-        Node3D terrain = builder.Call("generate", Json.ParseString(Encoding.UTF8.GetString(bytes))).As<Node3D>();
+        // Release native JSON variants while the engine is alive, including on headless shutdown.
+        using var mapData = Json.ParseString(Encoding.UTF8.GetString(bytes));
+        using var generated = builder.Call("generate", mapData);
+        Node3D terrain = generated.As<Node3D>();
         AddChild(terrain);
+        foreach (var area in map.ActivityAreas.Where(a=>a.Kind=="spawn"))
+        {
+            Vector3 center=new(area.Center[0],0,area.Center[1]);
+            uint team=(uint)Enumerable.Range(0,map.Bases.Length).MinBy(i=>center.DistanceSquaredTo(new Vector3(map.Bases[i][0],0,map.Bases[i][1])))+1;
+            var zone=new SpawnZoneView { Name=area.Id,Position=center,Team=team,Radii=new Vector2(area.Radii[0],area.Radii[1]) };
+            AddChild(zone);
+        }
         ResetTrees();
     }
+
+    public void SetLocalTeam(uint team)
+    { foreach (Node child in GetChildren()) if (child is SpawnZoneView zone) zone.SetLocalTeam(team); }
 
     private void ResetTrees()
     {

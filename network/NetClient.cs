@@ -86,5 +86,12 @@ public partial class NetClient : Node
         _inbox.Clear();
     }
 
-    public override void _ExitTree() => Disconnect();
+    public override void _ExitTree()
+    {
+        Disconnect();
+        // This autoload exits after the game scene. Finalize temporary native Variants
+        // before Godot shuts down its object/Variant runtime (also in headless checks).
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
 }

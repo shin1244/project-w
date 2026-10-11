@@ -1,6 +1,7 @@
 using System.Globalization;
 
-// EXP level current required: owner-only progress, independent of the respawned unit ID.
+// EXP level current required: the team's shared progress delivered to each hero owner,
+// independent of the respawned unit ID.
 public readonly record struct HeroExperienceSnapshot(int Level, long Current, long Required)
 {
     public bool IsMaxLevel => Required == 0;

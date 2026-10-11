@@ -133,8 +133,10 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.TierOne, 5) => "포탑\n(S)",
                 (DisplayMode.TierOne, 1) => "뒤로(Z)",
                 (DisplayMode.TownHall, 7) => "일꾼",
+                (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
                 (DisplayMode.Barracks, 7) => "검방병",
                 (DisplayMode.Barracks, 8) => "궁수",
+                (DisplayMode.Barracks, 9) => "치유사",
                 (DisplayMode.Construction, 3) => "건설 취소\n(Esc)",
                 _ => ""
             };
@@ -179,16 +181,33 @@ public partial class CommandPanel : PanelContainer
         _slots[8].Text = canCancel ? "생산 취소\n(Esc)" : "";
         _slots[8].Disabled = !canCancel;
         _slots[8].TooltipText = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
-        _slots[0].Disabled = count >= ProductionSnapshot.MaxQueue;
+        _slots[0].Disabled = count >= ProductionSnapshot.MaxQueue || Buildings.IsTownHallUpgrading(producer);
         const string rallyHint = "\n지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제";
-        _slots[0].TooltipText = (_display == DisplayMode.TownHall ? "나무 100 · 인구 1 · 생산 10초\n나무 우클릭: 새 일꾼 자동 채집" : "나무 200 · 인구 2 · 생산 10초") + rallyHint;
+        _slots[0].TooltipText = (_display == DisplayMode.TownHall ? "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" : "나무 200 · 인구 2 · 생산 12초") + rallyHint;
+        if (_display == DisplayMode.TownHall)
+        {
+            var state = Buildings.TeamTier(producer.SideId);
+            string reason = Units.TownHallUpgradeBlockReason(producer);
+            _slots[6].Disabled = reason != null;
+            _slots[6].Text = state.Upgrading ? $"{state.TargetTier}티어 강화\n{state.Remaining:0}초" :
+                state.Tier >= 3 ? "3티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
+            _slots[6].TooltipText = (state.Tier == 1 ? "나무 600 · 60초" : "나무 1,000 · 90초") +
+                "\n회관·요새·포탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
+            if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "회관 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
+        }
         if (_display == DisplayMode.Barracks)
         {
             _slots[1].Disabled = count >= ProductionSnapshot.MaxQueue;
-            _slots[1].TooltipText = "나무 200 · 인구 2 · 생산 10초" + rallyHint;
+            _slots[1].TooltipText = "나무 200 · 인구 2 · 생산 12초" + rallyHint;
+            _slots[2].Disabled = count >= ProductionSnapshot.MaxQueue;
+            _slots[2].TooltipText = "나무 200 · 인구 2 · 생산 15초\n" + UnitCatalog.Description(UnitCatalog.Medic) + rallyHint;
         }
         ApplyUnitRequirement(_slots[0], _display == DisplayMode.TownHall ? UnitCatalog.Worker : UnitCatalog.Knight);
-        if (_display == DisplayMode.Barracks) ApplyUnitRequirement(_slots[1], UnitCatalog.Archer);
+        if (_display == DisplayMode.Barracks)
+        {
+            ApplyUnitRequirement(_slots[1], UnitCatalog.Archer);
+            ApplyUnitRequirement(_slots[2], UnitCatalog.Medic);
+        }
     }
 
     private void ApplyUnitRequirement(Button slot, uint type)
@@ -222,7 +241,9 @@ public partial class CommandPanel : PanelContainer
             if (producer.ProductionJobs.Count > 0) Units.RequestCancelTraining(producer, producer.ProductionJobs[0].Id);
         }
         else if (_display == DisplayMode.TownHall && number == 7) Units.RequestTrainWorker();
-        else if (_display == DisplayMode.Barracks && number is 7 or 8) Units.RequestTrain(number == 7 ? 1u : 2u);
+        else if (_display == DisplayMode.TownHall && number == 1) Units.RequestUpgradeTownHall();
+        else if (_display == DisplayMode.Barracks && number is 7 or 8 or 9)
+            Units.RequestTrain(number == 7 ? UnitCatalog.Knight : number == 8 ? UnitCatalog.Archer : UnitCatalog.Medic);
         else if (_display == DisplayMode.Workers && number == 1)
         {
             SetMenuOpen(true);
@@ -251,7 +272,7 @@ public partial class CommandPanel : PanelContainer
         RefreshSelection();
         int slot = code switch
         {
-            Key.Z when _display is DisplayMode.Workers or DisplayMode.TierOne => 1,
+            Key.Z when _display is DisplayMode.Workers or DisplayMode.TierOne or DisplayMode.TownHall => 1,
             Key.Q when _tierOne => 7,
             Key.W when _tierOne => 8,
             Key.E when _tierOne => 9,

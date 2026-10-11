@@ -10,17 +10,33 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene WorkerScene;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
+    [Export] public PackedScene MedicScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene MinionHealerScene;
     [Export] public PackedScene HeroTestScene;
     [Export] public PackedScene HeroGolemScene;
+    [Export] public PackedScene HeroMarshalScene;
     [Export] public PackedScene SiegeRamScene;
+    [Export] public PackedScene JungleBoarScene;
+    [Export] public PackedScene JungleTreantScene;
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
     public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
     public uint LocalTeam => _localTeam;
+    public bool Spectating { get; private set; }
+    public bool CommanderControl { get; set; }
+    public uint DisplayTeam => Spectating ? 1u : _localTeam;
+
+    public void SetSpectator(bool enabled)
+    {
+        Spectating = enabled;
+        if (enabled) ClearSelection();
+        foreach (Unit unit in _units.Values) unit.SetLocalTeam(DisplayTeam);
+        if (GodotObject.IsInstanceValid(Buildings))
+            foreach (Building building in Buildings.LiveBuildings) building.SetLocalTeam(DisplayTeam);
+    }
     public Func<Vector3, bool> EffectVisibilityCheck { get; set; }
     // 소유하지 않은 유닛은 정보만 살펴보고 명령/부대 지정에는 넣지 않는다.
     public Unit InspectedUnit { get; private set; }
@@ -30,12 +46,16 @@ public partial class UnitManager : Node3D
         UnitCatalog.Worker => WorkerScene,
         UnitCatalog.Knight => KnightScene,
         UnitCatalog.Archer => ArcherScene,
+        UnitCatalog.Medic => MedicScene ??= GD.Load<PackedScene>("res://units/Medic.tscn"),
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
         UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
+        UnitCatalog.HeroMarshal => HeroMarshalScene ??= GD.Load<PackedScene>("res://units/HeroMarshal.tscn"),
         UnitCatalog.SiegeRam => SiegeRamScene ??= GD.Load<PackedScene>("res://units/SiegeRam.tscn"),
+        UnitCatalog.JungleBoar => JungleBoarScene ??= GD.Load<PackedScene>("res://units/JungleBoar.tscn"),
+        UnitCatalog.JungleTreant => JungleTreantScene ??= GD.Load<PackedScene>("res://units/JungleTreant.tscn"),
         _ => null
     };
     public event Action SelectionChanged;
@@ -69,6 +89,7 @@ public partial class UnitManager : Node3D
 
     public void Clear()
     {
+        CommanderControl = false;
         _interpolation.Reset();
         _controlledHeroType = null;
         ClearSelectionCore();
@@ -120,6 +141,25 @@ public partial class UnitManager : Node3D
 
     public void RequestTrainWorker() => RequestTrain(0);
 
+    public string TownHallUpgradeBlockReason(Building hall)
+    {
+        if (!CommanderControl || Spectating || _controlledHeroType.HasValue || !CanUseSelectedBuilding(hall) ||
+            hall.BuildingType != BuildingCatalog.TownHall) return "아군 회관을 선택하세요";
+        if (hall.IsUnderConstruction) return "회관 건설 중";
+        var tier = Buildings.TeamTier(hall.SideId);
+        if (tier.Upgrading) return "회관 업그레이드 중";
+        if (tier.Tier >= 3) return "최고 단계";
+        if (hall.ProductionQueue.Count != 0) return "일꾼 생산 대기열을 비워주세요";
+        return Buildings.CommanderWood < (tier.Tier == 1 ? 600 : 1000) ? "나무 부족" : null;
+    }
+
+    public void RequestUpgradeTownHall()
+    {
+        var hall = Buildings?.SelectedBuilding;
+        if (TownHallUpgradeBlockReason(hall) == null)
+            CommandRequested?.Invoke(Protocol.BuildUpgradeTownHall(hall.BuildingId));
+    }
+
     public void RequestHeroSkill(SkillDefinitionSnapshot definition, uint heroId, SkillInput input)
     {
         if (!_controlledHeroType.HasValue || definition.UnitType != _controlledHeroType || input.Slot != definition.Slot ||
@@ -134,6 +174,7 @@ public partial class UnitManager : Node3D
                 break;
             case SkillTargetMode.Enemy:
             case SkillTargetMode.Ally:
+                if (input.Target is Unit { UnitType: UnitCatalog.Worker }) return;
                 uint id, team;
                 if (input.Target is Unit unit && CanInspect(unit)) { id = unit.UnitId; team = unit.Team; }
                 else if (input.Target is Building building && GodotObject.IsInstanceValid(Buildings) && Buildings.CanInspect(building))
@@ -173,7 +214,7 @@ public partial class UnitManager : Node3D
 
         Building producer = Buildings.SelectedBuilding;
         if (!GodotObject.IsInstanceValid(producer) || producer.IsQueuedForDeletion() || !producer.IsInsideTree() ||
-            !producer.CanTrain(unitType) || producer.IsUnderConstruction || producer.SideId != _localTeam ||
+            !producer.CanTrain(unitType) || producer.IsUnderConstruction || Buildings.IsTownHallUpgrading(producer) || producer.SideId != _localTeam ||
             Buildings.UnitRequirementBlockReason(unitType) != null ||
             producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ||
             !Buildings.TryGetBuilding(producer.BuildingId, out Building registered) || registered != producer) return;
@@ -271,7 +312,34 @@ public partial class UnitManager : Node3D
     // 모든 일반 우클릭의 진입점. 새 대상의 기본 행동은 이곳에 추가합니다.
     public void RequestContextOrder(Node3D target, Vector3 point)
     {
+        if (target is ItemCrateView crate)
+        {
+            if (!GodotObject.IsInstanceValid(crate) || crate.IsQueuedForDeletion() || !crate.IsVisibleInTree() ||
+                !crate.Available || crate.LocalTeam != _localTeam) return;
+            ValidateSelection();
+            if (_controlledHeroType.HasValue && crate.Snapshot.PlayerId == _localPlayerId)
+            {
+                Unit hero = _units.Values.FirstOrDefault(u => CanControl(u) && UnitCatalog.IsHero(u.UnitType) &&
+                    (u.HealthBar.MaxHP == 0 || u.HealthBar.CurrentHP > 0));
+                if (hero != null) CommandRequested?.Invoke(Protocol.BuildPickupCrate(hero.UnitId, crate.Snapshot.Id));
+            }
+            else if (!_controlledHeroType.HasValue && TryGetSelectedWorker(out Unit worker))
+                CommandRequested?.Invoke(Protocol.BuildDeliverItem(crate.Snapshot.Id, worker.UnitId));
+            return;
+        }
         // 공물은 영웅의 전용 상호작용이다. RTS 선택/집결 명령으로 흘려보내지 않는다.
+        if (target is GoldNuggetView nugget)
+        {
+            if (!_controlledHeroType.HasValue || !GodotObject.IsInstanceValid(nugget) ||
+                nugget.IsQueuedForDeletion() || !nugget.IsVisibleInTree() || !nugget.Available) return;
+            ValidateSelection();
+            Unit collector = _units.Values.FirstOrDefault(unit => CanControl(unit) && UnitCatalog.IsHero(unit.UnitType) &&
+                (unit.HealthBar.MaxHP == 0 || unit.HealthBar.CurrentHP > 0));
+            if (collector == null) return;
+            _targetIndicator.Clear();
+            CommandRequested?.Invoke(Protocol.BuildCollectGold(collector.UnitId, nugget.Snapshot.Id));
+            return;
+        }
         if (target is TributeEventView tribute)
         {
             if (!_controlledHeroType.HasValue || !GodotObject.IsInstanceValid(tribute) ||
@@ -387,16 +455,17 @@ public partial class UnitManager : Node3D
         SiegeRamImpact.Spawn(this, impact.Position, impact.Team);
     }
 
-    // Only the explicit server death-heal event creates this effect. REMOVE can also mean devour.
+    // Only explicit server healing events create effects. Neither changes local HP.
     public void HandleMinionHeal(string[] parts)
     {
-        if (parts.Length != 5 || parts[0] != "MINION_HEAL" ||
+        if (parts.Length != 5 || parts[0] is not ("MINION_HEAL" or "MEDIC_HEAL") ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
             !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) ||
             !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) ||
             !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float radius) ||
             !float.IsFinite(x) || !float.IsFinite(z) || !float.IsFinite(radius) || radius <= 0 ||
-            !_units.TryGetValue(id, out Unit source) || source.UnitType != UnitCatalog.MinionHealer ||
+            !_units.TryGetValue(id, out Unit source) ||
+            source.UnitType != (parts[0] == "MEDIC_HEAL" ? UnitCatalog.Medic : UnitCatalog.MinionHealer) ||
             !CanInspect(source) || HasNode($"MinionHeal_{id}")) return;
 
         var pulse = new MinionHealPulse {
@@ -472,7 +541,8 @@ public partial class UnitManager : Node3D
 
         if ((ownerID == 0) != UnitCatalog.IsAutonomous(unitType)) return;
 
-        if (!uint.TryParse(parts[6], out uint team) || team == 0)
+        // Team 0 is only for neutral jungle monsters.
+        if (!uint.TryParse(parts[6], out uint team) || (team == 0) != UnitCatalog.IsNeutral(unitType))
             return;
 
         if (!float.TryParse(
@@ -519,7 +589,7 @@ public partial class UnitManager : Node3D
         unit.ResolveFocus = ResolveFocus;
 
         unit.Initialize(unitId, ownerID, team);
-        unit.SetLocalTeam(_localTeam);
+        unit.SetLocalTeam(DisplayTeam);
         unit.Name = $"Unit_{unitId}";
 
         AddChild(unit);
@@ -613,7 +683,7 @@ public partial class UnitManager : Node3D
     }
 
     public bool CanControl(Unit unit) => GodotObject.IsInstanceValid(unit) && unit.IsInsideTree() &&
-        !unit.IsQueuedForDeletion() && !unit.IsDying && _localPlayerId != 0 && unit.OwnerId == _localPlayerId &&
+        !Spectating && !unit.IsQueuedForDeletion() && !unit.IsDying && _localPlayerId != 0 && unit.OwnerId == _localPlayerId &&
         (!_controlledHeroType.HasValue || unit.UnitType == _controlledHeroType.Value && unit.Team == _localTeam) &&
         _units.TryGetValue(unit.UnitId, out Unit registered) && registered == unit;
 

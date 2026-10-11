@@ -20,7 +20,8 @@ public partial class TributeEventPanel : Control
     {
         MouseFilter = MouseFilterEnum.Ignore;
         SetAnchorsAndOffsetsPreset(LayoutPreset.CenterTop);
-        OffsetLeft = -115; OffsetRight = 115; OffsetTop = 42; OffsetBottom = 72;
+        // Leave room for the battle guide's heading and both spectator team XP rows.
+        OffsetLeft = -115; OffsetRight = 115; OffsetTop = 82; OffsetBottom = 112;
         var panel = new PanelContainer { Name = "Frame", MouseFilter = MouseFilterEnum.Ignore };
         AddChild(panel);
         panel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);

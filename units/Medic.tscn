@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/MedicRig.cs" id="2_rig"]
+[ext_resource type="Script" path="res://units/SoldierAnimation.cs" id="3_walk"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 0.55
+height = 2.35
+
+[node name="Medic" instance=ExtResource("1_base")]
+UnitType = 3
+HealthBarHeight = 2.65
+BodyRadius = 0.4
+
+[node name="Rig" type="Node3D" parent="Visual"]
+script = ExtResource("2_rig")
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 1.175, 0)
+shape = SubResource("Selection")
+
+[node name="SoldierAnimation" type="Node" parent="."]
+script = ExtResource("3_walk")

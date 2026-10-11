@@ -28,7 +28,7 @@ public partial class Building : Node3D
     public bool IsProducer => BuildingType is BuildingCatalog.TownHall or BuildingCatalog.Barracks;
     public RallySnapshot? Rally { get; internal set; }
     public bool CanTrain(uint type) => BuildingType == BuildingCatalog.TownHall ? type == 0 :
-        BuildingType == BuildingCatalog.Barracks && type is 1 or 2;
+        BuildingType == BuildingCatalog.Barracks && type is UnitCatalog.Knight or UnitCatalog.Archer or UnitCatalog.Medic;
 
     public bool ApplyProduction(ProductionSnapshot snapshot)
     {

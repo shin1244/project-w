@@ -126,7 +126,7 @@ public partial class SelectionDetailsChecks : Main
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 202));
             Receive("STATE 202 ATTACK 0 201 1");
             await Layout();
-            Check(Labels().Any(label => label.Text == "요새") && Labels().Any(label => label.Text == "상태   공격 중"), "Type 1 fortress displays its name and server activity");
+            Check(Labels().Any(label => label.Text == "요새 · 1티어") && Labels().Any(label => label.Text == "상태   공격 중"), "Type 1 fortress displays its name, team tier and server activity");
             var portrait = Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single();
             Texture2D enemyPortrait = portrait.Texture;
             Receive("WELCOME 7 2 COMMANDER");
@@ -175,8 +175,8 @@ public partial class SelectionDetailsChecks : Main
         Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Skills.HeroType == 200 && Skills.Visible && !_details.Visible,
             "HERO welcome stores the hero type and replaces only the middle panel");
         Check(Skills.GetNode("Content/Slots").GetChildren().OfType<Control>().Count(slot => slot.Visible) == 5 &&
-            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "패시브", "Q", "W", "E", "R" }) &&
-            Skills.GetNode("Content/Slots/Q") is Button,
+            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "P · 패시브", "Q", "W", "E", "R" }) &&
+            Skills.GetNode("Content/Slots/QSlot/Q") is Button,
             "Hero HUD keeps five minimal slots and exposes the wolf Q button");
         Check(!Commands.Visible && UnitInfo.Visible && UnitInfo.Size == new Vector2(208, 160) &&
             UnitInfo.GetGlobalRect().End == commandsRect.End && UnitInfo.FindChildren("*", "Button", true, false).Count == 0,
@@ -217,7 +217,7 @@ public partial class SelectionDetailsChecks : Main
     {
         Label Info(string name) => (Label)UnitInfo.FindChild(name, true, false);
         var experience = (ProgressBar)UnitInfo.FindChild("Experience", true, false);
-        Check(Info("Level").Text == "Lv.—" && Info("ExperienceText").Text == "— / —",
+        Check(Info("Level").Text == "팀 Lv.—" && Info("ExperienceText").Text == "— / —",
             "Missing initial EXP never invents a level or threshold");
         Receive("EXP 1 35 100"); // Player progress can precede UNIT.
         Receive("UNIT 200 8005 7 0 -5 1");
@@ -225,7 +225,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATS 8005 20 0.7 1.25 6 10");
         await Layout();
         Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Info("HealthText").Text == "185 / 300" &&
-            Info("Level").Text == "Lv.1" && Info("ExperienceText").Text == "35 / 100" && experience.Value == 35 &&
+            Info("Level").Text == "팀 Lv.1" && Info("ExperienceText").Text == "35 / 100" && experience.Value == 35 &&
             Info("Damage").Text == "공격 20" && Info("AttackSpeed").Text == "공속 0.8/초" &&
             Info("Range").Text == "사거리 0.7" && Info("Sight").Text == "시야 10" && Info("Speed").Text == "이속 6",
             "Without a click the own hero shows server vitals, all five stats and owner-only progress");
@@ -237,7 +237,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("HP 8005 203.5 330");
         Receive("STATS 8005 22 0.7 0.8 6 10");
         await Layout();
-        Check(Info("Level").Text == "Lv.2" && Info("ExperienceText").Text == "25 / 150" &&
+        Check(Info("Level").Text == "팀 Lv.2" && Info("ExperienceText").Text == "25 / 150" &&
             Math.Abs(experience.Value - 100.0 / 6) < .01 && Info("HealthText").Text == "203.5 / 330" &&
             Info("Damage").Text == "공격 22" && Info("AttackSpeed").Text == "공속 1.25/초",
             "Level-up EXP, HP and STATS update independently without reselection");
@@ -305,7 +305,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("REMOVE 8005");
         Receive("HP 8005 300 300");
         await Layout();
-        Check(UnitInfo.DisplayedUnit == null && Info("HealthText").Text == "— / —" && Info("Level").Text == "Lv.2" && experience.Value == 50,
+        Check(UnitInfo.DisplayedUnit == null && Info("HealthText").Text == "— / —" && Info("Level").Text == "팀 Lv.2" && experience.Value == 50,
             "Hero death clears instance data but retains player level and XP");
         Receive("UNIT 200 8006 7 0 -5 1");
         Receive("HP 8006 330 330");
@@ -313,7 +313,7 @@ public partial class SelectionDetailsChecks : Main
         Check(UnitInfo.DisplayedUnit == Unit(8006) && experience.Value == 50 && Info("Damage").Text == "공격 —",
             "Respawn with a new ID automatically rebinds the hero without old instance stats");
         Receive("EXP 10 0 0");
-        Check(Info("Level").Text == "Lv.10" && Info("ExperienceText").Text == "MAX" && experience.Value == 100,
+        Check(Info("Level").Text == "팀 Lv.10" && Info("ExperienceText").Text == "MAX" && experience.Value == 100,
             "Server zero threshold displays a full max-level bar without hardcoding a cap");
         Receive("WELCOME 7 2 HERO 200");
         Check(UnitInfo.Experience == null && UnitInfo.DisplayedUnit == null, "Changing team resets owner progress and the displayed hero");

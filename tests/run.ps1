@@ -15,10 +15,10 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 $logRoot = Join-Path $projectRoot '.godot/check-logs'
 $suites = [ordered]@{
     Smoke = @('MapSyncChecks', 'UnitSceneChecks', 'CommandPanelChecks', 'StockChecks')
-    Units = @('UnitSceneChecks', 'InterpolationChecks', 'MinionSyncChecks')
+    Units = @('UnitSceneChecks', 'InterpolationChecks', 'MinionSyncChecks', 'RecoveryClientChecks', 'SupportUpdateChecks')
     Buildings = @('BuildingPlacementChecks', 'ConstructionSyncChecks', 'CommandPanelChecks', 'RallyChecks', 'TowerSyncChecks')
     World = @('MapSyncChecks', 'MapZonesChecks', 'FogSyncChecks', 'TributeChecks', 'SiegeRamChecks', 'check_arena')
-    UI = @('RtsControlChecks', 'SelectionDetailsChecks', 'CommandPanelChecks', 'MatchResultChecks')
+    UI = @('RtsControlChecks', 'SelectionDetailsChecks', 'CommandPanelChecks', 'MatchResultChecks', 'SpectatorChecks')
 }
 $all = @($suites.Values | ForEach-Object { $_ } | Select-Object -Unique)
 $selected = if ($Check) { @($Check | Select-Object -Unique) } elseif ($Suite -eq 'All') { $all } else { $suites[$Suite] }

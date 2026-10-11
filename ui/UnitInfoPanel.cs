@@ -175,7 +175,7 @@ public partial class UnitInfoPanel : PanelContainer
         _stats["AttackSpeed"].Text = stats is { Interval: > 0 } attack
             ? $"공속 {(1.0 / attack.Interval).ToString("0.##", CultureInfo.InvariantCulture)}/초" : "공속 —";
         _level.Visible = _experienceRow.Visible = own;
-        _level.Text = own && Experience is { } progress ? $"Lv.{progress.Level}" : "Lv.—";
+        _level.Text = own && Experience is { } progress ? $"팀 Lv.{progress.Level}" : "팀 Lv.—";
         _experienceText.Text = own && Experience is { } exp
             ? exp.IsMaxLevel ? "MAX" : $"{exp.Current} / {exp.Required}" : "— / —";
         _experience.Value = own && Experience is { } value

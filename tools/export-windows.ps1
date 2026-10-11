@@ -2,12 +2,13 @@
 [CmdletBinding()]
 param(
     [string]$GodotPath = $env:GODOT_BIN,
-    [switch]$SkipBuild # Only when the same C# sources were already built in Debug.
+    [switch]$SkipBuild, # Only when the same C# sources were already built in Debug.
+    [string]$OutputDirectory = '../build'
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$outputRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot '../build'))
+$outputRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot $OutputDirectory))
 $logRoot = Join-Path $projectRoot '.godot/check-logs/export-windows'
 
 if (!$GodotPath) {

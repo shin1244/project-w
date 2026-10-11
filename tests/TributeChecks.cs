@@ -35,6 +35,7 @@ public partial class TributeChecks : Main
             Check(Tribute == null, "Unsynchronized world cannot accept tribute snapshots");
 
             BeginHeroSession();
+            await CheckJungle(wire);
             Receive("TRIBUTE 0 WAITING 0 0 3600 0 0 0 0 0 0");
             Check(Tribute is { Active: false, NextSpawnTick: 3600 } && !_tributeView.IsVisibleInTree() &&
                 _tributePanel.IsVisibleInTree(), "First tribute waits two minutes with a HUD countdown and no world target");
@@ -45,6 +46,8 @@ public partial class TributeChecks : Main
             Check(!Tribute.Active && !_tributeView.IsVisibleInTree(), "Countdown expiry cannot spawn a tribute without a snapshot");
             Receive("TRIBUTE 1 ACTIVE 0 0 0 0 0 0 0 0 0");
             await Flush();
+            Check(!GetNode<BattleGuide>("SelectionUI/BattleGuide").GetGlobalRect().Intersects(_tributePanel.GetGlobalRect()),
+                "Hero's team progress and active tribute HUD do not overlap");
             Check(Tribute is { Active: true, EventId: 1, Channeling: false } &&
                 _tributeView.IsVisibleInTree() && _tributeView.EventId == 1,
                 "Active snapshot exposes the authoritative event target");
@@ -257,9 +260,52 @@ public partial class TributeChecks : Main
     private void CheckReset(string context) => Check(Tribute == null && !_tributeView.IsVisibleInTree() &&
         !_tributePanel.IsVisibleInTree(), $"{context} must clear tribute state, target, and HUD");
 
-    private void RightClickTribute()
+    // 정글몹(팀 0)과 금덩어리: 중립 유닛만 팀 0을 받고, 영웅 우클릭은 NUGGET 명령 하나만 보낸다.
+    private async Task CheckJungle(MemoryStream wire)
     {
-        Vector2 point = Units.Camera.UnprojectPosition(_tributeView.GlobalPosition + Vector3.Up);
+        Receive("UNIT 400 900 0 5 5 0");
+        Receive("UNIT 400 901 0 6 5 1");
+        Receive("UNIT 100 902 0 6 6 0");
+        Receive("UNIT 401 903 7 6 6 0");
+        await Flush();
+        Check(Units.TryGetUnit(900, out Unit monster) && monster.Team == 0 && UnitCatalog.Name(monster.UnitType) == "가시 멧돼지" &&
+            !Units.TryGetUnit(901, out _) && !Units.TryGetUnit(902, out _) && !Units.TryGetUnit(903, out _),
+            "Only neutral jungle types take team 0, and they have no owner");
+        foreach (string malformed in new[] { "NUGGET 50 3 0 120 80 0 0 0 0", "NUGGET 0 3 0 120 80 0 0 0 0 0",
+            "NUGGET 50 NaN 0 120 80 0 0 0 0 0", "NUGGET 50 3 0 120 80 2 0 0 0 0", "NUGGET 50 3 0 120 80 0 701 0 3600 3690",
+            "NUGGET 50 3 0 120 80 0 0 1 0 0", "NUGGET 50 3 0 120 80 0 701 1 3690 3600" })
+            Receive(malformed);
+        Check(Nuggets.Count == 0, "Malformed nugget snapshots are ignored");
+        Receive("NUGGET 50 3 0 120 80 0 0 0 0 0");
+        Receive("NUGGET 51 -3 0 280 160 1 0 0 0 0");
+        await Flush();
+        Check(Nuggets.TryGetValue(50, out var nugget) && nugget.Available && nugget.IsVisibleInTree() &&
+            !nugget.Snapshot.Credit && nugget.Snapshot.Experience == 80 && Nuggets.TryGetValue(51, out var big) && big.Snapshot.Credit,
+            "Small and big nuggets appear at the server positions; only the big one carries a credit");
+        int before = _commands.Count;
+        long beforeWire = wire.Length;
+        RightClickAt(nugget.GlobalPosition + Vector3.Up * .6f);
+        await Flush();
+        Check(_commands.Skip(before).SequenceEqual(new[] { "NUGGET 701 50" }) &&
+            WireAfter(wire, beforeWire) == "NUGGET 701 50" + System.Environment.NewLine,
+            "One hero right-click on gold emits exactly one collect command");
+        Receive("TICK 100");
+        Receive("NUGGET 50 3 0 120 80 0 701 1 100 190");
+        Receive("TICK 145");
+        Check(nugget.Snapshot.Channeling && Mathf.IsEqualApprox(nugget.Snapshot.Progress(145), .5f),
+            "The three-second channel progress comes from the server snapshot");
+        Receive("NUGGET_REMOVE 50");
+        Receive("NUGGET_REMOVE 51");
+        Receive("REMOVE 900");
+        await Flush();
+        Check(Nuggets.Count == 0 && !Units.TryGetUnit(900, out _), "Collection and death remove gold and monster");
+    }
+
+    private void RightClickTribute() => RightClickAt(_tributeView.GlobalPosition + Vector3.Up);
+
+    private void RightClickAt(Vector3 world)
+    {
+        Vector2 point = Units.Camera.UnprojectPosition(world);
         using var motion = new InputEventMouseMotion { Position = point, GlobalPosition = point };
         GetViewport().PushInput(motion, true);
         using var input = new InputEventMouseButton

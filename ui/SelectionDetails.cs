@@ -208,11 +208,11 @@ public partial class SelectionDetails : PanelContainer
             {
                 Unit unit = _selection[0];
                 _title.Text = UnitName(unit.UnitType);
-                _portrait.Texture = _portraits.GetPortrait(UnitScene(unit.UnitType), unit.Team != Units.LocalTeam);
+                _portrait.Texture = _portraits.GetPortrait(UnitScene(unit.UnitType), unit.Team != Units.DisplayTeam);
             }
             else if (_building != null)
             {
-                bool enemy = GodotObject.IsInstanceValid(Units) && Units.LocalTeam != 0 && _building.SideId != Units.LocalTeam;
+                bool enemy = GodotObject.IsInstanceValid(Units) && Units.DisplayTeam != 0 && _building.SideId != Units.DisplayTeam;
                 _title.Text = BuildingCatalog.Name(_building.BuildingType);
                 _portrait.Texture = _portraits.GetPortrait(Buildings.SceneFor(_building.BuildingType), enemy);
             }
@@ -254,10 +254,12 @@ public partial class SelectionDetails : PanelContainer
             _activity.TooltipText = "";
             SetText(_activity, _building.IsUnderConstruction ? $"공사 중   {_building.ConstructionPercent}%" :
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
-            SetText(_extra, "");
+            SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam
+                ? "일꾼을 선택하고 우클릭하여 이어 짓기" : "");
             string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
                 _building.Rally is not RallySnapshot r ? " · 우클릭으로 랠리 지정" : r.ResourceId != 0 ? " · 랠리: 자동 채집" : " · 랠리: 이동" : "";
-            SetText(_title, BuildingCatalog.Name(_building.BuildingType) + rallyText);
+            string tierText = _building.IsDefense ? $" · {Buildings.TeamTier(_building.SideId).Tier}티어" : "";
+            SetText(_title, BuildingCatalog.Name(_building.BuildingType) + tierText + rallyText);
             SetText(_stats, StatsText(_building.Stats, false));
             RefreshProduction();
         }
@@ -272,6 +274,16 @@ public partial class SelectionDetails : PanelContainer
 
     private void RefreshProduction()
     {
+        if (Buildings.IsTownHallUpgrading(_building))
+        {
+            var state = Buildings.TeamTier(_building.SideId);
+            _production.Visible = true;
+            SetText(_productionText, $"{state.Tier} → {state.TargetTier}티어 업그레이드 · {state.Remaining:0}초 남음");
+            _productionProgress.Value = state.Percent;
+            foreach (var frame in _queueFrames) frame.Visible = false;
+            return;
+        }
+        foreach (var frame in _queueFrames) frame.Visible = true;
         if (_building.SideId != Units.LocalTeam || _building.IsUnderConstruction || _building.ProductionQueue.Count == 0) return;
         _production.Visible = true;
         int count = _building.ProductionQueue.Count;

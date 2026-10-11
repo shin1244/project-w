@@ -173,7 +173,7 @@ public partial class BuildingPlacementChecks : Main
                 tower.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3) && tower.IsDefense,
                 "Type 6 response creates the small tower rather than a 3x3 fortress");
             Invoke("SelectBuilding", tower);
-            Check(title.Text == "포탑", "Small tower displays its separate name");
+            Check(title.Text == "포탑 · 1티어", "Small tower displays its separate name and team tier");
             Check(Issue(6, -8)?.Contains("다른 건물") == true, "The confirmed tower blocks overlapping construction");
             Invoke("SelectUnit", Unit());
 

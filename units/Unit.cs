@@ -20,6 +20,8 @@ public partial class Unit : Node3D
     public StatsSnapshot? Stats { get; set; }
     public WolfEffectSnapshot WolfEffects { get; set; }
     public GolemEffectSnapshot GolemEffects { get; set; }
+    public MarshalEffectSnapshot MarshalEffects { get; set; }
+    public uint EffectTick { get; set; }
     public bool IsDying { get; private set; }
     public event Action<UnitState, bool> StateChanged;
     // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛/건물 목록을 직접 소유하지 않습니다.

@@ -31,6 +31,7 @@ public partial class PlayerInput : Node
 	public event Action<int?> SkillTargetingChanged;
 	public event Action<bool> AttackTargetingChanged;
 	public bool IsAttackTargeting { get; private set; }
+	public bool Spectating { get; set; }
 	public bool IsSkillTargeting => _skillSlot.HasValue;
 	private int? _skillSlot;
 	private int _skillGeneration;
@@ -71,6 +72,7 @@ public partial class PlayerInput : Node
 
 	private void BeginAttackTargeting()
 	{
+		if (Spectating) return;
 		if (!GodotObject.IsInstanceValid(Camera)) return;
 		SetSkillTargeting(null);
 		Placement?.Cancel();
@@ -467,8 +469,10 @@ public partial class PlayerInput : Node
 		// 같은 광선에서 가장 먼저 닿은 유닛/건물/자원을 고릅니다.
 		if (hit.Count > 0 &&
 			hit["collider"].AsGodotObject() is Area3D area &&
-			area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode or TributeEventView) &&
+			area.GetParent() is Node3D target && (target is Unit or Building or ResourceNode or TributeEventView or ItemCrateView or GoldNuggetView) &&
 			!target.IsQueuedForDeletion() && target is not Unit { IsDying: true } &&
+			(target is not ItemCrateView crate || crate.Available && crate.IsVisibleInTree()) &&
+			(target is not GoldNuggetView nugget || nugget.Available && nugget.IsVisibleInTree()) &&
 			(target is not TributeEventView tribute || tribute.Active && tribute.IsVisibleInTree()))
 			return target;
 		return null;

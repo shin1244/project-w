@@ -125,7 +125,7 @@ public partial class BuildingManager : Node3D
             return;
         }
         Building building = scene.Instantiate<Building>();
-        building.SetLocalTeam(_localTeam);
+        building.SetLocalTeam(Units?.DisplayTeam ?? _localTeam);
         building.Name = $"Building_{id}";
         building.ResolveFocus = id => GodotObject.IsInstanceValid(Units) ? Units.ResolveFocus(id) : null;
         AddChild(building);
@@ -212,6 +212,7 @@ public partial class BuildingManager : Node3D
     public void Clear()
     {
         _localTeam = 0;
+        ResetTeamTiers();
         _unitRequirements.Clear();
         _buildingRequirements.Clear();
         bool selectionChanged = _selected != null;

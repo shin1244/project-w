@@ -13,7 +13,7 @@ public partial class RtsControlChecks
         Receive("UNIT 0 1800 7 -8 -10 1");
         Units.SelectSingle(Unit(1800));
         foreach (string message in new[] {
-            "MINION_RULES 12 30", "MINION_OPTION 100 0 60 460", "MINION_OPTION 101 0 80 480",
+            "MINION_RULES 12 30", "MINION_XP_RULE 6 5", "MINION_OPTION 100 0 60 460", "MINION_OPTION 101 0 80 480",
             "MINION_OPTION 102 0 140 540", "MINION_LANE 0 0 6 100 100 100 101 101 101",
             "MINION_LANE 1 0 6 100 100 100 101 101 101", "MINION_WAVE 900", "STOCK 0 1000", "TICK 300"
         }) Receive(message);
@@ -40,6 +40,10 @@ public partial class RtsControlChecks
         await Flush();
         Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("생명"),
             "Only the authoritative lane snapshot confirms a purchased replacement");
+        Check(((Button)MinionControl("Body/Content/Lanes/Rows/Lane1/Add")).Disabled,
+            "Plus needs a free minion credit; wood never buys a slot");
+        Receive("MINION_FREE 1");
+        await Flush();
         Click(MinionControl("Body/Content/Lanes/Rows/Lane1/Add").GetGlobalRect().GetCenter(), MouseButton.Left);
         await Flush();
         Click(MinionControl("Picker/Content/Options/Option102").GetGlobalRect().GetCenter(), MouseButton.Left);

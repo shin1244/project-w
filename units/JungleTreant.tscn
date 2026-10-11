@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/JungleTreantRig.cs" id="2_rig"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 1.25
+height = 4.0
+
+[node name="JungleTreant" instance=ExtResource("1_base")]
+UnitType = 401
+HealthBarHeight = 4.4
+BodyRadius = 0.8
+
+[node name="Rig" type="Node3D" parent="Visual"]
+script = ExtResource("2_rig")
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 2.0, 0)
+shape = SubResource("Selection")
+
+[node name="SelectionRing" parent="." index="2"]
+scale = Vector3(2.0, 1, 2.0)

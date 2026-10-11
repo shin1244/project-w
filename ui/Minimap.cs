@@ -11,9 +11,11 @@ public partial class Minimap : Control
     public event Action<Vector3> MoveRequested;
 
     public uint Team { get; private set; }
+    private uint DisplayTeam => Units?.DisplayTeam ?? Team;
     public TributeSnapshot Tribute { get; private set; }
     public static readonly Color AllyColor = new("63e88a");
     public static readonly Color EnemyColor = new("ff635f");
+    public static readonly Color NeutralColor = new("e8c35a");
     private static readonly Color MarkerOutline = new("101b1a");
     private const float Padding = 4;
     private const float UnitRadius = 2.3f;
@@ -131,7 +133,7 @@ public partial class Minimap : Control
             DrawRect(cameraRect, new Color("101b1acc"), false, 3);
             DrawRect(cameraRect, new Color("e4ede4"), false, 1);
         }
-        if (Team == 0 || !Map.IsSynchronized) return;
+        if ((Team == 0 && Units?.Spectating != true) || !Map.IsSynchronized) return;
 
         // 건물은 서버가 공개한 목록을 그대로 표시합니다. 유닛의 적 시야 여부도 UNIT/HIDE가 결정합니다.
         if (GodotObject.IsInstanceValid(Buildings))
@@ -143,7 +145,7 @@ public partial class Minimap : Control
                 point = KeepMarkerInside(point, side * .5f + 1, mapRect);
                 var rect = new Rect2(point - Vector2.One * side * .5f, Vector2.One * side);
                 DrawRect(rect.Grow(1), MarkerOutline);
-                DrawRect(rect, building.SideId == Team ? AllyColor : EnemyColor);
+                DrawRect(rect, building.SideId == DisplayTeam ? AllyColor : EnemyColor);
             }
         if (GodotObject.IsInstanceValid(Units))
             foreach (Unit unit in Units.LiveUnits)
@@ -154,7 +156,7 @@ public partial class Minimap : Control
                 if (unit.UnitType == UnitCatalog.SiegeRam)
                 {
                     point = KeepMarkerInside(point, 7, mapRect);
-                    Color ramColor = unit.Team == Team ? AllyColor : EnemyColor;
+                    Color ramColor = unit.Team == DisplayTeam ? AllyColor : EnemyColor;
                     DrawRect(new Rect2(point - new Vector2(6, 4), new Vector2(12, 8)), MarkerOutline);
                     DrawRect(new Rect2(point - new Vector2(5, 3), new Vector2(10, 6)), ramColor);
                     DrawLine(point - new Vector2(2, 3), point - new Vector2(2, -3), MarkerOutline, 2);
@@ -164,14 +166,15 @@ public partial class Minimap : Control
                 bool ownHero = UnitCatalog.IsHero(unit.UnitType) && Units.CanControl(unit);
                 float radius = ownHero ? 4.5f : UnitRadius;
                 DrawCircle(point, radius + 1, MarkerOutline, antialiased: true);
-                DrawCircle(point, radius, ownHero ? new Color("f5e4a5") : unit.Team == Team ? AllyColor : EnemyColor, antialiased: true);
+                DrawCircle(point, radius, ownHero ? new Color("f5e4a5") : unit.Team == 0 ? NeutralColor :
+                    unit.Team == DisplayTeam ? AllyColor : EnemyColor, antialiased: true);
                 if (ownHero) DrawCircle(point, radius + 2.5f, Colors.White, filled: false, width: 1);
             }
         // 이벤트 위치는 모든 팀에 공개된다. 전장의 안개와 별개로 한타 위치를 안내한다.
         if (Tribute is { Active: true } tribute && TryWorldToMap(tribute.Position, out Vector2 objective))
         {
             objective = KeepMarkerInside(objective, 7, mapRect);
-            Color color = tribute.Channeling ? tribute.CapturerTeam == Team ? AllyColor : EnemyColor : new Color("e5bc69");
+            Color color = tribute.Channeling ? tribute.CapturerTeam == DisplayTeam ? AllyColor : EnemyColor : new Color("e5bc69");
             DrawCircle(objective, 7, MarkerOutline, antialiased: true);
             Vector2[] diamond = { objective + new Vector2(0, -6), objective + new Vector2(5, 0),
                 objective + new Vector2(0, 6), objective + new Vector2(-5, 0) };

@@ -3,13 +3,24 @@ using System.Collections.Generic;
 
 public static class Protocol
 {
+    public static string BuildUpgradeTownHall(uint buildingId) => FormattableString.Invariant($"UPGRADE_TOWNHALL {buildingId}");
+    public static string BuildBuyItem(uint itemId) => FormattableString.Invariant($"BUY_ITEM {itemId}");
+    public static string BuildSellItem(int slot) => FormattableString.Invariant($"SELL_ITEM {slot}");
+    public static string BuildRecall(uint heroId) => FormattableString.Invariant($"RECALL {heroId}");
+    public static string BuildPickupCrate(uint heroId, uint crateId)
+        => FormattableString.Invariant($"PICKUP_CRATE {heroId} {crateId}");
+    public static string BuildDeliverItem(uint crateId, uint workerId)
+        => FormattableString.Invariant($"DELIVER_ITEM {crateId} {workerId}");
     public static string BuildTribute(uint heroId, uint eventId)
         => FormattableString.Invariant($"TRIBUTE {heroId} {eventId}");
+    public static string BuildCollectGold(uint heroId, uint nuggetId)
+        => FormattableString.Invariant($"NUGGET {heroId} {nuggetId}");
 
     public static string BuildTargetSkill(int slot, uint targetId)
         => FormattableString.Invariant($"SKILL {slot} {targetId}");
     public static string BuildPointSkill(int slot, float x, float z)
         => FormattableString.Invariant($"SKILL {slot} {x} {z}");
+    public static string BuildUpgradeSkill(int slot) => FormattableString.Invariant($"UPGRADE_SKILL {slot}");
     public static string BuildSelfSkill(int slot)
         => FormattableString.Invariant($"SKILL {slot}");
 
