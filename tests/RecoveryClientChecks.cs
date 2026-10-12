@@ -27,6 +27,7 @@ public partial class RecoveryClientChecks : Main
             Begin();
             CheckSkillProgression(wire);
             CheckWorkerSkillTargets(wire);
+            CheckMarshalSkillTargets(wire);
             CheckItemTiers(wire);
             Begin();
             Check(LocalHeroType==202 && Units.TryGetUnit(701,out _) && Skills.HeroUnitId==701 &&
@@ -82,7 +83,7 @@ public partial class RecoveryClientChecks : Main
             Receive("MATCH_END 1 BASE_DESTROYED 120");before=wire.Length;
             Shop.RequestBuy(7);InvokeMain("RequestRecall");
             Check(Crates.Count==0 && !Shop.Visible && wire.Length==before,"Match completion freezes purchases and recall");
-            GD.Print("PASS: recovered marshal, catalog/equipment, purchase/upgrade/sell, crate viewport pickup/delivery, recall, effects and lifecycle cleanup");
+            GD.Print("PASS: recovered marshal, accepted skill targets, catalog/equipment, purchase/upgrade/sell, crate viewport pickup/delivery, recall, effects and lifecycle cleanup");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString());GetTree().Quit(1); }
@@ -112,6 +113,43 @@ public partial class RecoveryClientChecks : Main
         Check(SkillDescriptions.Passive(UnitCatalog.HeroMarshal).Contains("일꾼") &&
             SkillDescriptions.Active(UnitCatalog.HeroTest,3,"wolf-devour",rank:1).Contains("일꾼"),
             "Hero descriptions disclose worker exclusion");
+    }
+    private void CheckMarshalSkillTargets(MemoryStream wire)
+    {
+        Begin();
+        Receive("UNIT 1 713 8 1 2 2");Receive("HP 713 100 100");
+        Unit target=Units.LiveUnits.Single(unit=>unit.UnitId==713);
+        var animation=Units.LiveUnits.Single(unit=>unit.UnitId==701).GetNode<MarshalAnimation>("MarshalAnimation");
+        Node3D ShotTarget() => (Node3D)typeof(MarshalAnimation).GetField("_shotTarget",Private).GetValue(animation);
+        long sent=wire.Length;
+        Units.RequestHeroSkill(Skills.Definition(0).Value,701,new SkillInput(0,target));
+        Check(After(wire,sent)=="SKILL 0 713\n" && ShotTarget()==null,
+            "Skill input sends a request without starting target presentation");
+        Receive("SKILL 701 0 713");
+        Check(ShotTarget()==target,"Accepted skill targets the current visible unit");
+        Receive("SKILL 701 0");
+        Check(ShotTarget()==null,"Untargeted activation clears the previous shot target");
+        Receive("SKILL 701 0 713");target.Hide();Receive("SKILL 701 0 713");
+        Check(ShotTarget()==null,"Invisible unit cannot remain a shot target");
+        target.Show();Receive("SKILL 701 0 713");Receive("REMOVE 713");Receive("SKILL 701 0 713");
+        Check(ShotTarget()==null,"Removed or dying unit cannot remain a shot target");
+        Receive("UNIT 1 713 8 2 1 2");Receive("HP 713 100 100");
+        Unit replacement=Units.LiveUnits.Single(unit=>unit.UnitId==713);
+        Receive("SKILL 701 0 713");
+        Check(replacement!=target && ShotTarget()==replacement,"Reappearing ID resolves the current unit instance");
+        Receive("SKILL 701 0 999999");
+        Check(ShotTarget()==null,"Unknown target clears the previous shot target");
+
+        Receive("BUILDING 6 714 2 1 0 0");Receive("HP 714 100 100");
+        Receive("BUILDING_VISION 714 1");Fog.RefreshVision();
+        Building building=Buildings.LiveBuildings.Single(item=>item.BuildingId==714);
+        Receive("SKILL 701 0 714");
+        Check(ShotTarget()==building,"Accepted skill can target a currently visible building");
+        Receive("BUILDING_VISION 714 0");Fog.RefreshVision();Receive("SKILL 701 0 714");
+        Check(ShotTarget()==null,"Server-hidden building cannot remain a shot target");
+        Receive("BUILDING_VISION 714 1");Fog.RefreshVision();Receive("SKILL 701 0 714");
+        Receive("BUILDING_HIDE 714");Receive("SKILL 701 0 714");
+        Check(ShotTarget()==null,"Removed building cannot remain a shot target");
     }
     private void CheckItemTiers(MemoryStream wire)
     {
@@ -241,6 +279,14 @@ public partial class RecoveryClientChecks : Main
     }
     private static void CheckParsers()
     {
+        Check(SkillActivationSnapshot.TryParse("SKILL 701 0 713".Split(' '),out var targeted) && targeted.TargetId==713 && !targeted.Empowered &&
+            SkillActivationSnapshot.TryParse("SKILL 701 2 713 EMPOWERED".Split(' '),out var empowered) && empowered.TargetId==713 && empowered.Empowered,
+            "Targeted activations preserve the server target and empowered flag");
+        Check(SkillActivationSnapshot.TryParse("SKILL 701 0".Split(' '),out var untargeted) && untargeted.TargetId==null &&
+            SkillActivationSnapshot.TryParse("SKILL 701 2 713 -2 EMPOWERED".Split(' '),out var point) && point.TargetId==null && point.Empowered,
+            "Self and point activations do not infer a target ID from coordinates");
+        foreach (string invalid in new[] { "SKILL 701 0 0", "SKILL 701 0 -1", "SKILL 701 0 nope", "SKILL 701 2 NaN 0" })
+            Check(!SkillActivationSnapshot.TryParse(invalid.Split(' '),out _),"Invalid skill target or coordinates are rejected");
         Check(HeroItemDefinition.TryParseCatalog(CatalogLine,out var defs) && defs.Length==3 && defs[2].From==1,"Catalog with Korean names and upgrade lineage");
         Check(!HeroItemDefinition.TryParseCatalog("ITEM_CATALOG [null]",out _) &&
             !HeroInventorySnapshot.TryParse("HERO_ITEMS 5 0 0 0 1 0 0 0 0 0 0".Split(' '),out _) &&
