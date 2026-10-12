@@ -81,6 +81,6 @@ public partial class SpectatorPanel : PanelContainer
     {
         if (!Visible) return;
         if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } ||
-            e is InputEventKey { Pressed: true, PhysicalKeycode: Key.Up or Key.Down or Key.Left or Key.Right or Key.Q or Key.W or Key.S or Key.D or Key.Home }) StopFollowing();
+            e is InputEventKey { Pressed: true, PhysicalKeycode: Key.Home }) StopFollowing();
     }
 }

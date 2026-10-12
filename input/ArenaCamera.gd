@@ -71,23 +71,9 @@ func _edge_direction() -> Vector3:
 		float(mouse.y >= rect.end.y - edge_margin) - float(mouse.y < rect.position.y + edge_margin))
 
 func _process(delta: float) -> void:
-	var direction := Vector3.ZERO
-	var menu_open: bool = get_meta("command_menu_open", false)
-	var wait_for_release: bool = get_meta("command_menu_wait_for_release", false)
-	if wait_for_release and not (Input.is_physical_key_pressed(KEY_Q) or Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_D)):
-		wait_for_release = false
-		set_meta("command_menu_wait_for_release", false)
-	var letters_enabled := not menu_open and not wait_for_release
-	var unit_orders: bool = get_meta("unit_orders_selected", false)
-	var hero_q: bool = get_meta("hero_q_shortcut", false)
-	var hero_w: bool = get_meta("hero_w_shortcut", false)
-	# A는 공격 대상 지정에 사용합니다. 왼쪽 이동은 Q 또는 왼쪽 방향키입니다.
-	# 건설 메뉴는 Q/W/A/S를 사용하므로 메뉴가 닫힌 뒤 해당 키를 놓을 때까지 문자 이동을 쉽니다.
-	# 내 유닛을 선택했으면 S/D는 정지/홀드에 사용합니다. 방향키는 항상 카메라를 이동합니다.
-	# 영웅의 Q/W는 사망·쿨다운 중에도 스킬 전용이다.
-	direction.x = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_D)) or Input.is_physical_key_pressed(KEY_RIGHT)) - float((letters_enabled and not hero_q and Input.is_physical_key_pressed(KEY_Q)) or Input.is_physical_key_pressed(KEY_LEFT))
-	direction.z = float((letters_enabled and not unit_orders and Input.is_physical_key_pressed(KEY_S)) or Input.is_physical_key_pressed(KEY_DOWN)) - float((letters_enabled and not hero_w and Input.is_physical_key_pressed(KEY_W)) or Input.is_physical_key_pressed(KEY_UP))
-	direction += _edge_direction()
+	# The keyboard does not pan the camera: letters belong to commands and skills.
+	# Edge scrolling, middle drag, wheel zoom, the minimap, Home and Space move it.
+	var direction := _edge_direction()
 	if direction.length_squared() > 0:
 		position += direction.normalized() * pan_speed * (size / home_size) * delta
 		clamp_position()

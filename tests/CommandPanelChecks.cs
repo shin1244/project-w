@@ -370,8 +370,6 @@ public partial class CommandPanelChecks : Main
         {
             _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
-            Check(Units.Camera.GetMeta(CommandPanel.CameraMenuMeta, false).AsBool(),
-                "An open tier-one menu suppresses camera letter polling");
             Check(!_slots[5].Disabled, "Tower construction is available with the updated server definition");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
@@ -399,13 +397,12 @@ public partial class CommandPanelChecks : Main
                 input._UnhandledInput(KeyEvent(key, true, echo: true));
                 Check(requested.Count == before + 1 && requested[^1] == type && !input.IsAttackTargeting,
                     $"{key} requests one type {type}, while key repetition cannot enter attack targeting");
-                Check(!Commands.IsTierOneMenuOpen &&
-                    Units.Camera.GetMeta(CommandPanel.CameraReleaseMeta, false).AsBool(),
-                    "Closing the menu holds camera letters until the selecting key is released");
+                Check(!Commands.IsTierOneMenuOpen, "Choosing a building closes the menu");
                 input._Input(KeyEvent(key, false));
             }
 
             // Input의 실제 물리 키 상태를 사용해 프레임마다 폴링하는 카메라까지 확인합니다.
+            // 키보드는 카메라를 움직이지 않습니다. 문자 키는 명령과 스킬에 씁니다.
             Vector3 cameraPosition = Units.Camera.Position;
             try
             {
@@ -414,21 +411,16 @@ public partial class CommandPanelChecks : Main
                 Input.FlushBufferedEvents();
                 Check(!Commands.IsTierOneMenuOpen && requested[^1] == BuildingCatalog.Supply,
                     "A real W event selects quarters through the PlayerInput path");
-                Units.Camera.Call("_process", .1);
-                Check(Units.Camera.Position.IsEqualApprox(cameraPosition),
-                    "Holding the selecting W key after menu closure does not pan the camera");
-                Input.ParseInputEvent(KeyEvent(Key.W, false));
+                foreach (Key key in new[] { Key.Q, Key.S, Key.D, Key.Up, Key.Down, Key.Left, Key.Right })
+                    Input.ParseInputEvent(KeyEvent(key, true));
                 Input.FlushBufferedEvents();
                 Units.Camera.Call("_process", .1);
-                Input.ParseInputEvent(KeyEvent(Key.W, true));
-                Input.FlushBufferedEvents();
-                Units.Camera.Call("_process", .1);
-                Check(!Units.Camera.Position.IsEqualApprox(cameraPosition),
-                    "Releasing and pressing W again restores normal camera movement");
+                Check(Units.Camera.Position.IsEqualApprox(cameraPosition), "Held letter and arrow keys never pan the camera");
             }
             finally
             {
-                Input.ParseInputEvent(KeyEvent(Key.W, false));
+                foreach (Key key in new[] { Key.W, Key.Q, Key.S, Key.D, Key.Up, Key.Down, Key.Left, Key.Right })
+                    Input.ParseInputEvent(KeyEvent(key, false));
                 Input.FlushBufferedEvents();
                 Units.Camera.Position = cameraPosition;
             }

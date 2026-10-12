@@ -14,9 +14,6 @@ public partial class CommandPanel : PanelContainer
     public event Action StopRequested;
     public event Action HoldRequested;
     public bool IsTierOneMenuOpen => _tierOne;
-    public const string CameraMenuMeta = "command_menu_open";
-    public const string CameraReleaseMeta = "command_menu_wait_for_release";
-    public const string CameraUnitOrdersMeta = "unit_orders_selected";
     private enum DisplayMode { Unset, Empty, Units, Workers, TierOne, TownHall, Barracks, Construction }
     private static readonly int[] NumpadOrder = { 7, 8, 9, 4, 5, 6, 1, 2, 3 };
     private readonly Button[] _slots = new Button[9];
@@ -109,13 +106,6 @@ public partial class CommandPanel : PanelContainer
         }
         if (next != DisplayMode.Workers) SetMenuOpen(false);
         else if (_tierOne) next = DisplayMode.TierOne;
-        if (GodotObject.IsInstanceValid(Units?.Camera))
-        {
-            bool selected = next is DisplayMode.Units or DisplayMode.Workers or DisplayMode.TierOne;
-            if (!selected && Units.Camera.GetMeta(CameraUnitOrdersMeta, false).AsBool())
-                Units.Camera.SetMeta(CameraReleaseMeta, true);
-            Units.Camera.SetMeta(CameraUnitOrdersMeta, selected);
-        }
         if (next == _display) { RefreshProduction(); return; }
         _display = next;
         for (int i = 0; i < _slots.Length; i++)
@@ -313,10 +303,6 @@ public partial class CommandPanel : PanelContainer
     {
         if (_tierOne == open) return;
         _tierOne = open;
-        if (!GodotObject.IsInstanceValid(Units?.Camera)) return;
-        Units.Camera.SetMeta(CameraMenuMeta, open);
-        // 메뉴를 닫은 선택 키를 놓을 때까지 카메라가 같은 키로 움직이지 않습니다.
-        if (!open) Units.Camera.SetMeta(CameraReleaseMeta, true);
     }
 
     private void OnSelectionChanged()
@@ -347,7 +333,6 @@ public partial class CommandPanel : PanelContainer
         }
         GetWindow().FocusExited -= OnFocusExited;
         SetMenuOpen(false);
-        if (GodotObject.IsInstanceValid(Units?.Camera)) Units.Camera.SetMeta(CameraUnitOrdersMeta, false);
         foreach (StyleBoxFlat style in _styles) style.Dispose();
         _styles.Clear();
     }
