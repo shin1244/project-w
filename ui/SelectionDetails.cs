@@ -305,7 +305,7 @@ public partial class SelectionDetails : PanelContainer
     {
         if (snapshot is not StatsSnapshot s) return "공격력 —   사거리 —   공격 간격 —";
         string F(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
-        string attack = s.Interval > 0 ? $"공격력 {F(s.Damage)}   사거리 {F(s.Range)}   공격 간격 {F(s.Interval)}초" : "공격 불가";
+        string attack = s.Interval > 0 ? $"공격력 {HealthDisplay.Whole(s.Damage)}   사거리 {F(s.Range)}   공격 간격 {F(s.Interval)}초" : "공격 불가";
         return mobile ? $"{attack}\n이동 속도 {F(s.Speed)}   시야 {F(s.Sight)}" : s.Interval > 0 ? $"{attack}\n시야 {F(s.Sight)}" : $"{attack}   시야 {F(s.Sight)}";
     }
 

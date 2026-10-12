@@ -404,6 +404,9 @@ public partial class Main : Node3D
             case "TEAM_TIER":
                 Buildings?.HandleTeamTier(parts);
                 break;
+            case "ARMY_UPGRADE":
+                Buildings?.HandleArmyUpgrade(parts);
+                break;
             case "HERO_ITEMS":
                 if (LocalRole==PlayerRole.Hero && HeroInventorySnapshot.TryParse(parts,out var inventory)) Shop?.ApplyInventory(inventory);
                 break;
@@ -660,8 +663,6 @@ public partial class Main : Node3D
         Fog?.SetSpectator(role == PlayerRole.Spectator);
         if (_playerInput != null) _playerInput.Spectating = role == PlayerRole.Spectator;
         if (Spectator != null) { Spectator.Visible = role == PlayerRole.Spectator; Spectator.StopFollowing(); }
-        Units?.Camera?.SetMeta("hero_q_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
-        Units?.Camera?.SetMeta("hero_w_shortcut", LocalHeroType.HasValue && UnitCatalog.IsHero(LocalHeroType.Value));
         if (Details != null) Details.Visible = role is PlayerRole.Commander or PlayerRole.Spectator;
         if (Minions != null)
         {

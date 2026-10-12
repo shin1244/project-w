@@ -82,6 +82,7 @@ public partial class CommandPanelChecks : Main
             Receive("SUPPLY 4 10");
             CheckWorkerTrain();
             CheckTownHallTiers();
+            CheckForgeResearch();
             await CheckBarracksProduction();
             await CheckCancellation();
             foreach (uint id in new uint[] { 202, 203 })
@@ -289,6 +290,43 @@ public partial class CommandPanelChecks : Main
         Receive("STOCK 0 100");
     }
 
+    // Research terms and progress come only from ARMY_UPGRADE; the client predicts nothing.
+    private void CheckForgeResearch()
+    {
+        Receive("BUILDING 5 206 1 0 14 0");
+        SelectBuilding(206);
+        Check(_slots[7].Text == "공격력 1단계\n(Q)" && _slots[8].Text == "체력 1단계\n(W)" && _slots[7].Disabled && _slots[8].Disabled,
+            "A forge shows both researches, locked until the server sends terms");
+        Receive("ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 300 45");
+        Receive("STOCK 0 299");
+        int sent = _commands.Count;
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
+        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("나무 300") &&
+            _slots[7].TooltipText.Contains("+15%"), "Research cost and step come from the server and gate the button");
+        Receive("STOCK 0 300");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
+        Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_ARMY 206 ATTACK" && Buildings.ArmyUpgrade(1).AttackLevel == 0,
+            "Q sends attack research for the selected forge without predicting the result");
+        Receive("ARMY_UPGRADE 1 0 0 15 206 1 30 45 300 45 0 0 0 0 300 45");
+        sent = _commands.Count;
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
+        Check(_slots[7].Disabled && _slots[8].Disabled && _slots[7].Text == "공격력 1단계\n30초" && _commands.Count == sent,
+            "A researching forge blocks a second research and shows server progress");
+        foreach (string invalid in new[] { "ARMY_UPGRADE 1 4 0 15 0 0 0 0 0 0 0 0 0 0 300 45", "ARMY_UPGRADE 1 0 0 15 206 2 30 45 300 45 0 0 0 0 300 45",
+                     "ARMY_UPGRADE 1 0 0 15 206 1 50 45 300 45 0 0 0 0 300 45", "ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 0 0", "ARMY_UPGRADE 1 0 0 15" })
+            Receive(invalid);
+        Check(Buildings.ArmyUpgrade(1).Attack.Remaining == 30, "Malformed research snapshots preserve valid progress");
+        Receive("ARMY_UPGRADE 1 3 0 15 0 0 0 0 0 0 0 0 0 0 300 45");
+        Receive("STOCK 0 1000");
+        Check(_slots[7].Disabled && _slots[7].Text == "공격력\n최고 단계" && !_slots[8].Disabled, "Max attack level leaves HP research available");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
+        Check(_commands[^1] == "UPGRADE_ARMY 206 HP", "W sends HP research");
+        Receive("ARMY_UPGRADE 2 1 0 15 0 0 0 0 500 60 0 0 0 0 300 45");
+        Check(Buildings.ArmyUpgrade(2).AttackLevel == 1 && Buildings.ArmyUpgrade(1).AttackLevel == 3, "Enemy research is stored independently");
+        Receive("REMOVE 206");
+        Receive("STOCK 0 100");
+    }
+
     private void CheckCombatCommands()
     {
         var input = GetNode<PlayerInput>("PlayerInput");
@@ -370,8 +408,6 @@ public partial class CommandPanelChecks : Main
         {
             _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
-            Check(Units.Camera.GetMeta(CommandPanel.CameraMenuMeta, false).AsBool(),
-                "An open tier-one menu suppresses camera letter polling");
             Check(!_slots[5].Disabled, "Tower construction is available with the updated server definition");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
@@ -399,13 +435,12 @@ public partial class CommandPanelChecks : Main
                 input._UnhandledInput(KeyEvent(key, true, echo: true));
                 Check(requested.Count == before + 1 && requested[^1] == type && !input.IsAttackTargeting,
                     $"{key} requests one type {type}, while key repetition cannot enter attack targeting");
-                Check(!Commands.IsTierOneMenuOpen &&
-                    Units.Camera.GetMeta(CommandPanel.CameraReleaseMeta, false).AsBool(),
-                    "Closing the menu holds camera letters until the selecting key is released");
+                Check(!Commands.IsTierOneMenuOpen, "Choosing a building closes the menu");
                 input._Input(KeyEvent(key, false));
             }
 
             // Input의 실제 물리 키 상태를 사용해 프레임마다 폴링하는 카메라까지 확인합니다.
+            // 키보드는 카메라를 움직이지 않습니다. 문자 키는 명령과 스킬에 씁니다.
             Vector3 cameraPosition = Units.Camera.Position;
             try
             {
@@ -414,21 +449,16 @@ public partial class CommandPanelChecks : Main
                 Input.FlushBufferedEvents();
                 Check(!Commands.IsTierOneMenuOpen && requested[^1] == BuildingCatalog.Supply,
                     "A real W event selects quarters through the PlayerInput path");
-                Units.Camera.Call("_process", .1);
-                Check(Units.Camera.Position.IsEqualApprox(cameraPosition),
-                    "Holding the selecting W key after menu closure does not pan the camera");
-                Input.ParseInputEvent(KeyEvent(Key.W, false));
+                foreach (Key key in new[] { Key.Q, Key.S, Key.D, Key.Up, Key.Down, Key.Left, Key.Right })
+                    Input.ParseInputEvent(KeyEvent(key, true));
                 Input.FlushBufferedEvents();
                 Units.Camera.Call("_process", .1);
-                Input.ParseInputEvent(KeyEvent(Key.W, true));
-                Input.FlushBufferedEvents();
-                Units.Camera.Call("_process", .1);
-                Check(!Units.Camera.Position.IsEqualApprox(cameraPosition),
-                    "Releasing and pressing W again restores normal camera movement");
+                Check(Units.Camera.Position.IsEqualApprox(cameraPosition), "Held letter and arrow keys never pan the camera");
             }
             finally
             {
-                Input.ParseInputEvent(KeyEvent(Key.W, false));
+                foreach (Key key in new[] { Key.W, Key.Q, Key.S, Key.D, Key.Up, Key.Down, Key.Left, Key.Right })
+                    Input.ParseInputEvent(KeyEvent(key, false));
                 Input.FlushBufferedEvents();
                 Units.Camera.Position = cameraPosition;
             }

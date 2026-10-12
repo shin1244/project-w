@@ -261,8 +261,8 @@ public partial class RtsControlChecks : Main
         Receive("TICK 600");
         int before = _commands.Count;
         KeyPress(Key.W); KeyPress(Key.E);
-        Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 1", "SKILL 2" }) && !_input.IsSkillTargeting &&
-            Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Wolf W/E cast immediately and W is reserved for the skill");
+        Check(_commands.Skip(before).SequenceEqual(new[] { "SKILL 1", "SKILL 2" }) && !_input.IsSkillTargeting,
+            "Wolf W/E cast immediately");
         var drainButton = Skills.GetNode<Button>("Content/Slots/WSlot/W");
         var drainCooldown = drainButton.GetNode<Label>("Cooldown");
         var auraButton = Skills.GetNode<Button>("Content/Slots/ESlot/E");
@@ -710,7 +710,6 @@ public partial class RtsControlChecks : Main
         Expect(970);
         Check(Unit(970).GetNodeOrNull<GolemAnimation>("GolemAnimation") != null &&
             UnitInfo.Experience is { Level: 1, Current: 0 }, "Golem binds its model and initial experience");
-        Check(Units.Camera.GetMeta("hero_w_shortcut").AsBool(), "Golem reserves W for its shield, including cooldown");
         Receive("HERO_SKILLS 201 5 3 1 0 0 0 0 0");
         int before = _commands.Count;
         KeyPress(Key.Q); KeyPress(Key.W); KeyPress(Key.R);

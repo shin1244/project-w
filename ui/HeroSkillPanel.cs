@@ -472,7 +472,7 @@ public partial class HeroSkillPanel : PanelContainer
             (maximum == 0 && current != 0)) return;
         current = Mathf.Min(current, maximum);
         bar.Value = maximum > 0 ? 100.0 * current / maximum : 0;
-        label.Text = current.ToString("0.#", CultureInfo.InvariantCulture) + " / " + maximum.ToString("0.#", CultureInfo.InvariantCulture);
+        label.Text = HealthDisplay.Whole(current) + " / " + HealthDisplay.Whole(maximum);
     }
 
     private StyleBoxFlat Style(string background, string border, int radius)

@@ -213,7 +213,9 @@ public partial class RecoveryClientChecks : Main
         Check(Skills.Progress==null && !Skills.CanUpgrade(0),"Role change clears progression");
         Check(!HeroSkillProgressSnapshot.TryParse("HERO_SKILLS 200 4 2 1 0 0 0 0 0".Split(' '),out _) &&
             !HeroSkillProgressSnapshot.TryParse("HERO_SKILLS 200 9 6 1 0 0 0 1 0".Split(' '),out _) &&
-            !HeroSkillProgressSnapshot.TryParse("HERO_SKILLS 200 5 -1 0 0 0 0 0 0".Split(' '),out _),"Invalid progression levels/points rejected");
+            !HeroSkillProgressSnapshot.TryParse("HERO_SKILLS 200 5 -1 0 0 0 0 0 0".Split(' '),out _) &&
+            !HeroSkillProgressSnapshot.TryParse($"HERO_SKILLS 200 {HeroSkillProgressSnapshot.MaxHeroLevel+1} {HeroSkillProgressSnapshot.MaxHeroLevel} 0 0 0 0 0 0".Split(' '),out _) &&
+            HeroSkillProgressSnapshot.TryParse($"HERO_SKILLS 200 {HeroSkillProgressSnapshot.MaxHeroLevel} {HeroSkillProgressSnapshot.MaxHeroLevel-1} 0 0 0 0 0 0".Split(' '),out _),"Invalid progression levels/points rejected; max level accepted");
     }
     private void Begin()
     {

@@ -43,7 +43,7 @@ public partial class SpectatorPanel : PanelContainer
         _target = new Label { Name = "Target", HorizontalAlignment = HorizontalAlignment.Center };
         _target.AddThemeFontSizeOverride("font_size", 12);
         content.AddChild(_target);
-        var help = new Label { Text = "방향키 / 휠 / 가운데 버튼 드래그\n미니맵 클릭 · 유닛 클릭으로 정보 확인", HorizontalAlignment = HorizontalAlignment.Center };
+        var help = new Label { Text = "화면 가장자리 / 휠 / 가운데 드래그\n미니맵 클릭 · 유닛 클릭으로 정보 확인", HorizontalAlignment = HorizontalAlignment.Center };
         help.AddThemeFontSizeOverride("font_size", 12);
         content.AddChild(help);
     }
@@ -81,6 +81,6 @@ public partial class SpectatorPanel : PanelContainer
     {
         if (!Visible) return;
         if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } ||
-            e is InputEventKey { Pressed: true, PhysicalKeycode: Key.Up or Key.Down or Key.Left or Key.Right or Key.Q or Key.W or Key.S or Key.D or Key.Home }) StopFollowing();
+            e is InputEventKey { Pressed: true, PhysicalKeycode: Key.Home }) StopFollowing();
     }
 }

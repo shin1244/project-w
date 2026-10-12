@@ -20,7 +20,7 @@ public static class SkillDescriptions
                 (rank >= 4 ? "\n체력이 30% 이하이면 받는 피해 감소가 총 25%로 증가." : "");
         if (heroType == UnitCatalog.HeroMarshal)
         {
-            int amount=rank >= 3 ? 10 : rank >= 1 ? 7 : 5;
+            string amount=rank >= 3 ? "1" : rank >= 1 ? "0.7" : "0.5";
             return $"P · 전선 지휘\n주변 5m 아군 미니언·용병{(rank >= 4 ? "·영웅" : "")}에게 공격 피해 +{amount}, 받는 피해 −{amount}."+
                 (rank >= 2 ? "\n오라 대상 이동 속도 +10%." : "")+"\n자신과 일꾼에게는 적용되지 않으며 같은 오라는 중첩되지 않습니다.";
         }
@@ -39,9 +39,9 @@ public static class SkillDescriptions
             (UnitCatalog.HeroGolem,2) => "기절·속박 지속 시간 20% 감소",
             (UnitCatalog.HeroGolem,3) => "받는 피해 감소 12% → 15%",
             (UnitCatalog.HeroGolem,4) => "체력 30% 이하에서 받는 피해 감소 총 25%",
-            (UnitCatalog.HeroMarshal,1) => "오라 공격 피해 +7, 받는 피해 −7",
+            (UnitCatalog.HeroMarshal,1) => "오라 공격 피해 +0.7, 받는 피해 −0.7",
             (UnitCatalog.HeroMarshal,2) => "오라 대상 이동 속도 +10%",
-            (UnitCatalog.HeroMarshal,3) => "오라 공격 피해 +10, 받는 피해 −10",
+            (UnitCatalog.HeroMarshal,3) => "오라 공격 피해 +1, 받는 피해 −1",
             (UnitCatalog.HeroMarshal,4) => "주변 아군 영웅도 모든 패시브 오라 효과를 받음",
             _ => ""
         };
@@ -58,8 +58,8 @@ public static class SkillDescriptions
             "wolf-drain" => $"W · 피의 송곳니\n다음 일반 공격 또는 Q로 실제 깎은 체력의 {50+10*steps}% 회복.\nE에는 적용되지 않음 · 명중까지 유지 · 종료 후 재사용 8초",
             "wolf-aura" => $"E · 피의 안개\n주변 3.5m 적에게 즉시 1회, 이후 0.5초마다 10회 타격.\n매 타격 공격력 {25*scale:0}% 피해 · 5초 지속 · 종료 후 재사용 10초",
             "wolf-devour" => rank > 0
-                ? "R · 무리 포식\n주변 8m 아군 미니언·용병을 모두 먹습니다.\n가장 높은 최대 체력 ×2 보호막, 가장 높은 기본 공격력 ×2 추가 공격력.\n먹은 유닛 수만큼 일반 공격·Q 명중에 적용. 마지막 명중 후 남은 보호막도 종료.\n재사용 40초 · 재시전 시 이전 효과 교체"
-                : "R · 포식\n8m 안 아군 미니언·용병 1마리를 먹습니다.\n대상의 최대 체력 ×2 보호막, 기본 공격력 ×2 추가 공격력.\n다음 일반 공격·Q 명중 후 종료 · 재사용 40초",
+                ? "R · 무리 포식\n주변 8m 아군 미니언·용병을 모두 먹습니다.\n가장 높은 최대 체력 ×1 보호막, 가장 높은 기본 공격력 ×2 추가 공격력.\n먹은 유닛 수만큼 일반 공격·Q 명중에 적용. 마지막 명중 후 남은 보호막도 종료.\n재사용 40초 · 재시전 시 이전 효과 교체"
+                : "R · 포식\n8m 안 아군 미니언·용병 1마리를 먹습니다.\n대상의 최대 체력 ×1 보호막, 기본 공격력 ×2 추가 공격력.\n다음 일반 공격·Q 명중 후 종료 · 재사용 40초",
             "golem-slam" => $"Q · {(empowered ? "강화 " : "")}내려찍기\n주변 {(empowered ? 5 : 3.5f)}m 적에게 공격력 {(empowered ? 150 : 120)*scale:0}% 피해.\n{(empowered ? "룬 각성 소모" : "2초 동안 이동 속도 35% 감소")} · 재사용 10초",
             "golem-shell" => $"W · {(empowered ? "강화 " : "")}돌갑옷\n자신의 최대 체력 {(empowered ? 40 : 25)*scale:0}% 보호막, {(empowered ? 4 : 5)}초 지속.\n재사용 13초 · 보호막 유지 중 재시전 불가",
             "golem-charge" => $"E · {(empowered ? "강화 " : "")}바위 돌진\n적에게 돌진해 공격력 {100*scale:0}% 피해와 {(empowered ? 1 : .5f)}초 기절.\n사거리 7m · 장애물에 막힘 · 재사용 12초",
@@ -83,7 +83,7 @@ public static class SkillDescriptions
         if (id is "wolf-devour" or "golem-up" or "marshal-command")
             return next != 1 ? "최대 강화" : id switch
             {
-                "wolf-devour" => "주변 8m 아군 미니언·용병 전체 포식 (일꾼 제외) · 각각 가장 높은 체력/공격력 ×2 · 먹은 수만큼 강화 공격",
+                "wolf-devour" => "주변 8m 아군 미니언·용병 전체 포식 (일꾼 제외) · 가장 높은 체력 ×1 보호막·공격력 ×2 · 먹은 수만큼 강화 공격",
                 "golem-up" => "다음 Q/W/E 2회 강화",
                 _ => "아군 용병도 소집 가능 (일꾼 제외)"
             };
