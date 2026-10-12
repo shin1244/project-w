@@ -21,7 +21,7 @@ Godot .NET 클라이언트입니다. Go 서버가 유닛을 생성하고 이동�
 
 ## 학습된 AI 관전
 
-`tools/Watch-Latest-AI.cmd`는 두 역할의 최신 체크포인트를 별도 관전 스냅샷으로 복사한 뒤
+`tools/Watch-Latest-AI.cmd`는 현재 리그(기본 `league6`, `-Run`으로 변경)에서 두 역할의 최신 체크포인트를 별도 관전 스냅샷으로 복사한 뒤
 관전 실행본을 엽니다(기본 `../build-league5-watch`). `tools/Use-Trained-AI.ps1 -Latest`는 스냅샷만 준비합니다.
 경로가 다른 경우 `-AIRepo`, `-ServerRepo`, `-RunsRoot`, `-OutputDirectory`를 지정하세요.
 각각 `PROJECT_W_AI_ROOT`, `PROJECT_W_SERVER_ROOT`, `PROJECT_W_RUNS_ROOT` 환경 변수도 지원합니다.

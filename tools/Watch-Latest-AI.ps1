@@ -1,4 +1,4 @@
-param([string]$Run = 'league5', [string]$Profile = 'mixed',
+param([string]$Run = 'league6', [string]$Profile = 'mixed',
     [string]$ServerRepo = $env:PROJECT_W_SERVER_ROOT,
     [string]$AIRepo = $env:PROJECT_W_AI_ROOT,
     [string]$RunsRoot = $env:PROJECT_W_RUNS_ROOT, [string]$OutputDirectory)

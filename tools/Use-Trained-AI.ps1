@@ -1,6 +1,6 @@
 # Freeze both roles into an immutable spectator snapshot; never changes training files.
 param(
-    [string]$Run = 'league5',
+    [string]$Run = 'league6',
     [string]$Profile = 'mixed',
     [string]$ServerRepo = $env:PROJECT_W_SERVER_ROOT,
     [string]$AIRepo = $env:PROJECT_W_AI_ROOT,

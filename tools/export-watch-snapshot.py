@@ -65,7 +65,7 @@ def main():
                         default=os.environ.get("PROJECT_W_AI_ROOT", workspace / "project-w-ai"))
     parser.add_argument("--runs-root", type=Path, default=os.environ.get("PROJECT_W_RUNS_ROOT"))
     parser.add_argument("--run-directory", required=True, type=Path)
-    parser.add_argument("--run", default="league5")
+    parser.add_argument("--run", default="league6")
     parser.add_argument("--profile", default="mixed")
     parser.add_argument("--mode", choices=("latest", "completed"), default="latest")
     args = parser.parse_args()
