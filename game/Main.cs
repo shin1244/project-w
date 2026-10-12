@@ -555,8 +555,24 @@ public partial class Main : Node3D
             case "SKILL":
                 if (SkillActivationSnapshot.TryParse(parts, out var skill) && Units.TryGetUnit(skill.CasterId, out Unit caster) &&
                     Units.CanInspect(caster))
+                {
+                    Node3D shotTarget = null;
+                    if (caster.UnitType == UnitCatalog.HeroMarshal && skill.Slot == 0 && skill.TargetId is uint targetId)
+                    {
+                        if (Units.TryGetUnit(targetId, out Unit targetUnit) && Units.CanInspect(targetUnit))
+                            shotTarget = targetUnit;
+                        else if (Buildings != null && Buildings.TryGetBuilding(targetId, out Building targetBuilding) &&
+                            Buildings.CanInspect(targetBuilding))
+                            shotTarget = targetBuilding;
+                    }
                     foreach (Node child in caster.GetChildren())
+                    {
+                        // Every accepted shot replaces its target, including an unavailable target.
+                        if (child is MarshalAnimation marshalAnimation && skill.Slot == 0)
+                            marshalAnimation.AimShot(shotTarget);
                         if (child is ISkillPresentation presentation) presentation.PlaySkill(skill.Slot, skill.Empowered);
+                    }
+                }
                 break;
             case "WOLF":
                 if (WolfEffectSnapshot.TryParse(parts, out var wolf) &&

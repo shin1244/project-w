@@ -1,7 +1,7 @@
 using System.Globalization;
 
 // SKILL 시전자 슬롯 [대상ID | x z] [EMPOWERED]. 강화 여부는 상태 갱신 순서와 독립적이다.
-public readonly record struct SkillActivationSnapshot(uint CasterId, int Slot, bool Empowered = false)
+public readonly record struct SkillActivationSnapshot(uint CasterId, int Slot, bool Empowered = false, uint? TargetId = null)
 {
     public static bool TryParse(string[] parts, out SkillActivationSnapshot snapshot)
     {
@@ -12,11 +12,12 @@ public readonly record struct SkillActivationSnapshot(uint CasterId, int Slot, b
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint caster) || caster == 0 ||
             !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) || slot > 4 ||
             empowered && slot > 2) return false;
-        if (length == 4 && (!uint.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out uint target) || target == 0)) return false;
+        uint target = 0;
+        if (length == 4 && (!uint.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out target) || target == 0)) return false;
         if (length == 5 &&
             (!float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) || !float.IsFinite(x) ||
              !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) || !float.IsFinite(z))) return false;
-        snapshot = new(caster, slot, empowered);
+        snapshot = new(caster, slot, empowered, length == 4 ? target : null);
         return true;
     }
 }
