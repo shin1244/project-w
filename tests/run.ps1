@@ -1,7 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Smoke', 'Units', 'Buildings', 'World', 'UI', 'All')]
+    [ValidateSet('Smoke', 'Units', 'Buildings', 'World', 'UI', 'Network', 'All')]
     [string]$Suite = 'Smoke',
     [string[]]$Check,
     [string]$GodotPath = $env:GODOT_BIN,
@@ -19,6 +19,7 @@ $suites = [ordered]@{
     Buildings = @('BuildingPlacementChecks', 'ConstructionSyncChecks', 'CommandPanelChecks', 'RallyChecks', 'TowerSyncChecks')
     World = @('MapSyncChecks', 'MapZonesChecks', 'FogSyncChecks', 'TributeChecks', 'SiegeRamChecks', 'check_arena')
     UI = @('RtsControlChecks', 'SelectionDetailsChecks', 'CommandPanelChecks', 'MatchResultChecks', 'SpectatorChecks')
+    Network = @('NetClientChecks')
 }
 $all = @($suites.Values | ForEach-Object { $_ } | Select-Object -Unique)
 $selected = if ($Check) { @($Check | Select-Object -Unique) } elseif ($Suite -eq 'All') { $all } else { $suites[$Suite] }
