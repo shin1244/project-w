@@ -20,7 +20,7 @@ public static class SkillDescriptions
                 (rank >= 4 ? "\n체력이 30% 이하이면 받는 피해 감소가 총 25%로 증가." : "");
         if (heroType == UnitCatalog.HeroMarshal)
         {
-            int amount=rank >= 3 ? 10 : rank >= 1 ? 7 : 5;
+            string amount=rank >= 3 ? "1" : rank >= 1 ? "0.7" : "0.5";
             return $"P · 전선 지휘\n주변 5m 아군 미니언·용병{(rank >= 4 ? "·영웅" : "")}에게 공격 피해 +{amount}, 받는 피해 −{amount}."+
                 (rank >= 2 ? "\n오라 대상 이동 속도 +10%." : "")+"\n자신과 일꾼에게는 적용되지 않으며 같은 오라는 중첩되지 않습니다.";
         }
@@ -39,9 +39,9 @@ public static class SkillDescriptions
             (UnitCatalog.HeroGolem,2) => "기절·속박 지속 시간 20% 감소",
             (UnitCatalog.HeroGolem,3) => "받는 피해 감소 12% → 15%",
             (UnitCatalog.HeroGolem,4) => "체력 30% 이하에서 받는 피해 감소 총 25%",
-            (UnitCatalog.HeroMarshal,1) => "오라 공격 피해 +7, 받는 피해 −7",
+            (UnitCatalog.HeroMarshal,1) => "오라 공격 피해 +0.7, 받는 피해 −0.7",
             (UnitCatalog.HeroMarshal,2) => "오라 대상 이동 속도 +10%",
-            (UnitCatalog.HeroMarshal,3) => "오라 공격 피해 +10, 받는 피해 −10",
+            (UnitCatalog.HeroMarshal,3) => "오라 공격 피해 +1, 받는 피해 −1",
             (UnitCatalog.HeroMarshal,4) => "주변 아군 영웅도 모든 패시브 오라 효과를 받음",
             _ => ""
         };
