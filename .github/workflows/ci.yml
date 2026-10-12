@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build C#
+        run: dotnet build "Project W.csproj"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Watch snapshot checks
+        run: python -B tests/test_watch_snapshot.py
