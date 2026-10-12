@@ -404,6 +404,9 @@ public partial class Main : Node3D
             case "TEAM_TIER":
                 Buildings?.HandleTeamTier(parts);
                 break;
+            case "ARMY_UPGRADE":
+                Buildings?.HandleArmyUpgrade(parts);
+                break;
             case "HERO_ITEMS":
                 if (LocalRole==PlayerRole.Hero && HeroInventorySnapshot.TryParse(parts,out var inventory)) Shop?.ApplyInventory(inventory);
                 break;

@@ -4,6 +4,8 @@ using System.Collections.Generic;
 public static class Protocol
 {
     public static string BuildUpgradeTownHall(uint buildingId) => FormattableString.Invariant($"UPGRADE_TOWNHALL {buildingId}");
+    public static string BuildUpgradeArmy(uint forgeId, bool attack)
+        => FormattableString.Invariant($"UPGRADE_ARMY {forgeId} {(attack ? ArmyUpgradeSnapshot.AttackKind : ArmyUpgradeSnapshot.HpKind)}");
     public static string BuildBuyItem(uint itemId) => FormattableString.Invariant($"BUY_ITEM {itemId}");
     public static string BuildSellItem(int slot) => FormattableString.Invariant($"SELL_ITEM {slot}");
     public static string BuildRecall(uint heroId) => FormattableString.Invariant($"RECALL {heroId}");

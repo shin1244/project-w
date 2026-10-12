@@ -4,6 +4,7 @@ using System.Globalization;
 public partial class BuildingManager
 {
     private readonly Dictionary<uint, TeamTierSnapshot> _teamTiers = new();
+    private readonly Dictionary<uint, ArmyUpgradeSnapshot> _armyUpgrades = new();
     public long CommanderWood { get; private set; }
     public TeamTierSnapshot TeamTier(uint team) => _teamTiers.GetValueOrDefault(team, new(team, 1, 0, 0, 0, 0));
     public bool IsTownHallUpgrading(Building building) => building != null &&
@@ -13,6 +14,16 @@ public partial class BuildingManager
     {
         if (!TeamTierSnapshot.TryParse(parts, out var state)) return;
         _teamTiers[state.Team] = state;
+        RequirementsChanged?.Invoke();
+        ProductionChanged?.Invoke();
+    }
+
+    public ArmyUpgradeSnapshot ArmyUpgrade(uint team) => _armyUpgrades.GetValueOrDefault(team, ArmyUpgradeSnapshot.Empty(team));
+
+    public void HandleArmyUpgrade(string[] parts)
+    {
+        if (!ArmyUpgradeSnapshot.TryParse(parts, out var state)) return;
+        _armyUpgrades[state.Team] = state;
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }
@@ -28,6 +39,7 @@ public partial class BuildingManager
     public void ResetTeamTiers()
     {
         _teamTiers.Clear();
+        _armyUpgrades.Clear();
         CommanderWood = 0;
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();

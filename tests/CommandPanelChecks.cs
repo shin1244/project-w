@@ -82,6 +82,7 @@ public partial class CommandPanelChecks : Main
             Receive("SUPPLY 4 10");
             CheckWorkerTrain();
             CheckTownHallTiers();
+            CheckForgeResearch();
             await CheckBarracksProduction();
             await CheckCancellation();
             foreach (uint id in new uint[] { 202, 203 })
@@ -286,6 +287,43 @@ public partial class CommandPanelChecks : Main
             "Hero role cannot upgrade and role change clears stale team tiers");
         Receive("WELCOME 7 1 COMMANDER");
         SelectBuilding(201);
+        Receive("STOCK 0 100");
+    }
+
+    // Research terms and progress come only from ARMY_UPGRADE; the client predicts nothing.
+    private void CheckForgeResearch()
+    {
+        Receive("BUILDING 5 206 1 0 14 0");
+        SelectBuilding(206);
+        Check(_slots[7].Text == "공격력 1단계\n(Q)" && _slots[8].Text == "체력 1단계\n(W)" && _slots[7].Disabled && _slots[8].Disabled,
+            "A forge shows both researches, locked until the server sends terms");
+        Receive("ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 300 45");
+        Receive("STOCK 0 299");
+        int sent = _commands.Count;
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
+        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("나무 300") &&
+            _slots[7].TooltipText.Contains("+15%"), "Research cost and step come from the server and gate the button");
+        Receive("STOCK 0 300");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
+        Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_ARMY 206 ATTACK" && Buildings.ArmyUpgrade(1).AttackLevel == 0,
+            "Q sends attack research for the selected forge without predicting the result");
+        Receive("ARMY_UPGRADE 1 0 0 15 206 1 30 45 300 45 0 0 0 0 300 45");
+        sent = _commands.Count;
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
+        Check(_slots[7].Disabled && _slots[8].Disabled && _slots[7].Text == "공격력 1단계\n30초" && _commands.Count == sent,
+            "A researching forge blocks a second research and shows server progress");
+        foreach (string invalid in new[] { "ARMY_UPGRADE 1 4 0 15 0 0 0 0 0 0 0 0 0 0 300 45", "ARMY_UPGRADE 1 0 0 15 206 2 30 45 300 45 0 0 0 0 300 45",
+                     "ARMY_UPGRADE 1 0 0 15 206 1 50 45 300 45 0 0 0 0 300 45", "ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 0 0", "ARMY_UPGRADE 1 0 0 15" })
+            Receive(invalid);
+        Check(Buildings.ArmyUpgrade(1).Attack.Remaining == 30, "Malformed research snapshots preserve valid progress");
+        Receive("ARMY_UPGRADE 1 3 0 15 0 0 0 0 0 0 0 0 0 0 300 45");
+        Receive("STOCK 0 1000");
+        Check(_slots[7].Disabled && _slots[7].Text == "공격력\n최고 단계" && !_slots[8].Disabled, "Max attack level leaves HP research available");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
+        Check(_commands[^1] == "UPGRADE_ARMY 206 HP", "W sends HP research");
+        Receive("ARMY_UPGRADE 2 1 0 15 0 0 0 0 500 60 0 0 0 0 300 45");
+        Check(Buildings.ArmyUpgrade(2).AttackLevel == 1 && Buildings.ArmyUpgrade(1).AttackLevel == 3, "Enemy research is stored independently");
+        Receive("REMOVE 206");
         Receive("STOCK 0 100");
     }
 

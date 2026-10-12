@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// 선택한 일꾼의 건설 메뉴와 회관·병영의 생산 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
+// 선택한 일꾼의 건설 메뉴, 회관·병영의 생산 버튼, 대장간 연구 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
 public partial class CommandPanel : PanelContainer
 {
     [Export] public UnitManager Units;
@@ -14,7 +14,7 @@ public partial class CommandPanel : PanelContainer
     public event Action StopRequested;
     public event Action HoldRequested;
     public bool IsTierOneMenuOpen => _tierOne;
-    private enum DisplayMode { Unset, Empty, Units, Workers, TierOne, TownHall, Barracks, Construction }
+    private enum DisplayMode { Unset, Empty, Units, Workers, TierOne, TownHall, Barracks, Forge, Construction }
     private static readonly int[] NumpadOrder = { 7, 8, 9, 4, 5, 6, 1, 2, 3 };
     private readonly Button[] _slots = new Button[9];
     private readonly List<StyleBoxFlat> _styles = new();
@@ -100,6 +100,7 @@ public partial class CommandPanel : PanelContainer
                     {
                         BuildingCatalog.TownHall => DisplayMode.TownHall,
                         BuildingCatalog.Barracks => DisplayMode.Barracks,
+                        BuildingCatalog.Forge => DisplayMode.Forge,
                         _ => DisplayMode.Empty
                     };
             }
@@ -127,6 +128,8 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Barracks, 7) => "검방병",
                 (DisplayMode.Barracks, 8) => "궁수",
                 (DisplayMode.Barracks, 9) => "치유사",
+                (DisplayMode.Forge, 7) => "공격력 연구\n(Q)",
+                (DisplayMode.Forge, 8) => "체력 연구\n(W)",
                 (DisplayMode.Construction, 3) => "건설 취소\n(Esc)",
                 _ => ""
             };
@@ -161,6 +164,12 @@ public partial class CommandPanel : PanelContainer
         {
             _slots[8].Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
             _slots[8].TooltipText = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
+            return;
+        }
+        if (_display == DisplayMode.Forge)
+        {
+            RefreshResearch(_slots[0], true);
+            RefreshResearch(_slots[1], false);
             return;
         }
         if (_display is not (DisplayMode.TownHall or DisplayMode.Barracks)) return;
@@ -200,6 +209,25 @@ public partial class CommandPanel : PanelContainer
         }
     }
 
+    // Terms and progress come from ARMY_UPGRADE; the client copies no research numbers.
+    private void RefreshResearch(Button slot, bool attack)
+    {
+        Building forge = Buildings.SelectedBuilding;
+        if (!GodotObject.IsInstanceValid(forge)) return;
+        var state = Buildings.ArmyUpgrade(forge.SideId);
+        var research = state.Research(attack);
+        int level = state.Level(attack);
+        string name = attack ? "공격력" : "체력";
+        string key = attack ? "Q" : "W";
+        string reason = Units.ArmyUpgradeBlockReason(forge, attack);
+        slot.Disabled = reason != null;
+        slot.Text = research.Researching ? $"{name} {research.TargetLevel}단계\n{research.Remaining}초" :
+            level >= ArmyUpgradeSnapshot.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
+        string terms = research.NextWood > 0 ? $"나무 {research.NextWood:N0} · {research.NextSeconds}초\n" : "";
+        slot.TooltipText = terms + $"미니언·용병의 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{ArmyUpgradeSnapshot.MaxLevel}단계" +
+            (reason == null ? "" : "\n" + reason);
+    }
+
     private void ApplyUnitRequirement(Button slot, uint type)
     {
         if (Buildings.UnitRequirementBlockReason(type) is not string reason) return;
@@ -232,6 +260,7 @@ public partial class CommandPanel : PanelContainer
         }
         else if (_display == DisplayMode.TownHall && number == 7) Units.RequestTrainWorker();
         else if (_display == DisplayMode.TownHall && number == 1) Units.RequestUpgradeTownHall();
+        else if (_display == DisplayMode.Forge && number is 7 or 8) Units.RequestUpgradeArmy(number == 7);
         else if (_display == DisplayMode.Barracks && number is 7 or 8 or 9)
             Units.RequestTrain(number == 7 ? UnitCatalog.Knight : number == 8 ? UnitCatalog.Archer : UnitCatalog.Medic);
         else if (_display == DisplayMode.Workers && number == 1)
@@ -263,6 +292,8 @@ public partial class CommandPanel : PanelContainer
         int slot = code switch
         {
             Key.Z when _display is DisplayMode.Workers or DisplayMode.TierOne or DisplayMode.TownHall => 1,
+            Key.Q when _display == DisplayMode.Forge => 7,
+            Key.W when _display == DisplayMode.Forge => 8,
             Key.Q when _tierOne => 7,
             Key.W when _tierOne => 8,
             Key.E when _tierOne => 9,
