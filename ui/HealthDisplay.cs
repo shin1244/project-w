@@ -32,6 +32,14 @@ public static class HealthDisplay
     }
 
     public static string Text(float current, float maximum, float shield) => maximum <= 0 ? "— / —" :
-        $"{Number(current)} / {Number(maximum)}" + (shield > 0 ? $"  (+{Number(shield)})" : "");
-    private static string Number(float value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+        $"{Whole(current)} / {Whole(maximum)}" + (shield > 0 ? $"  (+{Whole(shield)})" : "");
+
+    // The server computes HP, shields and damage as real numbers; the UI shows them
+    // rounded for readability. A positive value never reads as 0, so a living unit
+    // with a sliver of HP still shows 1.
+    public static string Whole(float value)
+    {
+        if (!float.IsFinite(value) || value <= 0) return "0";
+        return Math.Max(1, Math.Round(value, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture);
+    }
 }

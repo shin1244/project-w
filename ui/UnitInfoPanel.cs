@@ -168,7 +168,7 @@ public partial class UnitInfoPanel : PanelContainer
         HealthDisplay.Apply(_health, _shieldFill, unit?.HealthBar.CurrentHP ?? 0, unit?.HealthBar.MaxHP ?? 0, unit?.HealthBar.Shield ?? 0);
         _healthFill.BgColor = _healthFill.BorderColor = SelectionDetails.HealthColor(ratio);
         StatsSnapshot? stats = unit?.Stats;
-        _stats["Damage"].Text = $"공격 {Number(stats?.Damage)}";
+        _stats["Damage"].Text = $"공격 {(stats is { } shown ? HealthDisplay.Whole(shown.Damage) : "—")}";
         _stats["Range"].Text = $"사거리 {Number(stats?.Range)}";
         _stats["Sight"].Text = $"시야 {Number(stats?.Sight)}";
         _stats["Speed"].Text = $"이속 {Number(stats?.Speed)}";

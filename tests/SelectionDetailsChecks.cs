@@ -57,7 +57,7 @@ public partial class SelectionDetailsChecks : Main
             Receive("HP 101 32.5 50");
             Receive("STATE 101 GATHER 7 0 1");
             await Layout();
-            Check(Labels().Any(label => label.Text == "체력   32.5 / 50") &&
+            Check(Labels().Any(label => label.Text == "체력   33 / 50") &&
                 Labels().Any(label => label.Text == "운반 중인 목재   7") &&
                 Labels().Any(label => label.Text == "상태   채집 중"), "HP, activity and carrying update without reselection");
             await CheckInspection();
@@ -238,7 +238,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATS 8005 22 0.7 0.8 6 10");
         await Layout();
         Check(Info("Level").Text == "팀 Lv.2" && Info("ExperienceText").Text == "25 / 150" &&
-            Math.Abs(experience.Value - 100.0 / 6) < .01 && Info("HealthText").Text == "203.5 / 330" &&
+            Math.Abs(experience.Value - 100.0 / 6) < .01 && Info("HealthText").Text == "204 / 330" &&
             Info("Damage").Text == "공격 22" && Info("AttackSpeed").Text == "공속 1.25/초",
             "Level-up EXP, HP and STATS update independently without reselection");
         if (OS.GetCmdlineUserArgs().Contains("--capture-aos-info"))
@@ -266,7 +266,7 @@ public partial class SelectionDetailsChecks : Main
         Check(Info("HealthText").Text == "61 / 100" && Info("Activity").Text == "공격 중" &&
             Info("Damage").Text == "공격 12" && Info("Range").Text == "사거리 0.7" &&
             !Info("Level").Visible && !experience.IsVisibleInTree() &&
-            Skills.GetNode<Label>("Content/Vitals/Health/Value").Text == "203.5 / 330",
+            Skills.GetNode<Label>("Content/Vitals/Health/Value").Text == "204 / 330",
             "Inspected HP, action and stats update without changing the hero vitals");
         Check(((TextureRect)UnitInfo.FindChild("Portrait", true, false)).Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
             "Compact inspection uses the existing enemy portrait");
@@ -287,7 +287,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("HIDE 8810");
         Receive("HP 8810 60 60");
         await Layout();
-        Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Info("HealthText").Text == "203.5 / 330" &&
+        Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Info("HealthText").Text == "204 / 330" &&
             experience.Value == 50, "HIDE returns to the own hero and ignores late HP for the former inspection");
         Receive("UNIT 100 8810 0 8 0 1");
         await Layout();
