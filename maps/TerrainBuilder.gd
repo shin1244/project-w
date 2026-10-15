@@ -37,7 +37,11 @@ const EXPANSION_BAY_HALF_WIDTH := 9.5
 const EXPANSION_BAY_HEIGHT := 7.5
 const EXPANSION_BAY_ROUNDNESS := 2.5 # 2 is a half-ellipse; larger values square the shoulders.
 const EXPANSION_BAY_Z := 37.0 # Site marker inside the bay; a store fits around it.
-const EXPANSION_BUILD_SIZE := 3.0
+const EXPANSION_BUILD_SIZE := 4.0
+const OIL_CLEARING_CENTER := Vector2(38.0, 0.0)
+const OIL_CLEARING_RADII := Vector2(7.0, 11.0)
+const OIL_CONNECTION_END := Vector2(52.0, 0.0)
+const OIL_CONNECTION_WIDTH := 6.0
 
 var arena: Node3D
 var map_data: Dictionary
@@ -66,6 +70,7 @@ func generate(data: Dictionary) -> Node3D:
 	arena.set_meta("note", "R: walkable stone road, no construction. .: buildable grass. T: harvestable forest.")
 	build_terrain()
 	build_walls()
+	build_oilfields()
 	build_guides()
 	return arena
 
@@ -120,6 +125,25 @@ func expansion_sites() -> Array:
 		{"id": "team2_expansion", "center": [-EXPANSION_PAD_X, EXPANSION_BAY_Z], "buildSize": [EXPANSION_BUILD_SIZE, EXPANSION_BUILD_SIZE]},
 	]
 
+# Terrain metadata only: these seeps have no resource stock, commands, or pickable nodes.
+func oil_fields() -> Array:
+	return [
+		{"id": "west_oilfield", "center": [-39.0, 0.0], "radii": [2.6, 3.6],
+			"clearingCenter": [-38.0, 0.0], "clearingRadii": [7.0, 11.0], "supplySite": [-36.0, 6.0]},
+		{"id": "east_oilfield", "center": [39.0, 0.0], "radii": [2.6, 3.6],
+			"clearingCenter": [38.0, 0.0], "clearingRadii": [7.0, 11.0], "supplySite": [36.0, -6.0]},
+	]
+
+func is_oilfield_clearing(p: Vector2) -> bool:
+	var q := Vector2(absf(p.x), p.y)
+	return ((q - OIL_CLEARING_CENTER) / OIL_CLEARING_RADII).length_squared() <= 1.0 \
+		or segment_distance(q, OIL_CLEARING_CENTER, OIL_CONNECTION_END) <= OIL_CONNECTION_WIDTH * 0.5
+
+func oil_contains(field: Dictionary, p: Vector2) -> bool:
+	var center := Vector2(field["center"][0], field["center"][1])
+	var radii := Vector2(field["radii"][0], field["radii"][1])
+	return ((p - center) / radii).length_squared() <= 1.0
+
 func expansion_local(p: Vector2) -> Vector2:
 	# Team 1's upper site and team 2's lower site are rotational counterparts.
 	var q := p if p.y < 0.0 else -p
@@ -159,6 +183,11 @@ func is_outer_forest(p: Vector2) -> bool:
 
 # Used only when authoring the map. Gameplay and rendering read its saved R cells.
 func is_road(p: Vector2) -> bool:
+	# Reserve just the seep using the existing walkable/no-construction tile.
+	# Its terrain material replaces paving; no new terrain or resource rule is needed.
+	for field in oil_fields():
+		if oil_contains(field, p):
+			return true
 	for area in activity_areas():
 		if area_contains(area, p):
 			return true
@@ -247,10 +276,17 @@ func build_terrain() -> void:
 	var ground_material := ShaderMaterial.new()
 	ground_material.shader = load("res://maps/materials/Ground.gdshader")
 	var road_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
+	var oil_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
 			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" else Color.BLACK)
+			var p := map_origin + (Vector2(x, z) + Vector2.ONE * 0.5) * cell_size
+			for field in map_data.get("oilFields", []):
+				if oil_contains(field, p):
+					oil_image.set_pixel(x, z, Color.WHITE)
+					break
 	ground_material.set_shader_parameter("road_mask", ImageTexture.create_from_image(road_image))
+	ground_material.set_shader_parameter("oil_mask", ImageTexture.create_from_image(oil_image))
 	ground_material.set_shader_parameter("map_origin", map_origin)
 	ground_material.set_shader_parameter("map_size", Vector2(rows[0].length(), rows.size()) * cell_size)
 	top.set_material(ground_material)
@@ -355,3 +391,56 @@ func build_guides() -> void:
 	var length_bottom: float = guides.get_node("BottomLane").curve.get_baked_length()
 	assert(is_equal_approx(length_top, length_bottom))
 	print("PASS: equal lane lengths: ", length_top)
+
+func build_oilfields() -> void:
+	if map_data.get("oilFields", []).is_empty():
+		return
+	var fields := Node3D.new()
+	fields.name = "OilfieldTerrain"
+	attach(fields)
+	var tar := StandardMaterial3D.new()
+	tar.albedo_color = Color("142221")
+	tar.roughness = 0.12
+	tar.metallic = 0.38
+	var rock := StandardMaterial3D.new()
+	rock.albedo_color = Color("2a302b")
+	rock.roughness = 0.83
+	for field in map_data.get("oilFields", []):
+		var center := Vector2(field["center"][0], field["center"][1])
+		var radii := Vector2(field["radii"][0], field["radii"][1])
+		var rotation_sign := -1.0 if center.x > 0.0 else 1.0
+		var site := Node3D.new()
+		site.name = field["id"]
+		attach(site, fields)
+		# Low relief surface meshes only: the server ground remains flat and walkable.
+		# No StaticBody, Area, resource id, or interaction target is attached.
+		var pool := SurfaceTool.new()
+		pool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for i in range(28):
+			var a := float(i) * TAU / 28.0
+			var b := float(i + 1) * TAU / 28.0
+			var ra := 0.68 + sin(a * 3.0 + 0.5) * 0.08 + cos(a * 5.0) * 0.04
+			var rb := 0.68 + sin(b * 3.0 + 0.5) * 0.08 + cos(b * 5.0) * 0.04
+			var pa := center + Vector2(cos(a), sin(a)) * radii * ra * rotation_sign
+			var pb := center + Vector2(cos(b), sin(b)) * radii * rb * rotation_sign
+			triangle(pool, Vector3(center.x, 0.018, center.y), Vector3(pb.x, 0.018, pb.y), Vector3(pa.x, 0.018, pa.y))
+		pool.set_material(tar)
+		var surface := MeshInstance3D.new()
+		surface.name = "OilPool"
+		surface.mesh = pool.commit()
+		attach(surface, site)
+		for i in range(11):
+			var angle := float(i) * TAU / 11.0 + 0.17
+			var offset := Vector2(cos(angle), sin(angle)) * radii * 0.84 * rotation_sign
+			var stone := MeshInstance3D.new()
+			stone.name = "ShoreStone%d" % i
+			var mesh := SphereMesh.new()
+			mesh.radius = 0.25 + float(i % 3) * 0.06
+			mesh.height = 0.18 + float(i % 2) * 0.07
+			mesh.radial_segments = 5
+			mesh.rings = 2
+			mesh.material = rock
+			stone.mesh = mesh
+			stone.position = Vector3(center.x + offset.x, 0.04, center.y + offset.y)
+			stone.rotation.y = angle
+			attach(stone, site)

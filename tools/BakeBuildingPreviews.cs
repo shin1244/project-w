@@ -10,6 +10,7 @@ public partial class BakeBuildingPreviews : Node
     {
         try
         {
+            bool storeOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
             const string directory = "res://ui/build-previews";
             const int pixels = 512;
             const float span = 8f;
@@ -70,6 +71,7 @@ public partial class BakeBuildingPreviews : Node
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             foreach (var item in views)
             {
+                if (storeOnly && !item.Path.EndsWith("/store.png", StringComparison.Ordinal)) continue;
                 using Image image = item.Viewport.GetTexture().GetImage();
                 if (image == null || image.IsEmpty() || image.SavePng(item.Path) != Error.Ok)
                     throw new InvalidOperationException($"Cannot save {item.Path}");

@@ -131,20 +131,24 @@ public partial class BuildingPlacementChecks : Main
                 Check(!Placement.Begin(unavailable) && !Units.RequestBuild(unavailable, new Vector3(-4, 0, -8), 101),
                     $"Type {unavailable} is unavailable for player construction in both preview and command paths");
             ChooseBuilding(7);
-            Placement.UpdatePreview(Screen(-5.5f, -9.5f));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("저장소 배치"),
-                "Tier-one slot 7 selects the cached 3x3 store preview");
+            Placement.UpdatePreview(Screen(-6f, -9f));
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("보급기지 배치"),
+                "Tier-one slot 7 selects the supply depot placement preview");
             before = _wire.Length;
             int buildingsBefore = Buildings.LiveBuildings.Count;
-            Click(-5.5f, -9.5f);
-            Check(_commands.Count == 3 && _commands[2] == "BUILD 2 -5.5 -9.5 101" && !Placement.Active &&
-                Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 2 -5.5 -9.5 101" + System.Environment.NewLine &&
+            Click(-6f, -9f);
+            Check(_commands.Count == 3 && _commands[2] == "BUILD 2 -6 -9 101" && !Placement.Active &&
+                Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 2 -6 -9 101" + System.Environment.NewLine &&
                 Buildings.LiveBuildings.Count == buildingsBefore, "Store sends exactly one type 2 BUILD and waits for the server");
-            Receive("BUILDING 2 504 1 -5.5 -9.5 0");
-            Check(Buildings.TryGetBuilding(504, out Building store) && store.BuildingType == BuildingCatalog.Store &&
-                store.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3), "Type 2 response creates the 3x3 store");
+            Receive("BUILDING 2 504 1 -6 -9 0");
+            Check(Buildings.TryGetBuilding(504, out Building store) && store.BuildingType == BuildingCatalog.Store,
+                "Type 2 response creates the supply depot without changing its protocol ID");
+            Vector2 depotSize = store.GetMeta("footprint").AsVector2I();
+            Check(Issue(-6f + depotSize.X / 2 + .5f, -9f, 1, 1) == null &&
+                Issue(-6f + depotSize.X / 2 + .4f, -9f, 1, 1)?.Contains("다른 건물") == true,
+                "Depot occupancy allows touching edges and rejects overlap using its scene footprint");
             Invoke("SelectBuilding", store);
-            Check(title.Text == "저장소", "Store selection displays its synchronized name");
+            Check(title.Text == "보급기지", "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(4);
             Placement.UpdatePreview(Screen(-5.5f, -3.5f));

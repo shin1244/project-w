@@ -15,27 +15,28 @@ public partial class BakeSelectionPortraits : Node
             Error result = DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
             if (result != Error.Ok) throw new System.InvalidOperationException($"Cannot create portrait directory: {result}");
             var portraits = new Dictionary<string, Texture2D>();
+            bool storeOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
             bool golemOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--golem-only") >= 0;
             bool soldiersOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--soldiers-only") >= 0;
             bool defensesOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--defenses-only") >= 0;
             bool inspectionOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--inspection-only") >= 0;
             bool heroOnly = golemOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--hero-only") >= 0;
             bool rangedOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--ranged-only") >= 0;
-            if (rangedOnly)
+            if (!storeOnly && rangedOnly)
                 foreach (bool enemy in new[] { false, true })
                 {
                     portraits.Add("archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/Archer.tscn"), enemy: enemy));
                     portraits.Add("minion-archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/MinionArcher.tscn"), enemy: enemy));
                 }
-            if (!rangedOnly && (heroOnly || (!soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
+            if (!storeOnly && !rangedOnly && (heroOnly || (!soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
                 foreach (string hero in golemOnly ? new[] { "HeroGolem" } : new[] { "HeroTest", "HeroGolem" })
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add((hero == "HeroGolem" ? "rune-golem" : "mutant-wolf") + (enemy ? "-enemy" : ""),
                             GetPortrait(GD.Load<PackedScene>($"res://units/{hero}.tscn"), enemy: enemy));
-            if (!rangedOnly && !heroOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
+            if (!storeOnly && !rangedOnly && !heroOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
                 foreach (string unit in soldiersOnly ? new[] { "Knight", "Archer" } : new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant(), GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn")));
-            if (!rangedOnly && !heroOnly && (inspectionOnly || (!soldiersOnly && !defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
+            if (!storeOnly && !rangedOnly && !heroOnly && (inspectionOnly || (!soldiersOnly && !defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
             {
                 foreach (string unit in new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant() + "-enemy", GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: true));
@@ -43,7 +44,7 @@ public partial class BakeSelectionPortraits : Node
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add($"minion-{unit.ToLowerInvariant()}{(enemy ? "-enemy" : "")}", GetPortrait(GD.Load<PackedScene>($"res://units/Minion{unit}.tscn"), enemy: enemy));
             }
-            foreach (string building in rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" })
+            foreach (string building in storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" })
                 foreach (bool enemy in new[] { false, true })
                     portraits.Add($"{building.ToLowerInvariant()}-{(enemy ? "enemy" : "ally")}",
                         GetPortrait(GD.Load<PackedScene>($"res://buildings/{building}.tscn"), true, enemy));

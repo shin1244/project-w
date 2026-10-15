@@ -29,8 +29,8 @@
     "Type": 2,
     "Texture": "res://ui/build-previews/store.png",
     "Footprint": [
-      3,
-      3
+      4,
+      4
     ],
     "WorldSpan": 8,
     "Anchor": [

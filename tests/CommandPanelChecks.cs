@@ -500,7 +500,7 @@ public partial class CommandPanelChecks : Main
     }
 
     private void ExpectTierMenu(string message) => Expect(message,
-        (7, "저장소\n(Q)"), (8, "합숙소\n(W)"), (9, "병영\n(E)"),
+        (7, "보급기지\n(Q)"), (8, "합숙소\n(W)"), (9, "병영\n(E)"),
         (4, "대장간\n(A)"), (5, "포탑\n(S)"), (1, "뒤로(Z)"));
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>

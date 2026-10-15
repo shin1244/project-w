@@ -15,7 +15,7 @@ func _ready() -> void:
 	var heading := label("PROJECT W  /  생활 · 군수 시설", 30, Color("edf0e4"))
 	heading.position = Vector2(38, 24)
 	add_child(heading)
-	var subtitle := label("합숙소 · 자원 창고 · 병영 · 화덕과 모루가 있는 대장간", 17, Color("9eaca8"))
+	var subtitle := label("합숙소 · 보급기지 · 병영 · 화덕과 모루가 있는 대장간", 17, Color("9eaca8"))
 	subtitle.position = Vector2(40, 66)
 	add_child(subtitle)
 	var layout := HBoxContainer.new()
@@ -27,7 +27,7 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 14)
 	add_child(layout)
 	for entry in [
-		["res://previews/Store.tscn", "저장소", "목재 · 자원 창고", "3 × 3", "9eb581"],
+		["res://previews/Store.tscn", "보급기지", "전진 자원 반납 거점", "4 × 4", "9eb581"],
 		["res://previews/Supply.tscn", "합숙소", "병사들의 생활 공간", "3 × 3", "c5aa72"],
 		["res://previews/Barracks.tscn", "병영", "1티어 유닛 훈련", "5 × 3", "7fa4b9"],
 		["res://previews/Forge.tscn", "대장간", "화덕 · 모루 · 철제 장비", "5 × 3", "c9956f"]

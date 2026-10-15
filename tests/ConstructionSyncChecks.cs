@@ -70,7 +70,7 @@ public partial class ConstructionSyncChecks : Main
                 "Main CONSTRUCTION branch activates the zero-percent common site");
             Receive("HP 502 60 400");
             Invoke("SelectBuilding", site);
-            Check(Detail("_title").Text == "저장소" && Detail("_activity").Text.Contains("공사 중") &&
+            Check(Detail("_title").Text == "보급기지" && Detail("_activity").Text.Contains("공사 중") &&
                 Detail("_activity").Text.Contains("0%") && Detail("_extra").Text.Contains("이어 짓기"),
                 "Selected store shows its construction percentage and continuation hint");
             Receive("CONSTRUCTION 502 37");

@@ -39,7 +39,11 @@ func _initialize() -> void:
 					var cz := z + dz
 					if cx < 0 or cz < 0 or cz >= outline.size() or cx >= row.length() or outline[cz][cx] == "#":
 						perimeter = true
-			row[x] = "W" if perimeter else ("R" if layout.is_road(p) else ".")
+			var road: bool = layout.is_road(p)
+			for area in data.get("activityAreas", []):
+				if area.get("kind", "") == "spawn" and layout.area_contains(area, p):
+					road = true
+			row[x] = "W" if perimeter else ("R" if road else ".")
 			if row[x] == "R":
 				roads += 1
 			elif row[x] == "W":
@@ -56,6 +60,7 @@ func _initialize() -> void:
 			for dx in range(TREE_SIZE):
 				var p: Vector2 = cell_center.call(x + dx, z + dz)
 				if rows[z + dz][x + dx] != "." or occupied.has(Vector2i(x + dx, z + dz)) \
+					or layout.is_oilfield_clearing(p) \
 					or (not layout.is_outer_forest(p) if outer else layout.outside_lanes(p)):
 					return false
 		return true
@@ -124,8 +129,14 @@ func _initialize() -> void:
 			assert((rows[z][x] == "W") == (rows[mz][mx] == "W"))
 			assert(occupied.has(Vector2i(x, z)) == occupied.has(Vector2i(mx, mz)))
 	data["rows"] = rows
-	data["activityAreas"] = layout.activity_areas()
+	# Preserve authored spawn/supply areas; the layout owns only event and jungle areas.
+	var areas: Array = layout.activity_areas()
+	for area in data.get("activityAreas", []):
+		if area.get("kind", "") not in ["event", "jungle"]:
+			areas.append(area)
+	data["activityAreas"] = areas
 	data["expansionSites"] = layout.expansion_sites()
+	data["oilFields"] = layout.oil_fields()
 	data["treeSize"] = TREE_SIZE
 	data["treeAmount"] = int(data["treeAmount"])
 	for tower in data.get("towers", []):
@@ -137,5 +148,5 @@ func _initialize() -> void:
 	assert(file != null)
 	file.store_string(JSON.stringify(data, "  ") + "\n")
 	file.close()
-	print("Map planted: ", trees, " trees, ", roads, " road cells, ", walls, " wall cells; two expansion bays and four jungle clearings; rotational symmetry verified.")
+	print("Map planted: ", trees, " trees, ", roads, " road cells, ", walls, " wall cells; expansion bays, jungle and oilfield clearings; rotational symmetry verified.")
 	quit()

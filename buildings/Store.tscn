@@ -1,32 +1,31 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://buildings/Building.cs" id="1_wycal"]
-[ext_resource type="ArrayMesh" path="res://buildings/meshes/Store.res" id="2_q74ry"]
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_cx4ek"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/Store.res" id="2_ypuko"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_wccl7"]
-size = Vector3(3, 3.29625, 3)
+[sub_resource type="BoxShape3D" id="BoxShape3D_pd1bk"]
+size = Vector3(4, 3.459225, 4)
 
-[node name="Store" type="Node3D" unique_id=276530906]
-script = ExtResource("1_wycal")
+[node name="Store" type="Node3D" unique_id=334826042]
+script = ExtResource("1_cx4ek")
 BuildingType = 2
-HealthBarHeight = 3.74625
+HealthBarHeight = 3.759225
 metadata/role = "store"
-metadata/footprint = Vector2i(3, 3)
+metadata/footprint = Vector2i(4, 4)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=1864823695]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
-mesh = ExtResource("2_q74ry")
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=754297634]
+mesh = ExtResource("2_ypuko")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1787343721]
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1300681884]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1345246697]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.648125, 0)
-shape = SubResource("BoxShape3D_wccl7")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=938094903]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7296125, 0)
+shape = SubResource("BoxShape3D_pd1bk")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=523952965]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+[node name="Entrance" type="Marker3D" parent="." unique_id=917759211]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)

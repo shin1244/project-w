@@ -117,7 +117,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Units or DisplayMode.Workers, 5) => "정지(S)",
                 (DisplayMode.Units or DisplayMode.Workers, 6) => "홀드(D)",
                 (DisplayMode.Workers, 1) => "1티어(Z)",
-                (DisplayMode.TierOne, 7) => "저장소\n(Q)",
+                (DisplayMode.TierOne, 7) => "보급기지\n(Q)",
                 (DisplayMode.TierOne, 8) => "합숙소\n(W)",
                 (DisplayMode.TierOne, 9) => "병영\n(E)",
                 (DisplayMode.TierOne, 4) => "대장간\n(A)",
