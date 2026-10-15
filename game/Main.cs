@@ -497,6 +497,16 @@ public partial class Main : Node3D
                     Skills?.HandleHealth(health);
                 }
                 break;
+            case "MANA":
+                if (ManaSnapshot.TryParse(parts, out var mana))
+                {
+                    Units.HandleMana(mana);
+                    Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
+                }
+                break;
+            case "MANA_COST":
+                if (ManaCostSnapshot.TryParse(parts, out var manaCost)) Skills?.HandleManaCost(manaCost);
+                break;
             case "SHIELD":
                 if (ShieldSnapshot.TryParse(parts, out var shield))
                 {

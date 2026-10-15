@@ -185,6 +185,7 @@ public partial class SelectionDetailsChecks : Main
         Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Units.LocalTeam == 1 && Skills.Visible,
             "Invalid welcome messages cannot partially change team, ownership or HUD");
         CheckHeroVitals();
+        CheckManaMessages();
         await CheckShieldSync();
         await CheckCompactInfo();
         InvokeMain("SelectUnit", Unit(999));
@@ -360,6 +361,27 @@ public partial class SelectionDetailsChecks : Main
         Check(Skills.HeroUnitId == null && hpText.Text == "— / —", "Losing ownership clears the former hero's vitals");
         Receive("HIDE 8002");
         Receive("HIDE 8003");
+    }
+
+    private void CheckManaMessages()
+    {
+        Receive("ABILITY UNIT 200 0 wolf-bite ENEMY 3 7 0");
+        Receive("MANA_COST 200 0 50");
+        Receive("UNIT 200 8010 7 0 0 1");
+        Receive("HP 8010 600 600");
+        Receive("MANA 8010 40 300");
+        var manaText = Skills.GetNode<Label>("Content/Vitals/Mana/Value");
+        Check(manaText.Text == "40 / 300" && Units.TryGetUnit(8010, out Unit hero) && hero.HealthBar.Mana == 40 &&
+              hero.HealthBar.MaxMana == 300, "MANA updates both the hero HUD and the overhead bar");
+        Check(Skills.ManaCost(0) == 50 && !Skills.CanUse(0), "A skill costing more than the current mana cannot be used");
+        Receive("MANA 8010 50 300");
+        Check(Skills.CanUse(0), "Exactly enough mana makes the skill usable again");
+        Receive("MANA 8010 NaN 300");
+        Receive("MANA 0 10 300");
+        Receive("MANA 8010 10 0");
+        Receive("MANA_COST 200 9 10");
+        Check(Skills.CanUse(0) && manaText.Text == "50 / 300", "Invalid MANA and MANA_COST lines are ignored");
+        Receive("HIDE 8010");
     }
 
     private async Task CheckShieldSync()

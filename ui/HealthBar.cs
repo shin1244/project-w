@@ -6,6 +6,9 @@ public partial class HealthBar : Control
     public float CurrentHP { get; private set; }
     public float MaxHP { get; private set; }
     public float Shield { get; private set; }
+    public float Mana { get; private set; }
+    public float MaxMana { get; private set; }
+    private const float ManaStripHeight = 3;
     public float Ratio => MaxHP > 0 ? Mathf.Clamp(CurrentHP / MaxHP, 0, 1) : 0;
     private Node3D _owner;
     private float _worldHeight;
@@ -34,6 +37,16 @@ public partial class HealthBar : Control
         MaxHP = maximum;
         _hasHealth = true;
         RefreshVisibility();
+        QueueRedraw();
+    }
+
+    // 영웅만 MANA를 받는다. 받으면 체력바 아래에 파란 줄이 붙는다.
+    public void ApplyMana(float current, float maximum)
+    {
+        if (!float.IsFinite(current) || !float.IsFinite(maximum) || maximum <= 0 || current < 0) return;
+        if (MaxMana <= 0) Size = new Vector2(Size.X, Size.Y + ManaStripHeight);
+        Mana = Mathf.Min(current, maximum);
+        MaxMana = maximum;
         QueueRedraw();
     }
 
@@ -68,6 +81,8 @@ public partial class HealthBar : Control
     {
         _hasHealth = false;
         Shield = 0;
+        if (MaxMana > 0) Size = new Vector2(Size.X, Size.Y - ManaStripHeight);
+        Mana = MaxMana = 0;
         SetProcess(false);
         Hide();
     }
@@ -87,7 +102,8 @@ public partial class HealthBar : Control
     public override void _Draw()
     {
         DrawRect(new Rect2(Vector2.Zero, Size), new Color("111820"));
-        Vector2 inner = Size - new Vector2(2, 2);
+        float strip = MaxMana > 0 ? ManaStripHeight : 0;
+        Vector2 inner = Size - new Vector2(2, 2 + strip);
         DrawRect(new Rect2(Vector2.One, inner), new Color("343b42"));
         Color fill = Ratio > .5f ? new Color("64cf79")
             : Ratio > .25f ? new Color("edbf55") : new Color("e96860");
@@ -96,5 +112,11 @@ public partial class HealthBar : Control
         DrawRect(new Rect2(Vector2.One, new Vector2(inner.X * hp, inner.Y)), fill);
         if (shield > 0)
             DrawRect(new Rect2(new Vector2(1 + inner.X * hp, 1), new Vector2(inner.X * shield, inner.Y)), HealthDisplay.ShieldColor);
+        if (strip > 0)
+        {
+            var track = new Rect2(new Vector2(1, 1 + inner.Y), new Vector2(inner.X, strip - 1));
+            DrawRect(track, new Color("1b2a44"));
+            DrawRect(new Rect2(track.Position, new Vector2(track.Size.X * Mathf.Clamp(Mana / MaxMana, 0, 1), track.Size.Y)), new Color("5aa0ff"));
+        }
     }
 }

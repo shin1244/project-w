@@ -463,6 +463,11 @@ public partial class UnitManager : Node3D
         if (_units.TryGetValue(health.Id, out Unit unit)) unit.ApplyHealth(health);
     }
 
+    public void HandleMana(ManaSnapshot mana)
+    {
+        if (_units.TryGetValue(mana.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyMana(mana.Current, mana.Maximum);
+    }
+
     public void HandleShield(ShieldSnapshot shield)
     {
         if (_units.TryGetValue(shield.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyShield(shield.Amount);

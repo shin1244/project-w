@@ -18,6 +18,8 @@ public partial class HeroSkillPanel : PanelContainer
     private readonly Dictionary<int, uint> _readyTicks = new();
     private readonly HashSet<int> _activeSkills = new();
     private readonly Dictionary<int, int> _cooldownLengths = new();
+    private readonly Dictionary<(uint, int), float> _manaCosts = new();
+    private float? _currentMana; // null until the server's MANA arrives; the server stays authoritative.
     private readonly List<StyleBoxFlat> _styles = new();
     private readonly List<SlotView> _slots = new();
     private uint _playerId, _team, _tick;
@@ -80,7 +82,11 @@ public partial class HeroSkillPanel : PanelContainer
         (_restrictions & (ControlRestrictions.Stun | ControlRestrictions.Silence)) == 0 &&
         (!definition.MovesCaster || (_restrictions & ControlRestrictions.Root) == 0) &&
         _activity is not (UnitActivity.Stun or UnitActivity.Dash) &&
-        (!_readyTicks.ContainsKey(slot) || _hasTick && RemainingTicks(slot) == 0);
+        (!_readyTicks.ContainsKey(slot) || _hasTick && RemainingTicks(slot) == 0) && HasMana(slot);
+
+    public float? ManaCost(int slot) => HeroType is uint type && _manaCosts.TryGetValue((type, slot), out float cost) ? cost : null;
+    private bool HasMana(int slot) => ManaCost(slot) is not float cost || _currentMana is not float mana || mana >= cost;
+    public void HandleManaCost(ManaCostSnapshot cost) { _manaCosts[(cost.UnitType, cost.Slot)] = cost.Cost; Refresh(); }
 
     public bool IsActive(int slot) => _activeSkills.Contains(slot);
 
@@ -396,7 +402,8 @@ public partial class HeroSkillPanel : PanelContainer
             view.Button.Disabled = !available;
             bool empowered = _golemEffects.EmpowerReady && slot < 3;
             bool armed = IsActive(slot);
-            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered, rank);
+            view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered, rank) +
+                (ManaCost(slot) is float cost ? $"\n마나 {HealthDisplay.Whole(cost)}" : "");
             view.Button.AddThemeStyleboxOverride("normal", _targeting == slot || empowered ? view.Targeting : view.Normal);
             view.Button.AddThemeStyleboxOverride("disabled", armed ? view.Targeting : view.Disabled);
             string iconId = definition?.Id;
@@ -411,7 +418,8 @@ public partial class HeroSkillPanel : PanelContainer
             view.Cover.Visible = cooling;
             view.Cover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks(slot) / (float)Math.Max(1, _cooldownLengths.GetValueOrDefault(slot)), 0, 1) : 0;
             view.Cooldown.Text = locked ? "잠김" : armed ? definition?.Id == "wolf-drain" ? "대기" : "사용 중"
-                : cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
+                : cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—"
+                : definition.HasValue && !HasMana(slot) ? "마나" : "";
         }
         RefreshStatus();
         AvailabilityChanged?.Invoke();
@@ -421,6 +429,8 @@ public partial class HeroSkillPanel : PanelContainer
         if (HeroUnitId != id || !float.IsFinite(current) || !float.IsFinite(maximum) || current < 0 || maximum <= 0) return;
         ApplyVital(_mana, _manaText, current, maximum);
         _mana.GetParent<Control>().Show();
+        _currentMana = Mathf.Min(current, maximum);
+        Refresh();
     }
     public void HandleRemove(string[] parts)
     {
@@ -434,6 +444,7 @@ public partial class HeroSkillPanel : PanelContainer
         HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
         Refresh();
         _currentHP = _maxHP = _shield = 0;
+        _currentMana = null;
         if (_health == null) return;
         _shieldFill.Hide();
         _health.Value = _mana.Value = 0; _healthText.Text = _manaText.Text = "— / —";
