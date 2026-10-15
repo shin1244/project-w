@@ -56,8 +56,8 @@ public partial class ConstructionSyncChecks : Main
             Receive("UNIT 0 102 7 -12 4 1");
             Receive("UNIT 1 201 7 -14 2 1");
             Receive("UNIT 0 301 8 -14 4 1");
-            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" };
-            for (uint type = 0; type <= 6; type++)
+            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick" };
+            for (uint type = 0; type < sceneNames.Length; type++)
             {
                 Check(Buildings.SceneFor(type)?.ResourcePath == $"res://buildings/{sceneNames[type]}.tscn",
                     $"Actual Main scene maps synchronized type {type} to {sceneNames[type]}");

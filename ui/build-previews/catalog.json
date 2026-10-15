@@ -63,5 +63,18 @@
       0.5,
       0.62724376
     ]
+  },
+  {
+    "Type": 7,
+    "Texture": "res://ui/build-previews/oil_derrick.png",
+    "Footprint": [
+      4,
+      4
+    ],
+    "WorldSpan": 9.709,
+    "Anchor": [
+      0.5,
+      0.6817769
+    ]
   }
 ]

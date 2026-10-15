@@ -3,8 +3,10 @@ using Godot;
 // 클라이언트가 알고 있는 장애물에 대한 사전 검사입니다. 비용/거리/건설 가능 여부의 최종 판정은 서버가 합니다.
 public static class PlacementRules
 {
-    public static Vector3 Snap(MapWorld map, Vector3 point, Vector2 footprint)
+    public static Vector3 Snap(MapWorld map, Vector3 point, Vector2 footprint, uint type = uint.MaxValue)
     {
+        if (type == BuildingCatalog.OilDerrick)
+            return map.TryGetOilFieldCenter(point, out Vector3 oilCenter) ? oilCenter : new Vector3(point.X, 0, point.Z);
         Vector2 half = footprint * .5f;
         return new Vector3(
             map.GridOrigin.X + Mathf.Round((point.X - map.GridOrigin.X - half.X) / map.CellSize) * map.CellSize + half.X,
@@ -12,10 +14,13 @@ public static class PlacementRules
             map.GridOrigin.Y + Mathf.Round((point.Z - map.GridOrigin.Y - half.Y) / map.CellSize) * map.CellSize + half.Y);
     }
 
-    public static string Check(MapWorld map, BuildingManager buildings, UnitManager units, Vector3 center, Vector2 footprint)
+    public static string Check(MapWorld map, BuildingManager buildings, UnitManager units, Vector3 center, Vector2 footprint, uint type = uint.MaxValue)
     {
         if (!GodotObject.IsInstanceValid(map) || !map.HasMap || !map.IsSynchronized) return "맵 동기화가 끝나지 않았습니다.";
         if (!center.IsFinite() || !footprint.IsFinite() || footprint.X <= 0 || footprint.Y <= 0) return "올바른 건설 위치가 아닙니다.";
+        bool oilDerrick = type == BuildingCatalog.OilDerrick;
+        if (oilDerrick && (!map.TryGetOilFieldCenter(center, out Vector3 oilCenter) || !center.IsEqualApprox(oilCenter)))
+            return "시추탑은 유전 지대에만 지을 수 있습니다.";
         var area = new Rect2(new Vector2(center.X, center.Z) - footprint * .5f, footprint);
         Vector2 mapEnd = map.GridOrigin + (Vector2)map.GridSize * map.CellSize;
         if (area.Position.X < map.GridOrigin.X || area.Position.Y < map.GridOrigin.Y ||
@@ -25,12 +30,13 @@ public static class PlacementRules
         for (int z = Mathf.FloorToInt(from.Y + .0001f); z < Mathf.CeilToInt(to.Y - .0001f); z++)
             for (int x = Mathf.FloorToInt(from.X + .0001f); x < Mathf.CeilToInt(to.X - .0001f); x++)
             {
-                if (map.IsRoad(x, z)) return "도로에는 건물을 지을 수 없습니다.";
+                if (!oilDerrick && map.IsRoad(x, z)) return "도로에는 건물을 지을 수 없습니다.";
                 if (map.IsTerrainBlocked(x, z)) return "벽이나 나무가 있는 곳에는 지을 수 없습니다.";
             }
         if (GodotObject.IsInstanceValid(buildings))
             foreach (Building building in buildings.LiveBuildings)
-                if (BuildingFootprint.Overlaps(area, BuildingFootprint.Corners(building))) return "다른 건물과 겹칩니다.";
+                if (BuildingFootprint.Overlaps(area, BuildingFootprint.Corners(building)))
+                    return oilDerrick && building.BuildingType == BuildingCatalog.OilDerrick ? "이미 시추탑이 있는 유전입니다." : "다른 건물과 겹칩니다.";
         if (GodotObject.IsInstanceValid(units))
             foreach (Unit unit in units.LiveUnits)
             {

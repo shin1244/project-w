@@ -409,6 +409,7 @@ public partial class CommandPanelChecks : Main
             _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
             Check(!_slots[5].Disabled, "Tower construction is available with the updated server definition");
+            Check(_slots[6].TooltipText.Contains("유전"), "The derrick menu explains its oilfield-only restriction");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
             KeyStroke(input, Key.Z);
@@ -420,7 +421,8 @@ public partial class CommandPanelChecks : Main
             foreach ((int slot, Key key, uint type) in new[]
             {
                 (7, Key.Q, BuildingCatalog.Store), (8, Key.W, BuildingCatalog.Supply),
-                (9, Key.E, BuildingCatalog.Barracks), (4, Key.A, BuildingCatalog.Forge), (5, Key.S, BuildingCatalog.Tower)
+                (9, Key.E, BuildingCatalog.Barracks), (4, Key.A, BuildingCatalog.Forge), (5, Key.S, BuildingCatalog.Tower),
+                (6, Key.D, BuildingCatalog.OilDerrick)
             })
             {
                 _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
@@ -501,7 +503,7 @@ public partial class CommandPanelChecks : Main
 
     private void ExpectTierMenu(string message) => Expect(message,
         (7, "보급기지\n(Q)"), (8, "합숙소\n(W)"), (9, "병영\n(E)"),
-        (4, "대장간\n(A)"), (5, "포탑\n(S)"), (1, "뒤로(Z)"));
+        (4, "대장간\n(A)"), (5, "포탑\n(S)"), (6, "시추탑\n(D)"), (1, "뒤로(Z)"));
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>
         new() { Keycode = key, PhysicalKeycode = key, Pressed = pressed, Echo = echo };

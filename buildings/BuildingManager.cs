@@ -13,6 +13,7 @@ public partial class BuildingManager : Node3D
     [Export] public PackedScene SupplyScene;
     [Export] public PackedScene BarracksScene;
     [Export] public PackedScene ForgeScene;
+    [Export] public PackedScene OilDerrickScene;
     [Export] public UnitManager Units;
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
@@ -39,7 +40,7 @@ public partial class BuildingManager : Node3D
     public PackedScene SceneFor(uint type) => type switch
     {
         0 => TownHallScene, 1 => FortressScene, 2 => StoreScene, 3 => SupplyScene,
-        4 => BarracksScene, 5 => ForgeScene, 6 => TowerScene, _ => null
+        4 => BarracksScene, 5 => ForgeScene, 6 => TowerScene, 7 => OilDerrickScene, _ => null
     };
 
     public void SetLocalTeam(uint team)
@@ -92,7 +93,7 @@ public partial class BuildingManager : Node3D
     {
         // BUILDING type id sideId x z yaw (yaw: radians)
         if (parts.Length != 7 ||
-            !uint.TryParse(parts[1], out uint type) || type > 6 ||
+            !uint.TryParse(parts[1], out uint type) || type > BuildingCatalog.OilDerrick ||
             !uint.TryParse(parts[2], out uint id) || id == 0 ||
             !uint.TryParse(parts[3], out uint sideId) || sideId == 0 ||
             !TryCoordinate(parts[4], out float x) ||

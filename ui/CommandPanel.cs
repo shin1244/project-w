@@ -122,6 +122,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.TierOne, 9) => "병영\n(E)",
                 (DisplayMode.TierOne, 4) => "대장간\n(A)",
                 (DisplayMode.TierOne, 5) => "포탑\n(S)",
+                (DisplayMode.TierOne, 6) => "시추탑\n(D)",
                 (DisplayMode.TierOne, 1) => "뒤로(Z)",
                 (DisplayMode.TownHall, 7) => "일꾼",
                 (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
@@ -156,7 +157,7 @@ public partial class CommandPanel : PanelContainer
                 if (!BuildingCatalog.IsPlayerBuildable(type)) continue;
                 string reason = Buildings.BuildingRequirementBlockReason(type);
                 _slots[i].Disabled = reason != null;
-                _slots[i].TooltipText = reason ?? "";
+                _slots[i].TooltipText = reason ?? (type == BuildingCatalog.OilDerrick ? "유전 지대에만 건설 · 유전마다 1개" : "");
             }
             return;
         }
@@ -238,7 +239,7 @@ public partial class CommandPanel : PanelContainer
     private static uint BuildingTypeForSlot(int number) => number switch
     {
         7 => BuildingCatalog.Store, 8 => BuildingCatalog.Supply, 9 => BuildingCatalog.Barracks,
-        4 => BuildingCatalog.Forge, 5 => BuildingCatalog.Tower, _ => uint.MaxValue
+        4 => BuildingCatalog.Forge, 5 => BuildingCatalog.Tower, 6 => BuildingCatalog.OilDerrick, _ => uint.MaxValue
     };
 
     private void RequestSlot(int number)
@@ -299,6 +300,7 @@ public partial class CommandPanel : PanelContainer
             Key.E when _tierOne => 9,
             Key.A when _tierOne => 4,
             Key.S when _tierOne => 5,
+            Key.D when _tierOne => 6,
             Key.A when _display is DisplayMode.Units or DisplayMode.Workers => 4,
             Key.S when _display is DisplayMode.Units or DisplayMode.Workers => 5,
             Key.D when _display is DisplayMode.Units or DisplayMode.Workers => 6,

@@ -68,6 +68,25 @@ public partial class MapWorld : Node3D
         return false;
     }
 
+    public bool TryGetOilFieldCenter(Vector3 position, out Vector3 center)
+    {
+        center = default;
+        if (_map == null || !position.IsFinite()) return false;
+        bool found = false;
+        float nearestDistance = float.PositiveInfinity;
+        foreach (var field in _map.OilFields)
+            if (field.Contains(new Vector2(position.X, position.Z)))
+            {
+                Vector3 candidate = new(field.Center[0], 0, field.Center[1]);
+                float distance = new Vector2(position.X - candidate.X, position.Z - candidate.Z).LengthSquared();
+                if (distance >= nearestDistance) continue;
+                center = candidate;
+                nearestDistance = distance;
+                found = true;
+            }
+        return found;
+    }
+
     public sealed class MapFile
     {
         public string Name { get; set; }
@@ -83,7 +102,7 @@ public partial class MapWorld : Node3D
         public MapOilField[] OilFields { get; set; } = Array.Empty<MapOilField>();
     }
 
-    // Surface decoration only. R cells already own passability and construction rules.
+    // A derrick claims the exact center; the ellipse defines its cursor snap area.
     public sealed class MapOilField
     {
         public string Id { get; set; }
@@ -158,7 +177,9 @@ public partial class MapWorld : Node3D
 
         if (map.ActivityAreas == null || map.ActivityAreas.Any(area => area == null || !area.IsValid()))
             throw new InvalidOperationException("잘못된 이벤트·정글 구역 형식");
-        if (map.OilFields == null || map.OilFields.Any(field => field == null || !field.IsValid()))
+        if (map.OilFields == null || map.OilFields.Any(field => field == null || !field.IsValid()) ||
+            map.OilFields.Select(field => field.Id).Distinct(StringComparer.Ordinal).Count() != map.OilFields.Length ||
+            map.OilFields.Select(field => (field.Center[0], field.Center[1])).Distinct().Count() != map.OilFields.Length)
             throw new InvalidOperationException("잘못된 유전 지형 형식");
 
         var occupied = new bool[map.Rows.Length, map.Rows[0].Length];

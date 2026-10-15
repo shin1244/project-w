@@ -233,7 +233,8 @@ public partial class BuildingPlacementChecks : Main
             ChooseBuilding();
             Invoke("OnConnectionClosed", "Placement test disconnect");
             Check(!Placement.Active && Units.LiveUnits.Count == 0, "Disconnect cleans the ghost and selected worker");
-            GD.Print("PASS: worker construction menu, terrain/tree/unit/server-aligned building occupancy, latest server positions, exact BUILD framing, one request per click, server-only creation, cancel/UI/sync/reconnect gates");
+            CheckOilDerrick();
+            GD.Print("PASS: worker construction menu, terrain/tree/unit/server-aligned building occupancy, oilfield-only derrick snapping/occupancy/removal, exact BUILD framing, server-only creation, cancel/UI/sync/reconnect gates");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -243,6 +244,70 @@ public partial class BuildingPlacementChecks : Main
     private void BeginSession()
     {
         Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1 COMMANDER");
+    }
+
+    private void CheckOilDerrick()
+    {
+        Map.MapPath = "res://tests/fixtures/map-oil-derrick.json";
+        Map.LoadLocalMap();
+        Fog.Configure(Map);
+        BeginSession();
+        Check(Map.TryGetOilFieldCenter(new Vector3(-1, 0, -7), out Vector3 exactCenter) && exactCenter == new Vector3(-1, 0, -7),
+            "An exact oilfield center takes precedence over an earlier overlapping cursor ellipse");
+        Check(Map.TryGetOilFieldCenter(new Vector3(-2, 0, -7), out Vector3 nearerCenter) && nearerCenter == new Vector3(-1, 0, -7),
+            "Overlapping oilfield ellipses select the nearest center");
+        Check(Map.TryGetOilFieldCenter(new Vector3(-2.5f, 0, -7), out Vector3 tiedCenter) && tiedCenter == new Vector3(-4, 0, -7),
+            "Equally near oilfield centers retain metadata order like the server");
+        Receive("UNIT 0 101 7 -9 5 1");
+        Invoke("SelectUnit", Unit());
+        Units.Camera.Position = new Vector3(0, 32, 22);
+        Units.Camera.LookAt(Vector3.Zero);
+        Units.Camera.Size = 30;
+        ChooseBuilding(6);
+        int before = _commands.Count;
+        Click(0, -5);
+        Check(Placement.Active && !Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
+            "Derricks reject ordinary grass without sending BUILD");
+        Click(4.5f, -7);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
+            "An ordinary road cannot be used as an oilfield");
+        Click(-1.8f, 0);
+        Check(!Placement.CanPlace && _commands.Count == before,
+            "A click just outside the oilfield cannot grid-snap back onto its center");
+        Placement.UpdatePreview(Screen(-3.2f, .4f));
+        Check(Placement.CanPlace && Placement.PlacementPosition == new Vector3(-4, 0, 0),
+            "A click inside the oil ellipse snaps the derrick to its one shared center despite R cells");
+        Check(Issue(-4, 0, 4, 4)?.Contains("도로") == true,
+            "An oilfield remains reserved against other building types");
+        Click(6, 0);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("벽") && _commands.Count == before,
+            "An oilfield does not bypass physical terrain obstacles");
+        Receive("UNIT 0 102 7 -4 0 1");
+        Click(-4, 0);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("유닛") && _commands.Count == before,
+            "Units still obstruct oilfield construction");
+        Receive("REMOVE 102");
+        Click(-3.2f, .4f);
+        Check(!Placement.Active && _commands.Count == before + 1 && _commands[^1] == "BUILD 7 -4 0 101" &&
+            Buildings.LiveBuildings.Count == 0,
+            "Derrick request sends the appended type and exact site center without speculative creation");
+        Receive("BUILDING 7 507 1 -4 0 0");
+        Receive("CONSTRUCTION 507 25 7");
+        Check(Buildings.TryGetBuilding(507, out Building derrick) && derrick.BuildingType == BuildingCatalog.OilDerrick &&
+            derrick.IsUnderConstruction, "Type 7 receives ordinary authoritative construction snapshots");
+        ChooseBuilding(6);
+        Click(-4, 0);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑") && _commands.Count == before + 1,
+            "An unfinished derrick occupies the entire oilfield");
+        Receive("CONSTRUCTION 507 100 7");
+        Placement.UpdatePreview(Screen(-4, 0));
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑"),
+            "A completed derrick retains its site occupancy");
+        Receive("REMOVE 507");
+        Placement.UpdatePreview(Screen(-4, 0));
+        Check(Placement.CanPlace, "Server removal releases the oilfield for another derrick");
+        Receive($"MAP 2 {Map.MapHash}");
+        Check(!Placement.Active, "Map resynchronization cancels the snapped oilfield preview");
     }
 
     private void Click(float x, float z)
