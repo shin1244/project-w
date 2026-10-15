@@ -55,6 +55,7 @@ CONTROL 유닛ID 행동제한플래그
 SHIELD 유닛ID또는건물ID 남은보호막
 MANA 영웅유닛ID 현재마나 최대마나
 MANA_COST 영웅타입 슬롯 마나비용
+TEAM_RESPAWN 플레이어ID 부활틱
 CONSTRUCTION 건물ID 진행률 비용지불자ID
 QUEUE 건물ID 생산진행률 예약ID:유닛타입:주인ID ...
 REMOVE 유닛ID또는건물ID

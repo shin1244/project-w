@@ -186,6 +186,7 @@ public partial class SelectionDetailsChecks : Main
             "Invalid welcome messages cannot partially change team, ownership or HUD");
         CheckHeroVitals();
         CheckManaMessages();
+        CheckTeamFrame();
         await CheckShieldSync();
         await CheckCompactInfo();
         InvokeMain("SelectUnit", Unit(999));
@@ -382,6 +383,39 @@ public partial class SelectionDetailsChecks : Main
         Receive("MANA_COST 200 9 10");
         Check(Skills.CanUse(0) && manaText.Text == "50 / 300", "Invalid MANA and MANA_COST lines are ignored");
         Receive("HIDE 8010");
+    }
+
+    private void CheckTeamFrame()
+    {
+        // This scene skips Main's UI setup; attach the frame the way Main.ConnectInput does.
+        var frame = new TeamFrame { Name = "TeamFrame" };
+        GetNode<CanvasLayer>("SelectionUI").AddChild(frame);
+        typeof(Main).GetProperty(nameof(Teammates)).SetValue(this, frame);
+        frame.SetLocal(LocalRole, 7, 1);
+        Check(!Teammates.Visible, "The team frame stays hidden without teammates");
+        Receive("UNIT 201 8040 9 4 0 1");
+        Receive("UNIT 202 8041 11 6 0 2");
+        Receive("UNIT 1 8042 9 2 0 1");
+        Check(Teammates.Visible && Teammates.Teammates.SequenceEqual(new uint[] { 9 }) && Teammates.NameOf(9) == UnitCatalog.Name(201),
+            "Only teammates' heroes appear, not enemies, the player's own hero or other units");
+        Receive("HP 8040 300 600");
+        Receive("MANA 8040 120 300");
+        Check(Teammates.HealthTextOf(9) == "300 / 600" && Teammates.ManaPercentOf(9) == 40, "Teammate health and mana follow HP and MANA");
+        Receive("REMOVE 8040");
+        Receive("TEAM_RESPAWN 9 330");
+        Receive("TICK 30");
+        Check(Teammates.StatusOf(9) == $"부활 {Math.Ceiling(300 / (double)InterpolationClock.TickRate)}초" && Teammates.HealthTextOf(9) == "— / —",
+            "A dead teammate counts down to its respawn");
+        Receive("UNIT 201 8043 9 0 0 1");
+        Check(Teammates.StatusOf(9) == "" && Teammates.HealthTextOf(9) == "— / —", "A respawned teammate starts fresh");
+        Receive("TEAM_RESPAWN 0 10");
+        Receive("TEAM_RESPAWN 9 nope");
+        Receive("TEAM_RESPAWN 7 900");
+        Check(Teammates.StatusOf(9) == "" && Teammates.Teammates.SequenceEqual(new uint[] { 9 }),
+            "Invalid TEAM_RESPAWN lines, late timers and the player's own id are ignored");
+        Receive("REMOVE 8042");
+        Receive("REMOVE 8043");
+        Receive("HIDE 8041");
     }
 
     private async Task CheckShieldSync()

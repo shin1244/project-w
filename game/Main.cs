@@ -29,6 +29,7 @@ public partial class Main : Node3D
     public TributeSnapshot Tribute { get; private set; }
     public HeroShopPanel Shop { get; private set; }
     public SpectatorPanel Spectator { get; private set; }
+    public TeamFrame Teammates { get; private set; }
     public IReadOnlyDictionary<uint,ItemCrateView> Crates => _crates;
     private readonly Dictionary<uint,ItemCrateView> _crates=new();
     public IReadOnlyDictionary<uint,GoldNuggetView> Nuggets => _nuggets;
@@ -91,6 +92,8 @@ public partial class Main : Node3D
             Shop.RecallRequested+=RequestRecall;
             Spectator = new SpectatorPanel { Name = "SpectatorPanel", Units = Units, Map = Map, Visible = false };
             ui.AddChild(Spectator);
+            Teammates = new TeamFrame { Name = "TeamFrame" };
+            ui.AddChild(Teammates);
         }
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += SelectUnit;
@@ -366,6 +369,7 @@ public partial class Main : Node3D
             case "TICK":
                 Units.HandleTick(parts);
                 Skills?.HandleTick(parts);
+                Teammates?.HandleTick(parts);
                 _battleGuide?.HandleTick(parts);
                 if (parts.Length == 2 && uint.TryParse(parts[1], System.Globalization.NumberStyles.None,
                     System.Globalization.CultureInfo.InvariantCulture, out uint tick))
@@ -429,6 +433,9 @@ public partial class Main : Node3D
             case "RESPAWN":
                 if (LocalRole == PlayerRole.Hero) Skills?.HandleRespawn(parts);
                 break;
+            case "TEAM_RESPAWN":
+                if (TeamRespawnSnapshot.TryParse(parts, out var teamRespawn)) Teammates?.HandleRespawn(teamRespawn);
+                break;
             case "TICK_END":
                 Units.HandleTickEnd(parts);
                 break;
@@ -466,6 +473,7 @@ public partial class Main : Node3D
             case "UNIT":
                 Units.HandleSpawn(parts);
                 Skills?.HandleUnit(parts);
+                Teammates?.HandleUnit(parts);
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
@@ -495,6 +503,7 @@ public partial class Main : Node3D
                     Units.HandleHealth(health);
                     Buildings?.HandleHealth(health);
                     Skills?.HandleHealth(health);
+                    Teammates?.HandleHealth(health);
                 }
                 break;
             case "MANA":
@@ -502,6 +511,7 @@ public partial class Main : Node3D
                 {
                     Units.HandleMana(mana);
                     Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
+                    Teammates?.HandleMana(mana);
                 }
                 break;
             case "MANA_COST":
@@ -644,6 +654,7 @@ public partial class Main : Node3D
                 Units.HandleRemove(parts);
                 Buildings?.HandleRemove(parts);
                 Skills?.HandleRemove(parts);
+                Teammates?.HandleRemove(parts);
                 Fog?.Invalidate();
                 Minimap?.Invalidate();
                 break;
@@ -702,6 +713,7 @@ public partial class Main : Node3D
         if (Commands != null) Commands.Visible = role == PlayerRole.Commander;
         UnitInfo?.SetHero(LocalHeroType, playerId, team);
         Skills?.SetHero(LocalHeroType, playerId, team);
+        Teammates?.SetLocal(role, playerId, team);
         Shop?.SetRole(role==PlayerRole.Hero);
         Map?.SetLocalTeam(team);
     }
