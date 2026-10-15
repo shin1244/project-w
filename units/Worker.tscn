@@ -120,6 +120,47 @@ outer_radius = 0.252
 rings = 16
 ring_segments = 6
 
+[sub_resource type="StandardMaterial3D" id="BarrelWood"]
+albedo_color = Color(0.36, 0.22, 0.11, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="BarrelIron"]
+albedo_color = Color(0.15, 0.19, 0.17, 1)
+metallic = 0.35
+roughness = 0.65
+
+[sub_resource type="StandardMaterial3D" id="BarrelOil"]
+albedo_color = Color(0.025, 0.045, 0.035, 1)
+roughness = 0.22
+
+[sub_resource type="CylinderMesh" id="OilBarrel"]
+material = SubResource("BarrelWood")
+top_radius = 0.27
+bottom_radius = 0.27
+height = 0.62
+radial_segments = 12
+
+[sub_resource type="CylinderMesh" id="OilBand"]
+material = SubResource("BarrelIron")
+top_radius = 0.282
+bottom_radius = 0.282
+height = 0.055
+radial_segments = 12
+
+[sub_resource type="CylinderMesh" id="OilLid"]
+material = SubResource("BarrelWood")
+top_radius = 0.26
+bottom_radius = 0.26
+height = 0.016
+radial_segments = 12
+
+[sub_resource type="CylinderMesh" id="OilBung"]
+material = SubResource("BarrelOil")
+top_radius = 0.055
+bottom_radius = 0.055
+height = 0.025
+radial_segments = 8
+
 [node name="Worker" instance=ExtResource("1_base")]
 UnitType = 0
 
@@ -247,6 +288,30 @@ mesh = SubResource("Binding")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = { &"": ExtResource("3_clips") }
+
+[node name="CarriedOil" type="Node3D" parent="Visual/Torso"]
+visible = false
+position = Vector3(0, 0.08, -0.53)
+rotation = Vector3(-0.1, 0, 0)
+
+[node name="Barrel" type="MeshInstance3D" parent="Visual/Torso/CarriedOil"]
+mesh = SubResource("OilBarrel")
+
+[node name="LowerBand" type="MeshInstance3D" parent="Visual/Torso/CarriedOil"]
+position = Vector3(0, -0.23, 0)
+mesh = SubResource("OilBand")
+
+[node name="UpperBand" type="MeshInstance3D" parent="Visual/Torso/CarriedOil"]
+position = Vector3(0, 0.23, 0)
+mesh = SubResource("OilBand")
+
+[node name="Lid" type="MeshInstance3D" parent="Visual/Torso/CarriedOil"]
+position = Vector3(0, 0.315, 0)
+mesh = SubResource("OilLid")
+
+[node name="Bung" type="MeshInstance3D" parent="Visual/Torso/CarriedOil"]
+position = Vector3(0.1, 0.332, -0.07)
+mesh = SubResource("OilBung")
 
 [node name="WorkerAnimation" type="Node" parent="."]
 script = ExtResource("2_animation")

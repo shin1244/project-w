@@ -5,11 +5,11 @@ using System.Collections.Generic;
 // STOCK은 증감량이 아닌 내 자원의 현재 총량입니다. 타인의 자원은 서버가 보내지 않습니다.
 public partial class StockDisplay : PanelContainer
 {
-    [Export] public Godot.Collections.Dictionary<uint, string> ResourceNames { get; set; } = new() { { 0, "목재" } };
+    [Export] public Godot.Collections.Dictionary<uint, string> ResourceNames { get; set; } = new() { { 0, "목재" }, { 2, "기름" } };
     private readonly SortedDictionary<uint, long> _amounts = new();
     private HBoxContainer _resources;
     private readonly Dictionary<uint, HBoxContainer> _rows = new();
-    private Texture2D _woodIcon, _genericIcon;
+    private Texture2D _woodIcon, _oilIcon, _genericIcon;
     private Label _supplyAmount;
 
     public override void _Ready()
@@ -17,6 +17,7 @@ public partial class StockDisplay : PanelContainer
         MouseFilter = MouseFilterEnum.Ignore;
         AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
         _woodIcon = GD.Load<Texture2D>("res://ui/icons/wood.svg");
+        _oilIcon = GD.Load<Texture2D>("res://ui/icons/oil.svg");
         _genericIcon = GD.Load<Texture2D>("res://ui/icons/resource.svg");
         _resources = new HBoxContainer { Name = "Resources", Alignment = BoxContainer.AlignmentMode.End,
             MouseFilter = MouseFilterEnum.Ignore };
@@ -87,10 +88,11 @@ public partial class StockDisplay : PanelContainer
             {
                 row = new HBoxContainer { Name = $"Resource{type}", MouseFilter = MouseFilterEnum.Ignore };
                 row.AddThemeConstantOverride("separation", 8);
-                row.AddChild(new TextureRect { Name = "Icon", Texture = type == 0 ? _woodIcon : _genericIcon,
+                row.AddChild(new TextureRect { Name = "Icon", Texture = type switch { 0 => _woodIcon, 2 => _oilIcon, _ => _genericIcon },
                     CustomMinimumSize = new Vector2(40, 36), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore });
-                if (type != 0) row.AddChild(AmountLabel("Type", type.ToString(CultureInfo.InvariantCulture), 13));
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Pass,
+                    TooltipText = ResourceNames.TryGetValue(type, out string resourceName) ? resourceName : $"자원 {type}" });
+                if (type is not 0 and not 2) row.AddChild(AmountLabel("Type", type.ToString(CultureInfo.InvariantCulture), 13));
                 row.AddChild(AmountLabel("Amount", "", 24));
                 _resources.AddChild(row);
                 _rows.Add(type, row);

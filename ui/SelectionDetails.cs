@@ -245,7 +245,9 @@ public partial class SelectionDetails : PanelContainer
             SetText(_activity, single.UnitType == UnitCatalog.SiegeRam ? "상태   자동 행군" :
                 ActivityText(single.State, single.HasServerState));
             _activity.TooltipText = UnitCatalog.Description(single.UnitType);
-            SetText(_extra, single.UnitType == 0 ? single.HasServerState ? $"운반 중인 목재   {single.State.Carrying}" : "운반 중인 목재   —" : "");
+            SetText(_extra, single.UnitType == 0 ? single.HasServerState
+                ? $"운반 중인 {(single.State.CarryType == ResourceType.Oil ? "기름" : "목재")}   {single.State.Carrying}"
+                : "운반 중인 자원   —" : "");
             SetText(_stats, StatsText(single.Stats, true));
         }
         else if (Available(_building))

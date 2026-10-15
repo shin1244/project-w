@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Worker.tscn의 AnimationPlayer에서 직접 편집할 수 있는 3개 클립을 생성합니다.
+# Worker.tscn의 AnimationPlayer에서 직접 편집할 수 있는 클립을 생성합니다.
 func _initialize() -> void:
 	var library := AnimationLibrary.new()
 	var idle := clip(2.4, true)
@@ -28,6 +28,16 @@ func _initialize() -> void:
 	track(carry, "Visual/Torso/RightArm:rotation", [0.0], [Vector3(1.02, 0, -.14)])
 	track(carry, "Visual/Torso/RightArm/Axe:rotation", [0.0], [Vector3(-.15, PI / 2, -.15)])
 	library.add_animation("Carry", carry)
+
+	# 도끼를 내려놓고 시추탑의 밸브/기름통을 손으로 다루는 낮은 작업 자세.
+	var oil_work := clip(1.8, true)
+	var work_times := [0.0, .45, .9, 1.35, 1.8]
+	track(oil_work, "Visual/Torso:position", work_times, [Vector3(0, .8, 0), Vector3(0, .79, -.02), Vector3(0, .8, 0), Vector3(0, .79, -.02), Vector3(0, .8, 0)])
+	track(oil_work, "Visual/Torso:rotation", work_times, [Vector3(-.07, 0, 0), Vector3(-.12, -.035, 0), Vector3(-.07, 0, 0), Vector3(-.12, .035, 0), Vector3(-.07, 0, 0)])
+	track(oil_work, "Visual/Torso/LeftArm:rotation", work_times, [Vector3(.72, 0, .12), Vector3(.98, 0, .06), Vector3(.72, 0, .12), Vector3(.55, 0, .06), Vector3(.72, 0, .12)])
+	track(oil_work, "Visual/Torso/RightArm:rotation", work_times, [Vector3(.72, 0, -.12), Vector3(.55, 0, -.06), Vector3(.72, 0, -.12), Vector3(.98, 0, -.06), Vector3(.72, 0, -.12)])
+	track(oil_work, "Visual/Torso/RightArm/Axe:rotation", [0.0], [Vector3(-.15, PI / 2, -.15)])
+	library.add_animation("OilWork", oil_work)
 	DirAccess.make_dir_recursive_absolute("res://units/animations")
 	var result := ResourceSaver.save(library, "res://units/animations/Worker.tres")
 	print("Worker animation library: ", error_string(result))

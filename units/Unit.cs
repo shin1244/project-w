@@ -144,7 +144,7 @@ public partial class Unit : Node3D
 
     public void ApplyServerState(UnitState state)
     {
-        if (IsDying) return;
+        if (IsDying || (UnitType != UnitCatalog.Worker && state.CarryType != ResourceType.Wood)) return;
         // 첫 스냅샷의 과거 공격은 재생하지 않습니다. 이후 번호가 바뀔 때만 한 번 재생합니다.
         bool swung = HasServerState && state.SwingSequence != State.SwingSequence;
         if (state.FocusId != State.FocusId) _focusTarget = null;
