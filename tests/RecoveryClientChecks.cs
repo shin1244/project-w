@@ -25,6 +25,8 @@ public partial class RecoveryClientChecks : Main
             Units.CommandRequested+=command=>InvokeMain("SendCommand",command);
             Fog.Configure(Map);
             Begin();
+            CheckManaSync(wire);
+            Begin();
             CheckSkillProgression(wire);
             CheckWorkerSkillTargets(wire);
             CheckMarshalSkillTargets(wire);
@@ -255,6 +257,46 @@ public partial class RecoveryClientChecks : Main
             !HeroSkillProgressSnapshot.TryParse($"HERO_SKILLS 200 {HeroSkillProgressSnapshot.MaxHeroLevel+1} {HeroSkillProgressSnapshot.MaxHeroLevel} 0 0 0 0 0 0".Split(' '),out _) &&
             HeroSkillProgressSnapshot.TryParse($"HERO_SKILLS 200 {HeroSkillProgressSnapshot.MaxHeroLevel} {HeroSkillProgressSnapshot.MaxHeroLevel-1} 0 0 0 0 0 0".Split(' '),out _),"Invalid progression levels/points rejected; max level accepted");
     }
+    private void CheckManaSync(MemoryStream wire)
+    {
+        foreach (string invalid in new[] { "MANA 0 1 9", "MANA 701 -1 9", "MANA 701 10 9", "MANA 701 0 0", "MANA 701 1.5 9", "MANA 701 NaN 9", "MANA 701 2 9 extra" })
+            Check(!ManaSnapshot.TryParse(invalid.Split(' '), out _), "Malformed mana must be rejected");
+        foreach (string invalid in new[] { "MANA_COST 0 0 1", "MANA_COST 202 4 1", "MANA_COST 202 -1 1", "MANA_COST 202 0 -1", "MANA_COST 202 0 NaN", "MANA_COST 202 0 Infinity", "MANA_COST 202 0 1 extra" })
+            Check(!ManaCostSnapshot.TryParse(invalid.Split(' '), out _), "Malformed mana costs must be rejected");
+        Check(Skills.CanUse(1), "Old servers without a mana contract remain usable");
+        Receive("MANA_COST 202 1 35");
+        Check(!Skills.CanUse(1), "Known mana cost waits for authoritative current mana");
+        Receive("MANA 701 34 91");
+        Receive("MANA_COST 200 1 0");
+        long before = wire.Length;
+        using var cast = new InputEventKey { Pressed = true, Keycode = Key.W };
+        Skills.TryHandleShortcut(cast);
+        Skills.GetNode<Button>("Content/Slots/WSlot/W").EmitSignal(Button.SignalName.Pressed);
+        Check(wire.Length == before && !Skills.CanUse(1), "Insufficient mana blocks keyboard and button without sending commands");
+        Receive("MANA 701 35 91");
+        Receive("MANA 701 92 91");
+        Receive("MANA_COST 202 1 NaN");
+        Check(Skills.CanUse(1) && Skills.CurrentMana == 35 && Skills.ManaCost(1) == 35,
+            "Exact cost enables casting; malformed updates preserve last values");
+        Skills.TryHandleShortcut(cast);
+        Check(After(wire, before) == "SKILL 1\n" && Skills.CurrentMana == 35,
+            "Casting sends one request and does not spend mana or start cooldown optimistically");
+        Receive("UNIT 202 999 8 2 0 2"); Receive("MANA 999 13 77");
+        Check(Units.TryGetUnit(999, out var enemy) && enemy.Mana == new ManaSnapshot(999, 13, 77) && Skills.CurrentMana == 35,
+            "Visible enemy mana belongs to inspection only");
+        Receive("HIDE 999"); Receive("MANA 999 77 77");
+        Receive("UNIT 202 999 8 2 0 2");
+        Check(Units.TryGetUnit(999, out enemy) && enemy.Mana == null, "A reappearing unit cannot retain hidden or late mana");
+        Receive("RESPAWN 900"); Receive("REMOVE 701"); Receive("MANA 701 91 91");
+        Check(Skills.CurrentMana == null && !Skills.CanUse(1), "Death clears mana and blocks stale casts");
+        Receive("UNIT 202 702 7 -4 0 1"); Receive("HP 702 300 300");
+        Check(!Skills.CanUse(1), "Respawn waits for the new unit's mana snapshot");
+        Receive("MANA 702 91 91");
+        Check(Skills.CanUse(1), "Respawn binds mana to the new authoritative unit");
+        Receive($"MAP 2 {Map.MapHash}");
+        Check(Skills.CurrentMana == null && Skills.ManaCost(1) == null, "Map reset clears mana and costs");
+    }
+
     private void Begin()
     {
         Receive($"MAP 2 {Map.MapHash}");Receive("WORLD_READY");Receive("WELCOME 7 1 HERO 202");

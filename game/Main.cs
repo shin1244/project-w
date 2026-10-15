@@ -505,6 +505,17 @@ public partial class Main : Node3D
                     Skills?.HandleShield(shield);
                 }
                 break;
+            case "MANA":
+                if (ManaSnapshot.TryParse(parts, out var mana) && Units.TryGetUnit(mana.Id, out Unit manaUnit) &&
+                    UnitCatalog.IsHero(manaUnit.UnitType) && Units.CanInspect(manaUnit))
+                {
+                    manaUnit.Mana = mana;
+                    Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
+                }
+                break;
+            case "MANA_COST":
+                if (ManaCostSnapshot.TryParse(parts, out var manaCost)) Skills?.HandleManaCost(manaCost);
+                break;
             case "STATS":
                 if (StatsSnapshot.TryParse(parts, out var stats))
                 {
@@ -531,6 +542,9 @@ public partial class Main : Node3D
             case "EXP":
                 if (LocalRole == PlayerRole.Hero && HeroExperienceSnapshot.TryParse(parts, out var experience))
                     UnitInfo?.ApplyExperience(experience);
+                break;
+            case "TEAM_LEVEL":
+                if (TeamLevelSnapshot.TryParse(parts, out var teamLevel)) _battleGuide?.ApplyTeamLevel(teamLevel);
                 break;
             case "TEAM_EXP":
                 if (TeamExperienceSnapshot.TryParse(parts, out var teamExperience) &&

@@ -18,6 +18,7 @@ public partial class Unit : Node3D
     public UnitState State { get; private set; }
     public bool HasServerState { get; private set; }
     public StatsSnapshot? Stats { get; set; }
+    public ManaSnapshot? Mana { get; set; }
     public WolfEffectSnapshot WolfEffects { get; set; }
     public GolemEffectSnapshot GolemEffects { get; set; }
     public MarshalEffectSnapshot MarshalEffects { get; set; }
@@ -72,6 +73,7 @@ public partial class Unit : Node3D
 
     public void Initialize(uint unitId, uint ownerId, uint team)
     {
+        if (UnitId != unitId || OwnerId != ownerId || Team != team) Mana = null;
         UnitId = unitId;
         OwnerId = ownerId;
         Team = team;
