@@ -1,674 +1,126 @@
-[gd_scene format=4]
+[gd_scene format=3]
 
-[ext_resource type="ArrayMesh" path="res://maps/resources/TerrainSurface.res" id="1_c70fh"]
-[ext_resource type="Shape3D" path="res://maps/resources/TerrainCollision.res" id="2_4tr71"]
-[ext_resource type="ArrayMesh" path="res://maps/resources/OuterCliffs.res" id="3_bl1xj"]
-[ext_resource type="ArrayMesh" path="res://maps/resources/OuterWalls.res" id="4_c2cab"]
-[ext_resource type="Shape3D" path="res://maps/resources/WallCollision.res" id="5_tfbba"]
+[ext_resource type="ArrayMesh" path="res://maps/resources/TerrainSurface.res" id="1_4tr71"]
+[ext_resource type="Shape3D" path="res://maps/resources/TerrainCollision.res" id="2_bl1xj"]
+[ext_resource type="ArrayMesh" path="res://maps/resources/OuterCliffs.res" id="3_c2cab"]
+[ext_resource type="ArrayMesh" path="res://maps/resources/OuterWalls.res" id="4_tfbba"]
+[ext_resource type="Shape3D" path="res://maps/resources/WallCollision.res" id="5_68mwa"]
+[ext_resource type="PackedScene" path="res://maps/Oilfield.tscn" id="6_75wv2"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_68mwa"]
-albedo_color = Color(0.078431375, 0.13333334, 0.12941177, 1)
-metallic = 0.38
-roughness = 0.12
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_75wv2"]
-_surfaces = [{
-"aabb": AABB(-40.79168, 0.018, -2.7007437, 3.763401, 1e-05, 4.9372754),
-"attribute_data": PackedByteArray("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////"),
-"format": 34359738383,
-"material": SubResource("StandardMaterial3D_68mwa"),
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 84,
-"vertex_data": PackedByteArray("AAAcwrx0kzwAAAAA9RwUwrx0kzwAAAAAdS4Uwrx0kzz4Ih4/AAAcwrx0kzwAAAAAdS4Uwrx0kzz4Ih4/BiQVwrx0kzwTXJI/AAAcwrx0kzwAAAAABiQVwrx0kzwTXJI/smgWwrx0kzwGjsU/AAAcwrx0kzwAAAAAsmgWwrx0kzwGjsU/yawXwrx0kzzsTPA/AAAcwrx0kzwAAAAAyawXwrx0kzzsTPA/mQcZwrx0kzy2pAhAAAAcwrx0kzwAAAAAmQcZwrx0kzy2pAhAeoYawrx0kzxWIw9AAAAcwrx0kzwAAAAAeoYawrx0kzxWIw9AAAAcwrx0kzwUfwxAAAAcwrx0kzwAAAAAAAAcwrx0kzwUfwxAKGsdwrx0kzzUsAlAAAAcwrx0kzwAAAAAKGsdwrx0kzzUsAlAigYfwrx0kzwSLwtAAAAcwrx0kzwAAAAAigYfwrx0kzwSLwtAfeMgwrx0kzxnzgdAAAAcwrx0kzwAAAAAfeMgwrx0kzxnzgdA734iwrx0kzxnhuU/AAAcwrx0kzwAAAAA734iwrx0kzxnhuU/riojwrx0kzxk65g/AAAcwrx0kzwAAAAAriojwrx0kzxk65g/x9siwrx0kzwouAo/AAAcwrx0kzwAAAAAx9siwrx0kzwouAo/0kEiwrx0kzya5pglAAAcwrx0kzwAAAAA0kEiwrx0kzya5pglivghwrx0kzwViPG+AAAcwrx0kzwAAAAAivghwrx0kzwViPG+T+Ihwrx0kzyfGXu/AAAcwrx0kzwAAAAAT+Ihwrx0kzyfGXu/mnchwrx0kzzDLcG/AAAcwrx0kzwAAAAAmnchwrx0kzzDLcG/XH4gwrx0kzz3qfm/AAAcwrx0kzwAAAAAXH4gwrx0kzz3qfm/oiofwrx0kzx3qxHAAAAcwrx0kzwAAAAAoiofwrx0kzx3qxHAMqwdwrx0kzyKWSLAAAAcwrx0kzwAAAAAMqwdwrx0kzyKWSLAAAAcwrx0kzz82CzAAAAcwrx0kzwAAAAAAAAcwrx0kzz82CzAcEUawrx0kzwMzCfAAAAcwrx0kzwAAAAAcEUawrx0kzwMzCfAgeMYwrx0kzwaIQ/AAAAcwrx0kzwAAAAAgeMYwrx0kzwaIQ/A6xEYwrx0kzwTWtq/AAAcwrx0kzwAAAAA6xEYwrx0kzwTWtq/B3AXwrx0kzxiNaG/AAAcwrx0kzwAAAAAB3AXwrx0kzxiNaG/ZWwWwrx0kzz9+m2/AAAcwrx0kzwAAAAAZWwWwrx0kzz9+m2/shEVwrx0kzzcLgy/AAAcwrx0kzwAAAAAshEVwrx0kzzcLgy/9RwUwrx0kzzpuUCm/3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+/")
-}]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mce3o"]
-albedo_color = Color(0.16470589, 0.1882353, 0.16862746, 1)
-roughness = 0.83
-
-[sub_resource type="SphereMesh" id="SphereMesh_52sae"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_57f7y"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_ni3qb"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_uhj5r"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_2pmsl"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_mwff0"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_2q2td"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_sl5af"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_ss047"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_burcl"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_31f18"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_0bede"]
-_surfaces = [{
-"aabb": AABB(37.02828, 0.018, -2.2365317, 3.763401, 1e-05, 4.9372754),
-"attribute_data": PackedByteArray("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////"),
-"format": 34359738383,
-"material": SubResource("StandardMaterial3D_68mwa"),
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 84,
-"vertex_data": PackedByteArray("AAAcQrx0kzwAAAAA9RwUQrx0kzwAAAAAdS4UQrx0kzz4Ih6/AAAcQrx0kzwAAAAAdS4UQrx0kzz4Ih6/BiQVQrx0kzwTXJK/AAAcQrx0kzwAAAAABiQVQrx0kzwTXJK/smgWQrx0kzwGjsW/AAAcQrx0kzwAAAAAsmgWQrx0kzwGjsW/yawXQrx0kzzsTPC/AAAcQrx0kzwAAAAAyawXQrx0kzzsTPC/mQcZQrx0kzy2pAjAAAAcQrx0kzwAAAAAmQcZQrx0kzy2pAjAeoYaQrx0kzxWIw/AAAAcQrx0kzwAAAAAeoYaQrx0kzxWIw/AAAAcQrx0kzwUfwzAAAAcQrx0kzwAAAAAAAAcQrx0kzwUfwzAKGsdQrx0kzzUsAnAAAAcQrx0kzwAAAAAKGsdQrx0kzzUsAnAigYfQrx0kzwSLwvAAAAcQrx0kzwAAAAAigYfQrx0kzwSLwvAfeMgQrx0kzxnzgfAAAAcQrx0kzwAAAAAfeMgQrx0kzxnzgfA734iQrx0kzxnhuW/AAAcQrx0kzwAAAAA734iQrx0kzxnhuW/riojQrx0kzxk65i/AAAcQrx0kzwAAAAAriojQrx0kzxk65i/x9siQrx0kzwouAq/AAAcQrx0kzwAAAAAx9siQrx0kzwouAq/0kEiQrx0kzya5pilAAAcQrx0kzwAAAAA0kEiQrx0kzya5pilivghQrx0kzwViPE+AAAcQrx0kzwAAAAAivghQrx0kzwViPE+T+IhQrx0kzyfGXs/AAAcQrx0kzwAAAAAT+IhQrx0kzyfGXs/mnchQrx0kzzDLcE/AAAcQrx0kzwAAAAAmnchQrx0kzzDLcE/XH4gQrx0kzz3qfk/AAAcQrx0kzwAAAAAXH4gQrx0kzz3qfk/oiofQrx0kzx3qxFAAAAcQrx0kzwAAAAAoiofQrx0kzx3qxFAMqwdQrx0kzyKWSJAAAAcQrx0kzwAAAAAMqwdQrx0kzyKWSJAAAAcQrx0kzz82CxAAAAcQrx0kzwAAAAAAAAcQrx0kzz82CxAcEUaQrx0kzwMzCdAAAAcQrx0kzwAAAAAcEUaQrx0kzwMzCdAgeMYQrx0kzwaIQ9AAAAcQrx0kzwAAAAAgeMYQrx0kzwaIQ9A6xEYQrx0kzwTWto/AAAcQrx0kzwAAAAA6xEYQrx0kzwTWto/B3AXQrx0kzxiNaE/AAAcQrx0kzwAAAAAB3AXQrx0kzxiNaE/ZWwWQrx0kzz9+m0/AAAcQrx0kzwAAAAAZWwWQrx0kzz9+m0/shEVQrx0kzzcLgw/AAAcQrx0kzwAAAAAshEVQrx0kzzcLgw/9RwUQrx0kzzpuUAm/3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+/")
-}]
-
-[sub_resource type="SphereMesh" id="SphereMesh_dk5nb"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_8y1os"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_ayvd5"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_qnoqv"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_8s4ut"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_6xa8l"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_8hedc"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_xojxx"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_fs628"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_nq0na"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_enos4"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_e7jlb"]
-_surfaces = [{
-"aabb": AABB(-36.480785, 0.018, -43.650455, 5.2108593, 1e-05, 3.0172234),
-"attribute_data": PackedByteArray("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////"),
-"format": 34359738383,
-"material": SubResource("StandardMaterial3D_68mwa"),
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 84,
-"vertex_data": PackedByteArray("AAAIwrx0kzwAACjCzyj6wbx0kzwAACjCRFn6wbx0kzxyfSbCAAAIwrx0kzwAACjCRFn6wbx0kzxyfSbCTAH9wbx0kzx3NCXCAAAIwrx0kzwAACjCTAH9wbx0kzx3NCXCMUIAwrx0kzwtOiTCAAAIwrx0kzwAACjCMUIAwrx0kzwtOiTC7wICwrx0kzwzaSPCAAAIwrx0kzwAACjC7wICwrx0kzwzaSPCI+MDwrx0kzzuxyLCAAAIwrx0kzwAACjCI+MDwrx0kzzuxyLCRvUFwrx0kzxuiCLCAAAIwrx0kzwAACjCRvUFwrx0kzxuiCLCAAAIwrx0kzxCoiLCAAAIwrx0kzwAACjCAAAIwrx0kzxCoiLC1fYJwrx0kzyxvSLCAAAIwrx0kzwAACjC1fYJwrx0kzyxvSLCcDAMwrx0kzwXryLCAAAIwrx0kzwAACjCcDAMwrx0kzwXryLC1MQOwrx0kzwe0CLCAAAIwrx0kzwAACjC1MQOwrx0kzwe0CLChv4Qwrx0kzzhnSPCAAAIwrx0kzwAACjChv4Qwrx0kzzhnSPCU+wRwrx0kzxlFCXCAAAIwrx0kzwAACjCU+wRwrx0kzxlFCXCFH8Rwrx0kzzprCbCAAAIwrx0kzwAACjCFH8Rwrx0kzzprCbC6KkQwrx0kzwAACjCAAAIwrx0kzwAACjC6KkQwrx0kzwAACjCcEQQwrx0kzw1JynCAAAIwrx0kzwAACjCcEQQwrx0kzw1JynCqSUQwrx0kzzNZSrCAAAIwrx0kzwAACjCqSUQwrx0kzzNZSrC6JEPwrx0kzxusCvCAAAIwrx0kzwAACjC6JEPwrx0kzxusCvCzTgOwrx0kzyUxCzCAAAIwrx0kzwAACjCzTgOwrx0kzyUxCzCamIMwrx0kzxUkC3CAAAIwrx0kzwAACjCamIMwrx0kzxUkC3C4lAKwrx0kzxsMy7CAAAIwrx0kzwAACjC4lAKwrx0kzxsMy7CAAAIwrx0kzwRmi7CAAAIwrx0kzwAACjCAAAIwrx0kzwRmi7COZsFwrx0kzyvaC7CAAAIwrx0kzwAACjCOZsFwrx0kzyvaC7CKbEDwrx0kzx9dy3CAAAIwrx0kzwAACjCKbEDwrx0kzx9dy3C9o4Cwrx0kzyAKyzCAAAIwrx0kzwAACjC9o4Cwrx0kzyAKyzCz64Bwrx0kzwhFCvCAAAIwrx0kzwAACjCz64Bwrx0kzwhFCvCUEcAwrx0kzy7RSrCAAAIwrx0kzwAACjCUEcAwrx0kzy7RSrCi878wbx0kzyrVinCAAAIwrx0kzwAACjCi878wbx0kzyrVinCzyj6wbx0kzwAACjC/3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+/")
-}]
-
-[sub_resource type="SphereMesh" id="SphereMesh_infs0"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_mnb46"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_xayrw"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_n27hm"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_e7bip"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_aars6"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_eurlu"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_tv1al"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_ywiy6"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_ipat4"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_kvlws"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_ow0dk"]
-_surfaces = [{
-"aabb": AABB(31.269926, 0.018, 40.633232, 5.2108593, 1e-05, 3.0172234),
-"attribute_data": PackedByteArray("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////"),
-"format": 34359738383,
-"material": SubResource("StandardMaterial3D_68mwa"),
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 84,
-"vertex_data": PackedByteArray("AAAIQrx0kzwAAChCzyj6Qbx0kzwAAChCRFn6Qbx0kzxyfSZCAAAIQrx0kzwAAChCRFn6Qbx0kzxyfSZCTAH9Qbx0kzx3NCVCAAAIQrx0kzwAAChCTAH9Qbx0kzx3NCVCMUIAQrx0kzwtOiRCAAAIQrx0kzwAAChCMUIAQrx0kzwtOiRC7wICQrx0kzwzaSNCAAAIQrx0kzwAAChC7wICQrx0kzwzaSNCI+MDQrx0kzzuxyJCAAAIQrx0kzwAAChCI+MDQrx0kzzuxyJCRvUFQrx0kzxuiCJCAAAIQrx0kzwAAChCRvUFQrx0kzxuiCJCAAAIQrx0kzxCoiJCAAAIQrx0kzwAAChCAAAIQrx0kzxCoiJC1fYJQrx0kzyxvSJCAAAIQrx0kzwAAChC1fYJQrx0kzyxvSJCcDAMQrx0kzwXryJCAAAIQrx0kzwAAChCcDAMQrx0kzwXryJC1MQOQrx0kzwe0CJCAAAIQrx0kzwAAChC1MQOQrx0kzwe0CJChv4QQrx0kzzhnSNCAAAIQrx0kzwAAChChv4QQrx0kzzhnSNCU+wRQrx0kzxlFCVCAAAIQrx0kzwAAChCU+wRQrx0kzxlFCVCFH8RQrx0kzzprCZCAAAIQrx0kzwAAChCFH8RQrx0kzzprCZC6KkQQrx0kzwAAChCAAAIQrx0kzwAAChC6KkQQrx0kzwAAChCcEQQQrx0kzw1JylCAAAIQrx0kzwAAChCcEQQQrx0kzw1JylCqSUQQrx0kzzNZSpCAAAIQrx0kzwAAChCqSUQQrx0kzzNZSpC6JEPQrx0kzxusCtCAAAIQrx0kzwAAChC6JEPQrx0kzxusCtCzTgOQrx0kzyUxCxCAAAIQrx0kzwAAChCzTgOQrx0kzyUxCxCamIMQrx0kzxUkC1CAAAIQrx0kzwAAChCamIMQrx0kzxUkC1C4lAKQrx0kzxsMy5CAAAIQrx0kzwAAChC4lAKQrx0kzxsMy5CAAAIQrx0kzwRmi5CAAAIQrx0kzwAAChCAAAIQrx0kzwRmi5COZsFQrx0kzyvaC5CAAAIQrx0kzwAAChCOZsFQrx0kzyvaC5CKbEDQrx0kzx9dy1CAAAIQrx0kzwAAChCKbEDQrx0kzx9dy1C9o4CQrx0kzyAKyxCAAAIQrx0kzwAAChC9o4CQrx0kzyAKyxCz64BQrx0kzwhFCtCAAAIQrx0kzwAAChCz64BQrx0kzwhFCtCUEcAQrx0kzy7RSpCAAAIQrx0kzwAAChCUEcAQrx0kzy7RSpCi878Qbx0kzyrVilCAAAIQrx0kzwAAChCi878Qbx0kzyrVilCzyj6Qbx0kzwAAChC/3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+//3///wAA/7//f///AAD/v/9///8AAP+/")
-}]
-
-[sub_resource type="SphereMesh" id="SphereMesh_aqx0m"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_fqh4h"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_5ncaj"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_2p4nn"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_00xmy"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_2yido"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_66y58"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_hialg"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_ybldm"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.37
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_rs6bc"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.25
-height = 0.25
-radial_segments = 5
-rings = 2
-
-[sub_resource type="SphereMesh" id="SphereMesh_wbwxd"]
-material = SubResource("StandardMaterial3D_mce3o")
-radius = 0.31
-height = 0.18
-radial_segments = 5
-rings = 2
-
-[sub_resource type="Curve3D" id="Curve3D_nnd7g"]
+[sub_resource type="Curve3D" id="Curve3D_mce3o"]
 _data = {
 "points": PackedVector3Array(0, 0, 0, 0, 0, 0, -65, 0.06, 0, 0, 0, 0, 0, 0, 0, -58, 0.06, -14, 0, 0, 0, 0, 0, 0, -47, 0.06, -24, 0, 0, 0, 0, 0, 0, -20, 0.06, -29, 0, 0, 0, 0, 0, 0, 0, 0.06, -30, 0, 0, 0, 0, 0, 0, 20, 0.06, -29, 0, 0, 0, 0, 0, 0, 47, 0.06, -24, 0, 0, 0, 0, 0, 0, 58, 0.06, -14, 0, 0, 0, 0, 0, 0, 65, 0.06, 0),
 "tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
 }
 point_count = 9
 
-[sub_resource type="Curve3D" id="Curve3D_x3fv4"]
+[sub_resource type="Curve3D" id="Curve3D_52sae"]
 _data = {
 "points": PackedVector3Array(0, 0, 0, 0, 0, 0, -65, 0.06, 0, 0, 0, 0, 0, 0, 0, -58, 0.06, 14, 0, 0, 0, 0, 0, 0, -47, 0.06, 24, 0, 0, 0, 0, 0, 0, -20, 0.06, 29, 0, 0, 0, 0, 0, 0, 0, 0.06, 30, 0, 0, 0, 0, 0, 0, 20, 0.06, 29, 0, 0, 0, 0, 0, 0, 47, 0.06, 24, 0, 0, 0, 0, 0, 0, 58, 0.06, 14, 0, 0, 0, 0, 0, 0, 65, 0.06, 0),
 "tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
 }
 point_count = 9
 
-[node name="SymmetricArena" type="Node3D" unique_id=80453266]
+[node name="SymmetricArena" type="Node3D" unique_id=1647467958]
 metadata/dimensions = Vector2(168, 128)
 metadata/origin = Vector2(-84, -64)
 metadata/symmetry = "180-degree rotation around the map center"
 metadata/lane_width = 12.0
 metadata/note = "R: walkable stone road, no construction. .: buildable grass. T: harvestable forest."
 
-[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=1520199712]
-mesh = ExtResource("1_c70fh")
+[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=1269484963]
+mesh = ExtResource("1_4tr71")
 
-[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=1676713387]
+[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=946530097]
 
-[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=1648713833]
-shape = ExtResource("2_4tr71")
+[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=896941265]
+shape = ExtResource("2_bl1xj")
 
-[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=1503487937]
-mesh = ExtResource("3_bl1xj")
+[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=773299965]
+mesh = ExtResource("3_c2cab")
 
-[node name="OuterWalls" type="MeshInstance3D" parent="." unique_id=2055446659]
-mesh = ExtResource("4_c2cab")
+[node name="OuterWalls" type="MeshInstance3D" parent="." unique_id=1714018050]
+mesh = ExtResource("4_tfbba")
 
-[node name="WallCollision" type="StaticBody3D" parent="." unique_id=994810443]
+[node name="WallCollision" type="StaticBody3D" parent="." unique_id=14750331]
 
-[node name="WallShape" type="CollisionShape3D" parent="WallCollision" unique_id=1225900261]
-shape = ExtResource("5_tfbba")
+[node name="WallShape" type="CollisionShape3D" parent="WallCollision" unique_id=2121652393]
+shape = ExtResource("5_68mwa")
 
-[node name="OilfieldTerrain" type="Node3D" parent="." unique_id=200776447]
+[node name="OilfieldTerrain" type="Node3D" parent="." unique_id=1723064377]
 
-[node name="west_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=735422873]
+[node name="west_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1141952992 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, 0)
 
-[node name="OilPool" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1131460600]
-mesh = SubResource("ArrayMesh_75wv2")
+[node name="east_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=648125681 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 0, 0)
 
-[node name="ShoreStone0" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1827955598]
-transform = Transform3D(0.9855848, 0, 0.16918235, 0, 1, 0, -0.16918235, 0, 0.9855848, -36.847485, 0.04, 0.51160735)
-mesh = SubResource("SphereMesh_52sae")
+[node name="northwest_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=486252917 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0, -42)
 
-[node name="ShoreStone1" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1866915799]
-transform = Transform3D(0.7376598, 0, 0.6751726, 0, 1, 0, -0.6751726, 0, 0.7376598, -37.38895, 0.04, 2.0417218)
-mesh = SubResource("SphereMesh_57f7y")
+[node name="southeast_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1521093972 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, 42)
 
-[node name="ShoreStone2" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1513093568]
-transform = Transform3D(0.255533, 0, 0.96680033, 0, 1, 0, -0.96680033, 0, 0.255533, -38.441917, 0.04, 2.923604)
-mesh = SubResource("SphereMesh_ni3qb")
+[node name="LayoutGuides" type="Node3D" parent="." unique_id=1943436912]
 
-[node name="ShoreStone3" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=418863454]
-transform = Transform3D(-0.3077236, 0, 0.9514758, 0, 1, 0, -0.9514758, 0, -0.3077236, -39.67207, 0.04, 2.8772626)
-mesh = SubResource("SphereMesh_uhj5r")
-
-[node name="ShoreStone4" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1829916531]
-transform = Transform3D(-0.77328026, 0, 0.6340644, 0, 1, 0, -0.6340644, 0, -0.77328026, -40.688843, 0.04, 1.9174105)
-mesh = SubResource("SphereMesh_2pmsl")
-
-[node name="ShoreStone5" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=223962062]
-transform = Transform3D(-0.9933258, 0, 0.11534201, 0, 1, 0, -0.11534201, 0, -0.9933258, -41.169422, 0.04, 0.3487943)
-mesh = SubResource("SphereMesh_mwff0")
-
-[node name="ShoreStone6" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1050678235]
-transform = Transform3D(-0.89799744, 0, -0.44000065, 0, 1, 0, 0.44000065, 0, -0.89799744, -40.961227, 0.04, -1.3305618)
-mesh = SubResource("SphereMesh_2q2td")
-
-[node name="ShoreStone7" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1457884679]
-transform = Transform3D(-0.5175612, 0, -0.8556462, 0, 1, 0, 0.8556462, 0, -0.5175612, -40.130352, 0.04, -2.5874739)
-mesh = SubResource("SphereMesh_sl5af")
-
-[node name="ShoreStone8" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=301489984]
-transform = Transform3D(0.02719688, 0, -0.9996301, 0, 1, 0, 0.9996301, 0, 0.02719688, -38.9406, 0.04, -3.0228813)
-mesh = SubResource("SphereMesh_ss047")
-
-[node name="ShoreStone9" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1791371452]
-transform = Transform3D(0.5633205, 0, -0.82623845, 0, 1, 0, 0.82623845, 0, 0.5633205, -37.769707, 0.04, -2.4985452)
-mesh = SubResource("SphereMesh_burcl")
-
-[node name="ShoreStone10" type="MeshInstance3D" parent="OilfieldTerrain/west_oilfield" unique_id=1164014967]
-transform = Transform3D(0.92059356, 0, -0.39052212, 0, 1, 0, 0.39052212, 0, 0.92059356, -36.989426, 0.04, -1.1809387)
-mesh = SubResource("SphereMesh_31f18")
-
-[node name="east_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1512423880]
-
-[node name="OilPool" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=1068611805]
-mesh = SubResource("ArrayMesh_0bede")
-
-[node name="ShoreStone0" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=1143232445]
-transform = Transform3D(0.9855848, 0, 0.16918235, 0, 1, 0, -0.16918235, 0, 0.9855848, 36.847485, 0.04, -0.51160735)
-mesh = SubResource("SphereMesh_dk5nb")
-
-[node name="ShoreStone1" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=2032361740]
-transform = Transform3D(0.7376598, 0, 0.6751726, 0, 1, 0, -0.6751726, 0, 0.7376598, 37.38895, 0.04, -2.0417218)
-mesh = SubResource("SphereMesh_8y1os")
-
-[node name="ShoreStone2" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=1518652632]
-transform = Transform3D(0.255533, 0, 0.96680033, 0, 1, 0, -0.96680033, 0, 0.255533, 38.441917, 0.04, -2.923604)
-mesh = SubResource("SphereMesh_ayvd5")
-
-[node name="ShoreStone3" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=2084200676]
-transform = Transform3D(-0.3077236, 0, 0.9514758, 0, 1, 0, -0.9514758, 0, -0.3077236, 39.67207, 0.04, -2.8772626)
-mesh = SubResource("SphereMesh_qnoqv")
-
-[node name="ShoreStone4" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=666538604]
-transform = Transform3D(-0.77328026, 0, 0.6340644, 0, 1, 0, -0.6340644, 0, -0.77328026, 40.688843, 0.04, -1.9174105)
-mesh = SubResource("SphereMesh_8s4ut")
-
-[node name="ShoreStone5" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=1791104577]
-transform = Transform3D(-0.9933258, 0, 0.11534201, 0, 1, 0, -0.11534201, 0, -0.9933258, 41.169422, 0.04, -0.3487943)
-mesh = SubResource("SphereMesh_6xa8l")
-
-[node name="ShoreStone6" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=982672804]
-transform = Transform3D(-0.89799744, 0, -0.44000065, 0, 1, 0, 0.44000065, 0, -0.89799744, 40.961227, 0.04, 1.3305618)
-mesh = SubResource("SphereMesh_8hedc")
-
-[node name="ShoreStone7" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=1957976473]
-transform = Transform3D(-0.5175612, 0, -0.8556462, 0, 1, 0, 0.8556462, 0, -0.5175612, 40.130352, 0.04, 2.5874739)
-mesh = SubResource("SphereMesh_xojxx")
-
-[node name="ShoreStone8" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=461600922]
-transform = Transform3D(0.02719688, 0, -0.9996301, 0, 1, 0, 0.9996301, 0, 0.02719688, 38.9406, 0.04, 3.0228813)
-mesh = SubResource("SphereMesh_fs628")
-
-[node name="ShoreStone9" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=1102934464]
-transform = Transform3D(0.5633205, 0, -0.82623845, 0, 1, 0, 0.82623845, 0, 0.5633205, 37.769707, 0.04, 2.4985452)
-mesh = SubResource("SphereMesh_nq0na")
-
-[node name="ShoreStone10" type="MeshInstance3D" parent="OilfieldTerrain/east_oilfield" unique_id=542494510]
-transform = Transform3D(0.92059356, 0, -0.39052212, 0, 1, 0, 0.39052212, 0, 0.92059356, 36.989426, 0.04, 1.1809387)
-mesh = SubResource("SphereMesh_enos4")
-
-[node name="northwest_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1544243514]
-
-[node name="OilPool" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=2072487919]
-mesh = SubResource("ArrayMesh_e7jlb")
-
-[node name="ShoreStone0" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1414047434]
-transform = Transform3D(0.9855848, 0, 0.16918235, 0, 1, 0, -0.16918235, 0, 0.9855848, -31.019592, 0.04, -41.68735)
-mesh = SubResource("SphereMesh_infs0")
-
-[node name="ShoreStone1" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=512746703]
-transform = Transform3D(0.7376598, 0, 0.6751726, 0, 1, 0, -0.6751726, 0, 0.7376598, -31.769318, 0.04, -40.75228)
-mesh = SubResource("SphereMesh_mnb46")
-
-[node name="ShoreStone2" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=2011312806]
-transform = Transform3D(0.255533, 0, 0.96680033, 0, 1, 0, -0.96680033, 0, 0.255533, -33.22727, 0.04, -40.213352)
-mesh = SubResource("SphereMesh_xayrw")
-
-[node name="ShoreStone3" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=370082869]
-transform = Transform3D(-0.3077236, 0, 0.9514758, 0, 1, 0, -0.9514758, 0, -0.3077236, -34.930557, 0.04, -40.241673)
-mesh = SubResource("SphereMesh_n27hm")
-
-[node name="ShoreStone4" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1990931808]
-transform = Transform3D(-0.77328026, 0, 0.6340644, 0, 1, 0, -0.6340644, 0, -0.77328026, -36.338398, 0.04, -40.828247)
-mesh = SubResource("SphereMesh_e7bip")
-
-[node name="ShoreStone5" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1910967893]
-transform = Transform3D(-0.9933258, 0, 0.11534201, 0, 1, 0, -0.11534201, 0, -0.9933258, -37.00382, 0.04, -41.786846)
-mesh = SubResource("SphereMesh_aars6")
-
-[node name="ShoreStone6" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=475620344]
-transform = Transform3D(-0.89799744, 0, -0.44000065, 0, 1, 0, 0.44000065, 0, -0.89799744, -36.715546, 0.04, -42.81312)
-mesh = SubResource("SphereMesh_eurlu")
-
-[node name="ShoreStone7" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1093343698]
-transform = Transform3D(-0.5175612, 0, -0.8556462, 0, 1, 0, 0.8556462, 0, -0.5175612, -35.565105, 0.04, -43.581234)
-mesh = SubResource("SphereMesh_tv1al")
-
-[node name="ShoreStone8" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1360648079]
-transform = Transform3D(0.02719688, 0, -0.9996301, 0, 1, 0, 0.9996301, 0, 0.02719688, -33.917755, 0.04, -43.847317)
-mesh = SubResource("SphereMesh_ywiy6")
-
-[node name="ShoreStone9" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1095565258]
-transform = Transform3D(0.5633205, 0, -0.82623845, 0, 1, 0, 0.82623845, 0, 0.5633205, -32.29652, 0.04, -43.52689)
-mesh = SubResource("SphereMesh_ipat4")
-
-[node name="ShoreStone10" type="MeshInstance3D" parent="OilfieldTerrain/northwest_oilfield" unique_id=1827702698]
-transform = Transform3D(0.92059356, 0, -0.39052212, 0, 1, 0, 0.39052212, 0, 0.92059356, -31.216125, 0.04, -42.721684)
-mesh = SubResource("SphereMesh_kvlws")
-
-[node name="southeast_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=382905616]
-
-[node name="OilPool" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=1278986257]
-mesh = SubResource("ArrayMesh_ow0dk")
-
-[node name="ShoreStone0" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=201241798]
-transform = Transform3D(0.9855848, 0, 0.16918235, 0, 1, 0, -0.16918235, 0, 0.9855848, 31.019592, 0.04, 41.68735)
-mesh = SubResource("SphereMesh_aqx0m")
-
-[node name="ShoreStone1" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=1378348201]
-transform = Transform3D(0.7376598, 0, 0.6751726, 0, 1, 0, -0.6751726, 0, 0.7376598, 31.769318, 0.04, 40.75228)
-mesh = SubResource("SphereMesh_fqh4h")
-
-[node name="ShoreStone2" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=285511349]
-transform = Transform3D(0.255533, 0, 0.96680033, 0, 1, 0, -0.96680033, 0, 0.255533, 33.22727, 0.04, 40.213352)
-mesh = SubResource("SphereMesh_5ncaj")
-
-[node name="ShoreStone3" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=1315557444]
-transform = Transform3D(-0.3077236, 0, 0.9514758, 0, 1, 0, -0.9514758, 0, -0.3077236, 34.930557, 0.04, 40.241673)
-mesh = SubResource("SphereMesh_2p4nn")
-
-[node name="ShoreStone4" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=585013298]
-transform = Transform3D(-0.77328026, 0, 0.6340644, 0, 1, 0, -0.6340644, 0, -0.77328026, 36.338398, 0.04, 40.828247)
-mesh = SubResource("SphereMesh_00xmy")
-
-[node name="ShoreStone5" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=1787257748]
-transform = Transform3D(-0.9933258, 0, 0.11534201, 0, 1, 0, -0.11534201, 0, -0.9933258, 37.00382, 0.04, 41.786846)
-mesh = SubResource("SphereMesh_2yido")
-
-[node name="ShoreStone6" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=1466713336]
-transform = Transform3D(-0.89799744, 0, -0.44000065, 0, 1, 0, 0.44000065, 0, -0.89799744, 36.715546, 0.04, 42.81312)
-mesh = SubResource("SphereMesh_66y58")
-
-[node name="ShoreStone7" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=972968316]
-transform = Transform3D(-0.5175612, 0, -0.8556462, 0, 1, 0, 0.8556462, 0, -0.5175612, 35.565105, 0.04, 43.581234)
-mesh = SubResource("SphereMesh_hialg")
-
-[node name="ShoreStone8" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=2013165297]
-transform = Transform3D(0.02719688, 0, -0.9996301, 0, 1, 0, 0.9996301, 0, 0.02719688, 33.917755, 0.04, 43.847317)
-mesh = SubResource("SphereMesh_ybldm")
-
-[node name="ShoreStone9" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=106892749]
-transform = Transform3D(0.5633205, 0, -0.82623845, 0, 1, 0, 0.82623845, 0, 0.5633205, 32.29652, 0.04, 43.52689)
-mesh = SubResource("SphereMesh_rs6bc")
-
-[node name="ShoreStone10" type="MeshInstance3D" parent="OilfieldTerrain/southeast_oilfield" unique_id=1689074099]
-transform = Transform3D(0.92059356, 0, -0.39052212, 0, 1, 0, 0.39052212, 0, 0.92059356, 31.216125, 0.04, 42.721684)
-mesh = SubResource("SphereMesh_wbwxd")
-
-[node name="LayoutGuides" type="Node3D" parent="." unique_id=2144587471]
-
-[node name="center_event" type="Marker3D" parent="LayoutGuides" unique_id=344216135]
+[node name="center_event" type="Marker3D" parent="LayoutGuides" unique_id=1219454388]
 metadata/kind = "event"
 metadata/radii = Vector2(9, 9)
 
-[node name="jungle_nw" type="Marker3D" parent="LayoutGuides" unique_id=7001719]
+[node name="jungle_nw" type="Marker3D" parent="LayoutGuides" unique_id=2088414685]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -13)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="jungle_ne" type="Marker3D" parent="LayoutGuides" unique_id=2054548024]
+[node name="jungle_ne" type="Marker3D" parent="LayoutGuides" unique_id=1007857116]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -13)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="jungle_sw" type="Marker3D" parent="LayoutGuides" unique_id=90280419]
+[node name="jungle_sw" type="Marker3D" parent="LayoutGuides" unique_id=1409247446]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, 13)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="jungle_se" type="Marker3D" parent="LayoutGuides" unique_id=1337812375]
+[node name="jungle_se" type="Marker3D" parent="LayoutGuides" unique_id=1729375413]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 13)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="team1_spawn" type="Marker3D" parent="LayoutGuides" unique_id=347613545]
+[node name="team1_spawn" type="Marker3D" parent="LayoutGuides" unique_id=245631210]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 0, 0)
 metadata/kind = "spawn"
 metadata/radii = Vector2(5, 5)
 
-[node name="team2_spawn" type="Marker3D" parent="LayoutGuides" unique_id=1413293362]
+[node name="team2_spawn" type="Marker3D" parent="LayoutGuides" unique_id=108468106]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, 0, 0)
 metadata/kind = "spawn"
 metadata/radii = Vector2(5, 5)
 
-[node name="team1_expansion" type="Marker3D" parent="LayoutGuides" unique_id=967078480]
+[node name="team1_expansion" type="Marker3D" parent="LayoutGuides" unique_id=974119378]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0, -37)
 metadata/kind = "expansion"
 
-[node name="team2_expansion" type="Marker3D" parent="LayoutGuides" unique_id=1421796038]
+[node name="team2_expansion" type="Marker3D" parent="LayoutGuides" unique_id=891492616]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, 37)
 metadata/kind = "expansion"
 
-[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=2000363890]
+[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1652865968]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 0, 0)
 
-[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1439683064]
+[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1943412573]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, 0)
 
-[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=118277547]
+[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=1721093584]
 
-[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=166485376]
+[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=972679285]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, 13)
 
-[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=1593969138]
+[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=1203650650]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 0, 13)
 
-[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=1402822881]
-curve = SubResource("Curve3D_nnd7g")
+[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=1187913084]
+curve = SubResource("Curve3D_mce3o")
 
-[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=1131414847]
-curve = SubResource("Curve3D_x3fv4")
+[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=1336439888]
+curve = SubResource("Curve3D_52sae")

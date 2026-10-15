@@ -3,7 +3,6 @@ render_mode diffuse_burley, specular_schlick_ggx;
 
 // Visual detail only: the authoritative R-cell mask still defines roads/building space.
 uniform sampler2D road_mask : filter_linear, repeat_disable;
-uniform sampler2D oil_mask : filter_linear, repeat_disable;
 uniform vec2 map_origin;
 uniform vec2 map_size;
 uniform vec4 grass_dark : source_color = vec4(0.20, 0.30, 0.15, 1.0);
@@ -138,12 +137,6 @@ void fragment() {
 	float curb = road * (1.0 - smoothstep(0.56, 0.70, mask));
 	vec3 paving = mix(stone, mix(stone, curb_color.rgb, 0.26), curb);
 	vec3 color = mix(grass, paving, road);
-	// Seep beds replace stone visually while retaining the existing no-build R cells.
-	float oil = smoothstep(0.12, 0.70, texture(oil_mask, (p - map_origin) / map_size).r);
-	float wet = smoothstep(0.30, 0.76, noise(p * 1.05 + 8.0));
-	vec3 tar = mix(vec3(0.055, 0.065, 0.055), vec3(0.10, 0.135, 0.12), grain);
-	tar = mix(tar, vec3(0.08, 0.12, 0.135), wet * 0.32);
-	color = mix(color, tar, oil);
 
 	float height = mix(grain * 0.012 + blade * 0.005,
 		grain * 0.005 + face_wear * 0.009 - bevel * 0.017 - joint * 0.025 - crack * 0.005, road);
@@ -157,7 +150,5 @@ void fragment() {
 	NORMAL = normalize(n - gradient * bump_strength);
 	ALBEDO = color;
 	ROUGHNESS = mix(0.97, 0.91 - face_wear * 0.045, road);
-	ROUGHNESS = mix(ROUGHNESS, mix(0.65, 0.17, wet), oil);
-	METALLIC = oil * wet * 0.22;
-	SPECULAR = mix(0.13, 0.55, oil);
+	SPECULAR = 0.13;
 }

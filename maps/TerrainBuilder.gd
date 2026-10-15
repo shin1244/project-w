@@ -294,17 +294,17 @@ func build_terrain() -> void:
 	var ground_material := ShaderMaterial.new()
 	ground_material.shader = load("res://maps/materials/Ground.gdshader")
 	var road_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
-	var oil_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
-			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" else Color.BLACK)
 			var p := map_origin + (Vector2(x, z) + Vector2.ONE * 0.5) * cell_size
+			var oil_reserved := false
 			for field in map_data.get("oilFields", []):
 				if oil_contains(field, p):
-					oil_image.set_pixel(x, z, Color.WHITE)
+					oil_reserved = true
 					break
+			# Oilfield R cells retain their rules but show grass under the shared fissure model.
+			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" and not oil_reserved else Color.BLACK)
 	ground_material.set_shader_parameter("road_mask", ImageTexture.create_from_image(road_image))
-	ground_material.set_shader_parameter("oil_mask", ImageTexture.create_from_image(oil_image))
 	ground_material.set_shader_parameter("map_origin", map_origin)
 	ground_material.set_shader_parameter("map_size", Vector2(rows[0].length(), rows.size()) * cell_size)
 	top.set_material(ground_material)
@@ -416,49 +416,10 @@ func build_oilfields() -> void:
 	var fields := Node3D.new()
 	fields.name = "OilfieldTerrain"
 	attach(fields)
-	var tar := StandardMaterial3D.new()
-	tar.albedo_color = Color("142221")
-	tar.roughness = 0.12
-	tar.metallic = 0.38
-	var rock := StandardMaterial3D.new()
-	rock.albedo_color = Color("2a302b")
-	rock.roughness = 0.83
+	# Map radii reserve construction space; all sites share one unscaled, unrotated model.
+	var oilfield_scene: PackedScene = load("res://maps/Oilfield.tscn")
 	for field in map_data.get("oilFields", []):
-		var center := Vector2(field["center"][0], field["center"][1])
-		var radii := Vector2(field["radii"][0], field["radii"][1])
-		var rotation_sign := -1.0 if center.x > 0.0 else 1.0
-		var site := Node3D.new()
+		var site: Node3D = oilfield_scene.instantiate()
 		site.name = field["id"]
+		site.position = Vector3(field["center"][0], 0, field["center"][1])
 		attach(site, fields)
-		# Low relief surface meshes only: the server ground remains flat and walkable.
-		# No StaticBody, Area, resource id, or interaction target is attached.
-		var pool := SurfaceTool.new()
-		pool.begin(Mesh.PRIMITIVE_TRIANGLES)
-		for i in range(28):
-			var a := float(i) * TAU / 28.0
-			var b := float(i + 1) * TAU / 28.0
-			var ra := 0.68 + sin(a * 3.0 + 0.5) * 0.08 + cos(a * 5.0) * 0.04
-			var rb := 0.68 + sin(b * 3.0 + 0.5) * 0.08 + cos(b * 5.0) * 0.04
-			var pa := center + Vector2(cos(a), sin(a)) * radii * ra * rotation_sign
-			var pb := center + Vector2(cos(b), sin(b)) * radii * rb * rotation_sign
-			triangle(pool, Vector3(center.x, 0.018, center.y), Vector3(pb.x, 0.018, pb.y), Vector3(pa.x, 0.018, pa.y))
-		pool.set_material(tar)
-		var surface := MeshInstance3D.new()
-		surface.name = "OilPool"
-		surface.mesh = pool.commit()
-		attach(surface, site)
-		for i in range(11):
-			var angle := float(i) * TAU / 11.0 + 0.17
-			var offset := Vector2(cos(angle), sin(angle)) * radii * 0.84 * rotation_sign
-			var stone := MeshInstance3D.new()
-			stone.name = "ShoreStone%d" % i
-			var mesh := SphereMesh.new()
-			mesh.radius = 0.25 + float(i % 3) * 0.06
-			mesh.height = 0.18 + float(i % 2) * 0.07
-			mesh.radial_segments = 5
-			mesh.rings = 2
-			mesh.material = rock
-			stone.mesh = mesh
-			stone.position = Vector3(center.x + offset.x, 0.04, center.y + offset.y)
-			stone.rotation.y = angle
-			attach(stone, site)
