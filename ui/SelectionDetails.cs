@@ -101,6 +101,8 @@ public partial class SelectionDetails : PanelContainer
         _activity.Name = "Activity";
         information.AddChild(_activity);
         _extra = Text("", 13, "a5b6ad");
+        _extra.Name = "Extra";
+        _extra.MouseFilter = MouseFilterEnum.Stop;
         information.AddChild(_extra);
         _stats = Text("", 13, "d0dcd2");
         _stats.Name = "Stats";
@@ -247,7 +249,10 @@ public partial class SelectionDetails : PanelContainer
             _activity.TooltipText = UnitCatalog.Description(single.UnitType);
             SetText(_extra, single.UnitType == 0 ? single.HasServerState
                 ? $"운반 중인 {(single.State.CarryType == ResourceType.Oil ? "기름" : "목재")}   {single.State.Carrying}"
-                : "운반 중인 자원   —" : "");
+                : "운반 중인 자원   —" : single.UnitType == UnitCatalog.SteamArtillery ? SiegeText(single) :
+                single.UnitType == UnitCatalog.Knight ? KnightChargeText(single) : "");
+            _extra.TooltipText = single.UnitType == UnitCatalog.Knight && Buildings?.KnightResearch(single.Team) is KnightResearchSnapshot research
+                ? CommandPanel.KnightResearchDescription(research) : "";
             SetText(_stats, StatsText(single.Stats, true));
         }
         else if (Available(_building))
@@ -257,7 +262,10 @@ public partial class SelectionDetails : PanelContainer
             SetText(_activity, _building.IsUnderConstruction ? $"공사 중   {_building.ConstructionPercent}%" :
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
             SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam
-                ? "일꾼을 선택하고 우클릭하여 이어 짓기" : "");
+                ? "일꾼을 선택하고 우클릭하여 이어 짓기" :
+                _building.BuildingType == BuildingCatalog.ResearchLab ? KnightResearchText(_building.SideId) : "");
+            _extra.TooltipText = _building.BuildingType == BuildingCatalog.ResearchLab && Buildings.KnightResearch(_building.SideId) is KnightResearchSnapshot research
+                ? CommandPanel.KnightResearchDescription(research) : "";
             string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
                 _building.Rally is not RallySnapshot r ? " · 우클릭으로 랠리 지정" : r.ResourceId != 0 ? " · 랠리: 자동 채집" : " · 랠리: 이동" : "";
             string tierText = _building.IsDefense ? $" · {Buildings.TeamTier(_building.SideId).Tier}티어" : "";
@@ -276,6 +284,15 @@ public partial class SelectionDetails : PanelContainer
 
     private void RefreshProduction()
     {
+        if (_building.BuildingType == BuildingCatalog.ResearchLab && !_building.IsUnderConstruction &&
+            Buildings.KnightResearch(_building.SideId) is { Researching: true } research && research.LabId == _building.BuildingId)
+        {
+            _production.Visible = true;
+            SetText(_productionText, $"와이어 돌진 연구 · {research.Remaining:0}초 남음");
+            _productionProgress.Value = research.Percent;
+            foreach (var frame in _queueFrames) frame.Visible = false;
+            return;
+        }
         if (Buildings.IsTownHallUpgrading(_building))
         {
             var state = Buildings.TeamTier(_building.SideId);
@@ -400,6 +417,38 @@ public partial class SelectionDetails : PanelContainer
     public static string UnitName(uint type) => UnitCatalog.Name(type);
     public static string HealthText(HealthBar health) => HealthDisplay.Text(health.CurrentHP, health.MaxHP, health.Shield);
     public static Color HealthColor(float ratio) => new(ratio > .5f ? "64cf79" : ratio > .25f ? "edbf55" : "e96860");
+    private static string SiegeText(Unit unit)
+    {
+        if (unit.Siege is not SiegeSnapshot state) return "공성 상태   —";
+        return state.Mode switch
+        {
+            SiegeMode.Mobile => "이동 모드",
+            SiegeMode.Deployed => "공성 모드 · 이동 불가",
+            SiegeMode.Deploying => $"전개 중   {state.DeploymentAt(unit.EffectTick) * 100:0}%",
+            SiegeMode.Packing => $"전개 해제 중   {(1 - state.DeploymentAt(unit.EffectTick)) * 100:0}%",
+            _ => ""
+        };
+    }
+
+    private string KnightResearchText(uint team) => Buildings?.KnightResearch(team) switch
+    {
+        { Unlocked: true } => "와이어 돌진 · 자동 발동",
+        { Researching: true } state => $"와이어 돌진 · 연구 중 {state.Remaining:0}초",
+        KnightResearchSnapshot => "와이어 돌진 · 기술연구소 연구 필요",
+        _ => "와이어 돌진 · 정보 수신 대기"
+    };
+
+    private string KnightChargeText(Unit unit)
+    {
+        if (unit.KnightCharge is not KnightChargeSnapshot charge)
+            return Buildings?.KnightResearch(unit.Team) is { Unlocked: false } ? KnightResearchText(unit.Team) : "와이어 돌진 · 정보 수신 대기";
+        if (!charge.Enabled) return KnightResearchText(unit.Team);
+        if (charge.ActiveAt(unit.EffectTick)) return "와이어 돌진 · 돌진 중";
+        if (charge.IsReadyAt(unit.EffectTick)) return "와이어 돌진 · 준비";
+        double seconds = (charge.ReadyTick - unit.EffectTick) / (double)InterpolationClock.TickRate;
+        return $"와이어 돌진 · 재사용 {System.Math.Ceiling(seconds):0}초";
+    }
+
     public static string ActivityText(UnitState state, bool known) => !known ? "상태   —" : state.Activity switch
     {
         UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중",

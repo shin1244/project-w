@@ -57,6 +57,8 @@ public partial class UnitSceneChecks : Main
             Check(Units.GetChildCount() == 2 && float.IsFinite(archer.GlobalPosition.X), "Malformed data ignored");
 
             await CheckRangedFeedback(archer);
+            await CheckWorkshopSnapshots();
+            await CheckKnightChargeSnapshots();
             await CheckInput(knight, archer);
             await CheckResources();
 
@@ -100,17 +102,20 @@ public partial class UnitSceneChecks : Main
     {
         Receive("UNIT 101 930 0 3 2 1");
         Unit minion = Units.GetNode<Unit>("Unit_930");
-        int Shots(Unit unit) => unit.GetChildren().OfType<ArrowFlight>().Count();
+        int Shots(Unit unit) => unit.GetChildren().Count(child => child is ArrowFlight or PneumaticPelletFlight);
         foreach (Unit shooter in new[] { archer, minion })
         {
             uint target = shooter == archer ? minion.UnitId : 101u;
             Receive($"STATE {shooter.UnitId} ATTACK 0 {target} 7");
-            Check(Shots(shooter) == 0, "Initial attack snapshots never replay historical arrows");
+            Check(Shots(shooter) == 0, "Initial attack snapshots never replay historical ranged shots");
             Receive($"STATE {shooter.UnitId} ATTACK 0 {target} 8");
-            Check(Shots(shooter) == 1, "A new server swing launches one arrow for either archer model");
+            Check(Shots(shooter) == 1, "A new server swing launches one ranged shot");
             Receive($"STATE {shooter.UnitId} ATTACK 0 {target} 8");
-            Check(Shots(shooter) == 1, "Repeated attack state cannot duplicate arrows");
+            Check(Shots(shooter) == 1, "Repeated attack state cannot duplicate ranged shots");
         }
+        Check(archer.GetChildren().OfType<PneumaticPelletFlight>().Count() == 1 &&
+            !archer.GetChildren().OfType<ArrowFlight>().Any(), "Barracks rifle uses a pellet while the ranged minion keeps its arrow");
+        CheckPneumaticReload(archer);
         ArrowFlight minionShot = minion.GetChildren().OfType<ArrowFlight>().Single();
         Receive("HIDE 930");
         Check(!minionShot.IsInsideTree(), "Hiding the shooter also removes its visual projectile");

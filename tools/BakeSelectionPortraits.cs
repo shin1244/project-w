@@ -15,29 +15,36 @@ public partial class BakeSelectionPortraits : Node
             Error result = DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
             if (result != Error.Ok) throw new System.InvalidOperationException($"Cannot create portrait directory: {result}");
             var portraits = new Dictionary<string, Texture2D>();
+            bool flameOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--flame-only") >= 0;
+            bool artilleryOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--artillery-only") >= 0;
+            bool workshopUnitsOnly = flameOnly || artilleryOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--workshop-units-only") >= 0;
+            bool tierTwoOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--tier-two-only") >= 0;
             bool storeOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
             bool oilDerrickOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--oil-derrick-only") >= 0;
             bool golemOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--golem-only") >= 0;
-            bool soldiersOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--soldiers-only") >= 0;
+            bool knightOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--knight-only") >= 0;
+            bool soldiersOnly = knightOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--soldiers-only") >= 0;
             bool defensesOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--defenses-only") >= 0;
             bool inspectionOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--inspection-only") >= 0;
             bool heroOnly = golemOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--hero-only") >= 0;
-            bool rangedOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--ranged-only") >= 0;
-            if (!oilDerrickOnly && !storeOnly && rangedOnly)
+            bool archerOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--archer-only") >= 0;
+            bool rangedOnly = archerOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--ranged-only") >= 0;
+            if (!workshopUnitsOnly && !tierTwoOnly && !oilDerrickOnly && !storeOnly && rangedOnly)
                 foreach (bool enemy in new[] { false, true })
                 {
                     portraits.Add("archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/Archer.tscn"), enemy: enemy));
-                    portraits.Add("minion-archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/MinionArcher.tscn"), enemy: enemy));
+                    if (!archerOnly) portraits.Add("minion-archer" + (enemy ? "-enemy" : ""), GetPortrait(GD.Load<PackedScene>("res://units/MinionArcher.tscn"), enemy: enemy));
                 }
-            if (!oilDerrickOnly && !storeOnly && !rangedOnly && (heroOnly || (!soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
+            if (!workshopUnitsOnly && !tierTwoOnly && !oilDerrickOnly && !storeOnly && !rangedOnly && (heroOnly || (!soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
                 foreach (string hero in golemOnly ? new[] { "HeroGolem" } : new[] { "HeroTest", "HeroGolem" })
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add((hero == "HeroGolem" ? "rune-golem" : "mutant-wolf") + (enemy ? "-enemy" : ""),
                             GetPortrait(GD.Load<PackedScene>($"res://units/{hero}.tscn"), enemy: enemy));
-            if (!oilDerrickOnly && !storeOnly && !rangedOnly && !heroOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
-                foreach (string unit in soldiersOnly ? new[] { "Knight", "Archer" } : new[] { "Worker", "Knight", "Archer" })
+            if (!workshopUnitsOnly && !tierTwoOnly && !oilDerrickOnly && !storeOnly && !rangedOnly && !heroOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)
+                foreach (string unit in knightOnly ? new[] { "Knight" } : soldiersOnly ? new[] { "Knight", "Archer" } : new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant(), GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn")));
-            if (!oilDerrickOnly && !storeOnly && !rangedOnly && !heroOnly && (inspectionOnly || (!soldiersOnly && !defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
+            if (knightOnly) portraits.Add("knight-enemy", GetPortrait(GD.Load<PackedScene>("res://units/Knight.tscn"), enemy: true));
+            if (!workshopUnitsOnly && !tierTwoOnly && !oilDerrickOnly && !storeOnly && !rangedOnly && !heroOnly && (inspectionOnly || (!soldiersOnly && !defensesOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0)))
             {
                 foreach (string unit in new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant() + "-enemy", GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: true));
@@ -45,9 +52,14 @@ public partial class BakeSelectionPortraits : Node
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add($"minion-{unit.ToLowerInvariant()}{(enemy ? "-enemy" : "")}", GetPortrait(GD.Load<PackedScene>($"res://units/Minion{unit}.tscn"), enemy: enemy));
             }
-            foreach (string building in oilDerrickOnly ? new[] { "OilDerrick" } : storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick" })
+            if (workshopUnitsOnly || (!tierTwoOnly && !oilDerrickOnly && !storeOnly && !rangedOnly && !heroOnly && !soldiersOnly && !defensesOnly && !inspectionOnly && System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--buildings-only") < 0))
+                foreach (string unit in flameOnly ? new[] { "FlameAutomaton" } : artilleryOnly ? new[] { "SteamArtillery" } : new[] { "FlameAutomaton", "SteamArtillery" })
+                    foreach (bool enemy in new[] { false, true })
+                        portraits.Add((unit == "FlameAutomaton" ? "flame-automaton" : "steam-artillery") + (enemy ? "-enemy" : ""),
+                            GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: enemy));
+            foreach (string building in workshopUnitsOnly ? System.Array.Empty<string>() : tierTwoOnly ? new[] { "Workshop", "ResearchLab" } : oilDerrickOnly ? new[] { "OilDerrick" } : storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" })
                 foreach (bool enemy in new[] { false, true })
-                    portraits.Add($"{(building == "OilDerrick" ? "oil_derrick" : building.ToLowerInvariant())}-{(enemy ? "enemy" : "ally")}",
+                    portraits.Add($"{(building == "OilDerrick" ? "oil_derrick" : building == "ResearchLab" ? "research_lab" : building.ToLowerInvariant())}-{(enemy ? "enemy" : "ally")}",
                         GetPortrait(GD.Load<PackedScene>($"res://buildings/{building}.tscn"), true, enemy));
 
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
@@ -119,11 +131,12 @@ public partial class BakeSelectionPortraits : Node
         });
         bool beast = scene.ResourcePath == "res://units/HeroTest.tscn";
         bool golem = scene.ResourcePath == "res://units/HeroGolem.tscn";
+        bool artillery = scene.ResourcePath == "res://units/SteamArtillery.tscn";
         var camera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, Current = true,
-            Size = building ? buildingHeight * 1.5f : beast ? 3.6f : golem ? 3.7f : unitHeight * .94f,
-            Position = building ? new Vector3(7, 6, -10) : beast ? new Vector3(4.8f, 3.1f, -5) : new Vector3(2.4f, 2.5f, -5)
+            Size = building ? buildingHeight * 1.5f : artillery ? 5.2f : beast ? 3.6f : golem ? 3.7f : unitHeight * .94f,
+            Position = building ? new Vector3(7, 6, -10) : artillery ? new Vector3(5, 4, -7) : beast ? new Vector3(4.8f, 3.1f, -5) : new Vector3(2.4f, 2.5f, -5)
         };
         viewport.AddChild(camera);
         camera.LookAt(beast ? new Vector3(.15f, 1.2f, -.3f) : new Vector3(0, building ? buildingHeight * .42f : unitHeight * .48f, 0));
@@ -131,10 +144,13 @@ public partial class BakeSelectionPortraits : Node
         return viewport.GetTexture();
     }
 
-    private void FinishBake()
+    private async void FinishBake()
     {
         System.GC.Collect();
         System.GC.WaitForPendingFinalizers();
+        // Instantiated source scenes also allocate collision shapes; let the physics server release them.
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
         GetTree().Quit();
     }
 

@@ -270,7 +270,7 @@ public partial class SelectionDetailsChecks : Main
         InvokeMain("SelectUnit", Unit(999));
         await Layout();
         Check(UnitInfo.InspectedUnit == Unit(999) && Units.SelectedUnitIds.SequenceEqual(new uint[] { 8005 }) &&
-            Info("UnitName").Text == "검방병" && Info("HealthText").Text == "— / —",
+            Info("UnitName").Text == UnitCatalog.Name(UnitCatalog.Knight) && Info("HealthText").Text == "— / —",
             "Compact inspection keeps the own hero controlled and leaves unknown enemy HP empty");
         Receive("HP 999 61 100");
         Receive("STATE 999 ATTACK 0 8005 1");

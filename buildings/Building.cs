@@ -25,10 +25,11 @@ public partial class Building : Node3D
     public IReadOnlyList<uint> ProductionQueue { get; private set; } = Array.Empty<uint>();
     public IReadOnlyList<ProductionJob> ProductionJobs { get; private set; } = Array.Empty<ProductionJob>();
     public int ProductionPercent { get; private set; }
-    public bool IsProducer => BuildingType is BuildingCatalog.TownHall or BuildingCatalog.Barracks;
+    public bool IsProducer => BuildingType is BuildingCatalog.TownHall or BuildingCatalog.Barracks or BuildingCatalog.Workshop;
     public RallySnapshot? Rally { get; internal set; }
     public bool CanTrain(uint type) => BuildingType == BuildingCatalog.TownHall ? type == 0 :
-        BuildingType == BuildingCatalog.Barracks && type is UnitCatalog.Knight or UnitCatalog.Archer or UnitCatalog.Medic;
+        BuildingType == BuildingCatalog.Barracks && type is UnitCatalog.Knight or UnitCatalog.Archer or UnitCatalog.Medic ||
+        BuildingType == BuildingCatalog.Workshop && UnitCatalog.IsWorkshopUnit(type);
 
     public bool ApplyProduction(ProductionSnapshot snapshot)
     {

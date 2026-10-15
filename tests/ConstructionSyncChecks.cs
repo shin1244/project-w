@@ -57,7 +57,7 @@ public partial class ConstructionSyncChecks : Main
             Receive("UNIT 0 102 7 -12 4 1");
             Receive("UNIT 1 201 7 -14 2 1");
             Receive("UNIT 0 301 8 -14 4 1");
-            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick" };
+            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" };
             for (uint type = 0; type < sceneNames.Length; type++)
             {
                 Check(Buildings.SceneFor(type)?.ResourcePath == $"res://buildings/{sceneNames[type]}.tscn",
@@ -212,11 +212,29 @@ public partial class ConstructionSyncChecks : Main
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         int before = _commands.Count;
         long wire = _wire.Length;
-        Click(derrick.GlobalPosition + Vector3.Up * 2);
-        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-        Check(_commands.Count == before + 1 && _commands.Last() == "GATHER 750 101 102" &&
-            ReadSince(wire) == "GATHER 750 101 102" + System.Environment.NewLine,
-            "Actual derrick right-click sends one framed GATHER for selected owned workers only");
+        PlayerInput playerInput = GetNode<PlayerInput>("PlayerInput");
+        string contextTarget = "context not processed";
+        void ObserveContext(Node3D target, Vector3 point) => contextTarget = target is Building building
+            ? $"building {building.BuildingId}" : target?.Name.ToString() ?? $"ground {point}";
+        playerInput.ContextClicked += ObserveContext;
+        try
+        {
+            Click(derrick.GlobalPosition + Vector3.Up * 2);
+            // 실제 클릭은 PlayerInput의 물리 작업 큐에서 처리합니다. 렌더 프레임만
+            // 기다리면 빠른 headless 실행에서 큐가 처리되기 전에 결과를 검사합니다.
+            for (int frame = 0; frame < 3 && _commands.Count == before; frame++)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+            string actualCommands = string.Join(" | ", _commands.Skip(before));
+            Check(_commands.Count == before + 1 && _commands.Last() == "GATHER 750 101 102" &&
+                ReadSince(wire) == "GATHER 750 101 102" + System.Environment.NewLine,
+                $"Actual derrick right-click sends one framed GATHER for selected owned workers only; " +
+                $"commands=[{actualCommands}], target={contextTarget}, selected=[{string.Join(",", Units.SelectedUnitIds)}], " +
+                $"synced={Map.IsSynchronized}, placement={Placement.Active}, wire=[{ReadSince(wire).Trim()}]");
+        }
+        finally { playerInput.ContextClicked -= ObserveContext; }
         Check(Units.SelectedUnitIds.Count == 3 && Worker().State.Carrying == 0 && !Worker().HasServerState,
             "Mixed selection is preserved and gathering waits for authoritative cargo state");
 

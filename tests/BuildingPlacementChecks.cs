@@ -19,10 +19,10 @@ public partial class BuildingPlacementChecks : Main
     private Button Slot(int number) => Commands.GetNode<Button>($"Slots/Slot{number}");
     private void ChooseBuilding(int number = 8)
     {
-        if (!Commands.IsTierOneMenuOpen) Slot(1).EmitSignal(BaseButton.SignalName.Pressed);
-        Check(Commands.IsTierOneMenuOpen, "A selected worker can open the tier-one menu");
+        if (!Commands.IsBuildMenuOpen) Slot(1).EmitSignal(BaseButton.SignalName.Pressed);
+        Check(Commands.IsBuildMenuOpen, "A selected worker can open the tier-one menu");
         Slot(number).EmitSignal(BaseButton.SignalName.Pressed);
-        Check(!Commands.IsTierOneMenuOpen && Placement.Active, "Choosing a building returns to the base panel and starts placement");
+        Check(!Commands.IsBuildMenuOpen && Placement.Active, "Choosing a building returns to the base panel and starts placement");
     }
     private Vector2 Screen(float x, float z) => Units.Camera.UnprojectPosition(new Vector3(x, 0, z));
     private string Issue(float x, float z, float width = 2, float depth = 2) =>
@@ -62,7 +62,7 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectUnit", Unit());
             Units.ToggleSelection(Unit(102));
             Units.ToggleSelection(Unit(201));
-            Check(Slot(1).Text == "1티어(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
+            Check(Slot(1).Text == "건설(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
                 "Mixed selection with own workers exposes the tier-one menu instead of direct build buttons");
             ChooseBuilding();
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));

@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
 [ext_resource type="PackedScene" path="res://units/models/KnightRig.tscn" id="2_model"]
-[ext_resource type="Script" path="res://units/SoldierAnimation.cs" id="3_animation"]
+[ext_resource type="Script" path="res://units/SteamKnightAnimation.cs" id="3_animation"]
 
 [sub_resource type="CapsuleShape3D" id="Selection"]
 radius = 0.756
@@ -23,5 +23,5 @@ shape = SubResource("Selection")
 [node name="SelectionRing" parent="." index="2"]
 scale = Vector3(1.21, 1, 1.21)
 
-[node name="SoldierAnimation" type="Node" parent="."]
+[node name="SteamKnightAnimation" type="Node" parent="."]
 script = ExtResource("3_animation")

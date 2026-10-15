@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_45q36"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/ResearchLab.res" id="2_byyqd"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_orrfh"]
+size = Vector3(4, 4.4449997, 4)
+
+[node name="ResearchLab" type="Node3D" unique_id=2023071543]
+script = ExtResource("1_45q36")
+BuildingType = 9
+HealthBarHeight = 4.745
+metadata/role = "research_lab"
+metadata/footprint = Vector2i(4, 4)
+metadata/front = "-Z"
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1728495662]
+mesh = ExtResource("2_byyqd")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1294328123]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=2102180612]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2224998, 0)
+shape = SubResource("BoxShape3D_orrfh")
+
+[node name="Entrance" type="Marker3D" parent="." unique_id=1592886695]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
