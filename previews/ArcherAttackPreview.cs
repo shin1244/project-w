@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// F6: both real archer scenes repeatedly draw and release. No server connection.
+// F6: the actual pneumatic rifleman and bow minion repeatedly fire. No server connection.
 public partial class ArcherAttackPreview : Node3D
 {
     private readonly List<Unit> _archers = new();
@@ -39,9 +39,10 @@ public partial class ArcherAttackPreview : Node3D
             archer.ResolveFocus = id => id == target.UnitId ? target : null;
             AddChild(archer);
             archer.ApplyServerPosition(x, 1.6f);
+            archer.Stats = new StatsSnapshot(archer.UnitId, 1, 8, i == 0 ? 1.4f : 1.2f, 4, 10);
             archer.ApplyServerState(new UnitState(UnitActivity.Attack, 0, target.UnitId, 0));
             _archers.Add(archer);
-            AddChild(new Label3D { Text = i == 0 ? "궁수" : "원거리 미니언", Position = new Vector3(x, .1f, 2.7f),
+            AddChild(new Label3D { Text = i == 0 ? "공압사수" : "원거리 미니언", Position = new Vector3(x, .1f, 2.7f),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, FontSize = 36, PixelSize = .009f, OutlineSize = 6 });
         }
         var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = 10.5f,
@@ -51,7 +52,7 @@ public partial class ArcherAttackPreview : Node3D
         GetViewport().Msaa3D = Viewport.Msaa.Msaa4X;
         var canvas = new CanvasLayer();
         AddChild(canvas);
-        var title = new Label { Text = "궁수 · 발사 연출", Position = new Vector2(28, 22) };
+        var title = new Label { Text = "공압사수 · 원거리 미니언 발사 연출", Position = new Vector2(28, 22) };
         title.AddThemeFontSizeOverride("font_size", 28);
         canvas.AddChild(title);
         if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--capture") < 0) return;
@@ -65,8 +66,8 @@ public partial class ArcherAttackPreview : Node3D
         }
         foreach (Unit archer in _archers)
         {
-            archer.GetNode("ArcherAnimation").SetProcess(false);
-            foreach (Node child in archer.GetChildren()) if (child is ArrowFlight) child.SetProcess(false);
+            archer.GetNode(archer.UnitType == UnitCatalog.Archer ? "PneumaticRifleAnimation" : "ArcherAnimation").SetProcess(false);
+            foreach (Node child in archer.GetChildren()) if (child is ArrowFlight or PneumaticPelletFlight) child.SetProcess(false);
         }
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         using Image image = GetViewport().GetTexture().GetImage();
@@ -79,7 +80,7 @@ public partial class ArcherAttackPreview : Node3D
     public override void _Process(double delta)
     {
         _clock += delta;
-        if (_clock < 1.1) return;
+        if (_clock < 1.4) return;
         _clock = 0;
         Shoot();
     }

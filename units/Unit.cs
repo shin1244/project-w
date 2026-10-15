@@ -9,6 +9,7 @@ public partial class Unit : Node3D
     [Export] public bool AlwaysShowHealth { get; set; }
     // A larger model/picking capsule must not change the authoritative construction footprint.
     [Export] public float BodyRadius { get; set; }
+    [Export] public NodePath AimNodePath { get; set; } = new("Visual");
     public HealthBar HealthBar { get; private set; }
 
     public uint UnitId { get; private set; }
@@ -23,6 +24,18 @@ public partial class Unit : Node3D
     public GolemEffectSnapshot GolemEffects { get; set; }
     public MarshalEffectSnapshot MarshalEffects { get; set; }
     public uint EffectTick { get; set; }
+    public SiegeSnapshot? Siege { get; private set; }
+    public event Action<Unit> SiegeChanged;
+    public KnightChargeSnapshot? KnightCharge { get; private set; }
+    public event Action<Unit> KnightChargeChanged;
+    public Node3D KnightChargeTarget
+    {
+        get
+        {
+            Node3D target = KnightCharge is { Charging: true } charge ? ResolveFocus?.Invoke(charge.TargetId) : null;
+            return IsAvailable(target) && target.IsVisibleInTree() ? target : null;
+        }
+    }
     public bool IsDying { get; private set; }
     public event Action<UnitState, bool> StateChanged;
     // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛/건물 목록을 직접 소유하지 않습니다.
@@ -80,7 +93,14 @@ public partial class Unit : Node3D
 
     public void Initialize(uint unitId, uint ownerId, uint team)
     {
-        if (UnitId != unitId || OwnerId != ownerId || Team != team) Mana = null;
+        if (UnitId != unitId || OwnerId != ownerId || Team != team)
+        {
+            Mana = null;
+            Siege = null;
+            SiegeChanged?.Invoke(this);
+            KnightCharge = null;
+            KnightChargeChanged?.Invoke(this);
+        }
         UnitId = unitId;
         OwnerId = ownerId;
         Team = team;
@@ -131,8 +151,11 @@ public partial class Unit : Node3D
         direction.Y = 0f;
         GlobalPosition = next;
 
+        // 이동식 포격차는 추적 중에도 보행 차체를 이동 방향으로 향하게 하고, 아래에서 포탑만 표적에 맞춥니다.
+        bool mobileArtillery = UnitType == UnitCatalog.SteamArtillery && Siege?.Mode is null or SiegeMode.Mobile;
         // 첫 스폰은 제외하고, 움직였을 때만 모델의 정면(-Z)을 이동 방향으로 돌립니다.
-        if (_hasServerPosition && State.Activity is UnitActivity.Idle or UnitActivity.Guard && direction.LengthSquared() > 0.000001f)
+        if (_hasServerPosition && (State.Activity is UnitActivity.Idle or UnitActivity.Guard || mobileArtillery)
+            && direction.LengthSquared() > 0.000001f)
         {
             Node3D visual = GetNode<Node3D>("Visual");
             visual.LookAt(visual.GlobalPosition + direction, Vector3.Up);
@@ -155,8 +178,31 @@ public partial class Unit : Node3D
         StateChanged?.Invoke(state, swung);
     }
 
+    public void ApplySiege(SiegeSnapshot snapshot)
+    {
+        if (IsDying || UnitType != UnitCatalog.SteamArtillery || snapshot.UnitId != UnitId || Siege == snapshot) return;
+        Siege = snapshot;
+        SiegeChanged?.Invoke(this);
+    }
+
+    public void ApplyKnightCharge(KnightChargeSnapshot snapshot)
+    {
+        if (IsDying || UnitType != UnitCatalog.Knight || snapshot.UnitId != UnitId || KnightCharge == snapshot) return;
+        KnightCharge = snapshot;
+        FaceActionTarget();
+        KnightChargeChanged?.Invoke(this);
+    }
+
     private void FaceActionTarget()
     {
+        if (!IsDying && KnightCharge is { } charge && charge.ActiveAt(EffectTick))
+        {
+            // The launched anchor is fixed. Turning toward a moving victim would bend a straight charge.
+            Vector3 anchor = new(charge.Anchor.X, GlobalPosition.Y, charge.Anchor.Y);
+            Node3D visual = GetNode<Node3D>(AimNodePath);
+            if (anchor.DistanceSquaredTo(GlobalPosition) > .000001f) visual.LookAt(anchor, Vector3.Up);
+            return;
+        }
         if (IsDying || State.Activity == UnitActivity.Idle || State.FocusId == 0) return;
         if (!IsAvailable(_focusTarget))
             _focusTarget = ResolveFocus?.Invoke(State.FocusId);
@@ -166,8 +212,8 @@ public partial class Unit : Node3D
         direction.Y = 0;
         if (direction.LengthSquared() > 0.000001f)
         {
-            Node3D visual = GetNode<Node3D>("Visual");
-            visual.LookAt(visual.GlobalPosition + direction, Vector3.Up);
+            Node3D aim = GetNode<Node3D>(AimNodePath);
+            aim.LookAt(aim.GlobalPosition + direction, Vector3.Up);
         }
     }
 
@@ -178,6 +224,10 @@ public partial class Unit : Node3D
     {
         if (IsDying) return _deathTween;
         IsDying = true;
+        Siege = null;
+        SiegeChanged?.Invoke(this);
+        KnightCharge = null;
+        KnightChargeChanged?.Invoke(this);
         _positions.Clear();
         HealthBar.Clear();
         SetProcess(false);

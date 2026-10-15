@@ -11,6 +11,8 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
     [Export] public PackedScene MedicScene;
+    [Export] public PackedScene FlameAutomatonScene;
+    [Export] public PackedScene SteamArtilleryScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene MinionHealerScene;
@@ -47,6 +49,8 @@ public partial class UnitManager : Node3D
         UnitCatalog.Knight => KnightScene,
         UnitCatalog.Archer => ArcherScene,
         UnitCatalog.Medic => MedicScene ??= GD.Load<PackedScene>("res://units/Medic.tscn"),
+        UnitCatalog.FlameAutomaton => FlameAutomatonScene ??= GD.Load<PackedScene>("res://units/FlameAutomaton.tscn"),
+        UnitCatalog.SteamArtillery => SteamArtilleryScene ??= GD.Load<PackedScene>("res://units/SteamArtillery.tscn"),
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
@@ -231,13 +235,14 @@ public partial class UnitManager : Node3D
 
     public void RequestTrain(uint unitType)
     {
+        if (UnitCatalog.IsWorkshopUnit(unitType) && (!CommanderControl || Spectating)) return;
         if (_localPlayerId == 0 || _localTeam == 0 || _selectedUnitIds.Count > 0 || InspectedUnit != null ||
             !GodotObject.IsInstanceValid(Buildings)) return;
 
         Building producer = Buildings.SelectedBuilding;
         if (!GodotObject.IsInstanceValid(producer) || producer.IsQueuedForDeletion() || !producer.IsInsideTree() ||
             !producer.CanTrain(unitType) || producer.IsUnderConstruction || Buildings.IsTownHallUpgrading(producer) || producer.SideId != _localTeam ||
-            Buildings.UnitRequirementBlockReason(unitType) != null ||
+            Buildings.UnitRequirementBlockReason(unitType) != null || Buildings.TrainingTermsBlockReason(producer, unitType) != null ||
             producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ||
             !Buildings.TryGetBuilding(producer.BuildingId, out Building registered) || registered != producer) return;
 

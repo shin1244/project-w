@@ -12,6 +12,7 @@ public partial class BakeBuildingPreviews : Node
         {
             bool storeOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
             bool oilDerrickOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--oil-derrick-only") >= 0;
+            bool tierTwoOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--tier-two-only") >= 0;
             const string directory = "res://ui/build-previews";
             const int pixels = 512;
             DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
@@ -20,7 +21,7 @@ public partial class BakeBuildingPreviews : Node
             main.Free();
             var catalog = new List<object>();
             var views = new List<(SubViewport Viewport, string Path)>();
-            foreach (string name in new[] { "Supply", "Barracks", "Store", "Forge", "Tower", "OilDerrick" })
+            foreach (string name in new[] { "Supply", "Barracks", "Store", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" })
             {
                 var viewport = new SubViewport
                 {
@@ -64,7 +65,12 @@ public partial class BakeBuildingPreviews : Node
                 };
                 viewport.AddChild(camera);
                 Vector2 anchor = camera.UnprojectPosition(Vector3.Zero) / pixels;
-                string key = type == BuildingCatalog.OilDerrick ? "oil_derrick" : name.ToLowerInvariant();
+                string key = type switch
+                {
+                    BuildingCatalog.OilDerrick => "oil_derrick",
+                    BuildingCatalog.ResearchLab => "research_lab",
+                    _ => name.ToLowerInvariant()
+                };
                 string path = $"{directory}/{key}.png";
                 catalog.Add(new { Type = type, Texture = path, Footprint = new[] { footprint.X, footprint.Y },
                     WorldSpan = span, Anchor = new[] { anchor.X, anchor.Y } });
@@ -76,6 +82,8 @@ public partial class BakeBuildingPreviews : Node
             {
                 if (storeOnly && !item.Path.EndsWith("/store.png", StringComparison.Ordinal)) continue;
                 if (oilDerrickOnly && !item.Path.EndsWith("/oil_derrick.png", StringComparison.Ordinal)) continue;
+                if (tierTwoOnly && !item.Path.EndsWith("/workshop.png", StringComparison.Ordinal) &&
+                    !item.Path.EndsWith("/research_lab.png", StringComparison.Ordinal)) continue;
                 using Image image = item.Viewport.GetTexture().GetImage();
                 if (image == null || image.IsEmpty() || image.SavePng(item.Path) != Error.Ok)
                     throw new InvalidOperationException($"Cannot save {item.Path}");

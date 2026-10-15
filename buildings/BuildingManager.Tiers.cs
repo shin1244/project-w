@@ -42,8 +42,11 @@ public partial class BuildingManager
     {
         _teamTiers.Clear();
         _armyUpgrades.Clear();
+        _knightResearch.Clear();
         CommanderWood = 0;
         CommanderOil = 0;
+        CommanderSupplyUsed = CommanderSupplyLimit = 0;
+        HasCommanderSupply = false;
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }

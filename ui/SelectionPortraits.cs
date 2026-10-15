@@ -18,6 +18,8 @@ public partial class SelectionPortraits : Node
             "res://units/HeroMarshal.tscn" => "marshal",
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
             "res://units/Medic.tscn" => enemy ? "medic-enemy" : "medic",
+            "res://units/FlameAutomaton.tscn" => enemy ? "flame-automaton-enemy" : "flame-automaton",
+            "res://units/SteamArtillery.tscn" => enemy ? "steam-artillery-enemy" : "steam-artillery",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
             "res://units/MinionHealer.tscn" => enemy ? "minion-healer-enemy" : "minion-healer",
@@ -30,6 +32,8 @@ public partial class SelectionPortraits : Node
             "res://buildings/Barracks.tscn" => enemy ? "barracks-enemy" : "barracks-ally",
             "res://buildings/Forge.tscn" => enemy ? "forge-enemy" : "forge-ally",
             "res://buildings/OilDerrick.tscn" => enemy ? "oil_derrick-enemy" : "oil_derrick-ally",
+            "res://buildings/Workshop.tscn" => enemy ? "workshop-enemy" : "workshop-ally",
+            "res://buildings/ResearchLab.tscn" => enemy ? "research_lab-enemy" : "research_lab-ally",
             _ => null
         };
         if (name == null) return null;

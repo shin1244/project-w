@@ -83,12 +83,12 @@ public partial class TierOneUnitsPreview : Node3D
         canvas.AddChild(_layout);
         Text("PROJECT W     /     BARRACKS", 64, 42, 650, 19, "9faeaf");
         Text("1티어 정규군", 60, 76, 1000, 48, "f0e8d5");
-        Text("검방병과 궁수  ·  실제 게임 모델 / 동일한 카메라 배율", 64, 143, 1200, 20, "abb9bd");
+        Text("스팀돌격병과 공압사수  ·  실제 게임 모델 / 동일한 카메라 배율", 64, 143, 1200, 20, "abb9bd");
         Line(64, 202, 1472, "4c5e65");
         Text("01 / SILHOUETTE & SCALE", 1190, 90, 346, 17, "c5aa79", HorizontalAlignment.Right);
 
-        string[] names = { "근접 미니언", "검방병", "궁수", "원거리 미니언" };
-        string[] roles = { "기존 라인 유닛", "검 · 방패 / 전열", "장궁 · 가죽 갑옷 / 후열", "기존 라인 유닛" };
+        string[] names = { "근접 미니언", "스팀돌격병", "공압사수", "원거리 미니언" };
+        string[] roles = { "기존 라인 유닛", "검 · 방패 · 압력 윈치 / 전열", "공압총 · 압축공기통 / 후열", "기존 라인 유닛" };
         for (int i = 0; i < 4; i++)
         {
             float x = 64 + i * 368;

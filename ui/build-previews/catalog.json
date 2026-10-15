@@ -76,5 +76,31 @@
       0.5,
       0.6817769
     ]
+  },
+  {
+    "Type": 8,
+    "Texture": "res://ui/build-previews/workshop.png",
+    "Footprint": [
+      5,
+      4
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
+  },
+  {
+    "Type": 9,
+    "Texture": "res://ui/build-previews/research_lab.png",
+    "Footprint": [
+      4,
+      4
+    ],
+    "WorldSpan": 8,
+    "Anchor": [
+      0.5,
+      0.62724376
+    ]
   }
 ]
