@@ -32,6 +32,10 @@ project/assembly_name="Project W"
 
 3d/physics_engine="Jolt Physics"
 
+[gui]
+
+timers/tooltip_delay_sec=0.0
+
 [rendering]
 
 rendering_device/driver.windows="d3d12"

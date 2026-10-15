@@ -18,6 +18,7 @@ public partial class Unit : Node3D
     public UnitState State { get; private set; }
     public bool HasServerState { get; private set; }
     public StatsSnapshot? Stats { get; set; }
+    public ManaSnapshot? Mana { get; set; }
     public WolfEffectSnapshot WolfEffects { get; set; }
     public GolemEffectSnapshot GolemEffects { get; set; }
     public MarshalEffectSnapshot MarshalEffects { get; set; }
@@ -33,6 +34,8 @@ public partial class Unit : Node3D
     private Tween _deathTween;
     private uint _localTeam;
     private TeamMaterials _teamMaterials;
+    private HeroTeamRing _heroTeamRing;
+    private bool _selected;
     private Vector3 _serverPosition;
     // 배치 검사는 50ms 늦은 표시 위치 대신 현재까지 수신한 서버 위치를 사용합니다.
     public Vector3 ServerPosition => _hasServerPosition ? _serverPosition : GlobalPosition;
@@ -45,8 +48,11 @@ public partial class Unit : Node3D
         PlacementRadius = BodyRadius > 0 ? BodyRadius :
             ((CapsuleShape3D)GetNode<CollisionShape3D>("SelectionArea/CollisionShape3D").Shape).Radius;
         HealthBar = HealthBar.Attach(this, HealthBarHeight);
-        _teamMaterials = new TeamMaterials(GetNode<Node3D>("Visual"));
-        _teamMaterials.Apply(Team, _localTeam);
+        if (UnitCatalog.IsHero(UnitType))
+            _heroTeamRing = new HeroTeamRing(GetNode<MeshInstance3D>("SelectionRing"));
+        else
+            _teamMaterials = new TeamMaterials(GetNode<Node3D>("Visual"));
+        RefreshTeamPresentation();
     }
 
     public void ApplyHealth(HealthSnapshot health)
@@ -68,20 +74,29 @@ public partial class Unit : Node3D
         _deathTween = null;
         _teamMaterials?.Dispose();
         _teamMaterials = null;
+        _heroTeamRing?.Dispose();
+        _heroTeamRing = null;
     }
 
     public void Initialize(uint unitId, uint ownerId, uint team)
     {
+        if (UnitId != unitId || OwnerId != ownerId || Team != team) Mana = null;
         UnitId = unitId;
         OwnerId = ownerId;
         Team = team;
-        _teamMaterials?.Apply(Team, _localTeam);
+        RefreshTeamPresentation();
     }
 
     public void SetLocalTeam(uint team)
     {
         _localTeam = team;
+        RefreshTeamPresentation();
+    }
+
+    private void RefreshTeamPresentation()
+    {
         _teamMaterials?.Apply(Team, _localTeam);
+        _heroTeamRing?.Apply(Team, _localTeam, _selected, IsDying);
     }
 
     // UNIT 스냅샷은 즉시 배치하고 이전 보간 이력을 버립니다.
@@ -179,7 +194,9 @@ public partial class Unit : Node3D
 
     public void SetSelected(bool selected)
     {
-        GetNode<MeshInstance3D>("SelectionRing").Visible = selected && !IsDying;
+        _selected = selected && !IsDying;
+        if (_heroTeamRing != null) RefreshTeamPresentation();
+        else GetNode<MeshInstance3D>("SelectionRing").Visible = _selected;
         HealthBar?.SetSelected(selected && !IsDying);
     }
 }

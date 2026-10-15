@@ -13,7 +13,6 @@ public partial class TributeEventView : Node3D
     private uint _tick, _localTeam;
     private Area3D _pickArea;
     private Node3D _relic;
-    private Label3D _label;
     private MeshInstance3D _progress;
     private StandardMaterial3D _progressMaterial;
     private int _arcSteps = -1;
@@ -52,15 +51,6 @@ public partial class TributeEventView : Node3D
         var relicMesh = new MeshInstance3D { Name = "FacetedOffering", Mesh = RelicMesh(), MaterialOverride = crystal };
         _relic.AddChild(relicMesh);
 
-        _label = new Label3D
-        {
-            Name = "CollectionLabel", Position = new Vector3(0, 3.25f, 0),
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, FontSize = 38,
-            PixelSize = .012f, OutlineSize = 8, Modulate = Amber,
-            OutlineModulate = new Color("151821"), NoDepthTest = true,
-            Shaded = false
-        };
-        AddChild(_label);
         _pickArea = new Area3D
         {
             Name = "TributePickArea", CollisionLayer = 0, CollisionMask = 0,
@@ -114,11 +104,7 @@ public partial class TributeEventView : Node3D
         _pickArea.CollisionLayer = Active ? PickLayer : 0;
         if (!Active) { _progress.Visible = false; return; }
         bool channeling = _snapshot.Channeling;
-        _label.Text = channeling
-            ? $"{_snapshot.CapturerTeam}팀 · {_snapshot.RemainingSeconds(_tick):0.0}초"
-            : "공물";
         Color color = channeling ? TeamColor(_snapshot.CapturerTeam) : Amber;
-        _label.Modulate = color;
         _progressMaterial.AlbedoColor = color;
         _progress.Visible = channeling;
         int steps = channeling ? Math.Clamp((int)Math.Ceiling(ChannelProgress * 64), 0, 64) : 0;

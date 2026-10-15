@@ -175,7 +175,7 @@ public partial class SelectionDetailsChecks : Main
         Check(LocalRole == PlayerRole.Hero && LocalHeroType == 200 && Skills.HeroType == 200 && Skills.Visible && !_details.Visible,
             "HERO welcome stores the hero type and replaces only the middle panel");
         Check(Skills.GetNode("Content/Slots").GetChildren().OfType<Control>().Count(slot => slot.Visible) == 5 &&
-            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "P · 패시브", "Q", "W", "E", "R" }) &&
+            Skills.GetNode("Content/Slots").FindChildren("Key", "Label", true, false).OfType<Label>().Where(label => label.IsVisibleInTree()).Select(label => label.Text).SequenceEqual(new[] { "P", "Q", "W", "E", "R" }) &&
             Skills.GetNode("Content/Slots/QSlot/Q") is Button,
             "Hero HUD keeps five minimal slots and exposes the wolf Q button");
         Check(!Commands.Visible && UnitInfo.Visible && UnitInfo.Size == new Vector2(208, 160) &&
@@ -216,8 +216,9 @@ public partial class SelectionDetailsChecks : Main
     private async Task CheckCompactInfo()
     {
         Label Info(string name) => (Label)UnitInfo.FindChild(name, true, false);
+        var portrait = (TextureRect)UnitInfo.FindChild("Portrait", true, false);
         var experience = (ProgressBar)UnitInfo.FindChild("Experience", true, false);
-        Check(Info("Level").Text == "팀 Lv.—" && Info("ExperienceText").Text == "— / —",
+        Check(Info("Level").Text == "Lv.—" && Info("ExperienceText").Text == "— / —",
             "Missing initial EXP never invents a level or threshold");
         Receive("EXP 1 35 100"); // Player progress can precede UNIT.
         Receive("UNIT 200 8005 7 0 -5 1");
@@ -225,10 +226,14 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATS 8005 20 0.7 1.25 6 10");
         await Layout();
         Check(UnitInfo.InspectedUnit == null && UnitInfo.DisplayedUnit == Unit(8005) && Info("HealthText").Text == "185 / 300" &&
-            Info("Level").Text == "팀 Lv.1" && Info("ExperienceText").Text == "35 / 100" && experience.Value == 35 &&
-            Info("Damage").Text == "공격 20" && Info("AttackSpeed").Text == "공속 0.8/초" &&
-            Info("Range").Text == "사거리 0.7" && Info("Sight").Text == "시야 10" && Info("Speed").Text == "이속 6",
+            Info("Level").Text == "Lv.1" && Info("ExperienceText").Text == "35 / 100" && experience.Value == 35 &&
+            Info("Damage").Text == "20" && Info("AttackSpeed").Text == "0.8" &&
+            Info("Range").Text == "0.7" && Info("Sight").Text == "10" && Info("Speed").Text == "6",
             "Without a click the own hero shows server vitals, all five stats and owner-only progress");
+        Check(new[] { "Damage", "AttackSpeed", "Range", "Sight", "Speed" }.All(key =>
+            Info(key).GetParent() is StatIcon cell && cell.MouseFilter == Control.MouseFilterEnum.Stop &&
+            cell.TooltipText.Contains(Info(key).Text)),
+            "Stat icons keep authoritative values and provide hover descriptions on the whole cell");
         Receive("WELCOME 7 1 HERO 200");
         foreach (string invalid in new[] { "EXP 0 0 100", "EXP 1 -1 100", "EXP 1 100 100", "EXP 1 1 0", "EXP 1 0 -1",
             "EXP 1 NaN 100", "EXP 1 2", "EXP 1 2 100 extra", "EXP 2147483648 0 100", "EXP 1 9223372036854775808 100" }) Receive(invalid);
@@ -237,9 +242,9 @@ public partial class SelectionDetailsChecks : Main
         Receive("HP 8005 203.5 330");
         Receive("STATS 8005 22 0.7 0.8 6 10");
         await Layout();
-        Check(Info("Level").Text == "팀 Lv.2" && Info("ExperienceText").Text == "25 / 150" &&
+        Check(Info("Level").Text == "Lv.2" && Info("ExperienceText").Text == "25 / 150" &&
             Math.Abs(experience.Value - 100.0 / 6) < .01 && Info("HealthText").Text == "204 / 330" &&
-            Info("Damage").Text == "공격 22" && Info("AttackSpeed").Text == "공속 1.25/초",
+            Info("Damage").Text == "22" && Info("AttackSpeed").Text == "1.25",
             "Level-up EXP, HP and STATS update independently without reselection");
         if (OS.GetCmdlineUserArgs().Contains("--capture-aos-info"))
         {
@@ -263,27 +268,27 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATE 999 ATTACK 0 8005 1");
         Receive("STATS 999 12 0.7 1 6 8");
         await Layout();
-        Check(Info("HealthText").Text == "61 / 100" && Info("Activity").Text == "공격 중" &&
-            Info("Damage").Text == "공격 12" && Info("Range").Text == "사거리 0.7" &&
+        Check(Info("HealthText").Text == "61 / 100" && portrait.TooltipText.Contains("공격 중") &&
+            Info("Damage").Text == "12" && Info("Range").Text == "0.7" &&
             !Info("Level").Visible && !experience.IsVisibleInTree() &&
             Skills.GetNode<Label>("Content/Vitals/Health/Value").Text == "204 / 330",
             "Inspected HP, action and stats update without changing the hero vitals");
-        Check(((TextureRect)UnitInfo.FindChild("Portrait", true, false)).Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
+        Check(portrait.Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
             "Compact inspection uses the existing enemy portrait");
         Receive("HP 999 40 100");
         Receive("STATE 999 HOLD 0 0 1");
         await Layout();
-        Check(Info("HealthText").Text == "40 / 100" && Info("Activity").Text == "위치 사수", "Inspected values stay live");
+        Check(Info("HealthText").Text == "40 / 100" && portrait.TooltipText.Contains("위치 사수"), "Inspected values and activity tooltip stay live");
         Receive("EXP 2 75 150");
         Check(!experience.IsVisibleInTree() && experience.Value == 0, "Own EXP is retained but never attributed to the inspected enemy");
         Receive("UNIT 100 8810 0 8 0 1");
         InvokeMain("SelectUnit", Unit(8810));
         await Layout();
         Check(Info("UnitName").Text == "근접 미니언" && Info("HealthText").Text == "— / —" &&
-            Info("Damage").Text == "공격 —" && Info("AttackSpeed").Text == "공속 —", "Switching to an allied minion clears the previous unit's values");
+            Info("Damage").Text == "—" && Info("AttackSpeed").Text == "—", "Switching to an allied minion clears the previous unit's values");
         Receive("STATS 8810 0 0 0 4 8");
         await Layout();
-        Check(Info("AttackSpeed").Text == "공속 —", "Zero attack interval does not divide by zero or invent an attack speed");
+        Check(Info("AttackSpeed").Text == "—", "Zero attack interval does not divide by zero or invent an attack speed");
         Receive("HIDE 8810");
         Receive("HP 8810 60 60");
         await Layout();
@@ -305,15 +310,15 @@ public partial class SelectionDetailsChecks : Main
         Receive("REMOVE 8005");
         Receive("HP 8005 300 300");
         await Layout();
-        Check(UnitInfo.DisplayedUnit == null && Info("HealthText").Text == "— / —" && Info("Level").Text == "팀 Lv.2" && experience.Value == 50,
+        Check(UnitInfo.DisplayedUnit == null && Info("HealthText").Text == "— / —" && Info("Level").Text == "Lv.2" && experience.Value == 50,
             "Hero death clears instance data but retains player level and XP");
         Receive("UNIT 200 8006 7 0 -5 1");
         Receive("HP 8006 330 330");
         await Layout();
-        Check(UnitInfo.DisplayedUnit == Unit(8006) && experience.Value == 50 && Info("Damage").Text == "공격 —",
+        Check(UnitInfo.DisplayedUnit == Unit(8006) && experience.Value == 50 && Info("Damage").Text == "—",
             "Respawn with a new ID automatically rebinds the hero without old instance stats");
         Receive("EXP 10 0 0");
-        Check(Info("Level").Text == "팀 Lv.10" && Info("ExperienceText").Text == "MAX" && experience.Value == 100,
+        Check(Info("Level").Text == "Lv.10" && Info("ExperienceText").Text == "MAX" && experience.Value == 100,
             "Server zero threshold displays a full max-level bar without hardcoding a cap");
         Receive("WELCOME 7 2 HERO 200");
         Check(UnitInfo.Experience == null && UnitInfo.DisplayedUnit == null, "Changing team resets owner progress and the displayed hero");
@@ -338,19 +343,20 @@ public partial class SelectionDetailsChecks : Main
             "UNIT ownership identifies the hero independently of selection; HP changes only the health bar");
         Check(Units.TryGetUnit(8001, out Unit hero) && hero.UnitType == UnitCatalog.HeroTest && hero.HealthBar.CurrentHP == 300,
             "The registered hero model and the AOS health bar consume the same HP snapshot");
-        Skills.ApplyMana(8001, 45, 90);
+        Receive("MANA 8001 45 90");
         Receive("HP 8001 450 600");
         Receive("HP 8002 1 600");
         Receive("HP 8001 NaN 600");
-        Skills.ApplyMana(8002, 0, 90);
-        Skills.ApplyMana(8001, float.NaN, 90);
+        Receive("MANA 8002 0 90");
+        Receive("MANA 8001 NaN 90");
         Check(health.Value == 75 && mana.Value == 50 && hpText.Text == "450 / 600" && mpText.Text == "45 / 90",
-            "Health and the future mana input update independently and ignore invalid/foreign values");
+            "Health and authoritative mana update independently and ignore invalid/foreign values");
         Receive("UNIT 200 8001 7 1 0 1");
         Receive("WELCOME 7 1 HERO 200");
         Check(health.Value == 75 && mana.Value == 50, "Repeated snapshots retain current vitals");
         Receive("REMOVE 8001");
         Receive("HP 8001 600 600");
+        Receive("MANA 8001 90 90");
         Check(Skills.HeroUnitId == null && health.Value == 0 && mana.Value == 0 && hpText.Text == "— / —" && mpText.Text == "— / —",
             "Removing the hero clears both bars and ignores late updates");
         Receive("UNIT 200 8003 7 0 0 1");

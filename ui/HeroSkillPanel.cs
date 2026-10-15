@@ -15,6 +15,11 @@ public partial class HeroSkillPanel : PanelContainer
     private readonly Dictionary<int, SkillDefinitionSnapshot> _heroDefinitions = new();
     public event Action AvailabilityChanged;
     private readonly Dictionary<(uint, int), SkillDefinitionSnapshot> _definitions = new();
+    private readonly Dictionary<(uint, int), float> _manaCosts = new();
+    public float? CurrentMana { get; private set; }
+    public float? MaximumMana { get; private set; }
+    public float? ManaCost(int slot) => HeroType.HasValue && _manaCosts.TryGetValue((HeroType.Value, slot), out float cost) ? cost : null;
+    public bool HasManaFor(int slot) => ManaCost(slot) is not float cost || cost == 0 || CurrentMana is float current && current >= cost;
     private readonly Dictionary<int, uint> _readyTicks = new();
     private readonly HashSet<int> _activeSkills = new();
     private readonly Dictionary<int, int> _cooldownLengths = new();
@@ -47,7 +52,7 @@ public partial class HeroSkillPanel : PanelContainer
     private sealed class SlotView
     {
         public Button Button, Upgrade;
-        public Label Rank;
+        public Label Rank, ManaCost;
         public VBoxContainer Column;
         public Label Cooldown;
         public TextureRect Icon;
@@ -75,7 +80,7 @@ public partial class HeroSkillPanel : PanelContainer
         _heroDefinitions[definition.Slot] = definition; Refresh();
     }
 
-    public bool CanUse(int slot) => Definition(slot) is SkillDefinitionSnapshot definition && HeroUnitId.HasValue &&
+    public bool CanUse(int slot) => Definition(slot) is SkillDefinitionSnapshot definition && HeroUnitId.HasValue && !IsRespawning && HasManaFor(slot) &&
         (slot != 3 || Progress?.UltimateLearned == true) && !IsActive(slot) &&
         (_restrictions & (ControlRestrictions.Stun | ControlRestrictions.Silence)) == 0 &&
         (!definition.MovesCaster || (_restrictions & ControlRestrictions.Root) == 0) &&
@@ -111,7 +116,8 @@ public partial class HeroSkillPanel : PanelContainer
         _status.AddThemeFontSizeOverride("font_size", 13);
         _status.AddThemeColorOverride("font_color", new Color("bfcec5"));
         vitals.AddChild(_status);
-        _points = new Label { Name="SkillPoints", HorizontalAlignment=HorizontalAlignment.Center, MouseFilter=MouseFilterEnum.Ignore };
+        _points = new Label { Name="SkillPoints", HorizontalAlignment=HorizontalAlignment.Center, MouseFilter=MouseFilterEnum.Stop,
+            TooltipText="스킬 강화 포인트 · Ctrl + P/Q/W/E/R" };
         _points.AddThemeFontSizeOverride("font_size",13);
         _points.AddThemeColorOverride("font_color",new Color("efd28c"));
         content.AddChild(_points);
@@ -120,12 +126,12 @@ public partial class HeroSkillPanel : PanelContainer
         content.AddChild(row);
         var passiveColumn = new VBoxContainer { Name="PassiveSlot", SizeFlagsHorizontal=SizeFlags.ExpandFill };
         row.AddChild(passiveColumn);
-        _passiveUpgrade = new Button { Name="Upgrade", Text="+ 강화", FocusMode=FocusModeEnum.None, MouseForcePassScrollEvents=false };
+        _passiveUpgrade = new Button { Name="Upgrade", Text="+", FocusMode=FocusModeEnum.None, MouseForcePassScrollEvents=false };
         _passiveUpgrade.Pressed += () => RequestUpgrade(4);
         passiveColumn.AddChild(_passiveUpgrade);
         var passive = new PanelContainer { Name = "Passive", CustomMinimumSize = new Vector2(72, 72), MouseFilter = MouseFilterEnum.Stop };
         passive.AddThemeStyleboxOverride("panel", Style("242825", "807653", 4));
-        var passiveLabel = new Label { Name = "Key", Text = "P · 패시브", MouseFilter = MouseFilterEnum.Ignore,
+        var passiveLabel = new Label { Name = "Key", Text = "P", MouseFilter = MouseFilterEnum.Ignore,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         passiveLabel.AddThemeFontSizeOverride("font_size", 12);
         passive.AddChild(passiveLabel);
@@ -184,6 +190,13 @@ public partial class HeroSkillPanel : PanelContainer
         view.Cooldown.AddThemeFontSizeOverride("font_size", 23);
         view.Button.AddChild(view.Cooldown);
         view.Cooldown.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        view.ManaCost = new Label { Name = "ManaCost", MouseFilter = MouseFilterEnum.Ignore };
+        view.ManaCost.AddThemeFontSizeOverride("font_size", 11);
+        view.ManaCost.AddThemeColorOverride("font_color", new Color("8fceff"));
+        view.ManaCost.AddThemeColorOverride("font_outline_color", new Color("101820"));
+        view.ManaCost.AddThemeConstantOverride("outline_size", 3);
+        view.Button.AddChild(view.ManaCost);
+        view.ManaCost.Position = new Vector2(6, 4);
         var label = new Label { Name = "Key", Text = key, MouseFilter = MouseFilterEnum.Ignore };
         view.Button.AddChild(label);
         label.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomLeft);
@@ -197,6 +210,12 @@ public partial class HeroSkillPanel : PanelContainer
         Refresh();
     }
 
+    public void HandleManaCost(ManaCostSnapshot cost)
+    {
+        _manaCosts[(cost.HeroType, cost.Slot)] = cost.Cost;
+        Refresh();
+    }
+
     public void SetHero(uint? heroType, uint playerId = 0, uint team = 0)
     {
         if (HeroType != heroType || _playerId != playerId || _team != team || !heroType.HasValue)
@@ -204,7 +223,7 @@ public partial class HeroSkillPanel : PanelContainer
             _dead = false; _respawnTick = null;
             Progress = null; _heroDefinitions.Clear();
             ClearVitals(); _readyTicks.Clear(); _cooldownLengths.Clear();
-            if (!heroType.HasValue) { _definitions.Clear(); _hasTick = false; _tick = 0; }
+            if (!heroType.HasValue) { _definitions.Clear(); _manaCosts.Clear(); _hasTick = false; _tick = 0; }
         }
         HeroType = heroType; _playerId = playerId; _team = team;
         Visible = heroType.HasValue;
@@ -368,14 +387,19 @@ public partial class HeroSkillPanel : PanelContainer
 
     private void Refresh()
     {
-        if (_points != null) _points.Text = Progress is HeroSkillProgressSnapshot progress
-            ? $"레벨 {progress.Level} · 강화 포인트 {progress.Points}  [Ctrl + P/Q/W/E/R]" : "궁극기 · 5레벨부터 습득";
+        bool pointsAvailable = Progress is { Points: > 0 };
+        if (_points != null)
+        {
+            _points.Text = pointsAvailable ? $"+ {Progress.Value.Points}" : "";
+            _points.Visible = pointsAvailable;
+        }
         int passiveRank=Progress?.Passive ?? 0;
         if (_passive != null) _passive.TooltipText = SkillDescriptions.Passive(HeroType,passiveRank);
-        if (_passiveRank != null) _passiveRank.Text = $"강화 {passiveRank}/4";
+        if (_passiveRank != null) _passiveRank.Text = RankMarks(passiveRank, 4);
         if (_passiveUpgrade != null)
         {
             _passiveUpgrade.Disabled = !CanUpgrade(4);
+            _passiveUpgrade.Visible = pointsAvailable;
             _passiveUpgrade.TooltipText = SkillDescriptions.PassiveUpgrade(HeroType,passiveRank+1)+"\n1포인트 · Ctrl+P";
         }
         if (_targeting.HasValue && !CanUse(_targeting.Value)) _targeting = null;
@@ -386,17 +410,22 @@ public partial class HeroSkillPanel : PanelContainer
             view.Column.Visible = slot < 4 || definition.HasValue;
             int rank = Progress?.Rank(slot) ?? 0;
             bool locked = slot == 3 && Progress?.UltimateLearned != true;
-            bool upgradeLocked = slot == 3 && !locked && Progress?.Level < 10;
-            view.Rank.Text = locked ? "5레벨 습득" : upgradeLocked ? "10레벨 강화" : $"강화 {rank}/{(slot == 3 ? 1 : 4)}";
+            view.Rank.Text = RankMarks(rank, slot == 3 ? 1 : 4);
             view.Upgrade.Disabled = !CanUpgrade(slot);
-            view.Upgrade.Text = locked ? "습득 +" : "+ 강화";
+            view.Upgrade.Text = "+";
             view.Upgrade.TooltipText = locked ? "5레벨부터 1포인트로 궁극기 습득" :
                 (slot == 3 && rank == 0 ? "10레벨부터 1포인트로 궁극기 강화\n" : "")+SkillDescriptions.Upgrade(definition?.Id,rank+1);
-            view.Upgrade.Visible = slot < 4;
+            view.Upgrade.Visible = pointsAvailable;
             view.Button.Disabled = !available;
             bool empowered = _golemEffects.EmpowerReady && slot < 3;
             bool armed = IsActive(slot);
             view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered, rank);
+            float? manaCost = ManaCost(slot);
+            view.ManaCost.Text = manaCost is float shownCost ? shownCost.ToString("0.##", CultureInfo.InvariantCulture) : "";
+            if (manaCost is float knownCost) view.Button.TooltipText += $"\n마나 {knownCost.ToString("0.##", CultureInfo.InvariantCulture)}";
+            if (!HasManaFor(slot)) view.Button.TooltipText += CurrentMana.HasValue ? " · 마나 부족" : " · 마나 확인 중";
+            if (locked) view.Button.TooltipText += "\n5레벨부터 강화 포인트로 습득";
+            view.ManaCost.Modulate = HasManaFor(slot) ? Colors.White : new Color("ff9e88");
             view.Button.AddThemeStyleboxOverride("normal", _targeting == slot || empowered ? view.Targeting : view.Normal);
             view.Button.AddThemeStyleboxOverride("disabled", armed ? view.Targeting : view.Disabled);
             string iconId = definition?.Id;
@@ -418,9 +447,12 @@ public partial class HeroSkillPanel : PanelContainer
     }
     public void ApplyMana(uint id, float current, float maximum)
     {
-        if (HeroUnitId != id || !float.IsFinite(current) || !float.IsFinite(maximum) || current < 0 || maximum <= 0) return;
+        if (HeroUnitId != id || !float.IsFinite(current) || !float.IsFinite(maximum) || current < 0 || maximum <= 0 || current > maximum) return;
+        CurrentMana = current; MaximumMana = maximum;
         ApplyVital(_mana, _manaText, current, maximum);
         _mana.GetParent<Control>().Show();
+        _mana.GetParent<Control>().TooltipText = $"마나 · {_manaText.Text}";
+        Refresh();
     }
     public void HandleRemove(string[] parts)
     {
@@ -429,6 +461,7 @@ public partial class HeroSkillPanel : PanelContainer
     }
     private void ClearVitals()
     {
+        CurrentMana = MaximumMana = null;
         _activeSkills.Clear();
         _wolfEffects = default; _golemEffects = default; _marshalEffects=default;
         HeroUnitId = null; _restrictions = ControlRestrictions.None; _activity = UnitActivity.Idle; _targeting = null;
@@ -442,7 +475,8 @@ public partial class HeroSkillPanel : PanelContainer
 
     private (ProgressBar, Label) CreateVital(VBoxContainer parent, string name, string color)
     {
-        var row = new Control { Name = name, CustomMinimumSize = new Vector2(0, 16), MouseFilter = MouseFilterEnum.Ignore };
+        var row = new Control { Name = name, CustomMinimumSize = new Vector2(0, 16), MouseFilter = MouseFilterEnum.Stop,
+            TooltipText = name == "Health" ? "체력 · 보호막" : "마나" };
         parent.AddChild(row);
         var bar = new ProgressBar { Name = "Bar", ShowPercentage = false, MouseFilter = MouseFilterEnum.Ignore };
         var track = Style("101c26", color, 3);
@@ -474,6 +508,8 @@ public partial class HeroSkillPanel : PanelContainer
         bar.Value = maximum > 0 ? 100.0 * current / maximum : 0;
         label.Text = HealthDisplay.Whole(current) + " / " + HealthDisplay.Whole(maximum);
     }
+
+    private static string RankMarks(int rank, int maximum) => new string('●', Math.Clamp(rank, 0, maximum)) + new string('○', maximum - Math.Clamp(rank, 0, maximum));
 
     private StyleBoxFlat Style(string background, string border, int radius)
     {
