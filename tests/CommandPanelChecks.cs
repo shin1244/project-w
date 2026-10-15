@@ -125,6 +125,10 @@ public partial class CommandPanelChecks : Main
             Receive("WELCOME 8 2 COMMANDER");
             Expect("Changing the local team refreshes an already selected hall", (7, "일꾼"));
             CheckWorkerTrain();
+            Receive("TEAM_TIER 2 1 203 0 0 0 37 11 13");
+            Receive("STOCK 0 37");
+            Receive("STOCK 2 11");
+            Check(!_slots[1].Disabled, "The new commander can use freshly received upgrade terms and both resources");
             Map.StopSync();
             long sentBeforeSyncGate = _wire.Length;
             _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
@@ -133,12 +137,24 @@ public partial class CommandPanelChecks : Main
             Receive($"MAP 2 {Map.MapHash}");
             Expect("A new map synchronization clears the previous selection");
             Check(Buildings.UnitRequirementBlockReason(0) == null, "New sessions discard old requirement definitions");
+            Check(Buildings.CommanderWood == 0 && Buildings.CommanderOil == 0 && !Buildings.TeamTier(2).HasUpgradeTerms,
+                "Map resynchronization clears upgrade terms and both commander resource balances");
             Receive("WORLD_READY");
             CheckNoWorkerTrain("A new session cannot reuse the old player identity");
             Receive("WELCOME 8 2 COMMANDER");
             Receive("BUILDING 0 204 2 10 8 0");
             SelectBuilding(204);
             CheckWorkerTrain();
+            Receive("STOCK 0 37");
+            Receive("TEAM_TIER 2 1 204 0 0 0 37 11 13");
+            int upgradeBeforeReconnect = _commands.Count;
+            Units.RequestUpgradeTownHall();
+            Check(_slots[1].Disabled && _commands.Count == upgradeBeforeReconnect,
+                "Reconnect cannot reuse the previous oil balance before a fresh STOCK response");
+            Receive("STOCK 2 11");
+            KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
+            Check(_commands.Count == upgradeBeforeReconnect + 1 && _commands[^1] == "UPGRADE_TOWNHALL 204",
+                "Fresh reconnect snapshots enable upgrading only the new hall");
             int unitsBeforeResponse = Units.LiveUnits.Count;
             Receive("UNIT 0 301 8 0 0 2");
             Check(Units.LiveUnits.Count == unitsBeforeResponse + 1,
@@ -150,9 +166,11 @@ public partial class CommandPanelChecks : Main
             InvokeMain("OnConnectionClosed", "Command panel test disconnect");
             Expect("Disconnect clears the visible commands");
             Check(!Commands.IsTierOneMenuOpen, "Disconnect exits the tier-one menu");
+            Check(Buildings.CommanderWood == 0 && Buildings.CommanderOil == 0 && !Buildings.TeamTier(2).HasUpgradeTerms,
+                "Disconnect clears upgrade terms and balances");
             CheckNoWorkerTrain("Disconnect prevents requests using stale identity or hall selection");
 
-            GD.Print("PASS: production/construction cancellation, stable job IDs, payer ownership, queue portrait clicks, Escape, server-only refunds, commands, independent queues, progress, removal and reconnect");
+            GD.Print("PASS: production/construction commands, cancellation ownership, server-defined town hall wood/oil terms, insufficient-resource gates, legacy snapshots, progress, removal and reconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -240,21 +258,39 @@ public partial class CommandPanelChecks : Main
     {
         SelectBuilding(201);
         Receive("TEAM_TIER 1 1 201 0 0 0");
-        Receive("STOCK 0 599");
+        Receive("STOCK 0 37");
+        Receive("STOCK 2 11");
         int sent = _commands.Count;
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Units.RequestUpgradeTownHall();
-        Check(_slots[1].Disabled && _commands.Count == sent, "Town hall upgrade requires 600 wood");
-        Receive("STOCK 0 600");
+        Check(_slots[1].Disabled && _commands.Count == sent && !Buildings.TeamTier(1).HasUpgradeTerms &&
+            _slots[1].TooltipText.Contains("정보 수신 대기"), "Legacy tier snapshots display state but cannot guess upgrade costs");
+        Receive("TEAM_TIER 1 1 201 0 0 0 37 11 13");
+        Receive("STOCK 0 36");
+        Units.RequestUpgradeTownHall();
+        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains("나무 37") &&
+            _slots[1].TooltipText.Contains("기름 11") && _slots[1].TooltipText.Contains("13초") && _slots[1].TooltipText.Contains("나무 부족"),
+            "Upgrade tooltip and wood gate use arbitrary server-provided terms");
+        Receive("STOCK 0 37");
+        Receive("STOCK 2 10");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
+        _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
+        Units.RequestUpgradeTownHall();
+        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains("기름 부족"),
+            "Insufficient oil blocks hotkey, button and direct upgrade requests even with enough wood");
+        foreach (string invalid in new[] { "STOCK 2 -1", "STOCK 2 oil", "STOCK 2 11 extra", "STOCK 2 999999999999999999999" }) Receive(invalid);
+        Check(Buildings.CommanderOil == 10 && _slots[1].Disabled, "Malformed oil snapshots cannot unlock an upgrade");
+        Receive("STOCK 2 11");
+        Check(!_slots[1].Disabled, "Receiving enough oil immediately unlocks the selected hall");
         Receive("QUEUE 201 10 9800:0:7");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
         Check(_slots[1].Disabled && _commands.Count == sent, "Queued worker blocks Z upgrade");
         Receive("QUEUE 201 0");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_TOWNHALL 201" &&
-            Buildings.TeamTier(1).Tier == 1 && Buildings.CommanderWood == 600,
-            "Z sends exactly the selected hall, without predicting tier or charging resources");
-        Receive("TEAM_TIER 1 1 201 2 30 60");
+            Buildings.TeamTier(1).Tier == 1 && Buildings.CommanderWood == 37 && Buildings.CommanderOil == 11,
+            "Z sends exactly the selected hall, without predicting tier or charging either resource");
+        Receive("TEAM_TIER 1 1 201 2 6.5 13 37 11 13");
         sent = _commands.Count;
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Units.RequestUpgradeTownHall();
@@ -262,29 +298,39 @@ public partial class CommandPanelChecks : Main
         var progress = GetNode<SelectionDetails>("SelectionUI/SelectionDetails").FindChildren("ProductionProgress", "ProgressBar", true, false).OfType<ProgressBar>().Single();
         Check(_slots[1].Disabled && _slots[7].Disabled && progress.Value == 50 && progress.IsVisibleInTree() &&
             _commands.Count == sent, "Server progress disables duplicate upgrade and worker production");
-        foreach (string invalid in new[] { "TEAM_TIER 1 1 201 3 30 60", "TEAM_TIER 1 1 201 2 61 60", "TEAM_TIER 1 1 201 0 1 60", "TEAM_TIER 1 4 201 0 0 0", "TEAM_TIER 1 1 201 2 NaN 60" }) Receive(invalid);
-        Check(Buildings.TeamTier(1).Remaining == 30, "Malformed tier snapshots preserve valid progress");
-        Receive("TEAM_TIER 2 2 203 3 45 90");
+        TeamTierSnapshot accepted = Buildings.TeamTier(1);
+        foreach (string invalid in new[] { "TEAM_TIER 1 1 201 3 6.5 13", "TEAM_TIER 1 1 201 2 14 13", "TEAM_TIER 1 1 201 0 1 13",
+            "TEAM_TIER 1 4 201 0 0 0", "TEAM_TIER 1 1 201 2 NaN 13", "TEAM_TIER 1 1 201 0 0 0 -1 11 13",
+            "TEAM_TIER 1 1 201 0 0 0 37 -1 13", "TEAM_TIER 1 1 201 0 0 0 37 11 NaN", "TEAM_TIER 1 1 201 0 0 0 37 11 0",
+            "TEAM_TIER 1 1 201 0 0 0 37 11", "TEAM_TIER 1 3 201 0 0 0 37 11 13", "TEAM_TIER 1 1 201 0 0 0 37 11 13 extra" }) Receive(invalid);
+        Check(Buildings.TeamTier(1) == accepted, "Malformed tier or cost snapshots preserve valid progress and upgrade terms");
+        Receive("TEAM_TIER 1 1 201 2 6.5 13");
+        Check(progress.Value == 50 && _slots[7].Disabled && !Buildings.TeamTier(1).HasUpgradeTerms,
+            "Legacy progress remains visible while clearing any previously known cost terms");
+        Receive("TEAM_TIER 2 2 203 3 9.5 19 61 23 19");
         Check(Buildings.TeamTier(2).TargetTier == 3 && Buildings.TeamTier(1).Tier == 1, "Enemy public tier is stored independently");
-        Receive("TEAM_TIER 1 2 201 0 0 0");
-        Receive("STOCK 0 999");
-        Check(_slots[1].Disabled && !_slots[7].Disabled, "Tier two completes and tier three requires 1000 wood");
-        Receive("STOCK 0 1000");
+        Receive("TEAM_TIER 1 2 201 0 0 0 61 23 19");
+        Receive("STOCK 0 61");
+        Check(_slots[1].Disabled && !_slots[7].Disabled && _slots[1].TooltipText.Contains("기름 23") &&
+            _slots[1].TooltipText.Contains("19초"), "Tier transition uses new server costs and requires additional oil");
+        Receive("STOCK 2 23");
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_TOWNHALL 201", "Tier three button uses the same authoritative command");
-        Receive("TEAM_TIER 1 3 201 0 0 0");
+        Receive("TEAM_TIER 1 3 201 0 0 0 0 0 0");
         sent = _commands.Count;
         Units.RequestUpgradeTownHall();
-        Check(_slots[1].Disabled && _commands.Count == sent, "Tier three is the maximum");
+        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText == "최고 단계", "Tier three is the maximum and shows no obsolete costs");
         SelectBuilding(203);
         Units.RequestUpgradeTownHall();
         Check(_commands.Count == sent, "Enemy hall cannot be upgraded");
         Receive("WELCOME 7 1 HERO 200");
         SelectBuilding(201);
-        Receive("STOCK 0 1000");
+        Receive("STOCK 0 37");
+        Receive("STOCK 2 11");
         Units.RequestUpgradeTownHall();
-        Check(_commands.Count == sent && Buildings.TeamTier(1).Tier == 1 && Buildings.TeamTier(2).Tier == 1,
-            "Hero role cannot upgrade and role change clears stale team tiers");
+        Check(_commands.Count == sent && Buildings.TeamTier(1).Tier == 1 && Buildings.TeamTier(2).Tier == 1 &&
+            Buildings.CommanderWood == 0 && Buildings.CommanderOil == 0 && !Buildings.TeamTier(1).HasUpgradeTerms,
+            "Hero role cannot upgrade or cache commander stock; role change clears stale terms and balances");
         Receive("WELCOME 7 1 COMMANDER");
         SelectBuilding(201);
         Receive("STOCK 0 100");

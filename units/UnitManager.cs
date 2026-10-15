@@ -150,7 +150,9 @@ public partial class UnitManager : Node3D
         if (tier.Upgrading) return "회관 업그레이드 중";
         if (tier.Tier >= 3) return "최고 단계";
         if (hall.ProductionQueue.Count != 0) return "일꾼 생산 대기열을 비워주세요";
-        return Buildings.CommanderWood < (tier.Tier == 1 ? 600 : 1000) ? "나무 부족" : null;
+        if (!tier.HasUpgradeTerms) return "업그레이드 정보 수신 대기";
+        if (Buildings.CommanderWood < tier.NextWood) return "나무 부족";
+        return Buildings.CommanderOil < tier.NextOil ? "기름 부족" : null;
     }
 
     public string ArmyUpgradeBlockReason(Building forge, bool attack)
