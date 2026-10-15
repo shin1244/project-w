@@ -80,6 +80,7 @@ public partial class BakeSelectionPortraits : Node
         viewport.AddChild(model);
         // 루트 스크립트, 충돌, 체력바, 애니메이션은 초상화에서 실행하지 않습니다.
         Node source = scene.Instantiate();
+        bool hero = source is Unit heroSource && UnitCatalog.IsHero(heroSource.UnitType);
         float buildingHeight = building ? ((Building)source).HealthBarHeight : 0;
         float unitHeight = source is Unit unitSource ? unitSource.HealthBarHeight : 2.4f;
         foreach (string childName in new[] { "Visual", "Turret" })
@@ -91,9 +92,12 @@ public partial class BakeSelectionPortraits : Node
             model.AddChild(visual);
         }
         source.Free();
-        var materials = new TeamMaterials(model);
-        materials.Apply(enemy ? 2u : 1u, 1);
-        _materials.Add(materials);
+        if (!hero)
+        {
+            var materials = new TeamMaterials(model);
+            materials.Apply(enemy ? 2u : 1u, 1);
+            _materials.Add(materials);
+        }
 
         viewport.AddChild(new WorldEnvironment
         {

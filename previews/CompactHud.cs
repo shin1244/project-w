@@ -15,8 +15,8 @@ public partial class CompactHud : Main
             typeof(Main).GetMethod("ConnectInput", Private).Invoke(this, null);
             Fog.Configure(Map);
             Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1 HERO 201");
-            Receive("SIGHT UNIT 201 10"); Receive("SIGHT UNIT 1 8"); Receive("SIGHT UNIT 2 9");
-            Receive("UNIT 201 701 7 -2 0 1"); Receive("HP 701 730 980"); Receive("MANA 701 180 360");
+            Receive("SIGHT UNIT 200 10"); Receive("SIGHT UNIT 201 10"); Receive("SIGHT UNIT 202 10");
+            Receive("UNIT 201 701 7 -4 0 1"); Receive("HP 701 730 980"); Receive("MANA 701 180 360");
             Receive("STATS 701 68 0.8 1.2 5.5 10"); Receive("STATE 701 IDLE 0 0 0");
             Receive("ABILITY UNIT 201 0 golem-slam SELF 0 10 0");
             Receive("ABILITY UNIT 201 1 golem-shell SELF 0 13 0");
@@ -26,18 +26,19 @@ public partial class CompactHud : Main
             Receive("HERO_SKILLS 201 7 0 1 2 1 1 0 1");
             Receive("TEAM_LEVEL 1 7"); Receive("TEAM_LEVEL 2 8");
             Receive("TEAM_EXP 1 7 150 500 160000"); Receive("EXP 7 150 500"); Receive("TICK 10320");
-            Receive("TRIBUTE 1 ACTIVE 0 0 0 701 1 10230 10440 0 0");
-            for (int i = 0; i < 6; i++)
+            Receive("TRIBUTE 1 ACTIVE 0 0 0 701 1 10230 10410 0 0");
+            // The same three hero designs on both teams show that only their ground rings change color.
+            for (int i = 0; i < 3; i++)
             {
                 uint id = (uint)(710 + i);
-                Receive($"UNIT {(i % 2 == 0 ? 1 : 2)} {id} 8 {3 + i % 3 * 2} {-4 + i / 3 * 3} 2");
-                Receive($"HP {id} 240 300");
+                Receive($"UNIT {200 + i} {id} {8 + i} 4 {-4 + i * 4} 2");
+                Receive($"HP {id} 730 980");
             }
-            for (int i = 0; i < 4; i++)
+            foreach (int i in new[] { 0, 2 })
             {
                 uint id = (uint)(720 + i);
-                Receive($"UNIT {(i % 2 == 0 ? 1 : 2)} {id} 9 {-6 + i % 2 * 2} {-4 + i / 2 * 4} 1");
-                Receive($"HP {id} 280 300");
+                Receive($"UNIT {200 + i} {id} {11 + i} -4 {-4 + i * 4} 1");
+                Receive($"HP {id} 730 980");
             }
             Units.Camera.Size = 26;
             CameraNavigation.FocusGround(Units.Camera, Vector3.Zero);

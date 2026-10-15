@@ -38,7 +38,7 @@ public partial class HeroShopPanel : Control
         _gold.AddThemeColorOverride("font_color",new Color("f3ce86"));row.AddChild(_gold);
         _toggle=Button("상점 [I]",()=>Toggle());row.AddChild(_toggle);
         _recall=Button("귀환 [B]",()=> { if (_canRecall) RecallRequested?.Invoke(); });row.AddChild(_recall);
-        _recall.TooltipText="8초 동안 집중하여 부활 구역으로 귀환합니다. 이동·적 피격 등으로 취소됩니다.";
+        _recall.TooltipText="정신집중을 마치면 부활 구역으로 귀환합니다. 이동·적 피격 등으로 취소됩니다.";
         var equipment=new HBoxContainer { Name="Slots" };equipment.AddThemeConstantOverride("separation",6);content.AddChild(equipment);
         for (int i=0;i<4;i++)
         {
