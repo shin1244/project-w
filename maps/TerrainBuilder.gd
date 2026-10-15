@@ -38,10 +38,11 @@ const EXPANSION_BAY_HEIGHT := 7.5
 const EXPANSION_BAY_ROUNDNESS := 2.5 # 2 is a half-ellipse; larger values square the shoulders.
 const EXPANSION_BAY_Z := 37.0 # Site marker inside the bay; a store fits around it.
 const EXPANSION_BUILD_SIZE := 4.0
-const OIL_CLEARING_CENTER := Vector2(38.0, 0.0)
-const OIL_CLEARING_RADII := Vector2(7.0, 11.0)
-const OIL_CONNECTION_END := Vector2(52.0, 0.0)
-const OIL_CONNECTION_WIDTH := 6.0
+const OIL_CLEARING_CENTER := Vector2(36.0, 0.0)
+const OIL_CLEARING_RADII := Vector2(6.0, 10.0)
+const OIL_ENTRANCE_X := 28.0
+const OIL_ENTRANCE_Z := 8.0
+const OIL_CONNECTION_WIDTH := 5.0
 
 var arena: Node3D
 var map_data: Dictionary
@@ -129,15 +130,32 @@ func expansion_sites() -> Array:
 func oil_fields() -> Array:
 	return [
 		{"id": "west_oilfield", "center": [-39.0, 0.0], "radii": [2.6, 3.6],
-			"clearingCenter": [-38.0, 0.0], "clearingRadii": [7.0, 11.0], "supplySite": [-36.0, 6.0]},
+			"clearingCenter": [-OIL_CLEARING_CENTER.x, OIL_CLEARING_CENTER.y],
+			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [-34.0, 5.0],
+			"entrances": [[-OIL_ENTRANCE_X, -OIL_ENTRANCE_Z], [-OIL_ENTRANCE_X, OIL_ENTRANCE_Z]],
+			"entranceWidth": OIL_CONNECTION_WIDTH},
 		{"id": "east_oilfield", "center": [39.0, 0.0], "radii": [2.6, 3.6],
-			"clearingCenter": [38.0, 0.0], "clearingRadii": [7.0, 11.0], "supplySite": [36.0, -6.0]},
+			"clearingCenter": [OIL_CLEARING_CENTER.x, OIL_CLEARING_CENTER.y],
+			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [34.0, -5.0],
+			"entrances": [[OIL_ENTRANCE_X, OIL_ENTRANCE_Z], [OIL_ENTRANCE_X, -OIL_ENTRANCE_Z]],
+			"entranceWidth": OIL_CONNECTION_WIDTH},
+		{"id": "northwest_oilfield", "center": [-34.0, -42.0], "radii": [3.6, 2.2],
+			"clearingCenter": [-34.0, -42.0], "clearingRadii": [4.6, 3.0], "supplySite": [-34.0, -37.0]},
+		{"id": "southeast_oilfield", "center": [34.0, 42.0], "radii": [3.6, 2.2],
+			"clearingCenter": [34.0, 42.0], "clearingRadii": [4.6, 3.0], "supplySite": [34.0, 37.0]},
 	]
 
 func is_oilfield_clearing(p: Vector2) -> bool:
-	var q := Vector2(absf(p.x), p.y)
-	return ((q - OIL_CLEARING_CENTER) / OIL_CLEARING_RADII).length_squared() <= 1.0 \
-		or segment_distance(q, OIL_CLEARING_CENTER, OIL_CONNECTION_END) <= OIL_CONNECTION_WIDTH * 0.5
+	# Central pockets open only toward the central road. Their home-base edge stays forest.
+	for field in oil_fields():
+		var center := Vector2(field["clearingCenter"][0], field["clearingCenter"][1])
+		var radii := Vector2(field["clearingRadii"][0], field["clearingRadii"][1])
+		if ((p - center) / radii).length_squared() <= 1.0:
+			return true
+		for entrance in field.get("entrances", []):
+			if segment_distance(p, center, Vector2(entrance[0], entrance[1])) <= float(field["entranceWidth"]) * 0.5:
+				return true
+	return false
 
 func oil_contains(field: Dictionary, p: Vector2) -> bool:
 	var center := Vector2(field["center"][0], field["center"][1])
