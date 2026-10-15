@@ -114,9 +114,9 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", supply);
             var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
             var title = (Label)typeof(SelectionDetails).GetField("_title", Private).GetValue(details);
-            Check(title.Text == "합숙소", "New building selection uses its correct name");
+            Check(title.Text == "주택", "New building selection uses its correct name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(9);
+            ChooseBuilding(4);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
             Click(-5.5f, -3.5f);
             Check(_commands.Count == 2 && _commands[1] == "BUILD 4 -5.5 -3.5 101", "Barracks aligns its 5x3 footprint and writes invariant fractional coordinates");
@@ -150,10 +150,10 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", store);
             Check(title.Text == "보급기지", "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(4);
+            ChooseBuilding(5);
             Placement.UpdatePreview(Screen(-5.5f, -3.5f));
             Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("대장간 배치"),
-                "Tier-one slot 4 selects the cached 5x3 forge preview");
+                "Tier-one slot 5 selects the cached 5x3 forge preview");
             before = _wire.Length;
             buildingsBefore = Buildings.LiveBuildings.Count;
             Click(-5.5f, -3.5f);
@@ -166,18 +166,18 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", forge);
             Check(title.Text == "대장간", "Forge selection displays its synchronized name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(5);
+            ChooseBuilding(6);
             before = _wire.Length;
             Click(-5.5f, 3.5f);
             Check(_commands.Count == 5 && _commands[4] == "BUILD 6 -5.5 3.5 101" && !Placement.Active &&
                 Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 6 -5.5 3.5 101" + System.Environment.NewLine,
-                "Tower uses S menu entry and sends its new 3x3 grid-aligned footprint");
+                "Tower uses D menu entry and sends its new 3x3 grid-aligned footprint");
             Receive("BUILDING 6 506 1 6 -8 0");
             Check(Buildings.TryGetBuilding(506, out Building tower) && tower.BuildingType == BuildingCatalog.Tower &&
                 tower.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3) && tower.IsDefense,
                 "Type 6 response creates the small tower rather than a 3x3 fortress");
             Invoke("SelectBuilding", tower);
-            Check(title.Text == "포탑 · 1티어", "Small tower displays its separate name and team tier");
+            Check(title.Text == "망루 · 1티어", "Small tower displays its separate name and team tier");
             Check(Issue(6, -8)?.Contains("다른 건물") == true, "The confirmed tower blocks overlapping construction");
             Invoke("SelectUnit", Unit());
 
@@ -263,7 +263,7 @@ public partial class BuildingPlacementChecks : Main
         Units.Camera.Position = new Vector3(0, 32, 22);
         Units.Camera.LookAt(Vector3.Zero);
         Units.Camera.Size = 30;
-        ChooseBuilding(6);
+        ChooseBuilding(9);
         int before = _commands.Count;
         Click(0, -5);
         Check(Placement.Active && !Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
@@ -295,7 +295,7 @@ public partial class BuildingPlacementChecks : Main
         Receive("CONSTRUCTION 507 25 7");
         Check(Buildings.TryGetBuilding(507, out Building derrick) && derrick.BuildingType == BuildingCatalog.OilDerrick &&
             derrick.IsUnderConstruction, "Type 7 receives ordinary authoritative construction snapshots");
-        ChooseBuilding(6);
+        ChooseBuilding(9);
         Click(-4, 0);
         Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑") && _commands.Count == before + 1,
             "An unfinished derrick occupies the entire oilfield");

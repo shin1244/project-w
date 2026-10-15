@@ -118,11 +118,11 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Units or DisplayMode.Workers, 6) => "홀드(D)",
                 (DisplayMode.Workers, 1) => "1티어(Z)",
                 (DisplayMode.TierOne, 7) => "보급기지\n(Q)",
-                (DisplayMode.TierOne, 8) => "합숙소\n(W)",
-                (DisplayMode.TierOne, 9) => "병영\n(E)",
-                (DisplayMode.TierOne, 4) => "대장간\n(A)",
-                (DisplayMode.TierOne, 5) => "포탑\n(S)",
-                (DisplayMode.TierOne, 6) => "시추탑\n(D)",
+                (DisplayMode.TierOne, 8) => "주택\n(W)",
+                (DisplayMode.TierOne, 9) => "시추탑\n(E)",
+                (DisplayMode.TierOne, 4) => "병영\n(A)",
+                (DisplayMode.TierOne, 5) => "대장간\n(S)",
+                (DisplayMode.TierOne, 6) => "망루\n(D)",
                 (DisplayMode.TierOne, 1) => "뒤로(Z)",
                 (DisplayMode.TownHall, 7) => "일꾼",
                 (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
@@ -192,7 +192,7 @@ public partial class CommandPanel : PanelContainer
             _slots[6].Text = state.Upgrading ? $"{state.TargetTier}티어 강화\n{state.Remaining:0}초" :
                 state.Tier >= 3 ? "3티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
             _slots[6].TooltipText = (state.Tier == 1 ? "나무 600 · 60초" : "나무 1,000 · 90초") +
-                "\n회관·요새·포탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
+                "\n회관·요새·망루 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
             if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "회관 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
         if (_display == DisplayMode.Barracks)
@@ -238,8 +238,8 @@ public partial class CommandPanel : PanelContainer
 
     private static uint BuildingTypeForSlot(int number) => number switch
     {
-        7 => BuildingCatalog.Store, 8 => BuildingCatalog.Supply, 9 => BuildingCatalog.Barracks,
-        4 => BuildingCatalog.Forge, 5 => BuildingCatalog.Tower, 6 => BuildingCatalog.OilDerrick, _ => uint.MaxValue
+        7 => BuildingCatalog.Store, 8 => BuildingCatalog.Supply, 9 => BuildingCatalog.OilDerrick,
+        4 => BuildingCatalog.Barracks, 5 => BuildingCatalog.Forge, 6 => BuildingCatalog.Tower, _ => uint.MaxValue
     };
 
     private void RequestSlot(int number)
