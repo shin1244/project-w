@@ -11,7 +11,7 @@ public readonly record struct HeroSkillProgressSnapshot(uint HeroType, int Level
         snapshot = default;
         if (parts.Length != 10 || parts[0] != "HERO_SKILLS" ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint type) ||
-            type is not (UnitCatalog.HeroTest or UnitCatalog.HeroGolem or UnitCatalog.HeroMarshal)) return false;
+            !UnitCatalog.IsHero(type)) return false;
         int[] values = new int[8];
         for (int i = 0; i < values.Length; i++)
             if (!int.TryParse(parts[i+2], NumberStyles.None, CultureInfo.InvariantCulture, out values[i])) return false;

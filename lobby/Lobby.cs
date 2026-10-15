@@ -26,6 +26,7 @@ public partial class Lobby : Control
         _heroChoice.AddItem("영웅 선택 · 돌연변이 늑대", (int)UnitCatalog.HeroTest);
         _heroChoice.AddItem("영웅 선택 · 룬 골렘", (int)UnitCatalog.HeroGolem);
         _heroChoice.AddItem("영웅 선택 · 사령관", (int)UnitCatalog.HeroMarshal);
+        _heroChoice.AddItem("영웅 선택 · 레인저", (int)UnitCatalog.HeroRanger);
         _heroChoice.Select(_heroChoice.GetItemIndex((int)_session.SelectedHero));
         _heroChoice.ItemSelected += index => _session.SelectedHero = (uint)_heroChoice.GetItemId((int)index);
         content.AddChild(_heroChoice);

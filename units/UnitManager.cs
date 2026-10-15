@@ -17,6 +17,7 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene HeroTestScene;
     [Export] public PackedScene HeroGolemScene;
     [Export] public PackedScene HeroMarshalScene;
+    [Export] public PackedScene HeroRangerScene;
     [Export] public PackedScene SiegeRamScene;
     [Export] public PackedScene JungleBoarScene;
     [Export] public PackedScene JungleTreantScene;
@@ -53,6 +54,7 @@ public partial class UnitManager : Node3D
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
         UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
         UnitCatalog.HeroMarshal => HeroMarshalScene ??= GD.Load<PackedScene>("res://units/HeroMarshal.tscn"),
+        UnitCatalog.HeroRanger => HeroRangerScene ??= GD.Load<PackedScene>("res://units/HeroRanger.tscn"),
         UnitCatalog.SiegeRam => SiegeRamScene ??= GD.Load<PackedScene>("res://units/SiegeRam.tscn"),
         UnitCatalog.JungleBoar => JungleBoarScene ??= GD.Load<PackedScene>("res://units/JungleBoar.tscn"),
         UnitCatalog.JungleTreant => JungleTreantScene ??= GD.Load<PackedScene>("res://units/JungleTreant.tscn"),

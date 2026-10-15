@@ -166,6 +166,7 @@ public partial class TeamFrame : PanelContainer
             UnitCatalog.HeroTest => "res://ui/portraits/mutant-wolf.png",
             UnitCatalog.HeroGolem => "res://ui/portraits/rune-golem.png",
             UnitCatalog.HeroMarshal => "res://ui/icons/marshal.svg",
+            UnitCatalog.HeroRanger => "res://ui/portraits/archer.png",
             _ => null
         };
         return path != null && ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
