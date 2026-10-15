@@ -37,7 +37,12 @@ const EXPANSION_BAY_HALF_WIDTH := 9.5
 const EXPANSION_BAY_HEIGHT := 7.5
 const EXPANSION_BAY_ROUNDNESS := 2.5 # 2 is a half-ellipse; larger values square the shoulders.
 const EXPANSION_BAY_Z := 37.0 # Site marker inside the bay; a store fits around it.
-const EXPANSION_BUILD_SIZE := 3.0
+const EXPANSION_BUILD_SIZE := 4.0
+const OIL_CLEARING_CENTER := Vector2(36.0, 0.0)
+const OIL_CLEARING_RADII := Vector2(6.0, 10.0)
+const OIL_ENTRANCE_X := 28.0
+const OIL_ENTRANCE_Z := 8.0
+const OIL_CONNECTION_WIDTH := 5.0
 
 var arena: Node3D
 var map_data: Dictionary
@@ -66,6 +71,7 @@ func generate(data: Dictionary) -> Node3D:
 	arena.set_meta("note", "R: walkable stone road, no construction. .: buildable grass. T: harvestable forest.")
 	build_terrain()
 	build_walls()
+	build_oilfields()
 	build_guides()
 	return arena
 
@@ -120,6 +126,42 @@ func expansion_sites() -> Array:
 		{"id": "team2_expansion", "center": [-EXPANSION_PAD_X, EXPANSION_BAY_Z], "buildSize": [EXPANSION_BUILD_SIZE, EXPANSION_BUILD_SIZE]},
 	]
 
+# Terrain metadata only: these seeps have no resource stock, commands, or pickable nodes.
+func oil_fields() -> Array:
+	return [
+		{"id": "west_oilfield", "center": [-39.0, 0.0], "radii": [2.6, 3.6],
+			"clearingCenter": [-OIL_CLEARING_CENTER.x, OIL_CLEARING_CENTER.y],
+			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [-34.0, 5.0],
+			"entrances": [[-OIL_ENTRANCE_X, -OIL_ENTRANCE_Z], [-OIL_ENTRANCE_X, OIL_ENTRANCE_Z]],
+			"entranceWidth": OIL_CONNECTION_WIDTH},
+		{"id": "east_oilfield", "center": [39.0, 0.0], "radii": [2.6, 3.6],
+			"clearingCenter": [OIL_CLEARING_CENTER.x, OIL_CLEARING_CENTER.y],
+			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [34.0, -5.0],
+			"entrances": [[OIL_ENTRANCE_X, OIL_ENTRANCE_Z], [OIL_ENTRANCE_X, -OIL_ENTRANCE_Z]],
+			"entranceWidth": OIL_CONNECTION_WIDTH},
+		{"id": "northwest_oilfield", "center": [-34.0, -42.0], "radii": [3.6, 2.2],
+			"clearingCenter": [-34.0, -42.0], "clearingRadii": [4.6, 3.0], "supplySite": [-34.0, -37.0]},
+		{"id": "southeast_oilfield", "center": [34.0, 42.0], "radii": [3.6, 2.2],
+			"clearingCenter": [34.0, 42.0], "clearingRadii": [4.6, 3.0], "supplySite": [34.0, 37.0]},
+	]
+
+func is_oilfield_clearing(p: Vector2) -> bool:
+	# Central pockets open only toward the central road. Their home-base edge stays forest.
+	for field in oil_fields():
+		var center := Vector2(field["clearingCenter"][0], field["clearingCenter"][1])
+		var radii := Vector2(field["clearingRadii"][0], field["clearingRadii"][1])
+		if ((p - center) / radii).length_squared() <= 1.0:
+			return true
+		for entrance in field.get("entrances", []):
+			if segment_distance(p, center, Vector2(entrance[0], entrance[1])) <= float(field["entranceWidth"]) * 0.5:
+				return true
+	return false
+
+func oil_contains(field: Dictionary, p: Vector2) -> bool:
+	var center := Vector2(field["center"][0], field["center"][1])
+	var radii := Vector2(field["radii"][0], field["radii"][1])
+	return ((p - center) / radii).length_squared() <= 1.0
+
 func expansion_local(p: Vector2) -> Vector2:
 	# Team 1's upper site and team 2's lower site are rotational counterparts.
 	var q := p if p.y < 0.0 else -p
@@ -159,6 +201,11 @@ func is_outer_forest(p: Vector2) -> bool:
 
 # Used only when authoring the map. Gameplay and rendering read its saved R cells.
 func is_road(p: Vector2) -> bool:
+	# Reserve just the seep using the existing walkable/no-construction tile.
+	# Its terrain material replaces paving; no new terrain or resource rule is needed.
+	for field in oil_fields():
+		if oil_contains(field, p):
+			return true
 	for area in activity_areas():
 		if area_contains(area, p):
 			return true
@@ -249,7 +296,14 @@ func build_terrain() -> void:
 	var road_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
-			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" else Color.BLACK)
+			var p := map_origin + (Vector2(x, z) + Vector2.ONE * 0.5) * cell_size
+			var oil_reserved := false
+			for field in map_data.get("oilFields", []):
+				if oil_contains(field, p):
+					oil_reserved = true
+					break
+			# Oilfield R cells retain their rules but show grass under the shared fissure model.
+			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" and not oil_reserved else Color.BLACK)
 	ground_material.set_shader_parameter("road_mask", ImageTexture.create_from_image(road_image))
 	ground_material.set_shader_parameter("map_origin", map_origin)
 	ground_material.set_shader_parameter("map_size", Vector2(rows[0].length(), rows.size()) * cell_size)
@@ -355,3 +409,17 @@ func build_guides() -> void:
 	var length_bottom: float = guides.get_node("BottomLane").curve.get_baked_length()
 	assert(is_equal_approx(length_top, length_bottom))
 	print("PASS: equal lane lengths: ", length_top)
+
+func build_oilfields() -> void:
+	if map_data.get("oilFields", []).is_empty():
+		return
+	var fields := Node3D.new()
+	fields.name = "OilfieldTerrain"
+	attach(fields)
+	# Map radii reserve construction space; all sites share one unscaled, unrotated model.
+	var oilfield_scene: PackedScene = load("res://maps/Oilfield.tscn")
+	for field in map_data.get("oilFields", []):
+		var site: Node3D = oilfield_scene.instantiate()
+		site.name = field["id"]
+		site.position = Vector3(field["center"][0], 0, field["center"][1])
+		attach(site, fields)

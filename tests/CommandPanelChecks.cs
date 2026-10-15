@@ -199,23 +199,23 @@ public partial class CommandPanelChecks : Main
         SelectUnit(101);
         Placement.Cancel();
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
-        Check(_slots[4].Disabled && _slots[5].Disabled && !_slots[7].Disabled,
+        Check(_slots[5].Disabled && _slots[6].Disabled && !_slots[7].Disabled,
             "The build menu derives each lock from its own server requirements");
-        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.A);
-        _slots[4].EmitSignal(BaseButton.SignalName.Pressed);
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.S);
+        _slots[5].EmitSignal(BaseButton.SignalName.Pressed);
         Check(Commands.IsTierOneMenuOpen && !Placement.Active, "Locked buttons and hotkeys leave the build menu open");
         Receive("BUILDING 4 904 2 0 12 0");
-        Check(_slots[4].Disabled, "Enemy prerequisites do not unlock construction");
+        Check(_slots[5].Disabled, "Enemy prerequisites do not unlock construction");
         Receive("BUILDING 4 904 1 0 12 0");
         Receive("CONSTRUCTION 904 0");
-        Check(_slots[4].Disabled, "Construction sites do not count as complete prerequisites");
+        Check(_slots[5].Disabled, "Construction sites do not count as complete prerequisites");
         Receive("CONSTRUCTION 904 100");
-        Check(!_slots[4].Disabled && Commands.IsTierOneMenuOpen, "Completion unlocks the existing open menu");
+        Check(!_slots[5].Disabled && Commands.IsTierOneMenuOpen, "Completion unlocks the existing open menu");
         Receive("BUILDING 4 905 1 8 12 0");
         Receive("REMOVE 904");
-        Check(!_slots[4].Disabled, "One remaining completed friendly prerequisite is sufficient");
+        Check(!_slots[5].Disabled, "One remaining completed friendly prerequisite is sufficient");
         Receive("BUILDING 4 905 2 8 12 0");
-        Check(_slots[4].Disabled, "Changing the last prerequisite's team immediately relocks construction");
+        Check(_slots[5].Disabled, "Changing the last prerequisite's team immediately relocks construction");
         Receive("REMOVE 905");
         Receive("REQUIRES BUILDING 5");
         Receive("REQUIRES BUILDING 6");
@@ -408,7 +408,8 @@ public partial class CommandPanelChecks : Main
         {
             _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
-            Check(!_slots[5].Disabled, "Tower construction is available with the updated server definition");
+            Check(!_slots[6].Disabled, "Tower construction is available with the updated server definition");
+            Check(_slots[9].TooltipText.Contains("유전"), "The derrick menu explains its oilfield-only restriction");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
             KeyStroke(input, Key.Z);
@@ -420,7 +421,8 @@ public partial class CommandPanelChecks : Main
             foreach ((int slot, Key key, uint type) in new[]
             {
                 (7, Key.Q, BuildingCatalog.Store), (8, Key.W, BuildingCatalog.Supply),
-                (9, Key.E, BuildingCatalog.Barracks), (4, Key.A, BuildingCatalog.Forge), (5, Key.S, BuildingCatalog.Tower)
+                (9, Key.E, BuildingCatalog.OilDerrick), (4, Key.A, BuildingCatalog.Barracks),
+                (5, Key.S, BuildingCatalog.Forge), (6, Key.D, BuildingCatalog.Tower)
             })
             {
                 _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
@@ -500,8 +502,8 @@ public partial class CommandPanelChecks : Main
     }
 
     private void ExpectTierMenu(string message) => Expect(message,
-        (7, "저장소\n(Q)"), (8, "합숙소\n(W)"), (9, "병영\n(E)"),
-        (4, "대장간\n(A)"), (5, "포탑\n(S)"), (1, "뒤로(Z)"));
+        (7, "보급기지\n(Q)"), (8, "주택\n(W)"), (9, "시추탑\n(E)"),
+        (4, "병영\n(A)"), (5, "대장간\n(S)"), (6, "망루\n(D)"), (1, "뒤로(Z)"));
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>
         new() { Keycode = key, PhysicalKeycode = key, Pressed = pressed, Echo = echo };

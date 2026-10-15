@@ -124,7 +124,8 @@ public partial class Building : Node3D
 
     public void ApplyServerState(UnitState state)
     {
-        if (!IsDefense || state.Activity is not (UnitActivity.Idle or UnitActivity.Attack) || state.Carrying != 0) return;
+        if (!IsDefense || state.Activity is not (UnitActivity.Idle or UnitActivity.Attack) ||
+            state.Carrying != 0 || state.CarryType != ResourceType.Wood) return;
         // 접속 스냅샷의 누적 발사 횟수로 지난 공격을 재생하지 않습니다.
         bool fired = !IsUnderConstruction && HasServerState && state.SwingSequence != State.SwingSequence;
         State = state;

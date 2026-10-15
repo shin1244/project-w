@@ -38,7 +38,7 @@ P/Q/W/E/R에 마우스를 올리면 이름과 설명을 즉시 툴팁으로 표�
 
 `SelectionDetails.cs`가 선택 변경 이벤트와 서버 데이터로 UI를 갱신합니다. 생성된 유닛 초상화 조작은 `UnitManager.SelectFromPortrait`에서 기존 선택을 좁히며, 생산 초상화는 `CANCEL_TRAIN 건물ID 예약ID`를 보냅니다. 사망, HIDE, 소유권/팀 변경, 맵 재동기화, 접속 종료 시 선택 표시도 갱신합니다. 패널에서 시작한 클릭/휠 입력은 뒤쪽 전장으로 전달하지 않습니다.
 
-`SelectionPortraits.cs`는 `ui/portraits/`에 미리 저장한 192×192 PNG(유닛·미니언·건물의 아군·적군 버전)만 읽어 공유합니다. 저장소는 `Store.tscn`과 `store-ally/enemy.png`, 대장간은 `Forge.tscn`과 `forge-ally/enemy.png`에 대응합니다. 게임 실행 중에는 초상화용 모델, 카메라, 조명, SubViewport를 만들거나 3D 렌더링하지 않습니다. 체력바와 글자만 일반 2D UI로 갱신합니다.
+`SelectionPortraits.cs`는 `ui/portraits/`에 미리 저장한 192×192 PNG(유닛·미니언·건물의 아군·적군 버전)만 읽어 공유합니다. 보급기지는 `Store.tscn`과 `store-ally/enemy.png`, 대장간은 `Forge.tscn`과 `forge-ally/enemy.png`에 대응합니다. 게임 실행 중에는 초상화용 모델, 카메라, 조명, SubViewport를 만들거나 3D 렌더링하지 않습니다. 체력바와 글자만 일반 2D UI로 갱신합니다.
 
 외형을 바꿔 PNG를 다시 만들 때만 개발자가 `tools/BakeSelectionPortraits.tscn`을 그래픽 렌더러로 수동 실행합니다. 이 제작 도구는 게임 씬에서 참조하지 않으며, 일반 게임 실행이나 빌드에서 자동 실행되지 않습니다. 생성 후 Godot 편집기가 PNG를 임포트하면 새 이미지가 반영됩니다.
 

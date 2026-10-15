@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_q1hd4"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/OilDerrick.res" id="2_v3q5y"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tqe8h"]
+size = Vector3(4, 6.6349998, 4)
+
+[node name="OilDerrick" type="Node3D" unique_id=380418656]
+script = ExtResource("1_q1hd4")
+BuildingType = 7
+HealthBarHeight = 6.935
+metadata/role = "oil_derrick"
+metadata/footprint = Vector2i(4, 4)
+metadata/front = "-Z"
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1011636734]
+mesh = ExtResource("2_v3q5y")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1891280965]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1205620494]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.3174999, 0)
+shape = SubResource("BoxShape3D_tqe8h")
+
+[node name="Entrance" type="Marker3D" parent="." unique_id=1488369799]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)

@@ -18,7 +18,10 @@ public partial class StockChecks : Main
             Stock = new StockDisplay();
             AddChild(Stock);
             Label label = Stock.GetNode<Label>("Resources/Resource0/Amount");
-            Check(label.Text == "0", "Empty stock starts at zero");
+            Label oil = Stock.GetNode<Label>("Resources/Resource2/Amount");
+            Check(label.Text == "0" && oil.Text == "0", "Wood and oil stocks both start at zero");
+            Check(!Stock.HasNode("Resources/Resource2/Type") &&
+                Stock.GetNode<TextureRect>("Resources/Resource2/Icon").TooltipText == "기름", "Oil has a named tooltip instead of its protocol type number");
             Check(Stock.MouseFilter == Control.MouseFilterEnum.Ignore && label.MouseFilter == Control.MouseFilterEnum.Ignore,
                 "Stock UI does not capture game clicks");
 
@@ -39,7 +42,8 @@ public partial class StockChecks : Main
             Receive("SUPPLY 4 10");
             Check(population.Text == "0 / 0", "Supply follows world sync gate");
             Receive("STOCK 0 99");
-            Check(label.Text == "0", "Stock follows world sync gate");
+            Receive("STOCK 2 99");
+            Check(label.Text == "0" && oil.Text == "0", "Both stocks follow world sync gate");
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
             Receive("SUPPLY 4 10");
@@ -64,6 +68,9 @@ public partial class StockChecks : Main
             Check(label.Text == "0", "Zero total is applied");
             Receive("STOCK 0 3000000000");
             Check(label.Text.Contains("3,000,000,000"), "64-bit Go int total and readable grouping");
+            Receive("STOCK 2 43");
+            Receive("STOCK 2 43");
+            Check(oil.Text == "43" && label.Text == "3,000,000,000", "Oil totals are absolute and independent from wood");
             Receive("STOCK 7 55");
             string before = label.Text;
             foreach (string invalid in new[] { "STOCK", "STOCK 0", "STOCK 0 -1", "STOCK -1 5", "STOCK 0 1.5", "STOCK x 5", "STOCK 0 NaN", "STOCK 0 9223372036854775808", "STOCK 4294967296 2", "STOCK 0 5 extra" })
@@ -73,15 +80,17 @@ public partial class StockChecks : Main
             Receive($"MAP 2 {Map.MapHash}");
             Receive("WORLD_READY");
             Check(population.Text == "0 / 0", "Supply reset on map sync");
-            Check(label.Text == "0" && !Stock.HasNode("Resources/Resource7"), "Reconnect clears omitted entries");
+            Check(label.Text == "0" && oil.Text == "0" && !Stock.HasNode("Resources/Resource7"), "Reconnect resets omitted oil and clears unknown entries");
             Receive("STOCK 0 35");
+            Receive("STOCK 2 18");
             Receive("SUPPLY 7 15");
             typeof(Main).GetMethod("OnConnectionClosed", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(this, new object[] { "Stock test disconnect" });
             Receive("STOCK 0 999");
+            Receive("STOCK 2 999");
             Receive("SUPPLY 9 15");
             Check(population.Text == "0 / 0", "Disconnect clears and blocks supply");
-            Check(label.Text == "0" && !Map.IsSynchronized, "Disconnect clears stale totals and blocks updates");
+            Check(label.Text == "0" && oil.Text == "0" && !Map.IsSynchronized, "Disconnect clears both stale totals and blocks updates");
             GD.Print("PASS: stock scene wiring, sync gate, totals, spending, zero, validation, multiple types, reconnect and disconnect");
             GetTree().Quit();
         }

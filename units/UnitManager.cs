@@ -402,7 +402,7 @@ public partial class UnitManager : Node3D
                     return;
                 if (IsEnemy(building)) RequestAttack(building);
                 else if (building.IsUnderConstruction && TryGetSelectedWorker(out Unit builder)) RequestConstruct(building, builder.UnitId);
-                else RequestMove(point);
+                else if (!RequestGatherOil(building) && !RequestReturnResources(building)) RequestMove(point);
                 break;
             case null:
                 RequestMove(point);
@@ -444,6 +444,41 @@ public partial class UnitManager : Node3D
         // 혼합 선택도 그대로 전달합니다. 서버가 소유권과 채집 능력을 최종 검사합니다.
         _targetIndicator.Show(target);
         CommandRequested?.Invoke(Protocol.BuildGather(target.ResourceId, _selectedUnitIds));
+    }
+
+    public bool RequestGatherOil(Building target)
+    {
+        if (!CanUseResourceBuilding(target) || target.BuildingType != BuildingCatalog.OilDerrick) return false;
+        uint[] workers = SelectedWorkers(carryingOnly: false);
+        if (workers.Length == 0) return false;
+        _targetIndicator.Show(target);
+        CommandRequested?.Invoke(Protocol.BuildGather(target.BuildingId, workers));
+        return true;
+    }
+
+    public bool RequestReturnResources(Building target)
+    {
+        if (!CanUseResourceBuilding(target) || target.BuildingType is not (BuildingCatalog.TownHall or BuildingCatalog.Store))
+            return false;
+        uint[] workers = SelectedWorkers(carryingOnly: true);
+        if (workers.Length == 0) return false;
+        _targetIndicator.Show(target);
+        CommandRequested?.Invoke(Protocol.BuildReturn(target.BuildingId, workers));
+        return true;
+    }
+
+    private bool CanUseResourceBuilding(Building building) => !_controlledHeroType.HasValue && !Spectating &&
+        _localTeam != 0 && GodotObject.IsInstanceValid(building) && building.IsInsideTree() &&
+        !building.IsQueuedForDeletion() && !building.IsUnderConstruction && building.SideId == _localTeam &&
+        GodotObject.IsInstanceValid(Buildings) && Buildings.CanInspect(building) &&
+        Buildings.TryGetBuilding(building.BuildingId, out Building registered) && registered == building;
+
+    private uint[] SelectedWorkers(bool carryingOnly)
+    {
+        ValidateSelection();
+        return _selectedUnitIds.Where(id => _units.TryGetValue(id, out Unit unit) &&
+            unit.UnitType == UnitCatalog.Worker && CanControl(unit) && (!carryingOnly || unit.State.Carrying > 0))
+            .OrderBy(id => id).ToArray();
     }
 
     public void RequestAttack(Node3D target)
@@ -631,7 +666,7 @@ public partial class UnitManager : Node3D
         return null;
     }
 
-    // STATE id IDLE|GATHER|ATTACK carrying focusId swingSequence
+    // STATE id activity carrying focusId swingSequence [carryType]
     public void HandleState(StateSnapshot snapshot)
     {
         if (_units.TryGetValue(snapshot.Id, out Unit unit)) unit.ApplyServerState(snapshot.State);

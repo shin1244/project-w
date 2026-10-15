@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 // Main의 실제 메시지 라우팅/입력 연결/송신 경로를 메모리 스트림으로 검증합니다.
 public partial class ConstructionSyncChecks : Main
@@ -56,21 +57,22 @@ public partial class ConstructionSyncChecks : Main
             Receive("UNIT 0 102 7 -12 4 1");
             Receive("UNIT 1 201 7 -14 2 1");
             Receive("UNIT 0 301 8 -14 4 1");
-            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower" };
-            for (uint type = 0; type <= 6; type++)
+            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick" };
+            for (uint type = 0; type < sceneNames.Length; type++)
             {
                 Check(Buildings.SceneFor(type)?.ResourcePath == $"res://buildings/{sceneNames[type]}.tscn",
                     $"Actual Main scene maps synchronized type {type} to {sceneNames[type]}");
                 Receive($"BUILDING {type} {500 + type} 1 {-12 + (int)type * 4} -7 0");
                 Check(Building(500 + type).BuildingType == type, $"Main BUILDING branch creates type {type}");
             }
+            await CheckOilGathering();
             Building site = Building(502);
             Receive("CONSTRUCTION 502 0");
             Check(site.IsUnderConstruction && site.ConstructionPercent == 0 && site.GetNode<ConstructionSite>("ConstructionSite").Visible,
                 "Main CONSTRUCTION branch activates the zero-percent common site");
             Receive("HP 502 60 400");
             Invoke("SelectBuilding", site);
-            Check(Detail("_title").Text == "저장소" && Detail("_activity").Text.Contains("공사 중") &&
+            Check(Detail("_title").Text == "보급기지" && Detail("_activity").Text.Contains("공사 중") &&
                 Detail("_activity").Text.Contains("0%") && Detail("_extra").Text.Contains("이어 짓기"),
                 "Selected store shows its construction percentage and continuation hint");
             Receive("CONSTRUCTION 502 37");
@@ -138,8 +140,8 @@ public partial class ConstructionSyncChecks : Main
             Invoke("SelectUnit", Worker());
             beforeWire = _wire.Length;
             Units.RequestContextOrder(site, site.GlobalPosition);
-            Check(_commands.Last() == "MOVE -4 -7 101" && ReadSince(beforeWire) == "MOVE -4 -7 101" + System.Environment.NewLine &&
-                !Units.RequestConstruct(site, 101), "Completed friendly buildings keep the normal movement context action");
+            Check(_commands.Last() == "RETURN 502 101" && ReadSince(beforeWire) == "RETURN 502 101" + System.Environment.NewLine &&
+                !Units.RequestConstruct(site, 101), "Completed friendly dropoff returns carried wood instead of continuing construction");
 
             Receive("CONSTRUCTION 502 45");
             Receive("STATE 101 BUILD 17 502 13");
@@ -174,18 +176,130 @@ public partial class ConstructionSyncChecks : Main
             Receive("UNIT 0 101 7 -12 2 1");
             bool historicalSwing = false;
             Worker().StateChanged += (_, swung) => historicalSwing |= swung;
+            Receive("BUILDING 7 606 1 -5 5 0");
+            Receive("STATE 101 GATHER 5 606 90 2");
+            Check(Worker().State.CarryType == ResourceType.Oil && Worker().State.Carrying == 5 && !historicalSwing,
+                "Reconnect restores oil cargo and extraction focus without replaying historical swings");
             Receive("STATE 101 BUILD 5 605 90");
             Check(Building(605).IsUnderConstruction && Building(605).ConstructionPercent == 64 &&
-                Worker().State.Activity == UnitActivity.Build && !historicalSwing,
-                "Reconnect snapshots restore authoritative construction without replaying previous worker swings");
+                Worker().State.Activity == UnitActivity.Build && Worker().State.CarryType == ResourceType.Wood && !historicalSwing,
+                "Legacy construction snapshots restore wood rather than retaining the previous oil cargo type");
+            Receive("HIDE 101");
+            Receive("STATE 101 IDLE 99 0 91 2");
+            Check(!Units.TryGetUnit(101, out _), "Late hidden-worker oil state cannot recreate its identity");
+            Receive("UNIT 0 101 7 -12 2 1");
+            Check(!Worker().HasServerState && Worker().State.Carrying == 0 && Worker().State.CarryType == ResourceType.Wood,
+                "Rediscovered worker starts without old cargo before its current STATE arrives");
             Invoke("OnConnectionClosed", "Construction synchronization test disconnect");
             Check(Buildings.LiveBuildings.Count == 0 && Units.LiveUnits.Count == 0 && !Map.IsSynchronized,
                 "Disconnect clears construction state along with the synchronized world");
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            GD.Print("PASS: actual Main type mappings, CONSTRUCTION/BUILD state routing, construction selection details, exact CONSTRUCT wire format, ownership/selection checks, busy error, context actions, destruction IDLE, synchronization and reconnect");
+            GD.Print("PASS: Main construction/oil gathering, exact CONSTRUCT/GATHER/RETURN framing, worker ownership, cargo state compatibility, destruction, hiding and reconnect");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
+    }
+
+    private async Task CheckOilGathering()
+    {
+        Receive("BUILDING 7 750 1 -8 0 0");
+        Building derrick = Building(750);
+        Invoke("SelectUnit", Worker(102));
+        Units.ToggleSelection(Worker(201));
+        Units.ToggleSelection(Worker(101));
+        Units.ToggleSelection(Worker(301));
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        int before = _commands.Count;
+        long wire = _wire.Length;
+        Click(derrick.GlobalPosition + Vector3.Up * 2);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Check(_commands.Count == before + 1 && _commands.Last() == "GATHER 750 101 102" &&
+            ReadSince(wire) == "GATHER 750 101 102" + System.Environment.NewLine,
+            "Actual derrick right-click sends one framed GATHER for selected owned workers only");
+        Check(Units.SelectedUnitIds.Count == 3 && Worker().State.Carrying == 0 && !Worker().HasServerState,
+            "Mixed selection is preserved and gathering waits for authoritative cargo state");
+
+        Receive("STATE 101 GATHER 9 750 3 2");
+        Check(Worker().State == new UnitState(UnitActivity.Gather, 9, 750, 3, ResourceType.Oil) &&
+            Worker().ActionTarget == derrick, "Oil cargo and extraction focus route from Main to the selected worker");
+        UnitState oilState = Worker().State;
+        foreach (string invalid in new[] { "STATE 101 GATHER 9 750 4 -1", "STATE 101 GATHER 9 750 4 1",
+            "STATE 101 GATHER 9 750 4 3", "STATE 101 GATHER 9 750 4 oil", "STATE 101 GATHER 9 750 4 2 extra",
+            "STATE 101 GATHER -9 750 4 2", "STATE 101 GATHER 9 750 4 9999999999999999" }) Receive(invalid);
+        Check(Worker().State == oilState, "Invalid cargo resource IDs and malformed state leave accepted oil unchanged");
+        UnitState soldierState = Worker(201).State;
+        Receive("STATE 201 GATHER 9 750 4 2");
+        Check(Worker(201).State == soldierState, "A combat unit cannot acquire an oil-carrying state");
+        Receive("STATE 101 IDLE 6 0 3");
+        Check(Worker().State.CarryType == ResourceType.Wood, "Six-field legacy states explicitly restore wood cargo");
+        Receive("STATE 101 GATHER 9 750 3 2");
+        Receive("STATE 102 IDLE 4 0 0 0");
+        wire = _wire.Length;
+        before = _commands.Count;
+        Units.RequestContextOrder(Building(500), Building(500).GlobalPosition);
+        Check(_commands.Count == before + 1 && _commands.Last() == "RETURN 500 101 102" &&
+            ReadSince(wire) == "RETURN 500 101 102" + System.Environment.NewLine && Worker().State == oilState,
+            "A friendly hall returns both oil and wood carriers with no optimistic cargo deduction");
+        Receive("STATE 102 IDLE 0 0 0 0");
+        Units.RequestContextOrder(Building(502), Building(502).GlobalPosition);
+        Check(_commands.Last() == "RETURN 502 101", "A completed supply depot accepts cargo while excluding empty workers");
+
+        Invoke("SelectUnit", Worker(201));
+        before = _commands.Count;
+        Check(!Units.RequestGatherOil(derrick) && !Units.RequestReturnResources(Building(500)) && _commands.Count == before,
+            "Combat-only selections cannot issue extraction or return commands");
+        Units.RequestContextOrder(derrick, derrick.GlobalPosition);
+        Check(_commands.Last() == "MOVE -8 0 201", "Combat-only right-click preserves ordinary movement");
+        Invoke("SelectUnit", Worker(301));
+        before = _commands.Count;
+        Check(!Units.RequestGatherOil(derrick) && _commands.Count == before,
+            "Another player's allied worker cannot be ordered to extract oil");
+        Invoke("SelectUnit", Worker(101));
+        Receive("CONSTRUCTION 750 40 7");
+        before = _commands.Count;
+        Units.RequestContextOrder(derrick, derrick.GlobalPosition);
+        Check(_commands.Count == before + 1 && _commands.Last() == "CONSTRUCT 750 101" &&
+            !Units.RequestGatherOil(derrick), "An unfinished derrick continues construction and cannot extract oil");
+        Receive("CONSTRUCTION 750 100 7");
+        Receive("BUILDING 7 751 2 8 5 0");
+        Receive("BUILDING_VISION 751 1");
+        Building enemy = Building(751);
+        before = _commands.Count;
+        Units.RequestContextOrder(enemy, enemy.GlobalPosition);
+        Check(_commands.Count == before + 1 && _commands.Last() == "ATTACK 751 101" && !Units.RequestGatherOil(enemy),
+            "Enemy derricks retain attack context and cannot be harvested");
+        Check(!Units.RequestReturnResources(enemy) && !Units.RequestGatherOil(Building(502)),
+            "Extraction and dropoff reject unrelated building kinds");
+
+        Units.SetSpectator(true);
+        before = _commands.Count;
+        Check(!Units.RequestGatherOil(derrick) && !Units.RequestReturnResources(Building(500)) && _commands.Count == before,
+            "Spectators cannot send worker economy orders");
+        Units.SetSpectator(false);
+        Invoke("SelectUnit", Worker(101));
+        Receive("STATE 101 IDLE 0 0 3 0");
+        Units.RequestContextOrder(Building(502), Building(502).GlobalPosition);
+        Check(_commands.Last() == "MOVE -4 -7 101", "Empty workers keep ordinary movement on completed dropoffs");
+        Receive("REMOVE 750");
+        before = _commands.Count;
+        Check(!Units.RequestGatherOil(derrick) && _commands.Count == before,
+            "Removed derricks cannot receive a stale gather request");
+        Receive("REMOVE 751");
+    }
+
+    private void Click(Vector3 position)
+    {
+        Vector2 screen = Units.Camera.UnprojectPosition(position);
+        foreach (bool pressed in new[] { true, false })
+        {
+            using var input = new InputEventMouseButton
+            {
+                Position = screen, GlobalPosition = screen, ButtonIndex = MouseButton.Right,
+                Pressed = pressed, ButtonMask = pressed ? MouseButtonMask.Right : 0
+            };
+            GetViewport().PushInput(input, true);
+        }
     }
 
     private void BeginSession()

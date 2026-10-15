@@ -10,16 +10,17 @@ public partial class BakeBuildingPreviews : Node
     {
         try
         {
+            bool storeOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
+            bool oilDerrickOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--oil-derrick-only") >= 0;
             const string directory = "res://ui/build-previews";
             const int pixels = 512;
-            const float span = 8f;
             DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
             var main = GD.Load<PackedScene>("res://game/Main.tscn").Instantiate<Main>();
             Basis view = main.GetNode<Camera3D>("Camera3D").Basis;
             main.Free();
             var catalog = new List<object>();
             var views = new List<(SubViewport Viewport, string Path)>();
-            foreach (string name in new[] { "Supply", "Barracks", "Store", "Forge", "Tower" })
+            foreach (string name in new[] { "Supply", "Barracks", "Store", "Forge", "Tower", "OilDerrick" })
             {
                 var viewport = new SubViewport
                 {
@@ -31,6 +32,8 @@ public partial class BakeBuildingPreviews : Node
                 var source = GD.Load<PackedScene>($"res://buildings/{name}.tscn").Instantiate<Building>();
                 uint type = source.BuildingType;
                 Vector2I footprint = source.GetMeta("footprint").AsVector2I();
+                float span = type == BuildingCatalog.OilDerrick ? Mathf.Max(8, source.HealthBarHeight * 1.4f) : 8;
+                float targetHeight = type == BuildingCatalog.OilDerrick ? source.HealthBarHeight * .45f : 1.8f;
                 foreach (string childName in new[] { "Visual", "Turret" })
                 {
                     Node3D child = source.GetNodeOrNull<Node3D>(childName);
@@ -57,11 +60,12 @@ public partial class BakeBuildingPreviews : Node
                 var camera = new Camera3D
                 {
                     Projection = Camera3D.ProjectionType.Orthogonal, Size = span, Current = true,
-                    Transform = new Transform3D(view, Vector3.Up * 1.8f + view.Z * 20)
+                    Transform = new Transform3D(view, Vector3.Up * targetHeight + view.Z * 20)
                 };
                 viewport.AddChild(camera);
                 Vector2 anchor = camera.UnprojectPosition(Vector3.Zero) / pixels;
-                string path = $"{directory}/{name.ToLowerInvariant()}.png";
+                string key = type == BuildingCatalog.OilDerrick ? "oil_derrick" : name.ToLowerInvariant();
+                string path = $"{directory}/{key}.png";
                 catalog.Add(new { Type = type, Texture = path, Footprint = new[] { footprint.X, footprint.Y },
                     WorldSpan = span, Anchor = new[] { anchor.X, anchor.Y } });
                 views.Add((viewport, path));
@@ -70,6 +74,8 @@ public partial class BakeBuildingPreviews : Node
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             foreach (var item in views)
             {
+                if (storeOnly && !item.Path.EndsWith("/store.png", StringComparison.Ordinal)) continue;
+                if (oilDerrickOnly && !item.Path.EndsWith("/oil_derrick.png", StringComparison.Ordinal)) continue;
                 using Image image = item.Viewport.GetTexture().GetImage();
                 if (image == null || image.IsEmpty() || image.SavePng(item.Path) != Error.Ok)
                     throw new InvalidOperationException($"Cannot save {item.Path}");

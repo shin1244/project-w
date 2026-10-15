@@ -70,7 +70,8 @@ public partial class TowerSyncChecks : Main
 
             foreach (string bad in new[] { "STATE 501 GATHER 0 101 10", "STATE 501 ATTACK 3 101 10",
                 "STATE 501 OTHER 0 101 10", "STATE 501 ATTACK -1 101 10", "STATE 501 ATTACK 0 nope 10",
-                "STATE 501 ATTACK 0 101", "STATE 501 ATTACK 0 101 10 extra", "STATE 0 IDLE 0 0 0" }) Receive(bad);
+                "STATE 501 ATTACK 0 101", "STATE 501 ATTACK 0 101 10 extra", "STATE 0 IDLE 0 0 0",
+                "STATE 501 ATTACK 0 101 10 2" }) Receive(bad);
             Check(tower.State.SwingSequence == 9 && shots == 1, "Invalid tower states ignored");
 
             // 회관에도 같은 스냅샷/중복 억제 규칙이 적용됩니다.

@@ -82,9 +82,9 @@ public partial class BuildingPlacement : Node3D
             SetStatus(BlockReason, false);
             return;
         }
-        PlacementPosition = PlacementRules.Snap(Map, point, _footprint);
+        PlacementPosition = PlacementRules.Snap(Map, point, _footprint, _type);
         BlockReason = Buildings.BuildingRequirementBlockReason(_type) ??
-            PlacementRules.Check(Map, Buildings, Units, PlacementPosition, _footprint);
+            PlacementRules.Check(Map, Buildings, Units, PlacementPosition, _footprint, _type);
         CanPlace = BlockReason == null;
         _preview.Update(Camera, PlacementPosition, CanPlace);
         SetStatus(CanPlace ? $"{BuildingName} 배치 · 좌클릭: 건설 · 우클릭/Esc: 취소" : $"건설 불가: {BlockReason}", !CanPlace);

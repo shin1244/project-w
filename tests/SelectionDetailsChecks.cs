@@ -60,6 +60,14 @@ public partial class SelectionDetailsChecks : Main
             Check(Labels().Any(label => label.Text == "체력   33 / 50") &&
                 Labels().Any(label => label.Text == "운반 중인 목재   7") &&
                 Labels().Any(label => label.Text == "상태   채집 중"), "HP, activity and carrying update without reselection");
+            Receive("STATE 101 IDLE 9 0 1 2");
+            await Layout();
+            Check(Labels().Any(label => label.Text == "운반 중인 기름   9") &&
+                !Labels().Any(label => label.IsVisibleInTree() && label.Text.StartsWith("운반 중인 목재")),
+                "Carried oil replaces the wood label without reselection");
+            Receive("STATE 101 IDLE 0 0 1");
+            await Layout();
+            Check(Labels().Any(label => label.Text == "운반 중인 목재   0"), "Legacy state clears the previous oil carry type");
             await CheckInspection();
             foreach (uint id in new uint[] { 102, 103 })
             {

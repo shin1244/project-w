@@ -29,6 +29,7 @@ public partial class SelectionPortraits : Node
             "res://buildings/Supply.tscn" => enemy ? "supply-enemy" : "supply-ally",
             "res://buildings/Barracks.tscn" => enemy ? "barracks-enemy" : "barracks-ally",
             "res://buildings/Forge.tscn" => enemy ? "forge-enemy" : "forge-ally",
+            "res://buildings/OilDerrick.tscn" => enemy ? "oil_derrick-enemy" : "oil_derrick-ally",
             _ => null
         };
         if (name == null) return null;
