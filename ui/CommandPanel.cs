@@ -129,7 +129,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.BuildMenu, 9) => "시추탑\n(E)",
                 (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",
                 (DisplayMode.BuildMenu, 5) => "조병창\n(S)",
-                (DisplayMode.BuildMenu, 6) => "망루\n(D)",
+                (DisplayMode.BuildMenu, 6) => "감시탑\n(D)",
                 (DisplayMode.BuildMenu, 1) => "공방\n(Z)",
                 (DisplayMode.BuildMenu, 2) => "기술연구소\n(X)",
                 (DisplayMode.BuildMenu, 3) => "뒤로(C)",
@@ -225,7 +225,7 @@ public partial class CommandPanel : PanelContainer
                 state.Tier >= 3 ? "3티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
             string terms = state.HasUpgradeTerms ? $"나무 {state.NextWood:N0} · 기름 {state.NextOil:N0} · {state.NextSeconds:0.##}초\n" : "";
             _slots[6].TooltipText = state.Tier >= 3 ? "최고 단계" : terms +
-                "HQ·요새·망루 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
+                "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
             if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
         if (_display == DisplayMode.Barracks)

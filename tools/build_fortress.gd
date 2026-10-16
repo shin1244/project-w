@@ -1,24 +1,38 @@
 extends "res://tools/build_town_hall.gd"
-## 3x3 stone fortress and separately pivoted ballista, facing local -Z.
+## The fortress (요새, server type 1): a riveted octagonal bastion of the company with a pivoting
+## steam cannon on top (docs/art-direction.md). Iron glacis over a concrete dock, an iron-banded
+## brick shaft with gun slits and a gilt shield, a company-painted parapet coping, and a boiler
+## exhaust that smokes. The watchtower builder reuses the cannon (build_steam_gun) at a smaller scale.
+## Source grid 3x3, scaled to the server's 4x4; local front -Z.
 
 const TURRET_HEIGHT := 3.63
+const MUZZLE := Vector3(0, 0.5, -1.39)
 
 func _initialize() -> void:
-	material("stone", Color("778176"))
-	material("stone_light", Color("a3ac9c"))
-	material("stone_dark", Color("59665e"))
-	material("wood", Color("583d2d"))
-	material("wood_light", Color("986c45"))
-	material("dark", Color("25352f"), 0.3)
-	material("gold", Color("c49a49"), 0.35)
-	material("banner", Color("376a94"))
-	build_masonry()
+	defence_materials()
+	build_bastion()
 	var base_mesh := finish_mesh("res://buildings/meshes/Fortress.res")
 	reset_surfaces()
-	build_ballista()
+	build_steam_gun()
 	var weapon_mesh := finish_mesh("res://buildings/meshes/FortressBallista.res")
 	save_tower(base_mesh, weapon_mesh)
+	add_exhaust_smoke("res://buildings/Fortress.tscn", Vector3(0.95, 4.35, 0.75))
 	quit()
+
+func defence_materials() -> void:
+	material("concrete", Color("858179"))
+	material("concrete_dark", Color("5c5953"))
+	material("brick", Color("6e3f33"))
+	material("brick_dark", Color("4d2c24"))
+	material("iron", Color("2f363d"), 0.7, 0.32) # Lacquered war iron: weapons shine.
+	material("iron_light", Color("8f979c"), 0.7, 0.3)
+	material("brass", Color("a88349"), 0.75, 0.3)
+	material("gold", Color("d9ae45"), 0.85, 0.22)
+	material("copper", Color("b0673e"), 0.65, 0.35)
+	material("soot", Color("1e2226"))
+	material("lamp", Color("fff1c8"), 0.0, 0.3, 2.4)
+	material("roof", Color("3d5f77"), 0.15, 0.7) # Company-painted plate.
+	material("banner", Color("376a94"))
 
 func reset_surfaces() -> void:
 	surfaces.clear()
@@ -44,97 +58,119 @@ func finish_mesh(path: String, mesh_scale := 1.0) -> ArrayMesh:
 	assert(ResourceSaver.save(mesh, path, ResourceSaver.FLAG_COMPRESS) == OK)
 	return load(path)
 
+func octagon(half: float, cut: float) -> Array:
+	return [Vector2(-half + cut, -half), Vector2(half - cut, -half), Vector2(half, -half + cut), Vector2(half, half - cut),
+		Vector2(half - cut, half), Vector2(-half + cut, half), Vector2(-half, half - cut), Vector2(-half, -half + cut)]
+
 func chamfered_block(key: String, half: float, cut: float, bottom: float, height: float) -> void:
-	var points := [Vector2(-half + cut, -half), Vector2(half - cut, -half),
-		Vector2(half, -half + cut), Vector2(half, half - cut), Vector2(half - cut, half),
-		Vector2(-half + cut, half), Vector2(-half, half - cut), Vector2(-half, -half + cut)]
-	for i in range(points.size()):
-		var a: Vector2 = points[i]
-		var b: Vector2 = points[(i + 1) % points.size()]
-		triangle(key, Vector3(0, bottom + height, 0), Vector3(b.x, bottom + height, b.y), Vector3(a.x, bottom + height, a.y))
-		quad(key, Vector3(a.x, bottom, a.y), Vector3(a.x, bottom + height, a.y),
-			Vector3(b.x, bottom + height, b.y), Vector3(b.x, bottom, b.y))
+	chamfered_frustum(key, half, half, cut / half, bottom, height)
 
-func build_masonry() -> void:
-	chamfered_block("stone_dark", 1.5, .22, 0, .18)
-	chamfered_block("stone_light", 1.43, .20, .18, .13)
-	chamfered_block("stone", 1.20, .23, .31, .33)
-	chamfered_block("stone_light", 1.24, .22, .64, .12)
-	chamfered_block("stone_dark", .99, .18, .76, 2.16)
-	# Staggered masonry on all four faces. Fine gaps expose the dark mortar core.
-	for face in range(4):
-		var turn := Basis(Vector3.UP, face * PI / 2)
-		for row in range(7):
-			var y := .92 + row * .29
-			for col in range(4):
-				var x := -.69 + col * .46
-				var key := "stone_light" if (row * 3 + col + face) % 5 == 0 else "stone"
-				box(key, turn * Vector3(x, y, -.995), Vector3(.44, .27, .09), turn)
-		# Corner buttresses support a broad, readable fighting platform.
-		for x in [-.93, .93]:
-			box("stone", turn * Vector3(x, 1.80, -.91), Vector3(.22, 2.12, .22), turn)
-			box("stone_light", turn * Vector3(x, 2.88, -.91), Vector3(.32, .14, .32), turn)
-		# Narrow arrow slits on the sides and rear.
-		if face != 0:
-			box("stone_light", turn * Vector3(0, 2.05, -1.06), Vector3(.26, .83, .08), turn)
-			box("dark", turn * Vector3(0, 2.05, -1.11), Vector3(.095, .66, .025), turn)
-	chamfered_block("stone_dark", 1.22, .18, 2.92, .16)
-	chamfered_block("stone_light", 1.36, .18, 3.08, .18)
-	chamfered_block("wood_light", 1.17, .14, 3.26, .09)
-	for i in range(9):
-		box("wood", Vector3(-1.04 + i * .26, 3.356, 0), Vector3(.015, .014, 2.02))
-	# Corner merlons and broken parapets leave a clear weapon silhouette.
-	for face in range(4):
-		var turn := Basis(Vector3.UP, face * PI / 2)
-		box("stone", turn * Vector3(0, 3.47, -1.18), Vector3(2.30, .30, .24), turn)
-		for x in [-.99, 0.0, .99]:
-			box("stone", turn * Vector3(x, 3.75, -1.18), Vector3(.38, .32, .28), turn)
-			box("stone_light", turn * Vector3(x, 3.93, -1.18), Vector3(.42, .07, .32), turn)
-	# Low door, exterior hinges and two shallow entry steps.
-	box("dark", Vector3(0, 1.12, -1.055), Vector3(.70, .96, .055))
-	for i in range(5):
-		box("wood_light", Vector3((i - 2) * .115, 1.12, -1.09), Vector3(.103, .85, .04))
-	for y in [.84, 1.35]: box("dark", Vector3(0, y, -1.12), Vector3(.58, .045, .04))
-	box("stone_light", Vector3(0, 1.64, -1.08), Vector3(.86, .16, .19))
-	sphere("gold", Vector3(.18, 1.13, -1.15), .04)
-	box("stone_light", Vector3(0, .27, -1.29), Vector3(.97, .17, .35))
-	box("stone", Vector3(0, .46, -1.14), Vector3(.84, .19, .32))
-	# Faction pennant, with the same banner material as the town hall.
-	box("gold", Vector3(0, 2.70, -1.105), Vector3(.65, .055, .075))
-	quad("banner", Vector3(-.27, 2.67, -1.125), Vector3(-.27, 2.12, -1.125),
-		Vector3(.27, 2.12, -1.125), Vector3(.27, 2.67, -1.125))
-	triangle("banner", Vector3(-.27, 2.12, -1.125), Vector3(0, 1.92, -1.125), Vector3(.27, 2.12, -1.125))
-	box("gold", Vector3(0, 2.37, -1.14), Vector3(.05, .37, .022))
-	box("gold", Vector3(0, 2.39, -1.14), Vector3(.25, .05, .022))
-	cylinder("dark", Vector3(0, 3.47, 0), .41, .52, .25)
-	cylinder("gold", Vector3(0, 3.62, 0), .44, .44, .06)
+func chamfered_frustum(key: String, half_bottom: float, half_top: float, cut_ratio: float, bottom: float, height: float) -> void:
+	var lo := octagon(half_bottom, half_bottom * cut_ratio)
+	var hi := octagon(half_top, half_top * cut_ratio)
+	for i in range(8):
+		var a: Vector2 = lo[i]
+		var b: Vector2 = lo[(i + 1) % 8]
+		var c: Vector2 = hi[(i + 1) % 8]
+		var d: Vector2 = hi[i]
+		face(key, Vector3(a.x, bottom, a.y), Vector3(b.x, bottom, b.y), Vector3(c.x, bottom + height, c.y), Vector3(d.x, bottom + height, d.y))
+		face(key, Vector3(0, bottom + height, 0), Vector3(d.x, bottom + height, d.y), Vector3(c.x, bottom + height, c.y), Vector3(0, bottom + height, 0))
 
-func build_ballista() -> void:
-	# All coordinates relative to the yaw pivot. Full sweep remains within radius 1.5.
-	cylinder("dark", Vector3(0, .12, 0), .28, .31, .24)
-	for x in [-.22, .22]:
-		box("wood", Vector3(x, .31, .08), Vector3(.13, .45, .48))
-		box("gold", Vector3(x, .44, .08), Vector3(.16, .065, .51))
-	box("wood_light", Vector3(0, .52, -.09), Vector3(.30, .23, 1.64))
-	box("dark", Vector3(0, .65, -.13), Vector3(.065, .025, 1.58))
-	for z in [-.71, .36, .64]:
-		box("dark", Vector3(0, .53, z), Vector3(.33, .26, .085))
-	# Swept bow arms, iron tips and a pulled string.
+# Midpoint and outward direction of octagon side i.
+func side_frame(half: float, cut: float, i: int) -> Array:
+	var pts := octagon(half, cut)
+	var a: Vector2 = pts[i]
+	var b: Vector2 = pts[(i + 1) % 8]
+	var mid := (a + b) * 0.5
+	var along := (b - a).normalized()
+	return [Vector3(mid.x, 0, mid.y), Vector3(along.y, 0, -along.x), (b - a).length(), atan2(-(b - a).y, (b - a).x)]
+
+func build_bastion() -> void:
+	chamfered_block("concrete_dark", 1.5, 0.32, 0.0, 0.14)
+	chamfered_block("concrete", 1.4, 0.3, 0.14, 0.08)
+	# Sloped iron glacis round the foot, riveted in two rows.
+	chamfered_frustum("iron", 1.3, 1.08, 0.22, 0.22, 0.8)
+	for i in range(8):
+		var f := side_frame(1.19, 1.19 * 0.22, i)
+		for row in [0.42, 0.78]:
+			for k in range(-2, 3):
+				var p: Vector3 = f[0] + Vector3(cos(f[3]), 0, -sin(f[3])) * (k * f[2] * 0.18) + Vector3(0, row, 0)
+				sphere("iron_light", p + f[1] * (0.02 + (0.78 - row) * 0.22), 0.022)
+	# Brick shaft with iron bands.
+	chamfered_block("brick", 1.02, 0.24, 1.02, 1.88)
+	for y in [1.02, 1.96, 2.86]:
+		chamfered_block("iron", 1.06, 0.25, y - 0.04, 0.08)
+	chamfered_block("soot", 1.025, 0.24, 2.6, 0.26)
+	# Gun slits on each face, two storeys.
+	for i in range(8):
+		var f := side_frame(1.02, 0.24, i)
+		for y in [1.55, 2.4]:
+			box("soot", f[0] + f[1] * 0.006 + Vector3(0, y, 0), Vector3(0.05, 0.22, 0.02), Basis(Vector3.UP, f[3]))
+	# Front blast door in an iron porch with gilt trim.
+	box("iron", Vector3(0, 0.6, -1.2), Vector3(0.6, 0.78, 0.36))
+	box("soot", Vector3(0, 0.55, -1.385), Vector3(0.36, 0.6, 0.012))
+	box("gold", Vector3(0, 0.88, -1.39), Vector3(0.42, 0.04, 0.02))
+	for x in [-0.12, 0.12]:
+		for y in [0.38, 0.6]:
+			sphere("brass", Vector3(x, y, -1.395), 0.018)
+	box("concrete", Vector3(0, 0.26, -1.42), Vector3(0.62, 0.06, 0.14))
+	# Gilt shield with the company colour on the front of the shaft.
+	var shield := Vector3(0, 2.3, -1.03)
+	box("gold", shield, Vector3(0.46, 0.36, 0.04))
+	face("gold", shield + Vector3(-0.23, -0.18, -0.02), shield + Vector3(0.23, -0.18, -0.02), shield + Vector3(0, -0.42, -0.02), shield + Vector3(-0.23, -0.18, -0.02))
+	box("banner", shield + Vector3(0, 0.02, -0.026), Vector3(0.36, 0.28, 0.01))
+	face("banner", shield + Vector3(-0.18, -0.12, -0.03), shield + Vector3(0.18, -0.12, -0.03), shield + Vector3(0, -0.33, -0.03), shield + Vector3(-0.18, -0.12, -0.03))
+	box("gold", shield + Vector3(0, 0.03, -0.034), Vector3(0.05, 0.2, 0.006))
+	# Company banners hang down both flanks.
 	for side in [-1.0, 1.0]:
-		beam("wood_light", Vector3(side * .13, .54, -.53), Vector3(side * .73, .56, -.33), .13, .18)
-		beam("wood", Vector3(side * .73, .56, -.33), Vector3(side * 1.19, .58, -.06), .11, .14)
-		box("dark", Vector3(side * 1.19, .58, -.06), Vector3(.14, .17, .15))
-		beam("gold", Vector3(side * 1.19, .59, -.06), Vector3(0, .67, .51), .022, .022)
-		cylinder("dark", Vector3(side * .35, .65, -.52), .075, .09, .35)
-		cylinder("gold", Vector3(side * .35, .81, -.52), .095, .095, .055)
-	# Loaded bolt: shaft, steel point and rear fins.
-	beam("wood_light", Vector3(0, .70, .53), Vector3(0, .70, -1.16), .045, .045)
-	cylinder("dark", Vector3(0, .70, -1.27), 0, .11, .24, Basis(Vector3.RIGHT, -PI / 2))
-	for side in [-1.0, 1.0]:
-		triangle("gold", Vector3(0, .71, .35), Vector3(side * .14, .71, .58), Vector3(0, .71, .55))
-	# Rear winding crank.
-	beam("dark", Vector3(-.39, .53, .69), Vector3(.39, .53, .69), .055, .055)
-	box("wood_light", Vector3(.40, .62, .69), Vector3(.08, .24, .085))
+		var x: float = side * 1.035
+		box("gold", Vector3(x, 2.8, 0), Vector3(0.03, 0.04, 0.5))
+		face("banner", Vector3(x + side * 0.005, 2.78, -0.22), Vector3(x + side * 0.005, 2.78, 0.22), Vector3(x + side * 0.005, 2.0, 0.22), Vector3(x + side * 0.005, 2.0, -0.22))
+		face("banner", Vector3(x + side * 0.005, 2.0, -0.22), Vector3(x + side * 0.005, 2.0, 0.22), Vector3(x + side * 0.005, 1.84, 0.0), Vector3(x + side * 0.005, 2.0, -0.22))
+	# Gun platform with a riveted parapet; its coping is painted in the company colour.
+	chamfered_block("concrete", 1.12, 0.26, 2.9, 0.14)
+	for i in range(8):
+		var f := side_frame(1.07, 0.25, i)
+		box("iron", f[0] + Vector3(0, 3.27, 0), Vector3(f[2] + 0.06, 0.46, 0.09), Basis(Vector3.UP, f[3]))
+		box("roof", f[0] + Vector3(0, 3.52, 0), Vector3(f[2] + 0.1, 0.05, 0.16), Basis(Vector3.UP, f[3]))
+		for k in [-0.3, 0.0, 0.3]:
+			var p: Vector3 = f[0] + Vector3(cos(f[3]), 0, -sin(f[3])) * (k * f[2]) + f[1] * 0.05
+			sphere("iron_light", p + Vector3(0, 3.27, 0), 0.02)
+	# Boiler exhaust up the back corner for the cannon's steam.
+	cylinder("iron", Vector3(0.95, 2.2, 0.75), 0.09, 0.1, 4.2 - 0.06, Basis.IDENTITY, 10)
+	for y in [1.4, 2.4, 3.4]:
+		cylinder("brass", Vector3(0.95, y, 0.75), 0.11, 0.11, 0.04, Basis.IDENTITY, 10)
+	cylinder("soot", Vector3(0.95, 4.27, 0.75), 0.1, 0.1, 0.12, Basis.IDENTITY, 10)
+
+func build_steam_gun() -> void:
+	# Relative to the yaw pivot; the full sweep stays inside radius 1.5 (0.55 scale on the watchtower).
+	cylinder("iron", Vector3(0, 0.07, 0), 0.34, 0.36, 0.14, Basis.IDENTITY, 16)
+	cylinder("brass", Vector3(0, 0.15, 0), 0.36, 0.36, 0.03, Basis.IDENTITY, 16)
+	# Riveted mantlet housing with a sloped front plate.
+	box("iron", Vector3(0, 0.42, 0.12), Vector3(0.62, 0.5, 0.62))
+	face("iron", Vector3(-0.31, 0.17, -0.19), Vector3(0.31, 0.17, -0.19), Vector3(0.31, 0.62, -0.08), Vector3(-0.31, 0.62, -0.08))
+	box("roof", Vector3(0, 0.68, 0.12), Vector3(0.6, 0.03, 0.6)) # Painted roof plate.
+	for x in [-0.32, 0.32]:
+		box("banner", Vector3(x, 0.42, 0.16), Vector3(0.01, 0.22, 0.3))
+		for z in [-0.05, 0.12, 0.3]:
+			sphere("iron_light", Vector3(x, 0.6, z), 0.018)
+	box("gold", Vector3(0, 0.66, -0.12), Vector3(0.5, 0.03, 0.03))
+	# The barrel, banded in brass, with a slotted muzzle brake at MUZZLE.
+	cylinder("iron", Vector3(0, 0.5, -0.75), 0.075, 0.09, 1.1, Basis(Vector3.RIGHT, PI * 0.5), 14)
+	for z in [-0.42, -0.78, -1.08]:
+		cylinder("brass", Vector3(0, 0.5, z), 0.1, 0.1, 0.04, Basis(Vector3.RIGHT, PI * 0.5), 14)
+	cylinder("iron", Vector3(0, 0.5, -1.33), 0.1, 0.1, 0.12, Basis(Vector3.RIGHT, PI * 0.5), 14)
+	box("soot", Vector3(0, 0.5, -1.33), Vector3(0.22, 0.04, 0.05))
+	# Recoil cylinders above the barrel.
+	for x in [-0.12, 0.12]:
+		cylinder("brass", Vector3(x, 0.66, -0.42), 0.035, 0.035, 0.5, Basis(Vector3.RIGHT, PI * 0.5), 10)
+	# Boiler drum behind with a gauge and a steam line to the breech.
+	cylinder("copper", Vector3(0, 0.42, 0.62), 0.19, 0.19, 0.54, Basis(Vector3.FORWARD, PI * 0.5), 14)
+	for x in [-0.27, 0.27]:
+		cylinder("brass", Vector3(x, 0.42, 0.62), 0.2, 0.2, 0.03, Basis(Vector3.FORWARD, PI * 0.5), 14)
+	cylinder("brass", Vector3(0.12, 0.64, 0.62), 0.07, 0.07, 0.03, Basis.IDENTITY, 12)
+	cylinder("lamp", Vector3(0.12, 0.656, 0.62), 0.05, 0.05, 0.004, Basis.IDENTITY, 12)
+	beam("copper", Vector3(-0.12, 0.6, 0.55), Vector3(-0.12, 0.6, 0.3), 0.04, 0.04)
 
 func save_tower(base_mesh: ArrayMesh, weapon_mesh: ArrayMesh, model_name := "Fortress", type := 1, size := 3, pivot_height := TURRET_HEIGHT, weapon_scale := 1.0) -> void:
 	var bounds := base_mesh.get_aabb()
@@ -164,13 +200,13 @@ func save_tower(base_mesh: ArrayMesh, weapon_mesh: ArrayMesh, model_name := "For
 	tower.add_child(turret)
 	turret.owner = tower
 	var weapon := MeshInstance3D.new()
-	weapon.name = "Ballista"
+	weapon.name = "Ballista" # Building.cs recoils this node; the name is kept for it.
 	weapon.mesh = weapon_mesh
 	turret.add_child(weapon)
 	weapon.owner = tower
 	var muzzle := Marker3D.new()
 	muzzle.name = "Muzzle"
-	muzzle.position = Vector3(0, .70, -1.39) * weapon_scale
+	muzzle.position = MUZZLE * weapon_scale
 	turret.add_child(muzzle)
 	muzzle.owner = tower
 	var selection := Area3D.new()
@@ -200,3 +236,18 @@ func save_tower(base_mesh: ArrayMesh, weapon_mesh: ArrayMesh, model_name := "For
 	assert(ResourceSaver.save(scene, "res://buildings/%s.tscn" % model_name) == OK)
 	print("PASS: ", model_name, " footprint ", tower.get_meta("footprint"), ", source height ", height, ", source base bounds ", bounds, "; rotating weapon fits footprint")
 	tower.free()
+
+func add_exhaust_smoke(scene_path: String, at: Vector3) -> void:
+	var scene: PackedScene = load(scene_path)
+	var root := scene.instantiate()
+	var visual := root.get_node("Visual") as Node3D
+	var stack := smoke("Smoke", at)
+	stack.amount = 8
+	stack.scale_amount_min = 0.35
+	stack.scale_amount_max = 0.55
+	visual.add_child(stack)
+	stack.owner = root
+	var packed := PackedScene.new()
+	assert(packed.pack(root) == OK)
+	assert(ResourceSaver.save(packed, scene_path) == OK)
+	root.free()

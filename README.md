@@ -38,7 +38,7 @@ network/          TCP 연결과 명령 문자열
 events/           서버 상태로 표시하는 공물과 수집 진행 효과
 units/            UnitManager, 공통 유닛 스크립트와 일꾼·기사·궁수 씬
 resources/        ResourceManager, 자원 공통 스크립트와 나무 외형 3종
-buildings/        HQ·요새·브랜치·숙소·시추탑·인력 사무소·조병창·망루 씬, 공통 공사 부지 표시
+buildings/        HQ·요새·브랜치·숙소·시추탑·인력 사무소·조병창·감시탑 씬, 공통 공사 부지 표시
 maps/             맵 장면과 서버와 공유하는 격자 데이터(test.json)
   resources/      지형 메시와 충돌 리소스
 previews/         서버 없이 보는 맵·유닛 미리보기
@@ -72,7 +72,7 @@ docs/             설명과 미리보기 이미지
 - [보유 자원 UI와 STOCK 메시지](docs/stock.md)
 - [미니언과 진영 동기화](docs/minions.md)
 - [아군·적군 의상과 건물 지붕 색상](docs/team-colors.md)
-- [HQ·요새·망루와 건물 전투 동기화](buildings/README.md)
+- [HQ·요새·감시탑과 건물 전투 동기화](buildings/README.md)
 - [전장의 안개 동기화와 서버 성능 측정](docs/fog-of-war.md)
 - [유닛과 메시지 형식](docs/units.md)
 - [맵 구성과 재생성](docs/map.md)
