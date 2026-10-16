@@ -7,8 +7,8 @@ const SERVER_FOOTPRINTS := {
 	1: Vector2i(4, 4),
 	2: Vector2i(4, 4),
 	3: Vector2i(3, 3),
-	4: Vector2i(5, 3),
-	5: Vector2i(5, 3),
+	4: Vector2i(4, 3),
+	5: Vector2i(4, 3),
 	6: Vector2i(3, 3),
 }
 var surfaces: Dictionary = {}
@@ -295,6 +295,9 @@ func apply_server_footprint(building: Node3D) -> void:
 	var width_scale := float(target.x) / original.x
 	var depth_scale := float(target.y) / original.y
 	var model_scale := Vector3(width_scale, minf(width_scale, depth_scale), depth_scale)
+	# Compact production buildings lose one column, keeping their roof/chimney height.
+	if int(building.get("BuildingType")) in [4, 5]:
+		model_scale.y = depth_scale
 	var visual := building.get_node("Visual") as Node3D
 	visual.scale *= model_scale
 	var turret := building.get_node_or_null("Turret") as Node3D

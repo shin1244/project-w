@@ -9,7 +9,7 @@ func _initialize() -> void:
 	machine_roof()
 	yard_machines()
 	validate_clearance()
-	save_compact("res://buildings/Workshop.tscn", "res://buildings/meshes/Workshop.res", "Workshop", 8, "workshop", Vector2i(5, 4))
+	save_compact("res://buildings/Workshop.tscn", "res://buildings/meshes/Workshop.res", "Workshop", 8, "workshop", Vector2i(4, 4))
 	quit()
 
 func workshop_shell() -> void:

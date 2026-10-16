@@ -4,18 +4,18 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Forge.res" id="2_gaej2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_pti55"]
-size = Vector3(5, 4.635, 3)
+size = Vector3(4, 4.635, 3)
 
 [node name="Forge" type="Node3D" unique_id=1812360214]
 script = ExtResource("1_ydxfw")
 BuildingType = 5
 HealthBarHeight = 5.085
 metadata/role = "forge"
-metadata/footprint = Vector2i(5, 3)
+metadata/footprint = Vector2i(4, 3)
 metadata/front = "-Z"
 
 [node name="Visual" type="MeshInstance3D" parent="." unique_id=1922097029]
-transform = Transform3D(1.6666667, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
+transform = Transform3D(1.3333334, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 mesh = ExtResource("2_gaej2")
 
 [node name="SelectionArea" type="Area3D" parent="." unique_id=1486813986]

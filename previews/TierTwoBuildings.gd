@@ -20,7 +20,7 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 22)
 	add_child(layout)
 	for entry in [
-		["res://previews/Workshop.tscn", "공방", "회관 2티어", "5 × 4", "c7a36a"],
+		["res://previews/Workshop.tscn", "공방", "회관 2티어", "4 × 4", "c7a36a"],
 		["res://previews/ResearchLab.tscn", "기술연구소", "회관 2티어", "4 × 4", "9abbb7"]
 	]:
 		add_card(layout, entry)

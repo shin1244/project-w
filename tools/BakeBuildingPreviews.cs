@@ -13,6 +13,7 @@ public partial class BakeBuildingPreviews : Node
             bool storeOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
             bool oilDerrickOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--oil-derrick-only") >= 0;
             bool tierTwoOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--tier-two-only") >= 0;
+            bool compactProductionOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--compact-production-only") >= 0;
             const string directory = "res://ui/build-previews";
             const int pixels = 512;
             DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
@@ -80,6 +81,9 @@ public partial class BakeBuildingPreviews : Node
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             foreach (var item in views)
             {
+                if (compactProductionOnly && !item.Path.EndsWith("/barracks.png", StringComparison.Ordinal) &&
+                    !item.Path.EndsWith("/forge.png", StringComparison.Ordinal) &&
+                    !item.Path.EndsWith("/workshop.png", StringComparison.Ordinal)) continue;
                 if (storeOnly && !item.Path.EndsWith("/store.png", StringComparison.Ordinal)) continue;
                 if (oilDerrickOnly && !item.Path.EndsWith("/oil_derrick.png", StringComparison.Ordinal)) continue;
                 if (tierTwoOnly && !item.Path.EndsWith("/workshop.png", StringComparison.Ordinal) &&

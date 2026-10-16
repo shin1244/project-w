@@ -4,14 +4,14 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Workshop.res" id="2_8i6u8"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ha06r"]
-size = Vector3(5, 4.0325, 4)
+size = Vector3(4, 4.0325, 4)
 
 [node name="Workshop" type="Node3D" unique_id=253225984]
 script = ExtResource("1_15iyc")
 BuildingType = 8
 HealthBarHeight = 4.3325
 metadata/role = "workshop"
-metadata/footprint = Vector2i(5, 4)
+metadata/footprint = Vector2i(4, 4)
 metadata/front = "-Z"
 
 [node name="Visual" type="MeshInstance3D" parent="." unique_id=849223882]
