@@ -6,9 +6,11 @@ internal sealed class SteamArtilleryPose
 {
     private readonly Node3D _aim, _hull, _mobileTurret, _mainTurret, _mobileBarrel, _mainBarrel, _mainTube;
     private readonly Node3D _leftGear, _rightGear, _traversePinion;
-    private readonly Vector3 _hullRest, _mobileBarrelRest, _mainBarrelRest, _mainTubeRest, _pinionRest;
+    private readonly Vector3 _hullRest, _mobileBarrelRest, _mainTubeRest, _pinionRest;
     private float _mobileAimYaw, _mainAimYaw;
     private const float HullDrop = .55f;
+    // Siege recoil slides the tube back along its bore; the trunnion gears turn by that travel over their pitch radius.
+    private const float SiegeRecoilDepth = .42f, GearPitchRadius = .3f;
     private readonly List<Leg> _legs = new();
     public Node3D MobileMuzzle { get; }
     public Node3D SiegeMuzzle { get; }
@@ -39,7 +41,7 @@ internal sealed class SteamArtilleryPose
         _rightGear = _mainTurret.GetNode<Node3D>("RightGear");
         _traversePinion = _hull.GetNode<Node3D>("TraversePinion");
         _hullRest = _hull.Position; _mobileBarrelRest = _mobileBarrel.Position;
-        _mainBarrelRest = _mainBarrel.Position; _mainTubeRest = _mainTube.Position;
+        _mainTubeRest = _mainTube.Position;
         _pinionRest = _traversePinion.Rotation;
         for (int side = -1; side <= 1; side += 2)
             for (int i = 0; i < 4; i++)
@@ -54,7 +56,7 @@ internal sealed class SteamArtilleryPose
 
     private static float Ease(float value) => Mathf.SmoothStep(0, 1, Mathf.Clamp(value, 0, 1));
 
-    public void Apply(float deployment, float gait, float walk, float recoil, bool siegeShot, float dt, bool returnAim,
+    public void Apply(float deployment, float gait, float walk, float recoil, bool siegeShot, float siegeTravel, float dt, bool returnAim,
         bool mobileAttacking, Vector3? target)
     {
         // Tuck the legs, then lower the hull while keeping the underside vents clear. Equal ticks reproduce the same pose.
@@ -80,10 +82,10 @@ internal sealed class SteamArtilleryPose
         // The forty-tooth carriage ring drives the ten-tooth pinion in the opposite direction.
         _traversePinion.Rotation = _pinionRest + Vector3.Up * (-mainYaw * 4);
         _mobileBarrel.Position = _mobileBarrelRest + Vector3.Back * (siegeShot ? 0 : recoil * .11f);
-        _mainBarrel.Position = _mainBarrelRest + Vector3.Back * (siegeShot ? recoil * .32f : 0);
         _mainBarrel.Rotation = new Vector3(Mathf.Lerp(.10f, .32f, gun), 0, 0);
-        _mainTube.Position = _mainTubeRest + Vector3.Forward * (.38f * gun);
-        _leftGear.Rotation = _rightGear.Rotation = new Vector3(gun * -.95f + recoil * .15f, 0, 0);
+        float travel = siegeTravel * SiegeRecoilDepth;
+        _mainTube.Position = _mainTubeRest + Vector3.Forward * (.38f * gun) + Vector3.Back * travel;
+        _leftGear.Rotation = _rightGear.Rotation = new Vector3(gun * -.95f + travel / GearPitchRadius, 0, 0);
         foreach (Leg leg in _legs) ApplyLeg(leg, gait, fold, settle, bob);
     }
 

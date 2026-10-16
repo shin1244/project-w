@@ -154,4 +154,8 @@ CONSTRUCTION의 마지막 값은 비용 지불자 ID입니다. 클라이언트�
 
 [공성 거포 좌우 조준 애니메이션](images/steam-artillery-traverse-cycle.gif)
 
+공성 모드로 포격하면 포신이 반동으로 포가 안을 따라 뒤로 밀렸다가(`SiegeKick`) 잠시 버틴 뒤(`SiegeHold`), 양옆 톱니가 돌며 다시 앞으로 밀어 냅니다(`SiegeRunOut`, `WorkshopMachineVisual.cs`). 톱니 회전량은 포신 이동 거리를 톱니 반지름으로 나눈 값이라 톱니가 포신을 끌고 오는 것처럼 맞물립니다(`SteamArtilleryPose.cs`). 이동 모드의 소형 포탑 반동은 짧게 유지합니다.
+
+[공성 거포 반동·복귀 애니메이션](images/steam-artillery-recoil.gif)
+
 전환 요청은 "SIEGE 1 유닛ID..."(전개) 또는 "SIEGE 0 유닛ID..."(해제)입니다. "SIEGE_STATE 유닛ID MOBILE|DEPLOYING|DEPLOYED|PACKING 시작틱 끝틱"를 받아 모드와 전환 진행률을 표시합니다. 안정된 모드는 틱이 둘 다 0이며, 전환 상태는 서버가 준 구간으로 표현합니다. 전환 중에는 이동·사격할 수 없고 전개 상태에서는 먼저 해제해야 이동할 수 있습니다. 전환 요청만으로 클라이언트가 모드를 예측하지 않으며, 피해·사거리·이동속도는 서버 STATS를 표시합니다. 숨김·제거·새 경기에서는 이전 모드를 재사용하지 않습니다.
