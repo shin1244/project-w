@@ -640,7 +640,7 @@ public partial class CommandPanelChecks : Main
     private void ExpectTierMenu(string message) => Expect(message,
         (7, "브랜치\n(Q)"), (8, "숙소\n(W)"), (9, "시추탑\n(E)"),
         (4, "인력\n사무소\n(A)"), (5, "조병창\n(S)"), (6, "감시탑\n(D)"),
-        (1, "공방\n(Z)"), (2, "기술연구소\n(X)"), (3, "뒤로(C)"));
+        (1, "공장\n(Z)"), (2, "기술연구소\n(X)"), (3, "뒤로(C)"));
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>
         new() { Keycode = key, PhysicalKeycode = key, Pressed = pressed, Echo = echo };

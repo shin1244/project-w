@@ -9,6 +9,6 @@ public static class BuildingCatalog
     {
         TownHall => "HQ", Fortress => "요새", Store => "브랜치", Supply => "숙소",
         Barracks => "인력 사무소", Forge => "조병창", Tower => "감시탑", OilDerrick => "시추탑",
-        Workshop => "공방", ResearchLab => "기술연구소", _ => "건물"
+        Workshop => "공장", ResearchLab => "기술연구소", _ => "건물"
     };
 }

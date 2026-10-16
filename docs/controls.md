@@ -44,6 +44,6 @@ HQ는 5×5, 리벳 철판 요새(`Fortress.tscn`, 타입 1)는 4×4, 철골 감�
 
 ## 미리보기와 나무
 
-서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`, `previews/Forest.tscn`, `previews/TownHall.tscn`을 열고 F6으로 실행합니다. 숙소·브랜치·인력 사무소·조병창은 `previews/ProductionBuildings.tscn`에서 함께 보고 회전·확대할 수 있습니다. 브랜치는 4×4, 숙소는 3×3, 조병창은 인력 사무소와 같은 4×3이며 개별 미리보기는 `previews/Store.tscn`, `previews/Forge.tscn`입니다. 공방은 4×4이며 `previews/Workshop.tscn`에서 확인합니다. 건물의 비용·공사·완공과 인구수, HQ·인력 사무소의 생산 대기열·취소·랠리를 서버와 동기화합니다. 브랜치는 완공되면 같은 팀 일꾼의 목재·기름 반납 거점으로 사용됩니다. [건물별 영어 이름](../buildings/README.md#영어-이름-추천)도 정리했습니다.
+서버 없이 외형을 확인하려면 `previews/Units.tscn`, `previews/Trees.tscn`, `previews/Arena.tscn`, `previews/Forest.tscn`, `previews/TownHall.tscn`을 열고 F6으로 실행합니다. 숙소·브랜치·인력 사무소·조병창은 `previews/ProductionBuildings.tscn`에서 함께 보고 회전·확대할 수 있습니다. 브랜치는 4×4, 숙소는 3×3, 조병창은 인력 사무소와 같은 4×3이며 개별 미리보기는 `previews/Store.tscn`, `previews/Forge.tscn`입니다. 공장은 4×4이며 `previews/Workshop.tscn`에서 확인합니다. 건물의 비용·공사·완공과 인구수, HQ·인력 사무소의 생산 대기열·취소·랠리를 서버와 동기화합니다. 브랜치는 완공되면 같은 팀 일꾼의 목재·기름 반납 거점으로 사용됩니다. [건물별 영어 이름](../buildings/README.md#영어-이름-추천)도 정리했습니다.
 
 나무는 `resources/trees/Tree.tscn`을 Oak/Pine/Birch 씬이 상속합니다. 자원 ID와 선택 표시(`ResourceNode.cs`), 클릭 영역(물리 레이어 3)은 공통이며 `Visual` 아래 외형만 다릅니다. `VisualVariant`는 외형 번호로, 자원 종류나 채집 능력치를 구분하지 않습니다. 나무는 맵 파일에서 생성하며 서버는 남은 자원량과 제거 변경분만 보냅니다. 유닛 선택 후 나무를 우클릭하면 `GATHER 자원ID 내유닛ID...`를 보냅니다. 실제 채집 가능 여부는 서버가 검사합니다.

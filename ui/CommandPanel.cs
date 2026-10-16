@@ -130,7 +130,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",
                 (DisplayMode.BuildMenu, 5) => "조병창\n(S)",
                 (DisplayMode.BuildMenu, 6) => "감시탑\n(D)",
-                (DisplayMode.BuildMenu, 1) => "공방\n(Z)",
+                (DisplayMode.BuildMenu, 1) => "공장\n(Z)",
                 (DisplayMode.BuildMenu, 2) => "기술연구소\n(X)",
                 (DisplayMode.BuildMenu, 3) => "뒤로(C)",
                 (DisplayMode.TownHall, 7) => "일꾼",

@@ -98,7 +98,7 @@ public partial class WorkshopUnitsPreview : Node3D
     {
         var canvas = new CanvasLayer(); AddChild(canvas); _layout = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; canvas.AddChild(_layout);
         Text("PROJECT W     /     WORKSHOP", 64, 42, 1100, 18, "b6a282");
-        Text(_flameOnly ? "화염기계" : _artilleryOnly ? "증기포격차" : "공방 기계 병력", 60, 80, 1100, 43, "f0e7d4");
+        Text(_flameOnly ? "화염기계" : _artilleryOnly ? "증기포격차" : "공장 기계 병력", 60, 80, 1100, 43, "f0e7d4");
         Text(_flameOnly ? "그을린 철판 · 리벳 장갑 · 삼각형 무한궤도" : _venting ? "하부 배출구 · 전환 압력 증기 · 지면 여유" : _traverse ? "수평 회전 톱니 · 독립 포가 · 표적 추적" : _artilleryOnly ? "연결 다리 보행 · 접이식 차체 · 톱니 구동 거포" : "황동 압력계 · 철제 장갑 · 증기 구동", 64, 143, 1200, 19, "a5b4bb");
         _layout.AddChild(new ColorRect { Position = new Vector2(64, 199), Size = new Vector2(1472, 1), Color = new Color("4c5a61") });
         string[] names = _flameOnly ? new[] { "전면", "측면" } : _artilleryOnly ? new[] { "이동 모드", _venting ? "모드 전환" : "공성 모드" } : new[] { "화염기계", "증기포격차", "증기포격차" };
