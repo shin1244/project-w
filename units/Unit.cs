@@ -9,6 +9,7 @@ public partial class Unit : Node3D
     [Export] public bool AlwaysShowHealth { get; set; }
     // A larger model/picking capsule must not change the authoritative construction footprint.
     [Export] public float BodyRadius { get; set; }
+    [Export] public NodePath AimNodePath { get; set; } = new("Visual");
     public HealthBar HealthBar { get; private set; }
 
     public uint UnitId { get; private set; }
@@ -18,10 +19,23 @@ public partial class Unit : Node3D
     public UnitState State { get; private set; }
     public bool HasServerState { get; private set; }
     public StatsSnapshot? Stats { get; set; }
+    public ManaSnapshot? Mana { get; set; }
     public WolfEffectSnapshot WolfEffects { get; set; }
     public GolemEffectSnapshot GolemEffects { get; set; }
     public MarshalEffectSnapshot MarshalEffects { get; set; }
     public uint EffectTick { get; set; }
+    public SiegeSnapshot? Siege { get; private set; }
+    public event Action<Unit> SiegeChanged;
+    public KnightChargeSnapshot? KnightCharge { get; private set; }
+    public event Action<Unit> KnightChargeChanged;
+    public Node3D KnightChargeTarget
+    {
+        get
+        {
+            Node3D target = KnightCharge is { Charging: true } charge ? ResolveFocus?.Invoke(charge.TargetId) : null;
+            return IsAvailable(target) && target.IsVisibleInTree() ? target : null;
+        }
+    }
     public bool IsDying { get; private set; }
     public event Action<UnitState, bool> StateChanged;
     // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛/건물 목록을 직접 소유하지 않습니다.
@@ -33,6 +47,8 @@ public partial class Unit : Node3D
     private Tween _deathTween;
     private uint _localTeam;
     private TeamMaterials _teamMaterials;
+    private HeroTeamRing _heroTeamRing;
+    private bool _selected;
     private Vector3 _serverPosition;
     // 배치 검사는 50ms 늦은 표시 위치 대신 현재까지 수신한 서버 위치를 사용합니다.
     public Vector3 ServerPosition => _hasServerPosition ? _serverPosition : GlobalPosition;
@@ -45,8 +61,11 @@ public partial class Unit : Node3D
         PlacementRadius = BodyRadius > 0 ? BodyRadius :
             ((CapsuleShape3D)GetNode<CollisionShape3D>("SelectionArea/CollisionShape3D").Shape).Radius;
         HealthBar = HealthBar.Attach(this, HealthBarHeight);
-        _teamMaterials = new TeamMaterials(GetNode<Node3D>("Visual"));
-        _teamMaterials.Apply(Team, _localTeam);
+        if (UnitCatalog.IsHero(UnitType))
+            _heroTeamRing = new HeroTeamRing(GetNode<MeshInstance3D>("SelectionRing"));
+        else
+            _teamMaterials = new TeamMaterials(GetNode<Node3D>("Visual"));
+        RefreshTeamPresentation();
     }
 
     public void ApplyHealth(HealthSnapshot health)
@@ -68,20 +87,36 @@ public partial class Unit : Node3D
         _deathTween = null;
         _teamMaterials?.Dispose();
         _teamMaterials = null;
+        _heroTeamRing?.Dispose();
+        _heroTeamRing = null;
     }
 
     public void Initialize(uint unitId, uint ownerId, uint team)
     {
+        if (UnitId != unitId || OwnerId != ownerId || Team != team)
+        {
+            Mana = null;
+            Siege = null;
+            SiegeChanged?.Invoke(this);
+            KnightCharge = null;
+            KnightChargeChanged?.Invoke(this);
+        }
         UnitId = unitId;
         OwnerId = ownerId;
         Team = team;
-        _teamMaterials?.Apply(Team, _localTeam);
+        RefreshTeamPresentation();
     }
 
     public void SetLocalTeam(uint team)
     {
         _localTeam = team;
+        RefreshTeamPresentation();
+    }
+
+    private void RefreshTeamPresentation()
+    {
         _teamMaterials?.Apply(Team, _localTeam);
+        _heroTeamRing?.Apply(Team, _localTeam, _selected, IsDying);
     }
 
     // UNIT 스냅샷은 즉시 배치하고 이전 보간 이력을 버립니다.
@@ -116,8 +151,11 @@ public partial class Unit : Node3D
         direction.Y = 0f;
         GlobalPosition = next;
 
+        // 이동식 포격차는 추적 중에도 보행 차체를 이동 방향으로 향하게 하고, 아래에서 포탑만 표적에 맞춥니다.
+        bool mobileArtillery = UnitType == UnitCatalog.SteamArtillery && Siege?.Mode is null or SiegeMode.Mobile;
         // 첫 스폰은 제외하고, 움직였을 때만 모델의 정면(-Z)을 이동 방향으로 돌립니다.
-        if (_hasServerPosition && State.Activity is UnitActivity.Idle or UnitActivity.Guard && direction.LengthSquared() > 0.000001f)
+        if (_hasServerPosition && (State.Activity is UnitActivity.Idle or UnitActivity.Guard || mobileArtillery)
+            && direction.LengthSquared() > 0.000001f)
         {
             Node3D visual = GetNode<Node3D>("Visual");
             visual.LookAt(visual.GlobalPosition + direction, Vector3.Up);
@@ -129,19 +167,45 @@ public partial class Unit : Node3D
 
     public void ApplyServerState(UnitState state)
     {
-        if (IsDying) return;
+        if (IsDying || (UnitType != UnitCatalog.Worker && state.CarryType != ResourceType.Wood)) return;
         // 첫 스냅샷의 과거 공격은 재생하지 않습니다. 이후 번호가 바뀔 때만 한 번 재생합니다.
         bool swung = HasServerState && state.SwingSequence != State.SwingSequence;
         if (state.FocusId != State.FocusId) _focusTarget = null;
+        bool wasInside = State.Activity == UnitActivity.Inside;
         State = state;
         HasServerState = true;
+        // A worker inside a derrick leaves the world until it comes back out.
+        if ((state.Activity == UnitActivity.Inside) != wasInside) Visible = state.Activity != UnitActivity.Inside;
         SetProcess(state.Activity != UnitActivity.Idle && state.FocusId != 0);
         FaceActionTarget();
         StateChanged?.Invoke(state, swung);
     }
 
+    public void ApplySiege(SiegeSnapshot snapshot)
+    {
+        if (IsDying || UnitType != UnitCatalog.SteamArtillery || snapshot.UnitId != UnitId || Siege == snapshot) return;
+        Siege = snapshot;
+        SiegeChanged?.Invoke(this);
+    }
+
+    public void ApplyKnightCharge(KnightChargeSnapshot snapshot)
+    {
+        if (IsDying || UnitType != UnitCatalog.Knight || snapshot.UnitId != UnitId || KnightCharge == snapshot) return;
+        KnightCharge = snapshot;
+        FaceActionTarget();
+        KnightChargeChanged?.Invoke(this);
+    }
+
     private void FaceActionTarget()
     {
+        if (!IsDying && KnightCharge is { } charge && charge.ActiveAt(EffectTick))
+        {
+            // The launched anchor is fixed. Turning toward a moving victim would bend a straight charge.
+            Vector3 anchor = new(charge.Anchor.X, GlobalPosition.Y, charge.Anchor.Y);
+            Node3D visual = GetNode<Node3D>(AimNodePath);
+            if (anchor.DistanceSquaredTo(GlobalPosition) > .000001f) visual.LookAt(anchor, Vector3.Up);
+            return;
+        }
         if (IsDying || State.Activity == UnitActivity.Idle || State.FocusId == 0) return;
         if (!IsAvailable(_focusTarget))
             _focusTarget = ResolveFocus?.Invoke(State.FocusId);
@@ -151,8 +215,8 @@ public partial class Unit : Node3D
         direction.Y = 0;
         if (direction.LengthSquared() > 0.000001f)
         {
-            Node3D visual = GetNode<Node3D>("Visual");
-            visual.LookAt(visual.GlobalPosition + direction, Vector3.Up);
+            Node3D aim = GetNode<Node3D>(AimNodePath);
+            aim.LookAt(aim.GlobalPosition + direction, Vector3.Up);
         }
     }
 
@@ -163,6 +227,10 @@ public partial class Unit : Node3D
     {
         if (IsDying) return _deathTween;
         IsDying = true;
+        Siege = null;
+        SiegeChanged?.Invoke(this);
+        KnightCharge = null;
+        KnightChargeChanged?.Invoke(this);
         _positions.Clear();
         HealthBar.Clear();
         SetProcess(false);
@@ -179,7 +247,9 @@ public partial class Unit : Node3D
 
     public void SetSelected(bool selected)
     {
-        GetNode<MeshInstance3D>("SelectionRing").Visible = selected && !IsDying;
+        _selected = selected && !IsDying;
+        if (_heroTeamRing != null) RefreshTeamPresentation();
+        else GetNode<MeshInstance3D>("SelectionRing").Visible = _selected;
         HealthBar?.SetSelected(selected && !IsDying);
     }
 }

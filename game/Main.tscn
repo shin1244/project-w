@@ -28,6 +28,9 @@
 [ext_resource type="PackedScene" path="res://buildings/Barracks.tscn" id="24_barracks"]
 [ext_resource type="PackedScene" path="res://buildings/Store.tscn" id="26_store"]
 [ext_resource type="PackedScene" path="res://buildings/Forge.tscn" id="27_forge"]
+[ext_resource type="PackedScene" path="res://buildings/OilDerrick.tscn" id="32_oil_derrick"]
+[ext_resource type="PackedScene" path="res://buildings/Workshop.tscn" id="33_workshop"]
+[ext_resource type="PackedScene" path="res://buildings/ResearchLab.tscn" id="34_research_lab"]
 [ext_resource type="PackedScene" path="res://ui/HeroSkillPanel.tscn" id="28_skills"]
 [ext_resource type="PackedScene" path="res://units/HeroTest.tscn" id="29_hero"]
 [ext_resource type="PackedScene" path="res://ui/UnitInfoPanel.tscn" id="30_info"]
@@ -79,6 +82,9 @@ SupplyScene = ExtResource("23_supply")
 BarracksScene = ExtResource("24_barracks")
 StoreScene = ExtResource("26_store")
 ForgeScene = ExtResource("27_forge")
+OilDerrickScene = ExtResource("32_oil_derrick")
+WorkshopScene = ExtResource("33_workshop")
+ResearchLabScene = ExtResource("34_research_lab")
 
 [node name="Resources" type="Node3D" parent="."]
 script = ExtResource("13_resources")

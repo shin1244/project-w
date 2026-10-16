@@ -15,12 +15,12 @@ public partial class UnitInfoPanel : PanelContainer
     private readonly List<StyleBoxFlat> _styles = new();
     private SelectionPortraits _portraits;
     private Control _content;
-    private Label _empty, _name, _activity, _healthText, _level, _experienceText;
-    private readonly Dictionary<string, Label> _stats = new();
+    private Label _empty, _name, _healthText, _manaText, _level, _experienceText;
+    private readonly Dictionary<string, StatIcon> _stats = new();
     private TextureRect _portrait;
-    private ProgressBar _health, _experience;
+    private ProgressBar _health, _mana, _experience;
     private ColorRect _shieldFill;
-    private Control _experienceRow;
+    private Control _manaRow, _experienceRow;
     private StyleBoxFlat _healthFill;
 
     public override void _Ready()
@@ -28,6 +28,7 @@ public partial class UnitInfoPanel : PanelContainer
         MouseFilter = MouseFilterEnum.Stop;
         MouseForcePassScrollEvents = false;
         ClipContents = true;
+        Theme = GD.Load<Theme>("res://ui/SkillTooltipTheme.tres");
         var frame = Style("18232ef5", "65776a");
         frame.ContentMarginLeft = frame.ContentMarginRight = 8;
         frame.ContentMarginTop = frame.ContentMarginBottom = 8;
@@ -53,41 +54,43 @@ public partial class UnitInfoPanel : PanelContainer
         content.AddChild(header);
         _portrait = new TextureRect
         {
-            Name = "Portrait", CustomMinimumSize = new Vector2(40, 40),
+            Name = "Portrait", CustomMinimumSize = new Vector2(32, 32),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            MouseFilter = MouseFilterEnum.Ignore
+            MouseFilter = MouseFilterEnum.Stop, MouseForcePassScrollEvents = false
         };
         header.AddChild(_portrait);
-        var title = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
-        title.AddThemeConstantOverride("separation", 2);
-        header.AddChild(title);
         _name = Text("UnitName", "", 14, "ece6cf");
-        _activity = Text("Activity", "", 11, "a8b9b1");
-        _activity.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _name.VerticalAlignment = VerticalAlignment.Center;
+        _name.MouseFilter = MouseFilterEnum.Stop;
         _level = Text("Level", "", 12, "d5be7c");
+        _level.VerticalAlignment = VerticalAlignment.Center;
+        _level.TooltipText = "팀 레벨";
+        _level.MouseFilter = MouseFilterEnum.Stop;
         _level.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
-        title.AddChild(_name);
-        var status = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-        title.AddChild(status);
-        status.AddChild(_activity);
-        status.AddChild(_level);
+        header.AddChild(_name);
+        header.AddChild(_level);
 
         (_, _health, _healthText) = Vital(content, "Health", "HealthText", 16, "64cf79");
+        _health.GetParent<Control>().TooltipText = "체력 · 보호막";
         _shieldFill = HealthDisplay.CreateShieldFill(_health);
         _healthFill = Style("64cf79", "64cf79");
         _health.AddThemeStyleboxOverride("fill", _healthFill);
+        (_manaRow, _mana, _manaText) = Vital(content, "Mana", "ManaText", 14, "519bd1");
+        _manaRow.TooltipText = "마나 · 스킬 사용에 필요한 자원";
         (_experienceRow, _experience, _experienceText) = Vital(content, "Experience", "ExperienceText", 14, "ac945a");
-        var stats = new GridContainer { Name = "Stats", Columns = 2, MouseFilter = MouseFilterEnum.Ignore };
-        stats.AddThemeConstantOverride("h_separation", 8);
+        _experienceRow.TooltipText = "팀 경험치 · 다음 팀 레벨까지 필요한 경험치";
+        var stats = new GridContainer { Name = "Stats", Columns = 3, MouseFilter = MouseFilterEnum.Ignore };
+        stats.AddThemeConstantOverride("h_separation", 4);
         stats.AddThemeConstantOverride("v_separation", 0);
         content.AddChild(stats);
         foreach (string key in new[] { "Damage", "AttackSpeed", "Range", "Sight", "Speed" })
         {
-            var label = Text(key, "", 11, "d0dcd2");
-            label.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            stats.AddChild(label);
-            _stats.Add(key, label);
+            var cell = new StatIcon { Name = key + "Stat", ValueName = key,
+                Kind = System.Enum.Parse<StatIcon.StatKind>(key) };
+            stats.AddChild(cell);
+            _stats.Add(key, cell);
         }
         Clear();
     }
@@ -141,9 +144,11 @@ public partial class UnitInfoPanel : PanelContainer
             _content.Hide();
             _empty.Show();
             _portrait.Texture = null;
-            _name.Text = _activity.Text = _healthText.Text = _level.Text = _experienceText.Text = "";
-            foreach (Label label in _stats.Values) label.Text = "";
-            _health.Value = _experience.Value = 0;
+            _name.Text = _healthText.Text = _manaText.Text = _level.Text = _experienceText.Text = "";
+            _name.TooltipText = _portrait.TooltipText = "";
+            foreach (StatIcon stat in _stats.Values) stat.SetValue("", "");
+            _health.Value = _mana.Value = _experience.Value = 0;
+            _manaRow.Hide();
             _shieldFill.Hide();
             return;
         }
@@ -161,21 +166,26 @@ public partial class UnitInfoPanel : PanelContainer
         _name.Text = UnitCatalog.Name(type);
         _name.TooltipText = UnitCatalog.Description(type);
         _portrait.Texture = _portraits.GetPortrait(Units.SceneFor(type), unit != null && unit.Team != Units.LocalTeam);
-        _activity.Text = unit == null ? "—" : unit.UnitType == UnitCatalog.SiegeRam ? "자동 행군" :
+        string activity = unit == null ? "—" : unit.UnitType == UnitCatalog.SiegeRam ? "자동 행군" :
             SelectionDetails.ActivityText(unit.State, unit.HasServerState).Replace("상태   ", "");
+        _portrait.TooltipText = $"{UnitCatalog.Name(type)} · {activity}\n{UnitCatalog.Description(type)}";
         _healthText.Text = unit == null ? "— / —" : SelectionDetails.HealthText(unit.HealthBar);
         float ratio = unit?.HealthBar.Ratio ?? 0;
         HealthDisplay.Apply(_health, _shieldFill, unit?.HealthBar.CurrentHP ?? 0, unit?.HealthBar.MaxHP ?? 0, unit?.HealthBar.Shield ?? 0);
         _healthFill.BgColor = _healthFill.BorderColor = SelectionDetails.HealthColor(ratio);
+        _manaRow.Visible = unit?.Mana is { Maximum: > 0 };
+        _manaText.Text = unit?.Mana is { } mana ? $"{mana.Current} / {mana.Maximum}" : "— / —";
+        _mana.Value = unit?.Mana is { Maximum: > 0 } manaValue ? 100.0 * manaValue.Current / manaValue.Maximum : 0;
         StatsSnapshot? stats = unit?.Stats;
-        _stats["Damage"].Text = $"공격 {(stats is { } shown ? HealthDisplay.Whole(shown.Damage) : "—")}";
-        _stats["Range"].Text = $"사거리 {Number(stats?.Range)}";
-        _stats["Sight"].Text = $"시야 {Number(stats?.Sight)}";
-        _stats["Speed"].Text = $"이속 {Number(stats?.Speed)}";
-        _stats["AttackSpeed"].Text = stats is { Interval: > 0 } attack
-            ? $"공속 {(1.0 / attack.Interval).ToString("0.##", CultureInfo.InvariantCulture)}/초" : "공속 —";
+        SetStat("Damage", stats is { } shown ? HealthDisplay.Whole(shown.Damage) : "—", "공격력", "기본 공격 한 번의 피해량");
+        SetStat("Range", Number(stats?.Range), "공격 사거리", "기본 공격이 닿는 거리");
+        SetStat("Sight", Number(stats?.Sight), "시야", "주변을 볼 수 있는 거리");
+        SetStat("Speed", Number(stats?.Speed), "이동 속도", "초당 이동 거리");
+        string attackSpeed = stats is { Interval: > 0 } attack
+            ? (1.0 / attack.Interval).ToString("0.##", CultureInfo.InvariantCulture) : "—";
+        SetStat("AttackSpeed", attackSpeed, "공격 속도", "초당 기본 공격 횟수");
         _level.Visible = _experienceRow.Visible = own;
-        _level.Text = own && Experience is { } progress ? $"팀 Lv.{progress.Level}" : "팀 Lv.—";
+        _level.Text = own && Experience is { } progress ? $"Lv.{progress.Level}" : "Lv.—";
         _experienceText.Text = own && Experience is { } exp
             ? exp.IsMaxLevel ? "MAX" : $"{exp.Current} / {exp.Required}" : "— / —";
         _experience.Value = own && Experience is { } value
@@ -187,9 +197,13 @@ public partial class UnitInfoPanel : PanelContainer
 
     private static string Number(float? value) => value?.ToString("0.##", CultureInfo.InvariantCulture) ?? "—";
 
+    private void SetStat(string key, string value, string title, string description) =>
+        _stats[key].SetValue(value, $"{title} {value}\n{description}");
+
     private (Control, ProgressBar, Label) Vital(VBoxContainer parent, string name, string textName, int height, string color)
     {
-        var row = new Control { Name = name + "Row", CustomMinimumSize = new Vector2(0, height), MouseFilter = MouseFilterEnum.Ignore };
+        var row = new Control { Name = name + "Row", CustomMinimumSize = new Vector2(0, height),
+            MouseFilter = MouseFilterEnum.Stop, MouseForcePassScrollEvents = false };
         parent.AddChild(row);
         var bar = new ProgressBar { Name = name, Step = 0, ShowPercentage = false, MouseFilter = MouseFilterEnum.Ignore };
         bar.AddThemeStyleboxOverride("background", Style("101c26", "36424a"));

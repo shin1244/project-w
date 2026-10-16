@@ -7,6 +7,7 @@ public partial class BuildingManager
     // 접속 시 받은 정의만 보관하고, 충족 여부는 현재 아군 건물에서 매번 계산합니다.
     private readonly Dictionary<uint, uint[]> _unitRequirements = new();
     private readonly Dictionary<uint, uint[]> _buildingRequirements = new();
+    private readonly Dictionary<uint, int> _buildingTierRequirements = new();
     public event Action RequirementsChanged;
 
     public void HandleRequirements(string[] parts)
@@ -22,7 +23,26 @@ public partial class BuildingManager
     }
 
     public string UnitRequirementBlockReason(uint type) => RequirementBlockReason(_unitRequirements, type);
-    public string BuildingRequirementBlockReason(uint type) => RequirementBlockReason(_buildingRequirements, type);
+    public void HandleTierRequirements(string[] parts)
+    {
+        if (parts.Length != 4 || parts[0] != "REQUIRES_TIER" || parts[1] != "BUILDING" ||
+            !uint.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out uint type) ||
+            !BuildingCatalog.IsPlayerBuildable(type) ||
+            !int.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out int tier) || tier is < 1 or > 3) return;
+        _buildingTierRequirements[type] = tier;
+        RequirementsChanged?.Invoke();
+    }
+
+    public string BuildingRequirementBlockReason(uint type)
+    {
+        if (_buildingTierRequirements.TryGetValue(type, out int tier))
+        {
+            if (_localTeam == 0 || TeamTier(_localTeam).Tier < tier) return $"회관 {tier}티어 완료 필요";
+        }
+        else if (type is BuildingCatalog.Workshop or BuildingCatalog.ResearchLab)
+            return "건설 조건 수신 대기";
+        return RequirementBlockReason(_buildingRequirements, type);
+    }
 
     private string RequirementBlockReason(Dictionary<uint, uint[]> definitions, uint type)
     {

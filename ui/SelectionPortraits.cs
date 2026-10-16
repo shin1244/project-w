@@ -13,12 +13,14 @@ public partial class SelectionPortraits : Node
         {
             "res://units/Worker.tscn" => enemy ? "worker-enemy" : "worker",
             "res://units/Knight.tscn" => enemy ? "knight-enemy" : "knight",
-            "res://units/HeroTest.tscn" => enemy ? "mutant-wolf-enemy" : "mutant-wolf",
-            "res://units/HeroGolem.tscn" => enemy ? "rune-golem-enemy" : "rune-golem",
-            "res://units/HeroMarshal.tscn" => enemy ? "marshal-enemy" : "marshal",
+            "res://units/HeroTest.tscn" => "mutant-wolf",
+            "res://units/HeroGolem.tscn" => "rune-golem",
+            "res://units/HeroMarshal.tscn" => "marshal",
             "res://units/HeroRanger.tscn" => enemy ? "archer-enemy" : "archer", // Same model as the archer, scaled up.
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
             "res://units/Medic.tscn" => enemy ? "medic-enemy" : "medic",
+            "res://units/FlameAutomaton.tscn" => enemy ? "flame-automaton-enemy" : "flame-automaton",
+            "res://units/SteamArtillery.tscn" => enemy ? "steam-artillery-enemy" : "steam-artillery",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
             "res://units/MinionHealer.tscn" => enemy ? "minion-healer-enemy" : "minion-healer",
@@ -30,6 +32,9 @@ public partial class SelectionPortraits : Node
             "res://buildings/Supply.tscn" => enemy ? "supply-enemy" : "supply-ally",
             "res://buildings/Barracks.tscn" => enemy ? "barracks-enemy" : "barracks-ally",
             "res://buildings/Forge.tscn" => enemy ? "forge-enemy" : "forge-ally",
+            "res://buildings/OilDerrick.tscn" => enemy ? "oil_derrick-enemy" : "oil_derrick-ally",
+            "res://buildings/Workshop.tscn" => enemy ? "workshop-enemy" : "workshop-ally",
+            "res://buildings/ResearchLab.tscn" => enemy ? "research_lab-enemy" : "research_lab-ally",
             _ => null
         };
         if (name == null) return null;

@@ -51,11 +51,40 @@ public partial class MapWorld : Node3D
         for (int z = 0; z < height; z++)
             for (int x = 0; x < width; x++)
             {
+                Vector2 center = GridOrigin + new Vector2(x + .5f, z + .5f) * CellSize;
                 Color color = _map.Rows[z][x] == '#' ? wallColor : _map.Rows[z][x] == 'W' ? new Color("727d80") :
-                    _visionBlocked[z * width + x] ? treeColor : IsRoad(x, z) ? roadColor : groundColor;
+                    _visionBlocked[z * width + x] ? treeColor :
+                    IsOilfieldSurface(center) ? new Color("1b302e") :
+                    IsRoad(x, z) ? roadColor : groundColor;
                 image.SetPixel(x, z, color);
             }
         return image;
+    }
+
+    private bool IsOilfieldSurface(Vector2 position)
+    {
+        foreach (var field in _map.OilFields)
+            if (field.Contains(position)) return true;
+        return false;
+    }
+
+    public bool TryGetOilFieldCenter(Vector3 position, out Vector3 center)
+    {
+        center = default;
+        if (_map == null || !position.IsFinite()) return false;
+        bool found = false;
+        float nearestDistance = float.PositiveInfinity;
+        foreach (var field in _map.OilFields)
+            if (field.Contains(new Vector2(position.X, position.Z)))
+            {
+                Vector3 candidate = new(field.Center[0], 0, field.Center[1]);
+                float distance = new Vector2(position.X - candidate.X, position.Z - candidate.Z).LengthSquared();
+                if (distance >= nearestDistance) continue;
+                center = candidate;
+                nearestDistance = distance;
+                found = true;
+            }
+        return found;
     }
 
     public sealed class MapFile
@@ -70,6 +99,20 @@ public partial class MapWorld : Node3D
         public string[] Rows { get; set; }
         public MapLane[] Lanes { get; set; } = Array.Empty<MapLane>();
         public MapActivityArea[] ActivityAreas { get; set; } = Array.Empty<MapActivityArea>();
+        public MapOilField[] OilFields { get; set; } = Array.Empty<MapOilField>();
+    }
+
+    // A derrick claims the exact center; the ellipse defines its cursor snap area.
+    public sealed class MapOilField
+    {
+        public string Id { get; set; }
+        public float[] Center { get; set; }
+        public float[] Radii { get; set; }
+        public bool IsValid() => !string.IsNullOrWhiteSpace(Id) &&
+            Center is { Length: 2 } && Center.All(float.IsFinite) &&
+            Radii is { Length: 2 } && Radii.All(r => float.IsFinite(r) && r > 0);
+        public bool Contains(Vector2 position) =>
+            ((position - new Vector2(Center[0], Center[1])) / new Vector2(Radii[0], Radii[1])).LengthSquared() <= 1;
     }
 
     public sealed class MapLane
@@ -134,6 +177,10 @@ public partial class MapWorld : Node3D
 
         if (map.ActivityAreas == null || map.ActivityAreas.Any(area => area == null || !area.IsValid()))
             throw new InvalidOperationException("잘못된 이벤트·정글 구역 형식");
+        if (map.OilFields == null || map.OilFields.Any(field => field == null || !field.IsValid()) ||
+            map.OilFields.Select(field => field.Id).Distinct(StringComparer.Ordinal).Count() != map.OilFields.Length ||
+            map.OilFields.Select(field => (field.Center[0], field.Center[1])).Distinct().Count() != map.OilFields.Length)
+            throw new InvalidOperationException("잘못된 유전 지형 형식");
 
         var occupied = new bool[map.Rows.Length, map.Rows[0].Length];
         for (int z = 0; z < map.Rows.Length; z++)

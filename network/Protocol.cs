@@ -6,6 +6,7 @@ public static class Protocol
     public static string BuildUpgradeTownHall(uint buildingId) => FormattableString.Invariant($"UPGRADE_TOWNHALL {buildingId}");
     public static string BuildUpgradeArmy(uint forgeId, bool attack)
         => FormattableString.Invariant($"UPGRADE_ARMY {forgeId} {(attack ? ArmyUpgradeSnapshot.AttackKind : ArmyUpgradeSnapshot.HpKind)}");
+    public static string BuildKnightResearch(uint labId) => FormattableString.Invariant($"RESEARCH_KNIGHT_CHARGE {labId}");
     public static string BuildBuyItem(uint itemId) => FormattableString.Invariant($"BUY_ITEM {itemId}");
     public static string BuildSellItem(int slot) => FormattableString.Invariant($"SELL_ITEM {slot}");
     public static string BuildRecall(uint heroId) => FormattableString.Invariant($"RECALL {heroId}");
@@ -38,6 +39,9 @@ public static class Protocol
 
     public static string BuildHold(IEnumerable<uint> unitIds)
         => $"HOLD {string.Join(" ", unitIds)}";
+
+    public static string BuildSiege(bool deploy, IEnumerable<uint> unitIds)
+        => $"SIEGE {(deploy ? 1 : 0)} {string.Join(" ", unitIds)}";
 
     public static string BuildRallyMove(uint buildingId, float x, float z)
         => FormattableString.Invariant($"RALLY {buildingId} MOVE {x} {z}");
@@ -80,6 +84,9 @@ public static class Protocol
     {
         return FormattableString.Invariant($"GATHER {targetId} {string.Join(" ", unitIds)}");
     }
+
+    public static string BuildReturn(uint dropoffId, IEnumerable<uint> unitIds)
+        => FormattableString.Invariant($"RETURN {dropoffId} {string.Join(" ", unitIds)}");
 
     public static string BuildAttackMove(IEnumerable<uint> unitIds, float x, float z)
     {

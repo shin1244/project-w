@@ -6,6 +6,7 @@ public partial class BuildingManager
     private readonly Dictionary<uint, TeamTierSnapshot> _teamTiers = new();
     private readonly Dictionary<uint, ArmyUpgradeSnapshot> _armyUpgrades = new();
     public long CommanderWood { get; private set; }
+    public long CommanderOil { get; private set; }
     public TeamTierSnapshot TeamTier(uint team) => _teamTiers.GetValueOrDefault(team, new(team, 1, 0, 0, 0, 0));
     public bool IsTownHallUpgrading(Building building) => building != null &&
         building.BuildingType == BuildingCatalog.TownHall && TeamTier(building.SideId) is { Upgrading: true } state && state.HallId == building.BuildingId;
@@ -30,9 +31,10 @@ public partial class BuildingManager
 
     public void HandleCommanderStock(string[] parts)
     {
-        if (parts.Length != 3 || parts[0] != "STOCK" || parts[1] != "0" ||
-            !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out long wood)) return;
-        CommanderWood = wood;
+        if (parts.Length != 3 || parts[0] != "STOCK" || parts[1] is not ("0" or "2") ||
+            !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out long amount)) return;
+        if (parts[1] == "0") CommanderWood = amount;
+        else CommanderOil = amount;
         RequirementsChanged?.Invoke();
     }
 
@@ -40,7 +42,11 @@ public partial class BuildingManager
     {
         _teamTiers.Clear();
         _armyUpgrades.Clear();
+        _knightResearch.Clear();
         CommanderWood = 0;
+        CommanderOil = 0;
+        CommanderSupplyUsed = CommanderSupplyLimit = 0;
+        HasCommanderSupply = false;
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }

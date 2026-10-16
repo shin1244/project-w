@@ -57,7 +57,7 @@ environment = SubResource("Environment_preview")
 [node name="KnightLabel" type="Label3D" parent="."]
 position = Vector3(0, 3.1, 0)
 billboard = 1
-text = "검방병  /  RTS 1"
+text = "스팀돌격병  /  RTS 1"
 font_size = 42
 pixel_size = 0.004
 outline_size = 4
@@ -65,7 +65,7 @@ outline_size = 4
 [node name="ArcherLabel" type="Label3D" parent="."]
 position = Vector3(2.6, 3.1, 0)
 billboard = 1
-text = "궁수  /  RTS 2"
+text = "공압사수  /  RTS 2"
 font_size = 42
 pixel_size = 0.004
 outline_size = 4

@@ -19,10 +19,10 @@ public partial class BuildingPlacementChecks : Main
     private Button Slot(int number) => Commands.GetNode<Button>($"Slots/Slot{number}");
     private void ChooseBuilding(int number = 8)
     {
-        if (!Commands.IsTierOneMenuOpen) Slot(1).EmitSignal(BaseButton.SignalName.Pressed);
-        Check(Commands.IsTierOneMenuOpen, "A selected worker can open the tier-one menu");
+        if (!Commands.IsBuildMenuOpen) Slot(1).EmitSignal(BaseButton.SignalName.Pressed);
+        Check(Commands.IsBuildMenuOpen, "A selected worker can open the tier-one menu");
         Slot(number).EmitSignal(BaseButton.SignalName.Pressed);
-        Check(!Commands.IsTierOneMenuOpen && Placement.Active, "Choosing a building returns to the base panel and starts placement");
+        Check(!Commands.IsBuildMenuOpen && Placement.Active, "Choosing a building returns to the base panel and starts placement");
     }
     private Vector2 Screen(float x, float z) => Units.Camera.UnprojectPosition(new Vector3(x, 0, z));
     private string Issue(float x, float z, float width = 2, float depth = 2) =>
@@ -62,7 +62,7 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectUnit", Unit());
             Units.ToggleSelection(Unit(102));
             Units.ToggleSelection(Unit(201));
-            Check(Slot(1).Text == "1티어(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
+            Check(Slot(1).Text == "건설(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
                 "Mixed selection with own workers exposes the tier-one menu instead of direct build buttons");
             ChooseBuilding();
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
@@ -114,9 +114,9 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", supply);
             var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
             var title = (Label)typeof(SelectionDetails).GetField("_title", Private).GetValue(details);
-            Check(title.Text == "합숙소", "New building selection uses its correct name");
+            Check(title.Text == "주택", "New building selection uses its correct name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(9);
+            ChooseBuilding(4);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
             Click(-5.5f, -3.5f);
             Check(_commands.Count == 2 && _commands[1] == "BUILD 4 -5.5 -3.5 101", "Barracks aligns its 5x3 footprint and writes invariant fractional coordinates");
@@ -131,25 +131,29 @@ public partial class BuildingPlacementChecks : Main
                 Check(!Placement.Begin(unavailable) && !Units.RequestBuild(unavailable, new Vector3(-4, 0, -8), 101),
                     $"Type {unavailable} is unavailable for player construction in both preview and command paths");
             ChooseBuilding(7);
-            Placement.UpdatePreview(Screen(-5.5f, -9.5f));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("저장소 배치"),
-                "Tier-one slot 7 selects the cached 3x3 store preview");
+            Placement.UpdatePreview(Screen(-6f, -9f));
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("보급기지 배치"),
+                "Tier-one slot 7 selects the supply depot placement preview");
             before = _wire.Length;
             int buildingsBefore = Buildings.LiveBuildings.Count;
-            Click(-5.5f, -9.5f);
-            Check(_commands.Count == 3 && _commands[2] == "BUILD 2 -5.5 -9.5 101" && !Placement.Active &&
-                Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 2 -5.5 -9.5 101" + System.Environment.NewLine &&
+            Click(-6f, -9f);
+            Check(_commands.Count == 3 && _commands[2] == "BUILD 2 -6 -9 101" && !Placement.Active &&
+                Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 2 -6 -9 101" + System.Environment.NewLine &&
                 Buildings.LiveBuildings.Count == buildingsBefore, "Store sends exactly one type 2 BUILD and waits for the server");
-            Receive("BUILDING 2 504 1 -5.5 -9.5 0");
-            Check(Buildings.TryGetBuilding(504, out Building store) && store.BuildingType == BuildingCatalog.Store &&
-                store.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3), "Type 2 response creates the 3x3 store");
+            Receive("BUILDING 2 504 1 -6 -9 0");
+            Check(Buildings.TryGetBuilding(504, out Building store) && store.BuildingType == BuildingCatalog.Store,
+                "Type 2 response creates the supply depot without changing its protocol ID");
+            Vector2 depotSize = store.GetMeta("footprint").AsVector2I();
+            Check(Issue(-6f + depotSize.X / 2 + .5f, -9f, 1, 1) == null &&
+                Issue(-6f + depotSize.X / 2 + .4f, -9f, 1, 1)?.Contains("다른 건물") == true,
+                "Depot occupancy allows touching edges and rejects overlap using its scene footprint");
             Invoke("SelectBuilding", store);
-            Check(title.Text == "저장소", "Store selection displays its synchronized name");
+            Check(title.Text == "보급기지", "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(4);
+            ChooseBuilding(5);
             Placement.UpdatePreview(Screen(-5.5f, -3.5f));
             Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("대장간 배치"),
-                "Tier-one slot 4 selects the cached 5x3 forge preview");
+                "Tier-one slot 5 selects the cached 5x3 forge preview");
             before = _wire.Length;
             buildingsBefore = Buildings.LiveBuildings.Count;
             Click(-5.5f, -3.5f);
@@ -162,18 +166,18 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", forge);
             Check(title.Text == "대장간", "Forge selection displays its synchronized name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(5);
+            ChooseBuilding(6);
             before = _wire.Length;
             Click(-5.5f, 3.5f);
             Check(_commands.Count == 5 && _commands[4] == "BUILD 6 -5.5 3.5 101" && !Placement.Active &&
                 Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 6 -5.5 3.5 101" + System.Environment.NewLine,
-                "Tower uses S menu entry and sends its new 3x3 grid-aligned footprint");
+                "Tower uses D menu entry and sends its new 3x3 grid-aligned footprint");
             Receive("BUILDING 6 506 1 6 -8 0");
             Check(Buildings.TryGetBuilding(506, out Building tower) && tower.BuildingType == BuildingCatalog.Tower &&
                 tower.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3) && tower.IsDefense,
                 "Type 6 response creates the small tower rather than a 3x3 fortress");
             Invoke("SelectBuilding", tower);
-            Check(title.Text == "포탑 · 1티어", "Small tower displays its separate name and team tier");
+            Check(title.Text == "망루 · 1티어", "Small tower displays its separate name and team tier");
             Check(Issue(6, -8)?.Contains("다른 건물") == true, "The confirmed tower blocks overlapping construction");
             Invoke("SelectUnit", Unit());
 
@@ -229,7 +233,8 @@ public partial class BuildingPlacementChecks : Main
             ChooseBuilding();
             Invoke("OnConnectionClosed", "Placement test disconnect");
             Check(!Placement.Active && Units.LiveUnits.Count == 0, "Disconnect cleans the ghost and selected worker");
-            GD.Print("PASS: worker construction menu, terrain/tree/unit/server-aligned building occupancy, latest server positions, exact BUILD framing, one request per click, server-only creation, cancel/UI/sync/reconnect gates");
+            CheckOilDerrick();
+            GD.Print("PASS: worker construction menu, terrain/tree/unit/server-aligned building occupancy, oilfield-only derrick snapping/occupancy/removal, exact BUILD framing, server-only creation, cancel/UI/sync/reconnect gates");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -239,6 +244,70 @@ public partial class BuildingPlacementChecks : Main
     private void BeginSession()
     {
         Receive($"MAP 2 {Map.MapHash}"); Receive("WORLD_READY"); Receive("WELCOME 7 1 COMMANDER");
+    }
+
+    private void CheckOilDerrick()
+    {
+        Map.MapPath = "res://tests/fixtures/map-oil-derrick.json";
+        Map.LoadLocalMap();
+        Fog.Configure(Map);
+        BeginSession();
+        Check(Map.TryGetOilFieldCenter(new Vector3(-1, 0, -7), out Vector3 exactCenter) && exactCenter == new Vector3(-1, 0, -7),
+            "An exact oilfield center takes precedence over an earlier overlapping cursor ellipse");
+        Check(Map.TryGetOilFieldCenter(new Vector3(-2, 0, -7), out Vector3 nearerCenter) && nearerCenter == new Vector3(-1, 0, -7),
+            "Overlapping oilfield ellipses select the nearest center");
+        Check(Map.TryGetOilFieldCenter(new Vector3(-2.5f, 0, -7), out Vector3 tiedCenter) && tiedCenter == new Vector3(-4, 0, -7),
+            "Equally near oilfield centers retain metadata order like the server");
+        Receive("UNIT 0 101 7 -9 5 1");
+        Invoke("SelectUnit", Unit());
+        Units.Camera.Position = new Vector3(0, 32, 22);
+        Units.Camera.LookAt(Vector3.Zero);
+        Units.Camera.Size = 30;
+        ChooseBuilding(9);
+        int before = _commands.Count;
+        Click(0, -5);
+        Check(Placement.Active && !Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
+            "Derricks reject ordinary grass without sending BUILD");
+        Click(4.5f, -7);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
+            "An ordinary road cannot be used as an oilfield");
+        Click(-1.8f, 0);
+        Check(!Placement.CanPlace && _commands.Count == before,
+            "A click just outside the oilfield cannot grid-snap back onto its center");
+        Placement.UpdatePreview(Screen(-3.2f, .4f));
+        Check(Placement.CanPlace && Placement.PlacementPosition == new Vector3(-4, 0, 0),
+            "A click inside the oil ellipse snaps the derrick to its one shared center despite R cells");
+        Check(Issue(-4, 0, 4, 4)?.Contains("도로") == true,
+            "An oilfield remains reserved against other building types");
+        Click(6, 0);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("벽") && _commands.Count == before,
+            "An oilfield does not bypass physical terrain obstacles");
+        Receive("UNIT 0 102 7 -4 0 1");
+        Click(-4, 0);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("유닛") && _commands.Count == before,
+            "Units still obstruct oilfield construction");
+        Receive("REMOVE 102");
+        Click(-3.2f, .4f);
+        Check(!Placement.Active && _commands.Count == before + 1 && _commands[^1] == "BUILD 7 -4 0 101" &&
+            Buildings.LiveBuildings.Count == 0,
+            "Derrick request sends the appended type and exact site center without speculative creation");
+        Receive("BUILDING 7 507 1 -4 0 0");
+        Receive("CONSTRUCTION 507 25 7");
+        Check(Buildings.TryGetBuilding(507, out Building derrick) && derrick.BuildingType == BuildingCatalog.OilDerrick &&
+            derrick.IsUnderConstruction, "Type 7 receives ordinary authoritative construction snapshots");
+        ChooseBuilding(9);
+        Click(-4, 0);
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑") && _commands.Count == before + 1,
+            "An unfinished derrick occupies the entire oilfield");
+        Receive("CONSTRUCTION 507 100 7");
+        Placement.UpdatePreview(Screen(-4, 0));
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑"),
+            "A completed derrick retains its site occupancy");
+        Receive("REMOVE 507");
+        Placement.UpdatePreview(Screen(-4, 0));
+        Check(Placement.CanPlace, "Server removal releases the oilfield for another derrick");
+        Receive($"MAP 2 {Map.MapHash}");
+        Check(!Placement.Active, "Map resynchronization cancels the snapped oilfield preview");
     }
 
     private void Click(float x, float z)

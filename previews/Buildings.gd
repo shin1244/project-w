@@ -16,7 +16,7 @@ func _ready() -> void:
 	for entry in [
 		["res://previews/TownHall.tscn", "회관", "5 × 5", 10.2],
 		["res://previews/Fortress.tscn", "요새", "4 × 4", 10.2],
-		["res://previews/Tower.tscn", "간이 포탑", "3 × 3", 10.2]
+		["res://previews/Tower.tscn", "망루", "3 × 3", 10.2]
 	]:
 		var panel := SubViewportContainer.new()
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL

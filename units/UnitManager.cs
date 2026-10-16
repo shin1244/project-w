@@ -11,6 +11,8 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
     [Export] public PackedScene MedicScene;
+    [Export] public PackedScene FlameAutomatonScene;
+    [Export] public PackedScene SteamArtilleryScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene MinionHealerScene;
@@ -48,6 +50,8 @@ public partial class UnitManager : Node3D
         UnitCatalog.Knight => KnightScene,
         UnitCatalog.Archer => ArcherScene,
         UnitCatalog.Medic => MedicScene ??= GD.Load<PackedScene>("res://units/Medic.tscn"),
+        UnitCatalog.FlameAutomaton => FlameAutomatonScene ??= GD.Load<PackedScene>("res://units/FlameAutomaton.tscn"),
+        UnitCatalog.SteamArtillery => SteamArtilleryScene ??= GD.Load<PackedScene>("res://units/SteamArtillery.tscn"),
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
@@ -152,7 +156,9 @@ public partial class UnitManager : Node3D
         if (tier.Upgrading) return "회관 업그레이드 중";
         if (tier.Tier >= 3) return "최고 단계";
         if (hall.ProductionQueue.Count != 0) return "일꾼 생산 대기열을 비워주세요";
-        return Buildings.CommanderWood < (tier.Tier == 1 ? 600 : 1000) ? "나무 부족" : null;
+        if (!tier.HasUpgradeTerms) return "업그레이드 정보 수신 대기";
+        if (Buildings.CommanderWood < tier.NextWood) return "나무 부족";
+        return Buildings.CommanderOil < tier.NextOil ? "기름 부족" : null;
     }
 
     public string ArmyUpgradeBlockReason(Building forge, bool attack)
@@ -231,13 +237,14 @@ public partial class UnitManager : Node3D
 
     public void RequestTrain(uint unitType)
     {
+        if (UnitCatalog.IsWorkshopUnit(unitType) && (!CommanderControl || Spectating)) return;
         if (_localPlayerId == 0 || _localTeam == 0 || _selectedUnitIds.Count > 0 || InspectedUnit != null ||
             !GodotObject.IsInstanceValid(Buildings)) return;
 
         Building producer = Buildings.SelectedBuilding;
         if (!GodotObject.IsInstanceValid(producer) || producer.IsQueuedForDeletion() || !producer.IsInsideTree() ||
             !producer.CanTrain(unitType) || producer.IsUnderConstruction || Buildings.IsTownHallUpgrading(producer) || producer.SideId != _localTeam ||
-            Buildings.UnitRequirementBlockReason(unitType) != null ||
+            Buildings.UnitRequirementBlockReason(unitType) != null || Buildings.TrainingTermsBlockReason(producer, unitType) != null ||
             producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ||
             !Buildings.TryGetBuilding(producer.BuildingId, out Building registered) || registered != producer) return;
 
@@ -404,7 +411,7 @@ public partial class UnitManager : Node3D
                     return;
                 if (IsEnemy(building)) RequestAttack(building);
                 else if (building.IsUnderConstruction && TryGetSelectedWorker(out Unit builder)) RequestConstruct(building, builder.UnitId);
-                else RequestMove(point);
+                else if (!RequestGatherOil(building) && !RequestReturnResources(building)) RequestMove(point);
                 break;
             case null:
                 RequestMove(point);
@@ -448,6 +455,41 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(Protocol.BuildGather(target.ResourceId, _selectedUnitIds));
     }
 
+    public bool RequestGatherOil(Building target)
+    {
+        if (!CanUseResourceBuilding(target) || target.BuildingType != BuildingCatalog.OilDerrick) return false;
+        uint[] workers = SelectedWorkers(carryingOnly: false);
+        if (workers.Length == 0) return false;
+        _targetIndicator.Show(target);
+        CommandRequested?.Invoke(Protocol.BuildGather(target.BuildingId, workers));
+        return true;
+    }
+
+    public bool RequestReturnResources(Building target)
+    {
+        if (!CanUseResourceBuilding(target) || target.BuildingType is not (BuildingCatalog.TownHall or BuildingCatalog.Store))
+            return false;
+        uint[] workers = SelectedWorkers(carryingOnly: true);
+        if (workers.Length == 0) return false;
+        _targetIndicator.Show(target);
+        CommandRequested?.Invoke(Protocol.BuildReturn(target.BuildingId, workers));
+        return true;
+    }
+
+    private bool CanUseResourceBuilding(Building building) => !_controlledHeroType.HasValue && !Spectating &&
+        _localTeam != 0 && GodotObject.IsInstanceValid(building) && building.IsInsideTree() &&
+        !building.IsQueuedForDeletion() && !building.IsUnderConstruction && building.SideId == _localTeam &&
+        GodotObject.IsInstanceValid(Buildings) && Buildings.CanInspect(building) &&
+        Buildings.TryGetBuilding(building.BuildingId, out Building registered) && registered == building;
+
+    private uint[] SelectedWorkers(bool carryingOnly)
+    {
+        ValidateSelection();
+        return _selectedUnitIds.Where(id => _units.TryGetValue(id, out Unit unit) &&
+            unit.UnitType == UnitCatalog.Worker && CanControl(unit) && (!carryingOnly || unit.State.Carrying > 0))
+            .OrderBy(id => id).ToArray();
+    }
+
     public void RequestAttack(Node3D target)
     {
         ValidateSelection();
@@ -463,11 +505,6 @@ public partial class UnitManager : Node3D
     public void HandleHealth(HealthSnapshot health)
     {
         if (_units.TryGetValue(health.Id, out Unit unit)) unit.ApplyHealth(health);
-    }
-
-    public void HandleMana(ManaSnapshot mana)
-    {
-        if (_units.TryGetValue(mana.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyMana(mana.Current, mana.Maximum);
     }
 
     public void HandleShield(ShieldSnapshot shield)
@@ -638,10 +675,18 @@ public partial class UnitManager : Node3D
         return null;
     }
 
-    // STATE id IDLE|GATHER|ATTACK carrying focusId swingSequence
+    // STATE id activity carrying focusId swingSequence [carryType]
     public void HandleState(StateSnapshot snapshot)
     {
-        if (_units.TryGetValue(snapshot.Id, out Unit unit)) unit.ApplyServerState(snapshot.State);
+        if (!_units.TryGetValue(snapshot.Id, out Unit unit)) return;
+        unit.ApplyServerState(snapshot.State);
+        if (snapshot.State.Activity != UnitActivity.Inside) return;
+        // Like gas in StarCraft, a worker going into a derrick drops out of the selection.
+        unit.SetSelected(false);
+        bool selectionChanged = _selectedUnitIds.Remove(snapshot.Id);
+        if (InspectedUnit == unit) { InspectedUnit = null; selectionChanged = true; }
+        if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     public void HandleRemove(string[] parts)

@@ -411,6 +411,9 @@ public partial class Main : Node3D
             case "ARMY_UPGRADE":
                 Buildings?.HandleArmyUpgrade(parts);
                 break;
+            case "KNIGHT_RESEARCH":
+                Buildings?.HandleKnightResearch(parts);
+                break;
             case "HERO_ITEMS":
                 if (LocalRole==PlayerRole.Hero && HeroInventorySnapshot.TryParse(parts,out var inventory)) Shop?.ApplyInventory(inventory);
                 break;
@@ -455,6 +458,12 @@ public partial class Main : Node3D
                 break;
             case "REQUIRES":
                 Buildings?.HandleRequirements(parts);
+                break;
+            case "REQUIRES_TIER":
+                Buildings?.HandleTierRequirements(parts);
+                break;
+            case "TRAIN_DEF":
+                Buildings?.HandleTrainingDefinition(parts);
                 break;
             case "BODY":
                 Fog?.HandleBody(parts);
@@ -506,17 +515,6 @@ public partial class Main : Node3D
                     Teammates?.HandleHealth(health);
                 }
                 break;
-            case "MANA":
-                if (ManaSnapshot.TryParse(parts, out var mana))
-                {
-                    Units.HandleMana(mana);
-                    Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
-                    Teammates?.HandleMana(mana);
-                }
-                break;
-            case "MANA_COST":
-                if (ManaCostSnapshot.TryParse(parts, out var manaCost)) Skills?.HandleManaCost(manaCost);
-                break;
             case "SHIELD":
                 if (ShieldSnapshot.TryParse(parts, out var shield))
                 {
@@ -524,6 +522,18 @@ public partial class Main : Node3D
                     Buildings?.HandleShield(shield);
                     Skills?.HandleShield(shield);
                 }
+                break;
+            case "MANA":
+                if (ManaSnapshot.TryParse(parts, out var mana) && Units.TryGetUnit(mana.Id, out Unit manaUnit) &&
+                    UnitCatalog.IsHero(manaUnit.UnitType) && Units.CanInspect(manaUnit))
+                {
+                    manaUnit.Mana = mana;
+                    Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
+                    Teammates?.HandleMana(mana);
+                }
+                break;
+            case "MANA_COST":
+                if (ManaCostSnapshot.TryParse(parts, out var manaCost)) Skills?.HandleManaCost(manaCost);
                 break;
             case "STATS":
                 if (StatsSnapshot.TryParse(parts, out var stats))
@@ -551,6 +561,9 @@ public partial class Main : Node3D
             case "EXP":
                 if (LocalRole == PlayerRole.Hero && HeroExperienceSnapshot.TryParse(parts, out var experience))
                     UnitInfo?.ApplyExperience(experience);
+                break;
+            case "TEAM_LEVEL":
+                if (TeamLevelSnapshot.TryParse(parts, out var teamLevel)) _battleGuide?.ApplyTeamLevel(teamLevel);
                 break;
             case "TEAM_EXP":
                 if (TeamExperienceSnapshot.TryParse(parts, out var teamExperience) &&
@@ -640,6 +653,12 @@ public partial class Main : Node3D
                     Skills?.HandleState(state);
                 }
                 break;
+            case "SIEGE_STATE":
+                if (SiegeSnapshot.TryParse(parts, out var siege)) Units.HandleSiege(siege);
+                break;
+            case "KNIGHT_CHARGE":
+                if (KnightChargeSnapshot.TryParse(parts, out var charge)) Units.HandleKnightCharge(charge, _serverTick);
+                break;
             case "STOCK":
                 Stock?.HandleStock(parts);
                 if (LocalRole == PlayerRole.Commander) Buildings?.HandleCommanderStock(parts);
@@ -647,6 +666,7 @@ public partial class Main : Node3D
                 break;
             case "SUPPLY":
                 Stock?.HandleSupply(parts);
+                if (LocalRole == PlayerRole.Commander) Buildings?.HandleCommanderSupply(parts);
                 break;
             case "REMOVE":
                 if (parts.Length==2 && WireNumber.UInt(parts[1],out uint removedHero) && Skills?.HeroUnitId==removedHero) Shop?.SetRecall(default);

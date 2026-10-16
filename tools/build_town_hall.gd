@@ -5,7 +5,7 @@ const OUTPUT := "res://buildings/TownHall.tscn"
 const SERVER_FOOTPRINTS := {
 	0: Vector2i(5, 5),
 	1: Vector2i(4, 4),
-	2: Vector2i(3, 3),
+	2: Vector2i(4, 4),
 	3: Vector2i(3, 3),
 	4: Vector2i(5, 3),
 	5: Vector2i(5, 3),

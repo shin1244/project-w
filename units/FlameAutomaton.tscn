@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://units/models/FlameAutomatonRig.tscn" id="2_model"]
+[ext_resource type="Script" path="res://units/WorkshopMachineVisual.cs" id="3_animation"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 0.84
+height = 2.32
+
+[node name="FlameAutomaton" instance=ExtResource("1_base")]
+UnitType = 4
+HealthBarHeight = 2.65
+BodyRadius = 0.65
+
+[node name="Rig" parent="Visual" instance=ExtResource("2_model")]
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 1.16, 0)
+shape = SubResource("Selection")
+
+[node name="SelectionRing" parent="." index="2"]
+scale = Vector3(1.25, 1, 1.25)
+
+[node name="WorkshopMachineVisual" type="Node3D" parent="."]
+script = ExtResource("3_animation")

@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://maps/meshes/OilfieldGround.res" id="1_udltv"]
+[ext_resource type="ArrayMesh" path="res://maps/meshes/OilfieldMotion.res" id="2_146mc"]
+
+[node name="Oilfield" type="Node3D" unique_id=1478115429]
+
+[node name="Fissure" type="MeshInstance3D" parent="." unique_id=1881434699]
+cast_shadow = 0
+mesh = ExtResource("1_udltv")
+
+[node name="OilSurges" type="MeshInstance3D" parent="." unique_id=414506357]
+cast_shadow = 0
+custom_aabb = AABB(-2.1, 0.012, -1.7, 4.2, 1.15, 3.4)
+mesh = ExtResource("2_146mc")

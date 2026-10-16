@@ -1,30 +1,29 @@
 using System.Globalization;
 
-// MANA id current maximum: 영웅의 정수 마나. 체력처럼 그 영웅을 아는 편 모두에게 온다.
-public readonly record struct ManaSnapshot(uint Id, float Current, float Maximum)
+// Visible hero mana is authoritative; never regenerate or spend it locally.
+public readonly record struct ManaSnapshot(uint Id, int Current, int Maximum)
 {
     public static bool TryParse(string[] parts, out ManaSnapshot snapshot)
     {
         snapshot = default;
         if (parts.Length != 4 || parts[0] != "MANA" ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
-            !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float current) ||
-            !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float maximum) ||
-            !float.IsFinite(current) || !float.IsFinite(maximum) || current < 0 || maximum <= 0) return false;
-        snapshot = new(id, System.Math.Min(current, maximum), maximum);
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int current) ||
+            !int.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out int maximum) ||
+            maximum <= 0 || current > maximum) return false;
+        snapshot = new(id, current, maximum);
         return true;
     }
 }
 
-// MANA_COST type slot cost: 영웅 스킬의 마나 비용. ABILITY 정의와 별도로 온다.
-public readonly record struct ManaCostSnapshot(uint UnitType, int Slot, float Cost)
+public readonly record struct ManaCostSnapshot(uint HeroType, int Slot, float Cost)
 {
     public static bool TryParse(string[] parts, out ManaCostSnapshot snapshot)
     {
         snapshot = default;
         if (parts.Length != 4 || parts[0] != "MANA_COST" ||
-            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint type) ||
-            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) || slot > 4 ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint type) || !UnitCatalog.IsHero(type) ||
+            !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int slot) || slot is < 0 or > 3 ||
             !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float cost) ||
             !float.IsFinite(cost) || cost < 0) return false;
         snapshot = new(type, slot, cost);

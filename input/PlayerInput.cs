@@ -67,6 +67,7 @@ public partial class PlayerInput : Node
 			Commands.AttackRequested += BeginAttackTargeting;
 			Commands.StopRequested += QueueStop;
 			Commands.HoldRequested += QueueHold;
+			Commands.SiegeRequested += CancelTargeting;
 		}
 	}
 
@@ -172,7 +173,7 @@ public partial class PlayerInput : Node
 		if (!_leftPressed && Commands?.TryHandleShortcut(@event) == true)
 		{
 			_lastGroup = 0;
-			if (Commands.IsTierOneMenuOpen) Placement?.Cancel();
+			if (Commands.IsBuildMenuOpen) Placement?.Cancel();
 			GetViewport().SetInputAsHandled();
 			return;
 		}
@@ -502,6 +503,7 @@ public partial class PlayerInput : Node
 			Commands.AttackRequested -= BeginAttackTargeting;
 			Commands.StopRequested -= QueueStop;
 			Commands.HoldRequested -= QueueHold;
+			Commands.SiegeRequested -= CancelTargeting;
 		}
 		SetAttackTargeting(false);
 		_skillSlot = null;
