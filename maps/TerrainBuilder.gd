@@ -6,8 +6,9 @@ const BASE_X := 65.0
 const LANE_WIDTH := 12.0
 const OUTER_BUILD_WIDTH := 3.0
 const WALL_THICKNESS := 2
-const BASE_OUTER_RADIUS := 18.0
-const BASE_MEADOW_RADIUS := 18.0 # Grass kept around each town hall for the opening build.
+# Keep the east/west tips while opening broad grass shoulders above and below
+# each town hall. The lanes remain reserved, so these bays cannot block traffic.
+const BASE_MEADOW_RADII := Vector2(18.0, 24.0)
 const TOP_LANE := [
 	Vector2(-65, 0), Vector2(-58, -14), Vector2(-47, -24),
 	Vector2(-20, -29), Vector2(0, -30), Vector2(20, -29),
@@ -177,7 +178,7 @@ func is_expansion_clearing(p: Vector2) -> bool:
 		+ pow(height / EXPANSION_BAY_HEIGHT, EXPANSION_BAY_ROUNDNESS) <= 1.0
 
 func is_base_meadow(p: Vector2) -> bool:
-	return p.abs().distance_to(Vector2(BASE_X, 0)) <= BASE_MEADOW_RADIUS
+	return ((p.abs() - Vector2(BASE_X, 0)) / BASE_MEADOW_RADII).length_squared() <= 1.0
 
 # Extra rim depth along the lane, measured from the expansion pad's X.
 func expansion_swell(p: Vector2) -> float:
@@ -226,7 +227,7 @@ func is_arena_land(p: Vector2) -> bool:
 	return not outside_lanes(p) \
 		or is_expansion_land(p) \
 		or lane_distance(p) <= LANE_WIDTH * 0.5 + OUTER_BUILD_WIDTH + WALL_THICKNESS \
-		or p.abs().distance_to(Vector2(BASE_X, 0)) <= BASE_OUTER_RADIUS
+		or is_base_meadow(p)
 
 # The same cells used by the Go server define the visible surface.
 # T still has ground underneath; resource blocking is handled by the server.

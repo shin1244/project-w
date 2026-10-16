@@ -27,6 +27,13 @@ public partial class BuildingPlacementChecks : Main
     private Vector2 Screen(float x, float z) => Units.Camera.UnprojectPosition(new Vector3(x, 0, z));
     private string Issue(float x, float z, float width = 2, float depth = 2) =>
         PlacementRules.Check(Map, Buildings, Units, new Vector3(x, 0, z), new Vector2(width, depth));
+    private Vector2 SceneFootprint(uint type)
+    {
+        Node source = Buildings.SceneFor(type).Instantiate();
+        Vector2 size = source.GetMeta("footprint").AsVector2I();
+        source.Free();
+        return size;
+    }
 
     public override async void _Ready()
     {
@@ -81,6 +88,10 @@ public partial class BuildingPlacementChecks : Main
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
             Check(Placement.CanPlace, "Placement recovers when the live requirements are satisfied again");
             var ghost = Placement.GetNode<PlacementPreviewImage>("PreviewCanvas/BuildPreview");
+            foreach (uint type in new[] { BuildingCatalog.Barracks, BuildingCatalog.Forge, BuildingCatalog.Workshop })
+                Check(ghost.Select(type, out Vector2 size) && size == SceneFootprint(type),
+                    "Cached construction previews and live scenes use the same footprint");
+            ghost.Select(BuildingCatalog.Supply, out _);
             Check(Issue(-20, 0)?.Contains("맵 밖") == true, "Entire footprint must fit inside the map");
             Check(Issue(1, -8)?.Contains("벽이나 나무") == true, "Walls block construction");
             Check(Issue(1, 0)?.Contains("벽이나 나무") == true, "A two-cell tree blocks its whole footprint");
@@ -118,13 +129,17 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectUnit", Unit());
             ChooseBuilding(4);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            Click(-5.5f, -3.5f);
-            Check(_commands.Count == 2 && _commands[1] == "BUILD 4 -5.5 -3.5 101", "Barracks aligns its 5x3 footprint and writes invariant fractional coordinates");
+            Vector2 barracksSize = SceneFootprint(BuildingCatalog.Barracks);
+            Vector2 barracksCenter = new Vector2(-8, -5) + barracksSize * .5f;
+            Click(barracksCenter.X, barracksCenter.Y);
+            string barracksCommand = FormattableString.Invariant($"BUILD 4 {barracksCenter.X} {barracksCenter.Y} 101");
+            Check(_commands.Count == 2 && _commands[1] == barracksCommand, "Barracks aligns its scene footprint and writes invariant coordinates");
             Receive("BUILDING 4 503 1 8 -4 0");
             Check(Buildings.TryGetBuilding(503, out Building barracks) && barracks.BuildingType == BuildingCatalog.Barracks, "Server responses support both new building types");
-            Check(Issue(8, -1.9f, 1, 1) == null, "A 5x3 building does not incorrectly block a 3x3 square");
+            float besideBarracks = barracks.GlobalPosition.Z + barracksSize.Y * .5f + .6f;
+            Check(Issue(8, besideBarracks, 1, 1) == null, "Ground beyond the building footprint stays available");
             Receive("BUILDING 4 503 1 8 -4 1.5707963");
-            Check(Issue(8, -1.9f, 1, 1) == null, "Server yaw and visual facing do not rotate the server-aligned footprint");
+            Check(Issue(8, besideBarracks, 1, 1) == null, "Server yaw and visual facing do not rotate the server-aligned footprint");
             Check(Issue(-8, -3.5f) == null && Issue(-8.1f, -3.5f)?.Contains("다른 건물") == true, "Touching edges are allowed while partial footprint overlap is blocked");
 
             foreach (uint unavailable in new[] { BuildingCatalog.TownHall, BuildingCatalog.Fortress })
@@ -151,18 +166,21 @@ public partial class BuildingPlacementChecks : Main
             Check(title.Text == "보급기지", "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(5);
-            Placement.UpdatePreview(Screen(-5.5f, -3.5f));
+            Vector2 forgeSize = SceneFootprint(BuildingCatalog.Forge);
+            Vector2 forgeCenter = new Vector2(-8, -5) + forgeSize * .5f;
+            Placement.UpdatePreview(Screen(forgeCenter.X, forgeCenter.Y));
             Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("대장간 배치"),
-                "Tier-one slot 5 selects the cached 5x3 forge preview");
+                "Tier-one slot 5 selects the cached forge preview");
             before = _wire.Length;
             buildingsBefore = Buildings.LiveBuildings.Count;
-            Click(-5.5f, -3.5f);
-            Check(_commands.Count == 4 && _commands[3] == "BUILD 5 -5.5 -3.5 101" && !Placement.Active &&
-                Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 5 -5.5 -3.5 101" + System.Environment.NewLine &&
+            Click(forgeCenter.X, forgeCenter.Y);
+            string forgeCommand = FormattableString.Invariant($"BUILD 5 {forgeCenter.X} {forgeCenter.Y} 101");
+            Check(_commands.Count == 4 && _commands[3] == forgeCommand && !Placement.Active &&
+                Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == forgeCommand + System.Environment.NewLine &&
                 Buildings.LiveBuildings.Count == buildingsBefore, "Forge sends exactly one type 5 BUILD and waits for the server");
-            Receive("BUILDING 5 505 1 -5.5 -3.5 0");
+            Receive(FormattableString.Invariant($"BUILDING 5 505 1 {forgeCenter.X} {forgeCenter.Y} 0"));
             Check(Buildings.TryGetBuilding(505, out Building forge) && forge.BuildingType == BuildingCatalog.Forge &&
-                forge.GetMeta("footprint").AsVector2I() == new Vector2I(5, 3), "Type 5 response creates the 5x3 forge");
+                (Vector2)forge.GetMeta("footprint").AsVector2I() == forgeSize, "Type 5 response uses the scene footprint");
             Invoke("SelectBuilding", forge);
             Check(title.Text == "대장간", "Forge selection displays its synchronized name");
             Invoke("SelectUnit", Unit());

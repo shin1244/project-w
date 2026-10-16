@@ -15,10 +15,11 @@ public partial class BakeSelectionPortraits : Node
             Error result = DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
             if (result != Error.Ok) throw new System.InvalidOperationException($"Cannot create portrait directory: {result}");
             var portraits = new Dictionary<string, Texture2D>();
+            bool compactProductionOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--compact-production-only") >= 0;
             bool flameOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--flame-only") >= 0;
             bool artilleryOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--artillery-only") >= 0;
             bool workshopUnitsOnly = flameOnly || artilleryOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--workshop-units-only") >= 0;
-            bool tierTwoOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--tier-two-only") >= 0;
+            bool tierTwoOnly = compactProductionOnly || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--tier-two-only") >= 0;
             bool storeOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--store-only") >= 0;
             bool oilDerrickOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--oil-derrick-only") >= 0;
             bool golemOnly = System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--golem-only") >= 0;
@@ -57,7 +58,7 @@ public partial class BakeSelectionPortraits : Node
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add((unit == "FlameAutomaton" ? "flame-automaton" : "steam-artillery") + (enemy ? "-enemy" : ""),
                             GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: enemy));
-            foreach (string building in workshopUnitsOnly ? System.Array.Empty<string>() : tierTwoOnly ? new[] { "Workshop", "ResearchLab" } : oilDerrickOnly ? new[] { "OilDerrick" } : storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" })
+            foreach (string building in compactProductionOnly ? new[] { "Barracks", "Forge", "Workshop" } : workshopUnitsOnly ? System.Array.Empty<string>() : tierTwoOnly ? new[] { "Workshop", "ResearchLab" } : oilDerrickOnly ? new[] { "OilDerrick" } : storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" })
                 foreach (bool enemy in new[] { false, true })
                     portraits.Add($"{(building == "OilDerrick" ? "oil_derrick" : building == "ResearchLab" ? "research_lab" : building.ToLowerInvariant())}-{(enemy ? "enemy" : "ally")}",
                         GetPortrait(GD.Load<PackedScene>($"res://buildings/{building}.tscn"), true, enemy));

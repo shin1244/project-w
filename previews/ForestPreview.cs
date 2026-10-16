@@ -33,7 +33,8 @@ public partial class ForestPreview : Main
         bool jungle = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-jungle");
         bool expansion = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-expansion");
         bool wall = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-wall");
-        if (!closeUp && !jungle && !expansion && !wall && !Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture")) return;
+        bool baseMeadow = Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture-base");
+        if (!closeUp && !jungle && !expansion && !wall && !baseMeadow && !Array.Exists(OS.GetCmdlineUserArgs(), arg => arg == "--capture")) return;
         GetNode<CanvasLayer>("SelectionUI").Hide();
         if (jungle)
         {
@@ -60,10 +61,17 @@ public partial class ForestPreview : Main
             camera.Size = 14;
             CameraNavigation.FocusGround(camera, new Vector3(-62, 0, -15));
         }
+        if (baseMeadow)
+        {
+            var camera = GetNode<Camera3D>("Camera3D");
+            camera.Size = 44;
+            CameraNavigation.FocusGround(camera, new Vector3(-65, 0, 0));
+        }
         for (int i = 0; i < 4; i++)
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-        string path = wall ? "res://docs/images/wall-closeup.png" :
+        string path = baseMeadow ? "res://docs/images/base-building-space.png" :
+            wall ? "res://docs/images/wall-closeup.png" :
             expansion ? "res://docs/images/expansion-preview.png" :
             jungle ? "res://docs/images/jungle-preview.png" :
             closeUp ? "res://docs/images/terrain-closeup.png" : "res://docs/images/forest-preview.png";

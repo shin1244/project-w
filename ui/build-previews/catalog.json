@@ -16,7 +16,7 @@
     "Type": 4,
     "Texture": "res://ui/build-previews/barracks.png",
     "Footprint": [
-      5,
+      4,
       3
     ],
     "WorldSpan": 8,
@@ -42,7 +42,7 @@
     "Type": 5,
     "Texture": "res://ui/build-previews/forge.png",
     "Footprint": [
-      5,
+      4,
       3
     ],
     "WorldSpan": 8,
@@ -81,7 +81,7 @@
     "Type": 8,
     "Texture": "res://ui/build-previews/workshop.png",
     "Footprint": [
-      5,
+      4,
       4
     ],
     "WorldSpan": 8,

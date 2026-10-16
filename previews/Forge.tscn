@@ -6,7 +6,7 @@
 
 [sub_resource type="ShaderMaterial" id="FloorMaterial"]
 shader = ExtResource("3_grid")
-shader_parameter/footprint_size = Vector2(5, 3)
+shader_parameter/footprint_size = Vector2(4, 3)
 
 [sub_resource type="PlaneMesh" id="Floor"]
 material = SubResource("FloorMaterial")
