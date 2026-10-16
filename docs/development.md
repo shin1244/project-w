@@ -38,7 +38,7 @@ README의 교전 GIF는 서버 없이 `previews/BattleStage.tscn`에서 연출�
 Godot --path . --resolution 1280x800 --fixed-fps 15 res://previews/BattleStage.tscn -- --capture=<프레임 폴더>
 ```
 
-F6으로 열면 세 장면을 반복 재생합니다. 프레임은 GIF로 묶어 `docs/images/store/battle-1.gif`~`battle-3.gif`에 둡니다. 레인저는 모델 오류로 아직 연출에 넣지 않았습니다.
+F6으로 열면 세 장면을 반복 재생합니다. 프레임은 한 장씩 건너뛰어(약 7.5fps) 512×320으로 줄이고, 디더링 없이 127색 공용 팔레트로 바뀐 픽셀만 담은 GIF로 묶어 `docs/images/store/battle-1.gif`~`battle-3.gif`에 둡니다. 한 개가 4MB 안팎이며, 640×400에 디더링을 넣으면 7MB 가까이 됩니다. GIF는 Git 기록에 계속 남으므로 다시 찍을 때도 이 크기를 지킵니다. 레인저는 모델 오류로 아직 연출에 넣지 않았습니다.
 
 ## 폴더
 
