@@ -1,249 +1,180 @@
 extends "res://tools/build_town_hall.gd"
-## Reusable 3x2 tier-one barracks. Model only; local front is -Z.
-## Production rules and protocol IDs belong to the server integration.
+## The labour office (인력 사무소, server type 4): a drab Depression-era employment exchange of the
+## company (docs/art-direction.md). Grimy two-storey brick office, a painted company signboard,
+## a rooftop hiring billboard and wooden water tank, an iron fire escape, and a queue of men in
+## flat caps waiting at the door. Modelled on a 3x2 grid, then scaled to the server's 4x3 footprint.
 
 func _initialize() -> void:
-	material("stone", Color("7e8275"))
-	material("stone_light", Color("a0a592"))
-	material("stone_dark", Color("535d55"))
-	material("plaster", Color("c8b993"))
-	material("wood", Color("50382a"))
-	material("wood_light", Color("8e603b"))
-	material("dark", Color("23312f"), 0.25)
-	material("roof", Color("274e66"))
-	material("roof_mid", Color("315c73"))
-	material("roof_light", Color("3b6980"))
-	material("gold", Color("c49a49"), 0.35)
-	material("steel", Color("a3b3b2"), 0.55)
-	material("banner", Color("376a94"))
-	foundation()
-	main_hall()
-	main_roof()
-	gatehouse()
-	equipment()
-	pennant()
+	material("concrete", Color("8a867e"))
+	material("concrete_dark", Color("615e58"))
+	material("brick", Color("74463a"))
+	material("brick_dark", Color("553329"))
+	material("soot", Color("1e2226"))
+	material("iron", Color("2f363d"), 0.5, 0.55)
+	material("iron_light", Color("8f979c"), 0.55, 0.45)
+	material("brass", Color("a88349"), 0.6, 0.4)
+	material("wood", Color("5a4232"))
+	material("wood_dark", Color("3e2e24"))
+	material("canvas", Color("8f8470"))
+	material("paper", Color("d9cfb4"))
+	material("coat", Color("4a4642"))
+	material("coat_brown", Color("5b4a3a"))
+	material("cap", Color("35322f"))
+	material("skin", Color("b48a6c"))
+	material("glass", Color("9c7f4a"), 0.0, 0.35, 0.18)
+	material("tar", Color("2a2826")) # Dim, dirty light behind grimy panes.
+	material("banner", Color("376a94")) # Company colour (team tint).
+	sidewalk()
+	office()
+	signage()
+	roof_works()
+	fire_escape()
+	queue()
 	save_barracks()
 	quit()
 
-func foundation() -> void:
-	# The bevels soften the slab without changing its exact map footprint.
-	var points := [Vector2(-1.38, -1), Vector2(1.38, -1), Vector2(1.5, -.88),
-		Vector2(1.5, .88), Vector2(1.38, 1), Vector2(-1.38, 1), Vector2(-1.5, .88), Vector2(-1.5, -.88)]
-	for i in range(points.size()):
-		var a: Vector2 = points[i]
-		var b: Vector2 = points[(i + 1) % points.size()]
-		triangle("stone", Vector3(0, .16, 0), Vector3(b.x, .16, b.y), Vector3(a.x, .16, a.y))
-		quad("stone_dark", Vector3(a.x, 0, a.y), Vector3(a.x, .16, a.y), Vector3(b.x, .16, b.y), Vector3(b.x, 0, b.y))
-	box("stone_dark", Vector3(0, .29, .23), Vector3(2.56, .28, 1.19))
-	box("stone_light", Vector3(0, .42, .23), Vector3(2.62, .08, 1.25))
-	# Forecourt paving, entrance steps and patterned stone edging.
-	for i in range(8):
-		box("stone_light" if i % 3 == 0 else "stone", Vector3(-1.26 + i * .36, .175, -.83), Vector3(.34, .035, .28))
-	box("stone_light", Vector3(0, .235, -.78), Vector3(1.17, .13, .34))
-	box("stone", Vector3(0, .335, -.59), Vector3(1.10, .10, .25))
-	for side in [-1.0, 1.0]:
-		for i in range(4):
-			box("stone_light", Vector3(side * 1.365, .195, -.49 + i * .38), Vector3(.15, .07, .345))
+func sidewalk() -> void:
+	box("concrete_dark", Vector3(0, 0.03, 0), Vector3(3.0, 0.06, 2.0))
+	box("concrete", Vector3(0, 0.065, 0), Vector3(2.96, 0.012, 1.96))
+	for x in [-1.0, -0.4, 0.2, 0.8]: # Paving joints.
+		box("concrete_dark", Vector3(x, 0.072, -0.7), Vector3(0.012, 0.004, 0.6))
+	box("soot", Vector3(-0.6, 0.073, -0.62), Vector3(1.0, 0.003, 0.22)) # Worn where the queue stands.
 
-func main_hall() -> void:
-	box("stone_dark", Vector3(0, .66, .24), Vector3(2.40, .48, 1.06))
-	box("plaster", Vector3(0, 1.24, .24), Vector3(2.39, .72, 1.06))
-	# Individual blocks retain broad shapes that survive a normal RTS camera.
-	for z in [-.302, .782]:
-		for row in range(2):
-			for col in range(9):
-				var x := -1.066 + col * .267
-				if z < 0 and absf(x) < .55: continue
-				box("stone_light" if (col + row * 3) % 5 == 0 else "stone", Vector3(x, .55 + row * .215, z), Vector3(.25, .20, .055))
-	for side in [-1.0, 1.0]:
-		for row in range(2):
-			for col in range(4):
-				box("stone_light" if (col + row) % 3 == 0 else "stone", Vector3(side * 1.211, .55 + row * .215, -.16 + col * .265), Vector3(.055, .20, .247))
-	# Oak framing and stone corner piers anchor the building under its heavy roof.
-	for x in [-1.20, -.63, .63, 1.20]:
-		for z in [-.31, .79]:
-			box("wood", Vector3(x, 1.08, z), Vector3(.105, 1.13, .105))
-			if absf(x) > 1:
-				box("stone", Vector3(x, .65, z), Vector3(.20, .40, .19))
-				box("stone_light", Vector3(x, .885, z), Vector3(.23, .07, .215))
-			box("dark", Vector3(x, 1.46, z - .059 if z < 0 else z + .059), Vector3(.11, .085, .018))
-	for z in [-.319, .80]:
-		box("wood", Vector3(0, 1.58, z), Vector3(2.53, .13, .14))
-		box("wood_light", Vector3(0, .95, z), Vector3(2.50, .075, .095))
-		for side in [-1.0, 1.0]:
-			beam("wood", Vector3(side * .70, 1.02, z), Vector3(side * 1.12, 1.51, z), .065, .070)
-	# Gable ends, inset louver vents and under-eave braces.
-	for side in [-1.0, 1.0]:
-		var x: float = side * 1.205
-		if side > 0:
-			triangle("plaster", Vector3(x, 1.62, -.31), Vector3(x, 2.30, .24), Vector3(x, 1.62, .79))
-		else:
-			triangle("plaster", Vector3(x, 1.62, .79), Vector3(x, 2.30, .24), Vector3(x, 1.62, -.31))
-		box("wood", Vector3(x, 1.60, .24), Vector3(.12, .12, 1.22))
-		beam("wood", Vector3(x, 1.63, -.32), Vector3(x, 2.30, .24), .075, .075)
-		beam("wood", Vector3(x, 2.30, .24), Vector3(x, 1.63, .80), .075, .075)
-		box("wood", Vector3(x, 1.96, .24), Vector3(.115, .66, .080))
-		box("dark", Vector3(side * 1.272, 1.27, .23), Vector3(.027, .36, .47))
-		for i in range(4):
-			box("wood_light", Vector3(side * 1.292, 1.135 + i * .089, .23), Vector3(.025, .045, .42))
-		box("stone_light", Vector3(side * 1.286, 1.035, .23), Vector3(.11, .07, .55))
-		for z in [-.21, .69]:
-			beam("wood_light", Vector3(side * 1.22, 1.36, z), Vector3(side * 1.35, 1.68, z), .065, .08)
-	# Narrow defensive windows on the long rear wall.
-	for x in [-.85, 0.0, .85]:
-		box("wood", Vector3(x, 1.23, .806), Vector3(.28, .43, .06))
-		box("dark", Vector3(x, 1.25, .847), Vector3(.17, .30, .025))
-		box("wood_light", Vector3(x, 1.25, .867), Vector3(.027, .30, .025))
+func office() -> void:
+	var x0 := -1.3
+	var x1 := 1.02
+	var z0 := -0.42
+	var z1 := 0.92
+	var top := 2.18
+	var cx := (x0 + x1) * 0.5
+	box("brick", Vector3(cx, (0.07 + top) * 0.5, (z0 + z1) * 0.5), Vector3(x1 - x0, top - 0.07, z1 - z0))
+	# Concrete ground-floor front, floor band and parapet with coping.
+	box("concrete", Vector3(cx, 0.55, z0 - 0.01), Vector3(x1 - x0 + 0.02, 0.96, 0.03))
+	box("concrete", Vector3(cx, 1.17, (z0 + z1) * 0.5), Vector3(x1 - x0 + 0.06, 0.07, z1 - z0 + 0.06))
+	for z in [z0, z1]: # Parapet walls around the roof.
+		box("brick_dark", Vector3(cx, top + 0.08, z), Vector3(x1 - x0 + 0.02, 0.16, 0.06))
+	for x in [x0, x1]:
+		box("brick_dark", Vector3(x, top + 0.08, (z0 + z1) * 0.5), Vector3(0.06, 0.16, z1 - z0 + 0.02))
+	# Tarred roof inside a concrete coping rim.
+	box("tar", Vector3(cx, top + 0.1, (z0 + z1) * 0.5), Vector3(x1 - x0 - 0.06, 0.02, z1 - z0 - 0.06))
+	for z in [z0, z1]:
+		box("concrete", Vector3(cx, top + 0.17, z), Vector3(x1 - x0 + 0.08, 0.03, 0.08))
+	for x in [x0, x1]:
+		box("concrete", Vector3(x, top + 0.17, (z0 + z1) * 0.5), Vector3(0.08, 0.03, z1 - z0 + 0.08))
+	# Soot streaks run down from the parapet and the upper sills.
+	for x in [-1.05, -0.55, 0.15, 0.7]:
+		box("soot", Vector3(x, top - 0.25, z0 - 0.012), Vector3(0.08, 0.45, 0.006))
+	box("soot", Vector3(cx, top - 0.04, (z0 + z1) * 0.5), Vector3(x1 - x0 + 0.01, 0.06, z1 - z0 + 0.01))
+	# Shopfront windows either side of the door; the door sits a step back.
+	for span in [[-1.2, -0.38], [0.36, 0.94]]:
+		var w: float = span[1] - span[0]
+		var c: float = (span[0] + span[1]) * 0.5
+		box("wood_dark", Vector3(c, 0.6, z0 - 0.035), Vector3(w, 0.62, 0.025))
+		box("glass", Vector3(c, 0.62, z0 - 0.05), Vector3(w - 0.06, 0.52, 0.01))
+		for i in range(1, 4): # Mullions.
+			box("wood_dark", Vector3(span[0] + w * i / 4.0, 0.62, z0 - 0.056), Vector3(0.02, 0.52, 0.008))
+		box("concrete_dark", Vector3(c, 0.27, z0 - 0.06), Vector3(w + 0.04, 0.05, 0.06))
+		# Job notices pasted inside the glass.
+		for i in range(3):
+			box("paper", Vector3(span[0] + 0.1 + i * w * 0.3, 0.72 - (i % 2) * 0.12, z0 - 0.058), Vector3(0.09, 0.12, 0.004))
+	box("wood_dark", Vector3(0, 0.5, z0 - 0.02), Vector3(0.42, 0.86, 0.03))
+	box("wood", Vector3(0, 0.46, z0 - 0.04), Vector3(0.32, 0.76, 0.02))
+	box("glass", Vector3(0, 0.7, z0 - 0.052), Vector3(0.2, 0.18, 0.006))
+	sphere("brass", Vector3(0.11, 0.45, z0 - 0.06), 0.018)
+	for i in range(2): # Worn steps.
+		box("concrete_dark", Vector3(0, 0.09 + i * 0.04, z0 - 0.12 + i * 0.05), Vector3(0.5, 0.04, 0.14))
+	# Upper floor: tall grimy sash windows, some with drawn blinds.
+	for i in range(5):
+		var x := x0 + 0.24 + i * 0.46
+		box("concrete", Vector3(x, 1.27, z0 - 0.02), Vector3(0.3, 0.04, 0.05))
+		box("wood_dark", Vector3(x, 1.62, z0 - 0.01), Vector3(0.26, 0.62, 0.02))
+		box("paper" if i % 3 == 1 else "glass", Vector3(x, 1.62, z0 - 0.025), Vector3(0.2, 0.54, 0.008))
+		box("wood_dark", Vector3(x, 1.62, z0 - 0.03), Vector3(0.2, 0.02, 0.006))
+	# Side windows and a back door.
+	for z in [-0.05, 0.5]:
+		box("glass", Vector3(x0 - 0.012, 1.62, z), Vector3(0.008, 0.5, 0.2))
+		box("glass", Vector3(x0 - 0.012, 0.62, z), Vector3(0.008, 0.45, 0.2))
 
-func main_roof() -> void:
-	# Ridge runs along X, expressing the 3x2 hall's broad military frontage.
-	var center_z := .24
-	var half_depth := .66
-	var eave := 1.70
-	var ridge := 2.38
+func signage() -> void:
+	var z := -0.47
+	# The painted company board over the shopfront, letters as ivory blocks.
+	box("wood_dark", Vector3(-0.14, 1.02, z), Vector3(2.3, 0.2, 0.04))
+	box("banner", Vector3(-0.14, 1.02, z - 0.025), Vector3(2.22, 0.15, 0.012))
+	var widths := [0.07, 0.06, 0.08, 0.06, 0.07, 0.0, 0.08, 0.06, 0.07, 0.06, 0.08, 0.06, 0.07, 0.0, 0.07, 0.08, 0.06]
+	var x := -1.1
+	for w in widths:
+		if w > 0.0:
+			box("paper", Vector3(x + w * 0.5, 1.02, z - 0.034), Vector3(w * 0.75, 0.085, 0.004))
+		x += maxf(w, 0.05) + 0.03
+	# A drab canvas awning over the door on iron brackets.
+	box("canvas", Vector3(0, 0.98, -0.6), Vector3(0.6, 0.03, 0.34), Basis(Vector3.RIGHT, -0.32))
 	for side in [-1.0, 1.0]:
-		var edge_z: float = center_z + side * half_depth
-		if side < 0:
-			quad("roof", Vector3(-1.40, eave, edge_z), Vector3(-1.40, ridge, center_z), Vector3(1.40, ridge, center_z), Vector3(1.40, eave, edge_z))
-		else:
-			quad("roof", Vector3(-1.40, ridge, center_z), Vector3(-1.40, eave, edge_z), Vector3(1.40, eave, edge_z), Vector3(1.40, ridge, center_z))
-		for row in range(6):
-			for col in range(14):
-				var near := half_depth * row / 6.0 + .004
-				var far := half_depth * (row + 1) / 6.0 - .007
-				var za: float = center_z + side * near
-				var zb: float = center_z + side * far
-				var ya := lerpf(ridge, eave, near / half_depth) + .025
-				var yb := lerpf(ridge, eave, far / half_depth) + .030
-				var xa := -1.39 + col * 2.78 / 14.0 + .006
-				var xb := -1.39 + (col + 1) * 2.78 / 14.0 - .006
-				var color: String = ["roof", "roof_mid", "roof_light"][(col * 5 + row * 3 + row / 2) % 3]
-				if side < 0:
-					quad(color, Vector3(xa, yb, zb), Vector3(xa, ya, za), Vector3(xb, ya, za), Vector3(xb, yb, zb))
-				else:
-					quad(color, Vector3(xa, ya, za), Vector3(xa, yb, zb), Vector3(xb, yb, zb), Vector3(xb, ya, za))
-		box("wood", Vector3(0, eave - .035, edge_z), Vector3(2.84, .10, .085))
-		box("gold", Vector3(0, eave + .021, edge_z - side * .012), Vector3(2.81, .018, .025))
-	for x in [-1.40, 1.40]:
-		beam("wood", Vector3(x, eave, center_z - half_depth), Vector3(x, ridge, center_z), .085, .085)
-		beam("wood", Vector3(x, ridge, center_z), Vector3(x, eave, center_z + half_depth), .085, .085)
-		beam("gold", Vector3(x, eave + .03, center_z - half_depth), Vector3(x, ridge + .03, center_z), .025, .025)
-		beam("gold", Vector3(x, ridge + .03, center_z), Vector3(x, eave + .03, center_z + half_depth), .025, .025)
-	box("wood", Vector3(0, ridge + .025, center_z), Vector3(2.88, .09, .12))
-	box("gold", Vector3(0, ridge + .078, center_z), Vector3(2.87, .025, .065))
-	for x in [-1.30, 1.30]:
-		box("dark", Vector3(x, ridge + .07, center_z), Vector3(.09, .11, .145))
-
-func gatehouse() -> void:
-	# Recessed oak double doors, iron hinge bands and a raised heraldic porch.
-	box("stone_dark", Vector3(0, .965, -.366), Vector3(1.20, 1.12, .16))
-	box("dark", Vector3(0, .98, -.467), Vector3(1.02, 1.16, .052))
-	for i in range(8):
-		box("wood_light" if i % 3 != 0 else "wood", Vector3(-.441 + i * .126, .97, -.506), Vector3(.116, 1.10, .055))
-	for x in [-.59, .59]:
-		box("stone", Vector3(x, .99, -.46), Vector3(.19, 1.18, .27))
-		for row in range(5):
-			box("stone_light" if row % 2 == 0 else "stone", Vector3(x, .51 + row * .235, -.605), Vector3(.215, .215, .045))
-	box("stone_light", Vector3(0, 1.59, -.478), Vector3(1.43, .19, .30))
-	for x in [-.25, .25]:
-		for y in [.65, 1.22]:
-			box("dark", Vector3(x, y, -.548), Vector3(.45, .065, .026))
-			for dx in [-.15, .15]:
-				sphere("gold", Vector3(x + dx, y, -.568), .017)
-	for x in [-.10, .10]:
-		cylinder("dark", Vector3(x, .96, -.553), .055, .055, .022, Basis(Vector3.RIGHT, PI / 2))
-		var ring := TorusMesh.new()
-		ring.inner_radius = .026
-		ring.outer_radius = .040
-		ring.rings = 12
-		ring.ring_segments = 6
-		append_mesh("gold", ring, Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(x, .938, -.58)))
-	# Front-facing gable breaks the long main roof and carries the military crest.
-	triangle("wood", Vector3(-.66, 1.68, -.58), Vector3(0, 2.20, -.58), Vector3(.66, 1.68, -.58))
-	triangle("plaster", Vector3(-.53, 1.73, -.59), Vector3(0, 2.12, -.59), Vector3(.53, 1.73, -.59))
-	for side in [-1.0, 1.0]:
-		var x: float = side * .75
-		if side > 0:
-			quad("roof_mid", Vector3(0, 2.23, -.70), Vector3(0, 2.23, -.05), Vector3(x, 1.68, -.05), Vector3(x, 1.68, -.70))
-		else:
-			quad("roof_mid", Vector3(x, 1.68, -.70), Vector3(x, 1.68, -.05), Vector3(0, 2.23, -.05), Vector3(0, 2.23, -.70))
-		for row in range(4):
-			var xa: float = side * (.007 + row * .184)
-			var xb: float = side * (.174 + row * .184)
-			var ya := lerpf(2.23, 1.68, absf(xa) / .75) + .02
-			var yb := lerpf(2.23, 1.68, absf(xb) / .75) + .026
-			for col in range(4):
-				var za := -.689 + col * .157
-				var zb := za + .142
-				if side > 0:
-					quad("roof_light" if (row + col) % 3 == 0 else "roof", Vector3(xa, ya, za), Vector3(xa, ya, zb), Vector3(xb, yb, zb), Vector3(xb, yb, za))
-				else:
-					quad("roof_light" if (row + col) % 3 == 0 else "roof", Vector3(xb, yb, za), Vector3(xb, yb, zb), Vector3(xa, ya, zb), Vector3(xa, ya, za))
-		beam("wood", Vector3(x, 1.68, -.70), Vector3(0, 2.23, -.70), .075, .075)
-		beam("gold", Vector3(x, 1.715, -.72), Vector3(0, 2.265, -.72), .025, .025)
-	box("gold", Vector3(0, 2.258, -.39), Vector3(.068, .035, .68))
-	shield(Vector3(0, 1.95, -.645), .28, "banner")
-	# Two bright crossed swords make the recruitment role readable from afar.
-	for side in [-1.0, 1.0]:
-		var low := Vector3(side * .22, 1.78, -.677)
-		var high := Vector3(-side * .22, 2.11, -.677)
-		beam("steel", low, high, .040, .023)
-		beam("gold", low + Vector3(-.055, .066, 0), low + Vector3(.055, -.066, 0), .022, .022)
-		beam("wood_light", low, low + Vector3(side * .068, -.051, 0), .041, .030)
-
-func shield(center: Vector3, scale_value: float, fill: String) -> void:
-	var outer := [Vector2(-.72, .90), Vector2(.72, .90), Vector2(.66, -.12), Vector2(0, -.94), Vector2(-.66, -.12)]
-	for i in range(outer.size()):
-		var a: Vector2 = outer[i] * scale_value
-		var b: Vector2 = outer[(i + 1) % outer.size()] * scale_value
-		triangle("gold", center + Vector3(0, 0, -.003), center + Vector3(a.x, a.y, 0), center + Vector3(b.x, b.y, 0))
-		triangle(fill, center + Vector3(0, 0, -.015), center + Vector3(a.x * .78, a.y * .78, -.009), center + Vector3(b.x * .78, b.y * .78, -.009))
-
-func equipment() -> void:
-	# Spear and shield rack beside the gate, entirely inside the forecourt.
-	for x in [-1.29, -.83]:
-		box("wood", Vector3(x, .67, -.73), Vector3(.075, .96, .080))
-		box("stone_light", Vector3(x, .22, -.73), Vector3(.14, .10, .18))
-	for y in [.47, 1.06]:
-		box("wood_light", Vector3(-1.06, y, -.745), Vector3(.57, .075, .08))
+		beam("iron", Vector3(side * 0.28, 1.04, -0.43), Vector3(side * 0.28, 0.9, -0.76), 0.015, 0.015)
+	# Notice board by the door: postings, most already torn.
+	box("wood", Vector3(-0.29, 0.62, z - 0.01), Vector3(0.12, 0.3, 0.02))
 	for i in range(3):
-		var x := -1.26 + i * .17
-		var y := 1.39 + (i % 2) * .11
-		beam("wood_light", Vector3(x - .045, .20, -.79), Vector3(x, y, -.73), .026, .026)
-		cylinder("steel", Vector3(x, y + .082, -.73), 0, .045, .17)
-		box("dark", Vector3(x, y - .015, -.73), Vector3(.048, .085, .048))
-	shield(Vector3(-1.055, .73, -.818), .235, "banner")
-	sphere("gold", Vector3(-1.055, .735, -.847), .040)
-	# Wrapped practice dummy: foot, post, straw body, helmet and wooden sword.
-	cylinder("stone_dark", Vector3(1.045, .205, -.72), .20, .23, .09)
-	box("wood", Vector3(1.045, .64, -.72), Vector3(.068, .81, .068))
-	beam("wood", Vector3(.795, .97, -.72), Vector3(1.305, .97, -.72), .060, .065)
-	cylinder("wood_light", Vector3(1.045, .91, -.72), .125, .095, .34)
-	for y in [.80, .90, 1.025]:
-		cylinder("gold", Vector3(1.045, y, -.72), .129, .129, .023)
-	sphere("wood_light", Vector3(1.045, 1.18, -.72), .118)
-	cylinder("dark", Vector3(1.045, 1.246, -.72), .07, .13, .12)
-	cylinder("steel", Vector3(1.045, 1.197, -.72), .141, .141, .023)
-	box("dark", Vector3(1.045, 1.195, -.837), Vector3(.018, .080, .020))
-	beam("wood_light", Vector3(1.285, .76, -.72), Vector3(1.335, 1.25, -.72), .032, .037)
-	box("dark", Vector3(1.31, .925, -.72), Vector3(.14, .030, .04))
+		box("paper", Vector3(-0.29, 0.52 + i * 0.1, z - 0.024), Vector3(0.09, 0.07, 0.004))
+	# A gas lamp at the corner.
+	cylinder("iron", Vector3(0.98, 0.55, -0.78), 0.02, 0.03, 0.96)
+	box("glass", Vector3(0.98, 1.06, -0.78), Vector3(0.08, 0.11, 0.08))
+	cylinder("iron", Vector3(0.98, 1.14, -0.78), 0.0, 0.07, 0.06, Basis.IDENTITY, 4)
 
-func pennant() -> void:
-	# A single off-centre mast gives the barracks a clear military silhouette.
-	var x := -.79
-	var z := .27
-	box("dark", Vector3(x, 2.425, z), Vector3(.14, .075, .17))
-	cylinder("wood", Vector3(x, 2.78, z), .021, .028, .75)
-	sphere("gold", Vector3(x, 3.174, z), .044)
-	var a := Vector3(x + .024, 3.105, z)
-	var b := Vector3(x + .58, 3.125, z + .027)
-	var c := Vector3(x + .49, 2.94, z - .027)
-	var d := Vector3(x + .59, 2.775, z + .018)
-	var e := Vector3(x + .024, 2.80, z)
-	triangle("banner", a, c, b)
-	triangle("banner", a, e, c)
-	triangle("banner", e, d, c)
-	box("gold", Vector3(x + .105, 2.955, z - .014), Vector3(.030, .282, .018))
+func roof_works() -> void:
+	var top := 2.38
+	# Wooden water tank on iron legs: the American rooftop silhouette.
+	var tank := Vector3(-0.72, top, 0.45)
+	for dx in [-0.18, 0.18]:
+		for dz in [-0.18, 0.18]:
+			beam("iron", tank + Vector3(dx, 0, dz), tank + Vector3(dx * 0.8, 0.32, dz * 0.8), 0.03, 0.03)
+	cylinder("wood", tank + Vector3(0, 0.57, 0), 0.25, 0.25, 0.5, Basis.IDENTITY, 14)
+	for y in [0.4, 0.57, 0.74]:
+		cylinder("iron", tank + Vector3(0, y, 0), 0.258, 0.258, 0.025, Basis.IDENTITY, 14)
+	cylinder("wood_dark", tank + Vector3(0, 0.9, 0), 0.0, 0.29, 0.22, Basis.IDENTITY, 14)
+	# The hiring billboard on an iron truss, facing the street.
+	var board := Vector3(0.38, top + 0.42, 0.1)
+	for dx in [-0.42, 0.42]:
+		beam("iron", Vector3(board.x + dx, top, board.z + 0.12), Vector3(board.x + dx, top + 0.62, board.z), 0.03, 0.03)
+		beam("iron", Vector3(board.x + dx, top, board.z - 0.1), Vector3(board.x + dx, top + 0.3, board.z), 0.025, 0.025)
+	box("wood_dark", board, Vector3(1.0, 0.42, 0.04))
+	box("banner", board + Vector3(0, 0, -0.025), Vector3(0.94, 0.36, 0.01))
+	box("paper", board + Vector3(-0.08, 0.06, -0.032), Vector3(0.62, 0.09, 0.004))
+	box("paper", board + Vector3(-0.2, -0.08, -0.032), Vector3(0.38, 0.06, 0.004))
+	cylinder("paper", board + Vector3(0.32, -0.02, -0.032), 0.1, 0.1, 0.004, Basis(Vector3.RIGHT, PI * 0.5), 12)
+	# A squat chimney and roof vents.
+	box("brick_dark", Vector3(0.85, top + 0.15, 0.72), Vector3(0.18, 0.34, 0.18))
+	box("soot", Vector3(0.85, top + 0.33, 0.72), Vector3(0.19, 0.04, 0.19))
+	for x in [-0.15, 0.1]:
+		cylinder("iron", Vector3(x, top + 0.08, 0.7), 0.05, 0.05, 0.14)
+
+func fire_escape() -> void:
+	# Iron landings and switchback stairs down the side wall.
+	var x := 1.2
+	for y in [1.15, 2.05]:
+		box("iron", Vector3(x, y, 0.25), Vector3(0.34, 0.03, 0.8))
+		for z in [-0.12, 0.25, 0.62]:
+			beam("iron", Vector3(x + 0.16, y, z), Vector3(x + 0.16, y + 0.22, z), 0.015, 0.015)
+		box("iron", Vector3(x + 0.16, y + 0.22, 0.25), Vector3(0.015, 0.015, 0.8))
+	beam("iron", Vector3(x, 1.15, 0.6), Vector3(x, 2.05, -0.1), 0.2, 0.03)
+	beam("iron", Vector3(x, 0.07, -0.1), Vector3(x, 1.15, 0.6), 0.2, 0.03)
+	for y in [0.5, 1.6]:
+		box("iron_light", Vector3(x - 0.17, y, 0.25), Vector3(0.012, 0.012, 0.85))
+
+func queue() -> void:
+	# Men waiting for a day's contract, shoulders down, in a line from the door.
+	var spots := [Vector3(-0.2, 0, -0.72), Vector3(-0.43, 0, -0.74), Vector3(-0.66, 0, -0.7),
+		Vector3(-0.88, 0, -0.75), Vector3(-1.1, 0, -0.71), Vector3(-1.32, 0, -0.68), Vector3(-1.38, 0, -0.42)]
+	for i in range(spots.size()):
+		var p: Vector3 = spots[i] + Vector3(0, 0.07, 0)
+		var coat := "coat_brown" if i % 3 == 1 else "coat"
+		var lean := Basis(Vector3.FORWARD, 0.06 * (1 if i % 2 == 0 else -1)) * Basis(Vector3.RIGHT, 0.12)
+		box("cap", p + Vector3(-0.03, 0.09, 0), Vector3(0.045, 0.18, 0.05))
+		box("cap", p + Vector3(0.03, 0.09, 0), Vector3(0.045, 0.18, 0.05))
+		cylinder(coat, p + Vector3(0, 0.33, 0), 0.06, 0.085, 0.32, lean, 8)
+		sphere("skin", p + Vector3(0, 0.54, 0.01), 0.05)
+		cylinder("cap", p + Vector3(0, 0.58, 0.005), 0.055, 0.06, 0.03, Basis.IDENTITY, 10)
+		box("cap", p + Vector3(0, 0.57, -0.05), Vector3(0.09, 0.012, 0.05)) # Peak.
+		if i == 2: # One holds a folded newspaper.
+			box("paper", p + Vector3(0.07, 0.33, -0.04), Vector3(0.05, 0.08, 0.01))
 
 func save_barracks() -> void:
 	DirAccess.make_dir_recursive_absolute("res://buildings/meshes")
@@ -255,16 +186,16 @@ func save_barracks() -> void:
 		triangles += arrays[Mesh.ARRAY_VERTEX].size() / 3
 		surfaces[key].commit(mesh)
 	var bounds := mesh.get_aabb()
-	assert(bounds.position.x >= -1.501 and bounds.end.x <= 1.501, "Barracks exceeds 3-wide footprint")
-	assert(bounds.position.z >= -1.001 and bounds.end.z <= 1.001, "Barracks exceeds 2-deep footprint")
-	assert(bounds.position.y >= -.001, "Barracks extends below ground")
-	assert(mesh.get_surface_count() <= 15 and triangles < 35000)
+	assert(bounds.position.x >= -1.501 and bounds.end.x <= 1.501, "Labour office exceeds 3-wide footprint")
+	assert(bounds.position.z >= -1.001 and bounds.end.z <= 1.001, "Labour office exceeds 2-deep footprint")
+	assert(bounds.position.y >= -.001, "Labour office extends below ground")
+	assert(mesh.get_surface_count() <= 24 and triangles < 35000)
 	assert(ResourceSaver.save(mesh, "res://buildings/meshes/Barracks.res", ResourceSaver.FLAG_COMPRESS) == OK)
 	var barracks := Node3D.new()
 	barracks.name = "Barracks"
 	barracks.set_script(load("res://buildings/Building.cs"))
 	barracks.set("BuildingType", 4)
-	barracks.set("HealthBarHeight", 3.47)
+	barracks.set("HealthBarHeight", bounds.end.y + 0.25)
 	barracks.set_meta("footprint", Vector2i(3, 2))
 	barracks.set_meta("front", "-Z")
 	barracks.set_meta("role", "barracks")

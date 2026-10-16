@@ -29,7 +29,7 @@ func _ready() -> void:
 	for entry in [
 		["res://previews/Store.tscn", "보급기지", "전진 자원 반납 거점", "4 × 4", "9eb581"],
 		["res://previews/Supply.tscn", "주택", "인구를 늘리는 생활 공간", "3 × 3", "c5aa72"],
-		["res://previews/Barracks.tscn", "인력 사무소", "1티어 유닛 훈련", "4 × 3", "7fa4b9"],
+		["res://previews/Barracks.tscn", "인력 사무소", "용병 계약 · 1티어 병력", "4 × 3", "7fa4b9"],
 		["res://previews/Forge.tscn", "대장간", "화덕 · 모루 · 철제 장비", "4 × 3", "c9956f"]
 	]:
 		add_card(layout, entry)
