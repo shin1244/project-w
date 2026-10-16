@@ -2,30 +2,68 @@
 
 [ext_resource type="Script" path="res://buildings/Building.cs" id="1_45q36"]
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/ResearchLab.res" id="2_byyqd"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/ResearchLabArmillary.res" id="3_orrfh"]
+[ext_resource type="Script" path="res://visuals/SpinningPart.cs" id="4_y3vew"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ivsfd"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_5toxw"]
+material = SubResource("StandardMaterial3D_ivsfd")
+size = Vector2(0.03, 0.03)
+
+[sub_resource type="Gradient" id="Gradient_5qa8e"]
+colors = PackedColorArray(0.85, 0.97, 1, 1, 0.4, 0.85, 1, 0)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_orrfh"]
-size = Vector3(4, 4.4449997, 4)
+size = Vector3(4, 4.7708526, 4)
 
-[node name="ResearchLab" type="Node3D" unique_id=2023071543]
+[node name="ResearchLab" type="Node3D" unique_id=1121311465]
 script = ExtResource("1_45q36")
 BuildingType = 9
-HealthBarHeight = 4.745
+HealthBarHeight = 5.0708528
 metadata/role = "research_lab"
 metadata/footprint = Vector2i(4, 4)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=1728495662]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=114396238]
 mesh = ExtResource("2_byyqd")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1294328123]
+[node name="Armillary" type="MeshInstance3D" parent="Visual" unique_id=1093526231]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.22, 1.17, -0.8)
+mesh = ExtResource("3_orrfh")
+script = ExtResource("4_y3vew")
+Speed = 0.8
+
+[node name="CoilSparks" type="CPUParticles3D" parent="Visual" unique_id=896363437]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.25, 1.78, -0.8)
+cast_shadow = 0
+lifetime = 0.35
+preprocess = 0.35
+explosiveness = 0.3
+mesh = SubResource("QuadMesh_5toxw")
+direction = Vector3(0, 1, 0)
+spread = 180.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 0.4
+initial_velocity_max = 0.8
+color_ramp = SubResource("Gradient_5qa8e")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=2146367976]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=2102180612]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2224998, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1686106379]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3854263, 0)
 shape = SubResource("BoxShape3D_orrfh")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=1592886695]
+[node name="Entrance" type="Marker3D" parent="." unique_id=561343609]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
