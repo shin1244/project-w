@@ -1,36 +1,146 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://buildings/Building.cs" id="1_4ryg4"]
-[ext_resource type="ArrayMesh" path="res://buildings/meshes/TownHall.res" id="2_m5c8c"]
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_wc5ff"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/TownHall.res" id="2_jutsu"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/TownHallGear_0.res" id="3_spw1w"]
+[ext_resource type="Script" path="res://visuals/SpinningPart.cs" id="4_lhlu4"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_wc5ff"]
-size = Vector3(5, 5.975, 5)
+[sub_resource type="Gradient" id="Gradient_f8bbf"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="TownHall" type="Node3D" unique_id=1657165137]
-script = ExtResource("1_4ryg4")
-HealthBarHeight = 6.4375
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_rtmi3"]
+gradient = SubResource("Gradient_f8bbf")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qkyu8"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_rtmi3")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_l5enq"]
+material = SubResource("StandardMaterial3D_qkyu8")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_qdn4e"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_mlk1g"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
+
+[sub_resource type="Gradient" id="Gradient_22611"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_x5t5a"]
+gradient = SubResource("Gradient_22611")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jdfi3"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_x5t5a")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_ej05p"]
+material = SubResource("StandardMaterial3D_jdfi3")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_kq0m0"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_vl2ej"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_c4a53"]
+size = Vector3(5, 6.1325, 5)
+
+[node name="TownHall" type="Node3D" unique_id=1550537709]
+script = ExtResource("1_wc5ff")
+HealthBarHeight = 6.57
 ShotWidth = 0.18
 ShotDuration = 0.2
 ImpactRadius = 0.35
 metadata/footprint = Vector2i(5, 5)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=757909359]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1312258661]
 transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
-mesh = ExtResource("2_m5c8c")
+mesh = ExtResource("2_jutsu")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1380407967]
+[node name="TowerGearLeft" type="MeshInstance3D" parent="Visual" unique_id=618133654]
+transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, -0.49333334, 2.53, -0.46666667)
+mesh = ExtResource("3_spw1w")
+script = ExtResource("4_lhlu4")
+Speed = -0.55
+
+[node name="TowerGearRight" type="MeshInstance3D" parent="Visual" unique_id=1664635294]
+transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 0.49333334, 2.53, -0.46666667)
+mesh = ExtResource("3_spw1w")
+script = ExtResource("4_lhlu4")
+Speed = 0.55
+
+[node name="SmokeLeft" type="CPUParticles3D" parent="Visual" unique_id=1404737796]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.96000004, 4.9500003, 1.4)
+cast_shadow = 0
+amount = 14
+lifetime = 3.6
+preprocess = 3.6
+mesh = SubResource("QuadMesh_l5enq")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.55
+scale_amount_max = 0.8
+scale_amount_curve = SubResource("Curve_qdn4e")
+color_ramp = SubResource("Gradient_mlk1g")
+
+[node name="SmokeRight" type="CPUParticles3D" parent="Visual" unique_id=467132330]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.96000004, 4.9500003, 1.4)
+cast_shadow = 0
+amount = 14
+lifetime = 3.6
+preprocess = 3.6
+mesh = SubResource("QuadMesh_ej05p")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.55
+scale_amount_max = 0.8
+scale_amount_curve = SubResource("Curve_kq0m0")
+color_ramp = SubResource("Gradient_vl2ej")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1047287367]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=548159399]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9875, 0)
-shape = SubResource("BoxShape3D_wc5ff")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=185796852]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.06625, 0)
+shape = SubResource("BoxShape3D_c4a53")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=314683575]
+[node name="Entrance" type="Marker3D" parent="." unique_id=70852811]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.5)
 
-[node name="Muzzle" type="Marker3D" parent="." unique_id=1726404619]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, 0)
+[node name="Muzzle" type="Marker3D" parent="." unique_id=977223206]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5375004, -0.5833333)
