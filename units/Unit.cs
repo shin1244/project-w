@@ -171,8 +171,11 @@ public partial class Unit : Node3D
         // 첫 스냅샷의 과거 공격은 재생하지 않습니다. 이후 번호가 바뀔 때만 한 번 재생합니다.
         bool swung = HasServerState && state.SwingSequence != State.SwingSequence;
         if (state.FocusId != State.FocusId) _focusTarget = null;
+        bool wasInside = State.Activity == UnitActivity.Inside;
         State = state;
         HasServerState = true;
+        // A worker inside a derrick leaves the world until it comes back out.
+        if ((state.Activity == UnitActivity.Inside) != wasInside) Visible = state.Activity != UnitActivity.Inside;
         SetProcess(state.Activity != UnitActivity.Idle && state.FocusId != 0);
         FaceActionTarget();
         StateChanged?.Invoke(state, swung);
