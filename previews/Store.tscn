@@ -23,7 +23,7 @@ tonemap_mode = 2
 
 [node name="StorePreview" type="Node3D"]
 script = ExtResource("2_preview")
-target_height = 1.65
+target_height = 1.9
 capture_path = "res://docs/images/store-preview.png"
 
 [node name="Store" parent="." instance=ExtResource("1_model")]
@@ -35,7 +35,7 @@ cast_shadow = 0
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 7.3
+size = 8.0
 current = true
 far = 80.0
 

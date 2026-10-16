@@ -124,7 +124,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Units or DisplayMode.Workers, 5) => "정지(S)",
                 (DisplayMode.Units or DisplayMode.Workers, 6) => "홀드(D)",
                 (DisplayMode.Workers, 1) => "건설(Z)",
-                (DisplayMode.BuildMenu, 7) => "보급기지\n(Q)",
+                (DisplayMode.BuildMenu, 7) => "브랜치\n(Q)",
                 (DisplayMode.BuildMenu, 8) => "주택\n(W)",
                 (DisplayMode.BuildMenu, 9) => "시추탑\n(E)",
                 (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",

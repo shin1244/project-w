@@ -147,7 +147,7 @@ public partial class BuildingPlacementChecks : Main
                     $"Type {unavailable} is unavailable for player construction in both preview and command paths");
             ChooseBuilding(7);
             Placement.UpdatePreview(Screen(-6f, -9f));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("보급기지 배치"),
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("브랜치 배치"),
                 "Tier-one slot 7 selects the supply depot placement preview");
             before = _wire.Length;
             int buildingsBefore = Buildings.LiveBuildings.Count;
@@ -163,7 +163,7 @@ public partial class BuildingPlacementChecks : Main
                 Issue(-6f + depotSize.X / 2 + .4f, -9f, 1, 1)?.Contains("다른 건물") == true,
                 "Depot occupancy allows touching edges and rejects overlap using its scene footprint");
             Invoke("SelectBuilding", store);
-            Check(title.Text == "보급기지", "Supply depot selection displays its name");
+            Check(title.Text == "브랜치", "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(5);
             Vector2 forgeSize = SceneFootprint(BuildingCatalog.Forge);

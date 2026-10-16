@@ -1,154 +1,175 @@
 extends "res://tools/build_supply.gd"
-## A 4x4 forward supply depot: stone office, small lookout, and an open return yard.
+## The company branch (브랜치, server type 2, key "store"): a forward drop-off where workers return
+## wood and oil (docs/art-direction.md). A corrugated-iron warehouse with a loading dock and hoist,
+## a small brick branch office with the company board, and one smoking chimney. The front stays
+## open as the return lane. Modelled directly on the 4x4 footprint.
+
+const SCENE := "res://buildings/Store.tscn"
+const MESH := "res://buildings/meshes/Store.res"
 
 func _initialize() -> void:
-	setup_materials()
-	build_store()
-	save_compact("res://buildings/Store.tscn", "res://buildings/meshes/Store.res", "Store", 2, "store", Vector2i(4, 4))
+	material("brick", Color("7a4638"))
+	material("brick_dark", Color("57342a"))
+	material("concrete", Color("8a867e"))
+	material("concrete_dark", Color("5f5c56"))
+	material("iron", Color("2f363d"), 0.5, 0.55)
+	material("iron_light", Color("6f7880"), 0.5, 0.5)
+	material("wood", Color("5a4232"))
+	material("wood_dark", Color("3e2e24"))
+	material("soot", Color("1e2226"))
+	material("glass", Color("9c7f4a"), 0.0, 0.35, 0.2)
+	material("paper", Color("d9cfb4"))
+	material("roof", Color("3d5f77"), 0.35, 0.55) # Painted iron, company colour.
+	material("roof_light", Color("466b84"), 0.35, 0.55)
+	material("banner", Color("376a94"))
+	yard()
+	warehouse()
+	office()
+	goods()
+	save_compact(SCENE, MESH, "Store", 2, "store", Vector2i(4, 4))
+	add_smoke()
 	quit()
 
-func build_store() -> void:
-	depot_foundation()
-	depot_office()
-	depot_canopy()
-	depot_lookout()
-	# Incoming goods flank the open return lane; this is a staffed outpost, not a barn.
-	crate(Vector3(1.45, .17, -.84), .39)
-	crate(Vector3(1.53, .17, -.35), .32)
-	barrel(Vector3(1.61, .17, .50), .22, .56)
-	barrel(Vector3(1.61, .17, 1.13), .22, .56)
+func yard() -> void:
+	box("concrete_dark", Vector3(0, 0.04, 0), Vector3(4.0, 0.08, 4.0))
+	box("concrete", Vector3(0, 0.085, 0), Vector3(3.94, 0.012, 3.94))
+	# Wheel ruts and oil stains down the open return lane.
+	for x in [-0.15, 0.35]:
+		box("concrete_dark", Vector3(x, 0.093, -1.3), Vector3(0.08, 0.004, 1.4))
+	box("soot", Vector3(0.6, 0.094, -0.9), Vector3(0.5, 0.003, 0.35))
+	# Low bollards along the sides keep the front approach open.
+	for side in [-1.0, 1.0]:
+		for z in [-1.7, -1.1]:
+			cylinder("iron", Vector3(side * 1.88, 0.22, z), 0.05, 0.06, 0.26, Basis.IDENTITY, 8)
+
+func warehouse() -> void:
+	var x0 := -1.92
+	var x1 := 0.3
+	var z0 := -0.55
+	var z1 := 1.95
+	var eave := 1.7
+	var ridge := 2.45
+	var cx := (x0 + x1) * 0.5
+	var cz := (z0 + z1) * 0.5
+	var w := x1 - x0
+	var d := z1 - z0
+	# Brick plinth wall, corrugated iron above.
+	box("brick", Vector3(cx, 0.36, cz), Vector3(w, 0.56, d))
+	box("iron_light", Vector3(cx, (0.64 + eave) * 0.5, cz), Vector3(w - 0.02, eave - 0.64, d - 0.02))
+	var ribs := 14
+	for i in range(ribs + 1):
+		var x := x0 + w * i / ribs
+		box("iron", Vector3(x, (0.64 + eave) * 0.5, z0 - 0.005), Vector3(0.025, eave - 0.64, 0.012))
+	for i in range(18):
+		var z := z0 + d * i / 17.0
+		box("iron", Vector3(x1 + 0.005, (0.64 + eave) * 0.5, z), Vector3(0.012, eave - 0.64, 0.025))
+	box("soot", Vector3(cx, eave - 0.05, cz), Vector3(w + 0.01, 0.1, d + 0.01))
+	# Gabled roof along the depth, painted company colour, with seams.
+	var half := w * 0.5 + 0.07
+	for side in [-1.0, 1.0]:
+		var e := Vector3(cx + side * half, eave, 0)
+		var r := Vector3(cx, ridge, 0)
+		face("roof", Vector3(e.x, e.y, z0 - 0.1), Vector3(r.x, r.y, z0 - 0.1), Vector3(r.x, r.y, z1 + 0.0), Vector3(e.x, e.y, z1 + 0.0))
+		for i in range(1, 6):
+			var t := i / 6.0
+			var p := e.lerp(r, t)
+			box("roof_light", Vector3(p.x, p.y + 0.012, cz - 0.05), Vector3(0.03, 0.02, d + 0.1), Basis(Vector3.BACK, -side * atan2(ridge - eave, half)))
+	box("iron", Vector3(cx, ridge + 0.02, cz - 0.05), Vector3(0.08, 0.05, d + 0.12))
+	# Front gable: iron cladding, a round company board in the peak.
+	for z in [z0 - 0.005, z1 + 0.005]:
+		face("iron_light", Vector3(x0, eave, z), Vector3(cx, ridge, z), Vector3(x1, eave, z), Vector3(x0, eave, z))
+	cylinder("wood_dark", Vector3(cx, 2.02, z0 - 0.03), 0.2, 0.2, 0.03, Basis(Vector3.RIGHT, PI * 0.5), 16)
+	cylinder("banner", Vector3(cx, 2.02, z0 - 0.05), 0.16, 0.16, 0.012, Basis(Vector3.RIGHT, PI * 0.5), 16)
+	box("paper", Vector3(cx, 2.02, z0 - 0.058), Vector3(0.18, 0.05, 0.004))
+	# Big sliding door on a top rail, half open into the dark.
+	box("soot", Vector3(cx + 0.05, 0.62, z0 - 0.01), Vector3(1.0, 1.06, 0.02))
+	box("iron", Vector3(cx - 0.42, 0.62, z0 - 0.04), Vector3(0.55, 1.08, 0.04))
+	for y in [0.3, 0.62, 0.94]:
+		box("iron_light", Vector3(cx - 0.42, y, z0 - 0.065), Vector3(0.55, 0.03, 0.01))
+	box("iron", Vector3(cx, 1.2, z0 - 0.05), Vector3(1.5, 0.05, 0.05))
+	# Loading dock with a ramp.
+	box("concrete", Vector3(cx, 0.2, z0 - 0.3), Vector3(1.7, 0.24, 0.5))
+	box("concrete_dark", Vector3(cx, 0.32, z0 - 0.54), Vector3(1.72, 0.02, 0.03))
+	face("concrete", Vector3(cx + 0.85, 0.32, z0 - 0.05), Vector3(cx + 0.85, 0.32, z0 - 0.55),
+		Vector3(cx + 1.25, 0.09, z0 - 0.55), Vector3(cx + 1.25, 0.09, z0 - 0.05))
+	# Hoist beam from the gable peak with a pulley, chain and a slung crate.
+	box("iron", Vector3(cx, 2.3, z0 - 0.35), Vector3(0.08, 0.08, 0.75))
+	beam("iron", Vector3(cx, 2.05, z0), Vector3(cx, 2.27, z0 - 0.6), 0.04, 0.04)
+	cylinder("iron_light", Vector3(cx, 2.22, z0 - 0.68), 0.06, 0.06, 0.04, Basis(Vector3.FORWARD, PI * 0.5), 10)
+	box("iron", Vector3(cx, 1.78, z0 - 0.68), Vector3(0.015, 0.84, 0.015))
+	box("wood", Vector3(cx, 1.25, z0 - 0.68), Vector3(0.26, 0.22, 0.26))
+
+func office() -> void:
+	var x0 := 0.55
+	var x1 := 1.95
+	var z0 := 0.15
+	var z1 := 1.9
+	var top := 1.95
+	var cx := (x0 + x1) * 0.5
+	var cz := (z0 + z1) * 0.5
+	box("brick", Vector3(cx, (0.09 + top) * 0.5, cz), Vector3(x1 - x0, top - 0.09, z1 - z0))
+	box("concrete", Vector3(cx, 1.02, cz), Vector3(x1 - x0 + 0.05, 0.06, z1 - z0 + 0.05))
+	for z in [z0, z1]:
+		box("brick_dark", Vector3(cx, top + 0.07, z), Vector3(x1 - x0 + 0.02, 0.14, 0.06))
+	for x in [x0, x1]:
+		box("brick_dark", Vector3(x, top + 0.07, cz), Vector3(0.06, 0.14, z1 - z0 + 0.02))
+	box("soot", Vector3(cx, top + 0.02, cz), Vector3(x1 - x0 - 0.06, 0.02, z1 - z0 - 0.06))
+	box("soot", Vector3(cx, top - 0.06, z0 - 0.012), Vector3(x1 - x0, 0.12, 0.006))
+	# Door with the company board over it, windows either side and above.
+	box("wood_dark", Vector3(cx - 0.2, 0.47, z0 - 0.02), Vector3(0.32, 0.76, 0.03))
+	box("glass", Vector3(cx - 0.2, 0.68, z0 - 0.04), Vector3(0.16, 0.16, 0.006))
+	box("wood_dark", Vector3(cx, 0.94, z0 - 0.03), Vector3(1.24, 0.15, 0.03))
+	box("banner", Vector3(cx, 0.94, z0 - 0.05), Vector3(1.18, 0.11, 0.01))
+	for i in range(7):
+		box("paper", Vector3(x0 + 0.2 + i * 0.16, 0.94, z0 - 0.057), Vector3(0.08, 0.06, 0.004))
+	box("wood_dark", Vector3(cx + 0.35, 0.55, z0 - 0.02), Vector3(0.4, 0.5, 0.025))
+	box("glass", Vector3(cx + 0.35, 0.55, z0 - 0.035), Vector3(0.34, 0.44, 0.006))
+	for x in [cx - 0.38, cx, cx + 0.38]:
+		box("wood_dark", Vector3(x, 1.5, z0 - 0.015), Vector3(0.26, 0.5, 0.02))
+		box("glass", Vector3(x, 1.5, z0 - 0.03), Vector3(0.2, 0.42, 0.006))
+	for z in [0.6, 1.4]:
+		box("glass", Vector3(x0 - 0.01, 1.5, z), Vector3(0.006, 0.42, 0.2))
+	# The one chimney, soot climbing its top.
+	var chimney := Vector3(1.6, 0, 1.5)
+	box("brick_dark", Vector3(chimney.x, 2.55, chimney.z), Vector3(0.3, 1.3, 0.3))
+	for y in [2.4, 2.9]:
+		box("iron", Vector3(chimney.x, y, chimney.z), Vector3(0.33, 0.05, 0.33))
+	box("soot", Vector3(chimney.x, 3.13, chimney.z), Vector3(0.31, 0.16, 0.31))
+	box("iron", Vector3(chimney.x, 3.23, chimney.z), Vector3(0.36, 0.04, 0.36))
+
+func goods() -> void:
+	# Returned timber, oil drums and crates around the dock and lane.
 	for row in range(2):
 		for column in range(3 - row):
-			var x := -1.55 + column * .22 + row * .11
-			var y := .28 + row * .19
-			cylinder("wood", Vector3(x, y, -.86), .115, .115, .72, Basis(Vector3.RIGHT, PI * .5))
-			cylinder("wood_light", Vector3(x, y, -1.225), .096, .096, .015, Basis(Vector3.RIGHT, PI * .5))
-	for x in [-1.72, -1.00]:
-		box("wood", Vector3(x, .25, -.86), Vector3(.055, .22, .79))
-	# Low boundary stones leave the whole front approach open.
-	for side in [-1.0, 1.0]:
-		for z in [-1.52, -.70, .16, .98]:
-			box("stone", Vector3(side * 1.90, .29, z), Vector3(.14, .30, .64))
-		box("stone_light", Vector3(side * 1.90, .47, 1.67), Vector3(.19, .60, .19))
+			var x := -1.72 + column * 0.2 + row * 0.1
+			cylinder("wood", Vector3(x, 0.19 + row * 0.17, -1.45), 0.1, 0.1, 0.8, Basis(Vector3.RIGHT, PI * 0.5), 10)
+	for p in [Vector3(1.45, 0, -0.35), Vector3(1.7, 0, -0.55), Vector3(1.48, 0, -0.75)]:
+		cylinder("iron", p + Vector3(0, 0.29, 0), 0.13, 0.13, 0.38, Basis.IDENTITY, 12)
+		cylinder("soot", p + Vector3(0, 0.485, 0), 0.11, 0.11, 0.01, Basis.IDENTITY, 12)
+	for p in [Vector3(-1.3, 0, -0.92), Vector3(-1.62, 0, -0.95), Vector3(-1.45, 0.28, -0.93)]:
+		box("wood", p + Vector3(0, 0.23, 0), Vector3(0.27, 0.27, 0.27))
+		box("wood_dark", p + Vector3(0, 0.23, -0.14), Vector3(0.28, 0.04, 0.005))
+	# A hand cart and a gas lamp at the lane corner.
+	box("wood", Vector3(1.1, 0.3, -1.45), Vector3(0.4, 0.06, 0.28))
+	cylinder("iron", Vector3(1.1, 0.2, -1.6), 0.11, 0.11, 0.03, Basis(Vector3.FORWARD, PI * 0.5), 12)
+	beam("wood_dark", Vector3(0.92, 0.3, -1.33), Vector3(0.75, 0.45, -1.1), 0.025, 0.025)
+	cylinder("iron", Vector3(1.82, 0.55, -1.82), 0.02, 0.03, 0.92)
+	box("glass", Vector3(1.82, 1.05, -1.82), Vector3(0.08, 0.11, 0.08))
+	cylinder("iron", Vector3(1.82, 1.13, -1.82), 0.0, 0.07, 0.06, Basis.IDENTITY, 4)
 
-func depot_foundation() -> void:
-	var corners := [Vector2(-1.84, -2), Vector2(1.84, -2), Vector2(2, -1.84), Vector2(2, 1.84),
-		Vector2(1.84, 2), Vector2(-1.84, 2), Vector2(-2, 1.84), Vector2(-2, -1.84)]
-	for i in range(corners.size()):
-		var a: Vector2 = corners[i]
-		var b: Vector2 = corners[(i + 1) % corners.size()]
-		triangle("stone", Vector3(0, .15, 0), Vector3(b.x, .15, b.y), Vector3(a.x, .15, a.y))
-		quad("stone_dark", Vector3(a.x, 0, a.y), Vector3(a.x, .15, a.y), Vector3(b.x, .15, b.y), Vector3(b.x, 0, b.y))
-	# Broad paving and a short bevelled threshold, not a narrow loading dock.
-	for x in range(4):
-		for z in range(3):
-			box("stone_light" if (x + z) % 3 == 0 else "stone", Vector3(-1.35 + x * .90, .165, -1.47 + z * .53), Vector3(.86, .03, .49))
-	quad("stone_light", Vector3(-.57, .001, -1.99), Vector3(-.57, .18, -1.65),
-		Vector3(.57, .18, -1.65), Vector3(.57, .001, -1.99))
-
-func depot_office() -> void:
-	box("stone_dark", Vector3(-.25, .39, .95), Vector3(2.94, .48, 1.53))
-	box("plaster", Vector3(-.25, 1.19, .95), Vector3(2.82, 1.18, 1.42))
-	for z in [.17, 1.73]:
-		for i in range(8):
-			box("stone_light" if i % 3 == 0 else "stone", Vector3(-1.53 + i * .365, .39, z), Vector3(.34, .37, .07))
-		box("wood", Vector3(-.25, 1.77, z), Vector3(2.98, .14, .12))
-	for side in [-1.0, 1.0]:
-		var x: float = -.25 + side * 1.45
-		for i in range(4):
-			box("stone", Vector3(x, .39, .38 + i * .38), Vector3(.08, .37, .35))
-		for z in [.23, 1.67]:
-			box("wood", Vector3(x, 1.18, z), Vector3(.13, 1.30, .13))
-		box("wood", Vector3(x, 1.77, .95), Vector3(.13, .14, 1.58))
-	# One office door and an open reception shutter replace the old full-height loading doors.
-	box("dark", Vector3(-.88, .97, .195), Vector3(.72, 1.36, .10))
-	for i in range(5):
-		box("wood_light", Vector3(-1.15 + i * .135, .97, .13), Vector3(.125, 1.28, .055))
-	for x in [-1.28, -.48]:
-		box("wood", Vector3(x, 1.00, .11), Vector3(.10, 1.44, .13))
-	box("stone_light", Vector3(-.88, 1.73, .10), Vector3(.92, .13, .18))
-	box("stone_light", Vector3(-.88, .235, -.04), Vector3(.97, .17, .40))
-	sphere("gold", Vector3(-.65, .96, .08), .038)
-	box("wood", Vector3(.50, 1.19, .16), Vector3(.91, .73, .10))
-	box("dark", Vector3(.50, 1.21, .095), Vector3(.75, .57, .045))
-	for x in [.16, .84]:
-		box("wood_light", Vector3(x, 1.21, .06), Vector3(.06, .60, .06))
-	box("wood_light", Vector3(.50, .83, -.015), Vector3(1.07, .10, .36))
-	box("wood_warm", Vector3(.50, 1.61, .03), Vector3(.84, .25, .06))
-	box("wood", Vector3(-.06, 1.14, .115), Vector3(.27, .39, .09))
-	box("canvas", Vector3(-.06, 1.14, .06), Vector3(.20, .31, .025))
-	for y in [1.07, 1.16, 1.25]:
-		box("wood_light", Vector3(-.07, y, .043), Vector3(.11, .014, .012))
-	hip_roof(Vector2(-.25, .95), Vector2(3.22, 1.81), 1.86, 2.44)
-	# Office windows are ordinary shutters, without firing slits or weapon mounts.
-	lodging_window(Vector3(-1.715, 1.18, .94), Basis(Vector3.UP, PI * .5))
-
-func depot_canopy() -> void:
-	# Canvas shelter and a low receiving counter keep the intake open to the yard.
-	for x in [.28, 1.77]:
-		box("stone_dark", Vector3(x, .24, -1.44), Vector3(.23, .19, .23))
-		box("wood", Vector3(x, 1.00, -1.44), Vector3(.10, 1.59, .10))
-		beam("wood", Vector3(x, 1.34, -1.44), Vector3(x, 1.79, -1.08), .065, .065)
-		beam("wood", Vector3(x, 1.84, .10), Vector3(x, 1.69, -1.57), .075, .075)
-	box("wood", Vector3(1.025, 1.69, -1.57), Vector3(1.65, .09, .09))
-	for strip in range(6):
-		var left := .20 + strip * .275
-		quad("canvas" if strip % 3 != 1 else "banner", Vector3(left, 1.69, -1.60), Vector3(left, 1.93, .08),
-			Vector3(left + .275, 1.93, .08), Vector3(left + .275, 1.69, -1.60))
-		quad("canvas" if strip % 3 != 1 else "banner", Vector3(left, 1.68, -1.61), Vector3(left + .275, 1.68, -1.61),
-			Vector3(left + .275, 1.52, -1.61), Vector3(left, 1.56, -1.61))
-	box("wood", Vector3(.88, .48, -.62), Vector3(.11, .62, .66))
-	box("wood", Vector3(1.60, .48, -.62), Vector3(.11, .62, .66))
-	for i in range(4):
-		box("wood_light", Vector3(1.24, .81, -.86 + i * .16), Vector3(.97, .09, .145))
-	box("wood_warm", Vector3(1.24, .59, -.96), Vector3(.87, .31, .06))
-
-func depot_lookout() -> void:
-	# A modest roofed lookout signals a staffed forward base, without defense equipment.
-	box("stone", Vector3(-.91, 2.39, 1.07), Vector3(.79, .43, .78))
-	box("stone_light", Vector3(-.91, 2.62, 1.07), Vector3(.91, .10, .88))
-	for x in [-1.27, -.55]:
-		for z in [.72, 1.42]:
-			box("wood", Vector3(x, 2.89, z), Vector3(.08, .56, .08))
-	for z in [.71, 1.43]:
-		box("wood_light", Vector3(-.91, 2.72, z), Vector3(.79, .085, .07))
-		box("wood", Vector3(-.91, 3.13, z), Vector3(.87, .08, .09))
-	for x in [-1.28, -.54]:
-		box("wood_light", Vector3(x, 2.72, 1.07), Vector3(.07, .085, .76))
-	hip_roof(Vector2(-.91, 1.07), Vector2(1.08, 1.04), 3.14, 3.43)
-	# Short hanging pennant for team color, without a castle-height flag.
-	box("wood", Vector3(-1.44, 1.80, -.10), Vector3(.06, .06, .49))
-	quad("banner", Vector3(-1.62, 1.79, -.35), Vector3(-1.62, 1.18, -.35),
-		Vector3(-1.43, 1.09, -.35), Vector3(-1.24, 1.18, -.35))
-	triangle("banner", Vector3(-1.62, 1.79, -.35), Vector3(-1.24, 1.18, -.35), Vector3(-1.24, 1.79, -.35))
-	# A small receiving-bin emblem avoids the healing implication of a cross.
-	for x in [-1.53, -1.33]:
-		box("gold", Vector3(x, 1.39, -.362), Vector3(.025, .15, .018))
-	box("gold", Vector3(-1.43, 1.32, -.362), Vector3(.22, .025, .018))
-	box("gold", Vector3(-1.43, 1.58, -.362), Vector3(.025, .18, .018))
-	beam("gold", Vector3(-1.50, 1.55, -.362), Vector3(-1.43, 1.48, -.362), .025, .018)
-	beam("gold", Vector3(-1.36, 1.55, -.362), Vector3(-1.43, 1.48, -.362), .025, .018)
-
-func hip_roof(center: Vector2, size: Vector2, eave: float, ridge: float) -> void:
-	var a := Vector3(center.x - size.x * .5, eave, center.y - size.y * .5)
-	var b := Vector3(center.x + size.x * .5, eave, center.y - size.y * .5)
-	var c := Vector3(center.x + size.x * .5, eave, center.y + size.y * .5)
-	var d := Vector3(center.x - size.x * .5, eave, center.y + size.y * .5)
-	var inset := minf(size.x, size.y) * .43
-	var left := Vector3(a.x + inset, ridge, center.y)
-	var right := Vector3(b.x - inset, ridge, center.y)
-	quad("roof_mid", a, left, right, b)
-	quad("roof", d, c, right, left)
-	triangle("roof_light", a, d, left)
-	triangle("roof_mid", b, right, c)
-	for row in range(1, 5):
-		var t := row / 5.0
-		beam("roof_light", a.lerp(left, t), b.lerp(right, t), .035, .035)
-		beam("roof_mid", d.lerp(left, t), c.lerp(right, t), .035, .035)
-	for edge: Array in [[a, b], [b, c], [c, d], [d, a]]:
-		beam("wood", edge[0], edge[1], .09, .08)
-	for point: Vector3 in [a, d]:
-		beam("roof_light", point, left, .045, .045)
-	for point: Vector3 in [b, c]:
-		beam("roof_light", point, right, .045, .045)
-	beam("gold", left, right, .055, .06)
+func add_smoke() -> void:
+	# save_compact packs only the mesh; reopen the scene and give the chimney its smoke.
+	var scene: PackedScene = load(SCENE)
+	var root := scene.instantiate()
+	var visual := root.get_node("Visual") as Node3D
+	var stack := smoke("Smoke", Vector3(1.6, 3.3, 1.5) / visual.scale)
+	stack.amount = 10
+	stack.scale_amount_min = 0.4
+	stack.scale_amount_max = 0.6
+	visual.add_child(stack)
+	stack.owner = root
+	var packed := PackedScene.new()
+	assert(packed.pack(root) == OK)
+	assert(ResourceSaver.save(packed, SCENE) == OK)
+	root.free()
+	print("PASS: Store smoke added")
