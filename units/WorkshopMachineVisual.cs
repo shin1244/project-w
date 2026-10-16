@@ -148,11 +148,23 @@ public partial class WorkshopMachineVisual : Node3D
     }
 
     private float Recoil => Mathf.Exp(-_shotAge * 14) * Mathf.Sin(Mathf.Min(_shotAge * 32, Mathf.Pi));
+    private const float SiegeKick = .08f, SiegeHold = .14f, SiegeRunOut = .9f;
+
+    // The siege tube slams back, holds, then the trunnion gears run it back out (0 = in battery, 1 = fully back).
+    private float SiegeTravel
+    {
+        get
+        {
+            if (!_siegeShot) return 0;
+            if (_shotAge < SiegeKick) { float t = _shotAge / SiegeKick; return 1 - (1 - t) * (1 - t); }
+            return 1 - Mathf.SmoothStep(0, 1, Mathf.Clamp((_shotAge - SiegeKick - SiegeHold) / SiegeRunOut, 0, 1));
+        }
+    }
     private void ApplyArtilleryPose(float dt)
     {
         Node3D target = _unit.ActionTarget;
         bool mobileAttacking = _unit.State.Activity == UnitActivity.Attack && _unit.Siege?.Mode is null or SiegeMode.Mobile;
-        _artilleryPose.Apply(_unit.Siege?.DeploymentAt(_unit.EffectTick) ?? 0, _gait, _walk, Recoil, _siegeShot, dt,
+        _artilleryPose.Apply(_unit.Siege?.DeploymentAt(_unit.EffectTick) ?? 0, _gait, _walk, Recoil, _siegeShot, SiegeTravel, dt,
             _unit.State.FocusId == 0 && _walk > .1f, mobileAttacking, VisibleTarget(target) ? target.GlobalPosition : null);
     }
 
