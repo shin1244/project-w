@@ -12,6 +12,7 @@ internal sealed class SteamArtilleryPose
     // Siege recoil slides the whole gun back along its bore; the trunnion gears turn by that travel over their pitch radius.
     private const float SiegeRecoilDepth = .7f, GearPitchRadius = .3f;
     private readonly List<Leg> _legs = new();
+    private readonly List<Outrigger> _outriggers = new();
     public Node3D MobileMuzzle { get; }
     public Node3D SiegeMuzzle { get; }
     private static readonly (int From, int To)[] Links = { (0, 1), (0, 2), (1, 3), (2, 3), (3, 4), (2, 4), (4, 5), (2, 5) };
@@ -24,6 +25,70 @@ internal sealed class SteamArtilleryPose
         public readonly Vector3[] Points = new Vector3[6];
         public Vector3 Rest;
         public int Side, Index;
+    }
+
+    // Siege stabilisers at both hull ends: stowed upright against the end plates while walking, swung
+    // down onto broad pads once the legs have folded. Built here so the baked rig stays untouched.
+    private sealed class Outrigger
+    {
+        public Node3D Pivot, Foot, Piston;
+        public int End; // -1 front (the bore side), +1 rear.
+        public Vector3 Anchor;
+    }
+    private const float OutriggerArm = .82f, OutriggerPivotY = .22f, OutriggerPadHeight = .05f;
+
+    private void BuildOutriggers()
+    {
+        var iron = new StandardMaterial3D { AlbedoColor = new Color("3b434b"), Metallic = .35f, Roughness = .7f };
+        var brass = new StandardMaterial3D { AlbedoColor = new Color("a88349"), Metallic = .45f, Roughness = .55f };
+        var rods = new StandardMaterial3D { AlbedoColor = new Color("8f979c"), Metallic = .6f, Roughness = .35f };
+        foreach (int end in new[] { -1, 1 })
+            foreach (float x in new[] { -.62f, .62f })
+            {
+                float z = end < 0 ? -1.86f : 1.98f;
+                var pivot = new Node3D { Name = $"Outrigger{(end < 0 ? "Front" : "Rear")}{(x < 0 ? "Left" : "Right")}", Position = new Vector3(x, OutriggerPivotY, z) };
+                _hull.AddChild(pivot);
+                pivot.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = .09f, BottomRadius = .09f, Height = .34f, Material = brass },
+                    Rotation = new Vector3(0, 0, Mathf.Pi / 2) }); // Hinge barrel.
+                pivot.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(.2f, .13f, OutriggerArm), Material = iron },
+                    Position = new Vector3(0, 0, end * OutriggerArm / 2) });
+                pivot.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(.24f, .05f, .12f), Material = brass },
+                    Position = new Vector3(0, .07f, end * OutriggerArm * .55f) }); // Brass strap.
+                var foot = new Node3D { Position = new Vector3(0, 0, end * OutriggerArm) };
+                pivot.AddChild(foot);
+                foot.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = .07f, BottomRadius = .07f, Height = .16f, Material = rods },
+                    Position = new Vector3(0, -.08f, 0) });
+                foot.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(.46f, OutriggerPadHeight, .38f), Material = iron },
+                    Position = new Vector3(0, -.16f, 0) });
+                foot.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(.5f, .03f, .42f), Material = brass },
+                    Position = new Vector3(0, -.12f, 0) });
+                var piston = new Node3D();
+                _hull.AddChild(piston);
+                piston.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = .055f, BottomRadius = .07f, Height = 1, Material = rods } });
+                _outriggers.Add(new Outrigger { Pivot = pivot, Foot = foot, Piston = piston, End = end,
+                    Anchor = new Vector3(x, OutriggerPivotY + .62f, z - end * .05f) });
+            }
+    }
+
+    private void ApplyOutriggers(float deployment, float siegeTravel)
+    {
+        // Swing out only after the legs have tucked; on packing they lift first, before the legs unfold.
+        float reach = Ease((deployment - .55f) / .4f);
+        // Down far enough that the pad sits on the ground under the settled hull.
+        float drop = Mathf.Asin(Mathf.Clamp((_hull.Position.Y + OutriggerPivotY - .2f) / OutriggerArm, 0, 1));
+        foreach (Outrigger o in _outriggers)
+        {
+            // +90° stows the arm upright against the end plate; -drop rests the pad on the ground.
+            float angle = Mathf.Lerp(Mathf.Pi / 2, -drop + siegeTravel * .04f, reach) * -o.End;
+            o.Pivot.Rotation = new Vector3(angle, 0, 0);
+            o.Foot.Rotation = new Vector3(-angle * reach, 0, 0); // Stowed flat along the arm, level on the ground.
+            Vector3 from = o.Anchor, to = o.Pivot.Position + o.Pivot.Basis * new Vector3(0, .08f, o.End * OutriggerArm * .55f);
+            Vector3 direction = to - from, y = direction.Normalized();
+            Vector3 x = Mathf.Abs(y.Dot(Vector3.Right)) > .99f ? Vector3.Up : y.Cross(Vector3.Right).Normalized();
+            Vector3 z = y.Cross(x).Normalized();
+            x = z.Cross(y).Normalized();
+            o.Piston.Transform = new Transform3D(new Basis(x, direction, z), (from + to) * .5f);
+        }
     }
 
     public SteamArtilleryPose(Node3D rig)
@@ -43,6 +108,7 @@ internal sealed class SteamArtilleryPose
         _hullRest = _hull.Position; _mobileBarrelRest = _mobileBarrel.Position;
         _mainBarrelRest = _mainBarrel.Position;
         _pinionRest = _traversePinion.Rotation;
+        BuildOutriggers();
         for (int side = -1; side <= 1; side += 2)
             for (int i = 0; i < 4; i++)
             {
@@ -88,6 +154,7 @@ internal sealed class SteamArtilleryPose
         _mainBarrel.Position = _mainBarrelRest + _mainBarrel.Basis.Z * travel;
         _leftGear.Rotation = _rightGear.Rotation = new Vector3(gun * -.95f + travel / GearPitchRadius, 0, 0);
         foreach (Leg leg in _legs) ApplyLeg(leg, gait, fold, settle, bob);
+        ApplyOutriggers(deployment, siegeTravel);
     }
 
     private static float YawTo(Node3D turret, Vector3 target, float fallback)
