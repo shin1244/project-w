@@ -23,7 +23,7 @@ tonemap_mode = 2
 
 [node name="WorkshopPreview" type="Node3D"]
 script = ExtResource("2_preview")
-target_height = 1.9
+target_height = 1.7
 capture_path = "res://docs/images/workshop-preview.png"
 
 [node name="Workshop" parent="." instance=ExtResource("1_model")]
@@ -35,7 +35,7 @@ cast_shadow = 0
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 6.8
+size = 7.2
 current = true
 far = 80.0
 
