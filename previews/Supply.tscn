@@ -23,7 +23,7 @@ tonemap_mode = 2
 
 [node name="SupplyPreview" type="Node3D"]
 script = ExtResource("2_preview")
-target_height = 1.725
+target_height = 2.0
 capture_path = "res://docs/images/supply-preview.png"
 
 [node name="Supply" parent="." instance=ExtResource("1_model")]
@@ -35,7 +35,7 @@ cast_shadow = 0
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 6.3
+size = 7.0
 current = true
 far = 80.0
 
