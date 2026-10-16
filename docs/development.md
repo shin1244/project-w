@@ -30,6 +30,16 @@ Godot .NET 클라이언트입니다. Go 서버가 유닛을 생성하고 이동�
 `-ServerRepo`는 서버 소스 경로이며 모델은 AI 저장소에서 읽습니다.
 관전용 `Project W.exe`·서버 바이너리와 모델 데이터는 Git 소스와 별도로 준비해야 합니다.
 
+## README 교전 GIF
+
+README의 교전 GIF는 서버 없이 `previews/BattleStage.tscn`에서 연출한 장면입니다. 실제 지도·건물·유닛 장면 위에 양 팀 병력을 세 곳(상단 라인, 중앙 광장, 하단 요새 공성)에 배치하고, 간단한 전투 시뮬레이션이 서버와 같은 메시지(UNIT·POS·STATE·HP·SKILL·SIEGE_STATE)를 클라이언트에 넣습니다. 게임 규칙은 쓰지 않으며 카메라는 장면마다 정한 줌 인·아웃 동선을 따릅니다. 화면 UI는 숨겨서 글자 없이 찍습니다.
+
+```text
+Godot --path . --resolution 1280x800 --fixed-fps 15 res://previews/BattleStage.tscn -- --capture=<프레임 폴더>
+```
+
+F6으로 열면 세 장면을 반복 재생합니다. 프레임은 GIF로 묶어 `docs/images/store/battle-1.gif`~`battle-3.gif`에 둡니다. 레인저는 모델 오류로 아직 연출에 넣지 않았습니다.
+
 ## 폴더
 
 ```text
