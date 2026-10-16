@@ -59,6 +59,6 @@ JSON만 변경했다면 서버 프로젝트의 `maps/test.json`을 교체하고 
 go test ./... -run "^(TestArenaBastionExpansionSites|TestArenaObjectiveAndJungleAccess|TestMapSync|TestFindPathTestMap)$" -count=1
 ```
 
-`TestArenaBastionExpansionSites`는 두 성곽 확장 부지의 회전 대칭, 요새 사이의 접근 경로, 건설 가능한 면적과 일꾼의 실제 병영 건설 완료를 확인합니다. `TestArenaObjectiveAndJungleAccess`는 이벤트·정글 구역의 최소 전투 공간, 양쪽 입구의 골렘 통과, 대칭과 건설 금지를 확인합니다. `TestMapSync`는 실제 접속 초기화·변경 기록·늦은 입장을, `TestFindPathTestMap`은 현재 맵에서의 경로 탐색을 확인합니다.
+`TestArenaBastionExpansionSites`는 두 성곽 확장 부지의 회전 대칭, 요새 사이의 접근 경로, 건설 가능한 면적과 일꾼의 실제 인력 사무소 건설 완료를 확인합니다. `TestArenaObjectiveAndJungleAccess`는 이벤트·정글 구역의 최소 전투 공간, 양쪽 입구의 골렘 통과, 대칭과 건설 금지를 확인합니다. `TestMapSync`는 실제 접속 초기화·변경 기록·늦은 입장을, `TestFindPathTestMap`은 현재 맵에서의 경로 탐색을 확인합니다.
 
 Godot 게임을 내보낼 때는 비리소스 파일 포함 필터에 `maps/*.json`을 추가해야 합니다. `previews/Arena.tscn`은 편집용 캐시를 계속 사용하며, 갱신하려면 `tools/build_arena.gd`를 실행합니다.

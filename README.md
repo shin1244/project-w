@@ -38,7 +38,7 @@ network/          TCP 연결과 명령 문자열
 events/           서버 상태로 표시하는 공물과 수집 진행 효과
 units/            UnitManager, 공통 유닛 스크립트와 일꾼·기사·궁수 씬
 resources/        ResourceManager, 자원 공통 스크립트와 나무 외형 3종
-buildings/        회관·요새·보급기지·주택·시추탑·병영·대장간·망루 씬, 공통 공사 부지 표시
+buildings/        HQ·요새·보급기지·주택·시추탑·인력 사무소·대장간·망루 씬, 공통 공사 부지 표시
 maps/             맵 장면과 서버와 공유하는 격자 데이터(test.json)
   resources/      지형 메시와 충돌 리소스
 previews/         서버 없이 보는 맵·유닛 미리보기
@@ -63,7 +63,8 @@ docs/             설명과 미리보기 이미지
 
 현재 동작은 주제별 문서에 있고, 변경 이력은 [CHANGELOG.md](CHANGELOG.md)에 날짜순으로 적습니다. 작업 규칙은 [AGENTS.md](AGENTS.md)에 있습니다.
 
-- [게임 모드와 화면](docs/game-modes.md): 3 대 3, 팀 레벨, 로비, 승패, 공물, 미니언 편성, 회관 티어
+- [아트 디렉션: 증기, 마법 공학, 소모되는 사람들](docs/art-direction.md): 세계관 레퍼런스, 인명경시 표현, 질감·분위기 규칙과 작업 순서
+- [게임 모드와 화면](docs/game-modes.md): 3 대 3, 팀 레벨, 로비, 승패, 공물, 미니언 편성, HQ 티어
 - [영웅 화면과 조작](docs/heroes.md): AOS 패널, 늑대·골렘·사령관 모델과 미리보기
 - [RTS 조작](docs/controls.md): 선택, 공격, 정지·홀드, 카메라, 건설
 - [부대 지정·선택 확장·미니맵 조작](docs/rts-controls.md)
@@ -71,7 +72,7 @@ docs/             설명과 미리보기 이미지
 - [보유 자원 UI와 STOCK 메시지](docs/stock.md)
 - [미니언과 진영 동기화](docs/minions.md)
 - [아군·적군 의상과 건물 지붕 색상](docs/team-colors.md)
-- [회관·요새·망루와 건물 전투 동기화](buildings/README.md)
+- [HQ·요새·망루와 건물 전투 동기화](buildings/README.md)
 - [전장의 안개 동기화와 서버 성능 측정](docs/fog-of-war.md)
 - [유닛과 메시지 형식](docs/units.md)
 - [맵 구성과 재생성](docs/map.md)

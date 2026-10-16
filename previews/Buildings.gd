@@ -14,7 +14,7 @@ func _ready() -> void:
 	layout.add_theme_constant_override("separation", 2)
 	add_child(layout)
 	for entry in [
-		["res://previews/TownHall.tscn", "회관", "5 × 5", 10.2],
+		["res://previews/TownHall.tscn", "HQ", "5 × 5", 10.2],
 		["res://previews/Fortress.tscn", "요새", "4 × 4", 10.2],
 		["res://previews/Tower.tscn", "망루", "3 × 3", 10.2]
 	]:

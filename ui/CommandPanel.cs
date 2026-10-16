@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// 선택한 일꾼의 건설 메뉴, 회관·병영의 생산 버튼, 대장간 연구 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
+// 선택한 일꾼의 건설 메뉴, HQ·인력 사무소의 생산 버튼, 대장간 연구 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
 public partial class CommandPanel : PanelContainer
 {
     [Export] public UnitManager Units;
@@ -127,7 +127,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.BuildMenu, 7) => "보급기지\n(Q)",
                 (DisplayMode.BuildMenu, 8) => "주택\n(W)",
                 (DisplayMode.BuildMenu, 9) => "시추탑\n(E)",
-                (DisplayMode.BuildMenu, 4) => "병영\n(A)",
+                (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",
                 (DisplayMode.BuildMenu, 5) => "대장간\n(S)",
                 (DisplayMode.BuildMenu, 6) => "망루\n(D)",
                 (DisplayMode.BuildMenu, 1) => "공방\n(Z)",
@@ -225,8 +225,8 @@ public partial class CommandPanel : PanelContainer
                 state.Tier >= 3 ? "3티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
             string terms = state.HasUpgradeTerms ? $"나무 {state.NextWood:N0} · 기름 {state.NextOil:N0} · {state.NextSeconds:0.##}초\n" : "";
             _slots[6].TooltipText = state.Tier >= 3 ? "최고 단계" : terms +
-                "회관·요새·망루 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
-            if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "회관 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
+                "HQ·요새·망루 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
+            if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
         if (_display == DisplayMode.Barracks)
         {

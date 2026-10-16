@@ -72,7 +72,7 @@ public partial class Building : Node3D
         _turret = GetNodeOrNull<Node3D>("Turret");
         _completedTurretVisible = _turret?.Visible ?? false;
         _ballista = GetNodeOrNull<Node3D>("Turret/Ballista");
-        // 회관처럼 회전 포탑이 없는 건물은 고정된 발사 위치를 씁니다.
+        // HQ처럼 회전 포탑이 없는 건물은 고정된 발사 위치를 씁니다.
         _muzzle = GetNodeOrNull<Marker3D>("Turret/Muzzle") ?? GetNodeOrNull<Marker3D>("Muzzle");
         _entrance = GetNodeOrNull<Marker3D>("Entrance");
         if (_entrance != null) _entranceOffset = _entrance.Position;

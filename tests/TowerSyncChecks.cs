@@ -74,7 +74,7 @@ public partial class TowerSyncChecks : Main
                 "STATE 501 ATTACK 0 101 10 2" }) Receive(bad);
             Check(tower.State.SwingSequence == 9 && shots == 1, "Invalid tower states ignored");
 
-            // 회관에도 같은 스냅샷/중복 억제 규칙이 적용됩니다.
+            // HQ에도 같은 스냅샷/중복 억제 규칙이 적용됩니다.
             int hallShots = 0;
             hall.StateChanged += (_, fired) => { if (fired) hallShots++; };
             Receive("STATE 502 ATTACK 0 101 1");
