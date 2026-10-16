@@ -18,6 +18,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 Net="*res://network/NetClient.cs"
 MatchSession="*res://network/MatchSession.cs"
+Sfx="*res://audio/Sfx.cs"
 
 [display]
 
