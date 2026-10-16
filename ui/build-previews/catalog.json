@@ -55,8 +55,8 @@
     "Type": 6,
     "Texture": "res://ui/build-previews/tower.png",
     "Footprint": [
-      3,
-      3
+      2,
+      2
     ],
     "WorldSpan": 8,
     "Anchor": [
