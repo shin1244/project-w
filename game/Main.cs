@@ -411,6 +411,9 @@ public partial class Main : Node3D
             case "ARMY_UPGRADE":
                 Buildings?.HandleArmyUpgrade(parts);
                 break;
+            case "MINION_UPGRADE_STEP":
+                Buildings?.HandleMinionUpgradeStep(parts);
+                break;
             case "KNIGHT_RESEARCH":
                 Buildings?.HandleKnightResearch(parts);
                 break;
