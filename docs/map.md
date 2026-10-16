@@ -106,9 +106,9 @@
 
 | 대상 | 파일 | 표현 |
 | --- | --- | --- |
-| 돌길·잔디 | `maps/materials/Ground.gdshader` | 포석·줄눈·먼지·가는 실금, 풀 얼룩·클로버 |
+| 돌길·잔디 | `maps/materials/Ground.gdshader` | 톤을 낮춘 포석·줄눈·먼지·가는 실금, 군데군데 무리 지어 섞인 빛바랜 어두운 옛 포석(평평하게 닳고 살짝 꺼졌으며 줄눈에서 때가 번짐), 풀 얼룩·클로버 |
 | 유전 균열·기름 | `maps/Oilfield.tscn` | 네 곳이 같은 모델 공유. 지그재그 균열·갈라진 암반과 틈에서 낮게 솟는 기름. 상호작용·충돌 노드 없음 |
-| 벽 | `maps/materials/Wall.gdshader` | 석회암·이끼·가는 균열·빗물 자국 |
+| 벽 | `maps/materials/Wall.gdshader`, `TerrainBuilder.build_walls` | 석회암·이끼·가는 균열·빗물 자국. 둘레의 약 30% 구간은 총안이 떨어져 나가고 철띠와 철판으로 보강한, 어둡고 빛바랜 옛 성벽 |
 | 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수와 깔끔하게 다듬은 둥근 수관의 피나무. 수종은 시작 칸 좌표를 섞어 고르고, 같은 수종 안에서는 고정 변형과 자원 ID 기반 회전·크기 |
 
 `LayoutGuides`에는 본진 마커, 공격로 경로, 활동 구역·확장 부지의 기준점이 있습니다. 미니언의 실제 경유지는 JSON의 `lanes`를 사용합니다.
@@ -119,7 +119,7 @@
 
 ## 수정 및 재생성
 
-자동 배치 기준은 `maps/TerrainBuilder.gd`에 있습니다. 본진 잔디는 `BASE_MEADOW_RADII`, 중앙·정글은 `activity_areas()`, 외곽 확장 부지는 `EXPANSION_*`, 유전과 공터는 `OIL_CLEARING_*`·`OIL_ENTRANCE_*`·`OIL_CONNECTION_*`·`oil_fields()`·`is_oilfield_clearing()`에서 조절합니다. 전체 배열의 원점과 크기는 `MAP_ORIGIN`, `MAP_SIZE`로 고정합니다.
+자동 배치 기준은 `maps/TerrainBuilder.gd`에 있습니다. 본진 잔디는 `BASE_MEADOW_RADII`, 중앙·정글은 `activity_areas()`, 외곽 확장 부지는 `EXPANSION_*`, 유전과 공터는 `OIL_CLEARING_*`·`OIL_ENTRANCE_*`·`OIL_CONNECTION_*`·`oil_fields()`·`is_oilfield_clearing()`에서 조절합니다. 옛 성벽 구간은 지도 중심 기준 호 개수 `OLD_WALL_ARCS`와 비율 `OLD_WALL_SHARE`로 고르며 180도 회전 위치에도 같은 구간이 생깁니다. 옛 포석의 비율은 `Ground.gdshader`의 `aged_ratio`·`aged_cluster`입니다. 전체 배열의 원점과 크기는 `MAP_ORIGIN`, `MAP_SIZE`로 고정합니다.
 
 클라이언트 프로젝트 루트에서 실행합니다. `Godot`은 설치한 Godot .NET 실행 파일 경로로 바꿉니다.
 
