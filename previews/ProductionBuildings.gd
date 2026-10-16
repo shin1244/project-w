@@ -15,7 +15,7 @@ func _ready() -> void:
 	var heading := label("PROJECT W  /  생활 · 군수 시설", 30, Color("edf0e4"))
 	heading.position = Vector2(38, 24)
 	add_child(heading)
-	var subtitle := label("주택 · 브랜치 · 인력 사무소 · 화덕과 모루가 있는 대장간", 17, Color("9eaca8"))
+	var subtitle := label("숙소 · 브랜치 · 인력 사무소 · 화덕과 모루가 있는 조병창", 17, Color("9eaca8"))
 	subtitle.position = Vector2(40, 66)
 	add_child(subtitle)
 	var layout := HBoxContainer.new()
@@ -28,9 +28,9 @@ func _ready() -> void:
 	add_child(layout)
 	for entry in [
 		["res://previews/Store.tscn", "브랜치", "전진 자원 반납 거점", "4 × 4", "9eb581"],
-		["res://previews/Supply.tscn", "주택", "인구를 늘리는 생활 공간", "3 × 3", "c5aa72"],
+		["res://previews/Supply.tscn", "숙소", "인구를 늘리는 생활 공간", "3 × 3", "c5aa72"],
 		["res://previews/Barracks.tscn", "인력 사무소", "용병 계약 · 1티어 병력", "4 × 3", "7fa4b9"],
-		["res://previews/Forge.tscn", "대장간", "화덕 · 모루 · 철제 장비", "4 × 3", "c9956f"]
+		["res://previews/Forge.tscn", "조병창", "화덕 · 모루 · 철제 장비", "4 × 3", "c9956f"]
 	]:
 		add_card(layout, entry)
 	update_cameras()
