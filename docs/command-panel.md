@@ -154,7 +154,7 @@ CONSTRUCTION의 마지막 값은 비용 지불자 ID입니다. 클라이언트�
 
 [공성 거포 좌우 조준 애니메이션](images/steam-artillery-traverse-cycle.gif)
 
-공성 모드로 포격하면 포신이 반동으로 포가 안을 따라 뒤로 밀렸다가(`SiegeKick`) 잠시 버틴 뒤(`SiegeHold`), 양옆 톱니가 돌며 다시 앞으로 밀어 냅니다(`SiegeRunOut`, `WorkshopMachineVisual.cs`). 톱니 회전량은 포신 이동 거리를 톱니 반지름으로 나눈 값이라 톱니가 포신을 끌고 오는 것처럼 맞물립니다(`SteamArtilleryPose.cs`). 이동 모드의 소형 포탑 반동은 짧게 유지합니다.
+공성 모드로 포격하면 거포 전체가 반동으로 포신 방향을 따라 `SiegeRecoilDepth`만큼 뒤로 밀렸다가(`SiegeKick`) 잠시 버틴 뒤(`SiegeHold`), 양옆 톱니가 돌며 다시 앞으로 밀어 냅니다(`SiegeRunOut`, `WorkshopMachineVisual.cs`). 톱니 회전량은 포신 이동 거리를 톱니 반지름으로 나눈 값이라 톱니가 포신을 끌고 오는 것처럼 맞물립니다(`SteamArtilleryPose.cs`). 전개할 때 포관을 앞으로 빼지 않고 약실에 붙여 두어 장전이 끝난 상태에서도 포관이 떠 보이지 않습니다. 이동 모드의 소형 포탑 반동은 짧게 유지합니다.
 
 [공성 거포 반동·복귀 애니메이션](images/steam-artillery-recoil.gif)
 

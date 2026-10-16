@@ -4,13 +4,13 @@ using System.Collections.Generic;
 // A presentation rig, not a simulation: deployment comes from the server and walking from rendered distance.
 internal sealed class SteamArtilleryPose
 {
-    private readonly Node3D _aim, _hull, _mobileTurret, _mainTurret, _mobileBarrel, _mainBarrel, _mainTube;
+    private readonly Node3D _aim, _hull, _mobileTurret, _mainTurret, _mobileBarrel, _mainBarrel;
     private readonly Node3D _leftGear, _rightGear, _traversePinion;
-    private readonly Vector3 _hullRest, _mobileBarrelRest, _mainTubeRest, _pinionRest;
+    private readonly Vector3 _hullRest, _mobileBarrelRest, _mainBarrelRest, _pinionRest;
     private float _mobileAimYaw, _mainAimYaw;
     private const float HullDrop = .55f;
-    // Siege recoil slides the tube back along its bore; the trunnion gears turn by that travel over their pitch radius.
-    private const float SiegeRecoilDepth = .42f, GearPitchRadius = .3f;
+    // Siege recoil slides the whole gun back along its bore; the trunnion gears turn by that travel over their pitch radius.
+    private const float SiegeRecoilDepth = .7f, GearPitchRadius = .3f;
     private readonly List<Leg> _legs = new();
     public Node3D MobileMuzzle { get; }
     public Node3D SiegeMuzzle { get; }
@@ -34,14 +34,14 @@ internal sealed class SteamArtilleryPose
         _mainTurret = _hull.GetNode<Node3D>("MainTurret");
         _mobileBarrel = _mobileTurret.GetNode<Node3D>("Barrel");
         _mainBarrel = _mainTurret.GetNode<Node3D>("Barrel");
-        _mainTube = _mainBarrel.GetNode<Node3D>("Tube");
+        var mainTube = _mainBarrel.GetNode<Node3D>("Tube");
         MobileMuzzle = _mobileBarrel.GetNode<Node3D>("Tube/Muzzle");
-        SiegeMuzzle = _mainTube.GetNode<Node3D>("Muzzle");
+        SiegeMuzzle = mainTube.GetNode<Node3D>("Muzzle");
         _leftGear = _mainTurret.GetNode<Node3D>("LeftGear");
         _rightGear = _mainTurret.GetNode<Node3D>("RightGear");
         _traversePinion = _hull.GetNode<Node3D>("TraversePinion");
         _hullRest = _hull.Position; _mobileBarrelRest = _mobileBarrel.Position;
-        _mainTubeRest = _mainTube.Position;
+        _mainBarrelRest = _mainBarrel.Position;
         _pinionRest = _traversePinion.Rotation;
         for (int side = -1; side <= 1; side += 2)
             for (int i = 0; i < 4; i++)
@@ -84,7 +84,8 @@ internal sealed class SteamArtilleryPose
         _mobileBarrel.Position = _mobileBarrelRest + Vector3.Back * (siegeShot ? 0 : recoil * .11f);
         _mainBarrel.Rotation = new Vector3(Mathf.Lerp(.10f, .32f, gun), 0, 0);
         float travel = siegeTravel * SiegeRecoilDepth;
-        _mainTube.Position = _mainTubeRest + Vector3.Forward * (.38f * gun) + Vector3.Back * travel;
+        // The tube stays seated on the breech: sliding it forward on deployment left it floating in front of it.
+        _mainBarrel.Position = _mainBarrelRest + _mainBarrel.Basis.Z * travel;
         _leftGear.Rotation = _rightGear.Rotation = new Vector3(gun * -.95f + travel / GearPitchRadius, 0, 0);
         foreach (Leg leg in _legs) ApplyLeg(leg, gait, fold, settle, bob);
     }
