@@ -70,7 +70,7 @@ colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0
 [sub_resource type="BoxShape3D" id="BoxShape3D_c4a53"]
 size = Vector3(5, 6.1325, 5)
 
-[node name="TownHall" type="Node3D" unique_id=1550537709]
+[node name="TownHall" type="Node3D" unique_id=27634387]
 script = ExtResource("1_wc5ff")
 HealthBarHeight = 6.57
 ShotWidth = 0.18
@@ -79,23 +79,23 @@ ImpactRadius = 0.35
 metadata/footprint = Vector2i(5, 5)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=1312258661]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=669215297]
 transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
 mesh = ExtResource("2_jutsu")
 
-[node name="TowerGearLeft" type="MeshInstance3D" parent="Visual" unique_id=618133654]
+[node name="TowerGearLeft" type="MeshInstance3D" parent="Visual" unique_id=1577586563]
 transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, -0.49333334, 2.53, -0.46666667)
 mesh = ExtResource("3_spw1w")
 script = ExtResource("4_lhlu4")
 Speed = -0.55
 
-[node name="TowerGearRight" type="MeshInstance3D" parent="Visual" unique_id=1664635294]
+[node name="TowerGearRight" type="MeshInstance3D" parent="Visual" unique_id=95000651]
 transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 0.49333334, 2.53, -0.46666667)
 mesh = ExtResource("3_spw1w")
 script = ExtResource("4_lhlu4")
 Speed = 0.55
 
-[node name="SmokeLeft" type="CPUParticles3D" parent="Visual" unique_id=1404737796]
+[node name="SmokeLeft" type="CPUParticles3D" parent="Visual" unique_id=1608266661]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.96000004, 4.9500003, 1.4)
 cast_shadow = 0
 amount = 14
@@ -112,7 +112,7 @@ scale_amount_max = 0.8
 scale_amount_curve = SubResource("Curve_qdn4e")
 color_ramp = SubResource("Gradient_mlk1g")
 
-[node name="SmokeRight" type="CPUParticles3D" parent="Visual" unique_id=467132330]
+[node name="SmokeRight" type="CPUParticles3D" parent="Visual" unique_id=459251325]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.96000004, 4.9500003, 1.4)
 cast_shadow = 0
 amount = 14
@@ -129,18 +129,18 @@ scale_amount_max = 0.8
 scale_amount_curve = SubResource("Curve_kq0m0")
 color_ramp = SubResource("Gradient_vl2ej")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1047287367]
+[node name="SelectionArea" type="Area3D" parent="." unique_id=458118097]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=185796852]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1924312607]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.06625, 0)
 shape = SubResource("BoxShape3D_c4a53")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=70852811]
+[node name="Entrance" type="Marker3D" parent="." unique_id=156522617]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.5)
 
-[node name="Muzzle" type="Marker3D" parent="." unique_id=977223206]
+[node name="Muzzle" type="Marker3D" parent="." unique_id=244639951]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5375004, -0.5833333)

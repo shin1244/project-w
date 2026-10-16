@@ -42,12 +42,12 @@ func _initialize() -> void:
 	save_hall()
 	quit()
 
-func material(key: String, color: Color, metallic := 0.0, roughness := 0.85, glow := 0.0) -> void:
+func material(key: String, color: Color, metallic := 0.0, roughness := -1.0, glow := 0.0) -> void:
 	var mat := StandardMaterial3D.new()
 	mat.resource_name = key
 	mat.albedo_color = color
 	mat.metallic = metallic
-	mat.roughness = roughness
+	mat.roughness = roughness if roughness >= 0.0 else (0.82 if metallic == 0.0 else 0.48)
 	if glow > 0.0: # Gaslight windows and lanterns.
 		mat.emission_enabled = true
 		mat.emission = color
@@ -98,6 +98,48 @@ func face(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
 
 func beam(key: String, a: Vector3, b: Vector3, width: float, depth: float) -> void:
 	box(key, (a + b) * 0.5, Vector3(width, a.distance_to(b), depth), Basis(Quaternion(Vector3.UP, (b - a).normalized())))
+
+# Shared with the barracks, fortress and supply builders that extend this script.
+func triangle(key: String, a: Vector3, b: Vector3, c: Vector3) -> void:
+	var normal := (b - a).cross(c - a).normalized()
+	for point in [a, c, b]: # Godot front faces are clockwise.
+		surfaces[key].set_normal(normal)
+		surfaces[key].set_uv(Vector2.ZERO)
+		surfaces[key].add_vertex(point)
+
+func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	triangle(key, a, b, c)
+	triangle(key, a, c, d)
+
+func roof(half_width: float, front: float, back: float, eave: float, ridge: float, rows: int, columns: int) -> void:
+	# A solid dark shell beneath overlapping blue slate courses.
+	for side in [-1.0, 1.0]:
+		var x0 := minf(0.0, side * half_width)
+		var x1 := maxf(0.0, side * half_width)
+		quad("roof", Vector3(x0, roof_y(x0, half_width, eave, ridge), front),
+			Vector3(x0, roof_y(x0, half_width, eave, ridge), back),
+			Vector3(x1, roof_y(x1, half_width, eave, ridge), back),
+			Vector3(x1, roof_y(x1, half_width, eave, ridge), front))
+		for row in range(rows):
+			for col in range(columns):
+				var lo := half_width * row / rows + 0.012
+				var hi := half_width * (row + 1) / rows - 0.008
+				var xa := minf(side * lo, side * hi)
+				var xb := maxf(side * lo, side * hi)
+				var z0 := lerpf(front, back, float(col) / columns) + 0.009
+				var z1 := lerpf(front, back, float(col + 1) / columns) - 0.009
+				var y0 := roof_y(xa, half_width, eave, ridge) + 0.024
+				var y1 := roof_y(xb, half_width, eave, ridge) + 0.024
+				var color: String = ["roof", "roof_mid", "roof_light"][(row * 7 + col * 11) % 3]
+				quad(color, Vector3(xa, y0, z0), Vector3(xa, y0, z1), Vector3(xb, y1, z1), Vector3(xb, y1, z0))
+		beam("wood", Vector3(side * half_width, eave - 0.025, front), Vector3(side * half_width, eave - 0.025, back), 0.085, 0.085)
+	for z in [front, back]:
+		beam("wood", Vector3(-half_width, eave, z), Vector3(0, ridge, z), 0.08, 0.08)
+		beam("wood", Vector3(0, ridge, z), Vector3(half_width, eave, z), 0.08, 0.08)
+	box("gold", Vector3(0, ridge + 0.03, (front + back) * 0.5), Vector3(0.10, 0.075, back - front + 0.04))
+
+func roof_y(x: float, half_width: float, eave: float, ridge: float) -> float:
+	return lerpf(ridge, eave, absf(x) / half_width)
 
 # ── Hall ──
 
