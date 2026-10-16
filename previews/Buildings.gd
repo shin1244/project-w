@@ -43,7 +43,7 @@ func _ready() -> void:
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		panel.add_child(title)
 	var heading := Label.new()
-	heading.text = "PROJECT W   /   BUILDINGS"
+	heading.text = "BURN QUARTER   /   BUILDINGS"
 	heading.position = Vector2(34, 26)
 	heading.add_theme_font_size_override("font_size", 30)
 	heading.add_theme_color_override("font_color", Color("e5ece7"))

@@ -16,7 +16,7 @@ public partial class HeroVisualsPreview : Control
         AddChild(new ColorRect { Color = new Color("101b28"), Size = new Vector2(1440, 900), MouseFilter = MouseFilterEnum.Ignore });
         _layout = new Control();
         AddChild(_layout);
-        Label("PROJECT W / HERO PRESENTATION", new Vector2(28, 22), 26);
+        Label("BURN QUARTER / HERO PRESENTATION", new Vector2(28, 22), 26);
         Label("Space walk   A attack   Q/W/E/R skills   T team colors", new Vector2(28, 840), 21);
         // The ranger is left out until this preview supports its rig (the LeftArm/Bow lookup fails here).
         string[] scenes = { "HeroTest", "HeroGolem", "HeroMarshal" };
