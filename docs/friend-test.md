@@ -46,7 +46,7 @@ go build -o project-w-lobby.exe ./cmd/lobby
 ./project-w-lobby.exe -game-bin ./project-w-game.exe -game-host 127.0.0.1
 ```
 
-Godot .NET으로 클라이언트 `project.godot`를 열고 리소스를 가져온 뒤 C#을 빌드합니다. F5로 로비를 열고 주소에 `http://127.0.0.1:8080`을 입력합니다. 창 하나에서는 **혼자 연습**을, 두 개 이상에서는 **일반 매칭**을 선택합니다. 로비 주소는 `user://network.cfg`에 저장됩니다.
+Godot .NET으로 클라이언트 `project.godot`를 열고 리소스를 가져온 뒤 C#을 빌드합니다. F5로 로비를 열고 주소에 `http://127.0.0.1:8080`을 입력합니다. 창 하나에서는 **혼자 연습**을, 두 개 이상에서는 **일반 매칭**을 선택합니다. 로비 주소는 `user://network.cfg`에 저장됩니다. 이 파일이 없으면 게임 이름을 바꾸기 전 사용자 폴더(`app_userdata/Project W`)에 저장한 주소를 읽습니다.
 
 `-wait 0s`는 2명부터 즉시 시작, `-wait 30s`는 추가 참가자를 30초 기다립니다. 6명 즉시 출발은 동일합니다. 서버 포트를 바꾸려면 로비의 `-listen :8080`, `-game-port 7777`을 사용합니다.
 
