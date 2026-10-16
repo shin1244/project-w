@@ -134,6 +134,7 @@ public partial class Building : Node3D
         FaceCamera();
         Node3D target = FaceTarget();
         if (fired) PlayShot(target);
+        if (fired && IsVisibleInTree()) Sfx.At("tower-shot", GlobalPosition);
         StateChanged?.Invoke(state, fired);
     }
 

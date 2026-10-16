@@ -162,6 +162,12 @@ public partial class BuildingManager : Node3D
         bool wasUnderConstruction = building.IsUnderConstruction;
         building.ConstructionOwnerId = owner;
         building.ApplyConstruction(percent);
+        // Like StarCraft, only the player's own construction is announced.
+        if (wasUnderConstruction != building.IsUnderConstruction && _localTeam != 0 && building.SideId == _localTeam && Units?.Live == true)
+        {
+            if (building.IsUnderConstruction) Sfx.At("build-start", building.GlobalPosition);
+            else Sfx.Interface("build-complete");
+        }
         if (_selected == building) SelectionChanged?.Invoke();
         if (wasUnderConstruction != building.IsUnderConstruction) RequirementsChanged?.Invoke();
     }
@@ -184,7 +190,12 @@ public partial class BuildingManager : Node3D
 
     public void HandleRemove(string[] parts)
     {
-        if (parts.Length == 2 && uint.TryParse(parts[1], out uint id)) Remove(id);
+        if (parts.Length != 2 || !uint.TryParse(parts[1], out uint id)) return;
+        // A cancelled construction site is not a collapse.
+        if (_buildings.TryGetValue(id, out Building building) && !building.IsUnderConstruction &&
+            building.IsVisibleInTree() && Units?.Live == true)
+            Sfx.At("building-collapse", building.GlobalPosition);
+        Remove(id);
     }
 
     public void HandleRally(string[] parts)
