@@ -133,7 +133,8 @@ public partial class UnitSceneChecks : Main
             Name = "Resources",
             OakScene = GD.Load<PackedScene>("res://resources/trees/Oak.tscn"),
             PineScene = GD.Load<PackedScene>("res://resources/trees/Pine.tscn"),
-            BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn")
+            BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn"),
+            LindenScene = GD.Load<PackedScene>("res://resources/trees/Linden.tscn")
         };
         AddChild(Resources);
         // Scene-placed trees are kept as visuals until the server assigns their identity.
@@ -141,7 +142,7 @@ public partial class UnitSceneChecks : Main
         placed.Position = new Vector3(8, 3.75f, 18);
         Resources.AddChild(placed);
 
-        for (uint variant = 0; variant < 3; variant++)
+        for (uint variant = 0; variant < 4; variant++)
         {
             uint id = 900 + variant;
             Vector3 point = new(variant * 3, 2, 6);

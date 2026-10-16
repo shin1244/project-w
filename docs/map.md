@@ -109,7 +109,7 @@
 | 돌길·잔디 | `maps/materials/Ground.gdshader` | 포석·줄눈·먼지·가는 실금, 풀 얼룩·클로버 |
 | 유전 균열·기름 | `maps/Oilfield.tscn` | 네 곳이 같은 모델 공유. 지그재그 균열·갈라진 암반과 틈에서 낮게 솟는 기름. 상호작용·충돌 노드 없음 |
 | 벽 | `maps/materials/Wall.gdshader` | 석회암·이끼·가는 균열·빗물 자국 |
-| 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수의 고정 변형과 자원 ID 기반 회전·크기 |
+| 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수와 깔끔하게 다듬은 둥근 수관의 피나무. 수종은 시작 칸 좌표를 섞어 고르고, 같은 수종 안에서는 고정 변형과 자원 ID 기반 회전·크기 |
 
 `LayoutGuides`에는 본진 마커, 공격로 경로, 활동 구역·확장 부지의 기준점이 있습니다. 미니언의 실제 경유지는 JSON의 `lanes`를 사용합니다.
 

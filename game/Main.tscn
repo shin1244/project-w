@@ -35,6 +35,7 @@
 [ext_resource type="PackedScene" path="res://units/HeroTest.tscn" id="29_hero"]
 [ext_resource type="PackedScene" path="res://ui/UnitInfoPanel.tscn" id="30_info"]
 [ext_resource type="Script" path="res://ui/MinionPanel.cs" id="31_minions"]
+[ext_resource type="PackedScene" path="res://resources/trees/Linden.tscn" id="35_linden"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -91,6 +92,7 @@ script = ExtResource("13_resources")
 OakScene = ExtResource("10_6lgcj")
 PineScene = ExtResource("11_dc36f")
 BirchScene = ExtResource("9_cf05b")
+LindenScene = ExtResource("35_linden")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1872000996]
 transform = Transform3D(1, 0, 0, 0, 0.56552833, 0.8247289, 0, -0.8247289, 0.56552833, 0, 105, 72)

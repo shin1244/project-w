@@ -3,7 +3,7 @@ extends MeshInstance3D
 
 # Four shared silhouettes per species, two surfaces per tree. Selection and
 # resource behavior stay on Tree.tscn; this node only supplies the visual mesh.
-@export_enum("Oak", "Pine", "Birch") var species: int = 0
+@export_enum("Oak", "Pine", "Birch", "Linden") var species: int = 0
 static var _meshes: Dictionary = {}
 static var _materials: Dictionary = {}
 
@@ -41,6 +41,7 @@ static func _sculpt(kind: int, variant: int) -> ArrayMesh:
 		0: _oak(wood, leaf, rng, lean)
 		1: _pine(wood, leaf, rng, lean)
 		2: _birch(wood, leaf, rng, lean)
+		3: _linden(wood, leaf, rng, lean * 0.3)
 	wood.set_material(_material(true, kind == 2))
 	leaf.set_material(_material(false, false))
 	var result := wood.commit()
@@ -85,6 +86,43 @@ static func _birch(wood: SurfaceTool, leaf: SurfaceTool, rng: RandomNumberGenera
 		var center: Vector3 = crowns[i][0] + lean + Vector3(rng.randf_range(-0.10, 0.10), rng.randf_range(-0.10, 0.10), rng.randf_range(-0.08, 0.08))
 		_bough(wood, Vector3(0.0, 1.85 + i * 0.17, 0.0) + lean, center, 0.058, 0.016, bark_color, rng)
 		_crown(leaf, center, crowns[i][1], crowns[i][2], rng, 8)
+
+static func _linden(wood: SurfaceTool, leaf: SurfaceTool, rng: RandomNumberGenerator, lean: Vector3) -> void:
+	# A tidy, crown-lifted linden: one straight smooth trunk under a single neat ovoid crown,
+	# the clean counterpart to the lumpy oak and the split birch.
+	var bark_color := Color(0.43, 0.375, 0.31)
+	var crown := Vector3(0.0, 2.8, 0.0) + lean
+	_bough(wood, Vector3.ZERO, crown + Vector3(0, -0.55, 0), 0.23, 0.14, bark_color, rng)
+	_roots(wood, 0.23, bark_color, rng)
+	var size := Vector3(1.0, 1.08, 1.0) * rng.randf_range(0.95, 1.05)
+	_ovoid(leaf, crown, size, Color(0.335, 0.475, 0.225), rng)
+
+static func _ovoid(surface: SurfaceTool, center: Vector3, size: Vector3, color: Color, rng: RandomNumberGenerator) -> void:
+	# A smooth egg of even facets; only a whisper of jitter so it reads as pruned, not wild.
+	var segments := 12
+	var latitudes := [-0.95, -0.62, -0.25, 0.15, 0.52, 0.82]
+	var phase := rng.randf() * TAU
+	var rings: Array[PackedVector3Array] = []
+	for r in latitudes.size():
+		var lat: float = latitudes[r]
+		var height := sin(lat * PI * 0.5) * size.y * (0.82 if lat < 0.0 else 1.0)
+		var width := cos(lat * PI * 0.5)
+		var ring := PackedVector3Array()
+		for i in segments:
+			var angle := float(i) / segments * TAU + phase + (0.26 if r % 2 == 1 else 0.0)
+			var jitter := rng.randf_range(0.97, 1.03)
+			ring.append(center + Vector3(cos(angle) * width * size.x * jitter, height, sin(angle) * width * size.z * jitter))
+		rings.append(ring)
+	for r in rings.size() - 1:
+		for i in segments:
+			var j := (i + 1) % segments
+			var tint := color * (0.9 + r * 0.035 + rng.randf() * 0.04)
+			_quad(surface, rings[r][i], rings[r][j], rings[r + 1][j], rings[r + 1][i], tint)
+	var last := rings.size() - 1
+	for i in segments:
+		var j := (i + 1) % segments
+		_triangle(surface, center + Vector3(0, -size.y * 0.82, 0), rings[0][j], rings[0][i], color * 0.86)
+		_triangle(surface, center + Vector3(0, size.y, 0), rings[last][i], rings[last][j], color * 1.1)
 
 static func _pine(wood: SurfaceTool, leaf: SurfaceTool, rng: RandomNumberGenerator, lean: Vector3) -> void:
 	var bark_color := Color(0.275, 0.22, 0.16)

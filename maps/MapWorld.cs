@@ -225,6 +225,17 @@ public partial class MapWorld : Node3D
     public void SetLocalTeam(uint team)
     { foreach (Node child in GetChildren()) if (child is SpawnZoneView zone) zone.SetLocalTeam(team); }
 
+    // 네 수종(참나무·소나무·자작나무·피나무)을 섞되 2×2 격자에서 줄무늬가 지지 않도록 좌표를 섞습니다.
+    // 외형만 정하며 서버 판정과는 무관합니다.
+    private static uint TreeVariant(int x, int z)
+    {
+        uint h = (uint)x * 0x9E3779B1u ^ (uint)z * 0x85EBCA77u;
+        h ^= h >> 15;
+        h *= 0x2C1B3C6Du;
+        h ^= h >> 12;
+        return h % 4;
+    }
+
     private void ResetTrees()
     {
         _visionBlocked = new bool[_map.Rows.Length * _map.Rows[0].Length];
@@ -239,7 +250,7 @@ public partial class MapWorld : Node3D
                 {
                     SetTreeObstacle(x, z, true);
                     uint id = checked((uint)(z * _map.Rows[0].Length + x + 1));
-                    var tree = Resources.SpawnOrUpdate(id, (uint)((x + z) % 3), new Vector3(
+                    var tree = Resources.SpawnOrUpdate(id, TreeVariant(x, z), new Vector3(
                         _map.OriginX + (x + _map.TreeSize * 0.5f) * _map.CellSize, 0,
                         _map.OriginZ + (z + _map.TreeSize * 0.5f) * _map.CellSize));
                     if (tree == null) throw new InvalidOperationException("나무 씬이 지정되지 않았습니다.");

@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://resources/trees/Tree.tscn" id="1_base"]
+[ext_resource type="Script" path="res://resources/trees/SculptedTree.gd" id="2_sculpt"]
+
+[node name="Linden" instance=ExtResource("1_base")]
+VisualVariant = 3
+
+[node name="CrownAndBranches" type="MeshInstance3D" parent="Visual"]
+script = ExtResource("2_sculpt")
+species = 3

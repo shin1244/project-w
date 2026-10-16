@@ -1,6 +1,6 @@
 extends Node3D
 
-# Keep a repeatable close view of all three resource silhouettes alongside map captures.
+# Keep a repeatable close view of all four resource silhouettes alongside map captures.
 func _ready() -> void:
 	if not "--capture" in OS.get_cmdline_user_args():
 		return
