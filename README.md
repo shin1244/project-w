@@ -63,7 +63,7 @@ docs/             설명과 미리보기 이미지
 
 현재 동작은 주제별 문서에 있고, 변경 이력은 [CHANGELOG.md](CHANGELOG.md)에 날짜순으로 적습니다. 작업 규칙은 [AGENTS.md](AGENTS.md)에 있습니다.
 
-- [아트 디렉션: 증기 시대 변경 도시](docs/art-direction.md): 배경·건물·유닛의 공통 디자인 기준과 작업 순서
+- [아트 디렉션: 증기와 마법 공학의 변경 도시](docs/art-direction.md): 배경·건물·유닛의 공통 디자인 기준, 질감·분위기 규칙과 작업 순서
 - [게임 모드와 화면](docs/game-modes.md): 3 대 3, 팀 레벨, 로비, 승패, 공물, 미니언 편성, 회관 티어
 - [영웅 화면과 조작](docs/heroes.md): AOS 패널, 늑대·골렘·사령관 모델과 미리보기
 - [RTS 조작](docs/controls.md): 선택, 공격, 정지·홀드, 카메라, 건설
