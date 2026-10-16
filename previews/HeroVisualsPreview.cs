@@ -18,7 +18,8 @@ public partial class HeroVisualsPreview : Control
         AddChild(_layout);
         Label("PROJECT W / HERO PRESENTATION", new Vector2(28, 22), 26);
         Label("Space walk   A attack   Q/W/E/R skills   T team colors", new Vector2(28, 840), 21);
-        string[] scenes = { "HeroTest", "HeroGolem", "HeroMarshal", "HeroRanger" };
+        // The ranger is left out until this preview supports its rig (the LeftArm/Bow lookup fails here).
+        string[] scenes = { "HeroTest", "HeroGolem", "HeroMarshal" };
         string[] names = { "MUTANT WOLF", "RUNE GOLEM", "MARSHAL" };
         for (int i = 0; i < scenes.Length; i++)
         {
