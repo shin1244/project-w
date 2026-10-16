@@ -7,8 +7,8 @@ public static class BuildingCatalog
     public static bool IsPlayerBuildable(uint type) => type is Store or Supply or Barracks or Forge or Tower or OilDerrick or Workshop or ResearchLab;
     public static string Name(uint type) => type switch
     {
-        TownHall => "회관", Fortress => "요새", Store => "보급기지", Supply => "주택",
-        Barracks => "병영", Forge => "대장간", Tower => "망루", OilDerrick => "시추탑",
+        TownHall => "HQ", Fortress => "요새", Store => "보급기지", Supply => "주택",
+        Barracks => "인력 사무소", Forge => "대장간", Tower => "망루", OilDerrick => "시추탑",
         Workshop => "공방", ResearchLab => "기술연구소", _ => "건물"
     };
 }

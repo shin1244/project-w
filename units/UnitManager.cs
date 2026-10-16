@@ -150,10 +150,10 @@ public partial class UnitManager : Node3D
     public string TownHallUpgradeBlockReason(Building hall)
     {
         if (!CommanderControl || Spectating || _controlledHeroType.HasValue || !CanUseSelectedBuilding(hall) ||
-            hall.BuildingType != BuildingCatalog.TownHall) return "아군 회관을 선택하세요";
-        if (hall.IsUnderConstruction) return "회관 건설 중";
+            hall.BuildingType != BuildingCatalog.TownHall) return "아군 HQ를 선택하세요";
+        if (hall.IsUnderConstruction) return "HQ 건설 중";
         var tier = Buildings.TeamTier(hall.SideId);
-        if (tier.Upgrading) return "회관 업그레이드 중";
+        if (tier.Upgrading) return "HQ 업그레이드 중";
         if (tier.Tier >= 3) return "최고 단계";
         if (hall.ProductionQueue.Count != 0) return "일꾼 생산 대기열을 비워주세요";
         if (!tier.HasUpgradeTerms) return "업그레이드 정보 수신 대기";

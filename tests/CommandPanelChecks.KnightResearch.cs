@@ -31,7 +31,7 @@ public partial class CommandPanelChecks
         Receive("TEAM_TIER 1 1 201 2 4 9");
         Receive("TEAM_TIER 2 3 203 0 0 0");
         KeyStroke(input, Key.Q);
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("회관 2티어 완료") && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("HQ 2티어 완료") && _commands.Count == before,
             "An upgrading hall or the enemy tier cannot unlock charge research");
         Receive("TEAM_TIER 1 2 201 0 0 0");
         Receive("STOCK 0 36");

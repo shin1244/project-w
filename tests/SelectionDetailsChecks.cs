@@ -130,7 +130,7 @@ public partial class SelectionDetailsChecks : Main
 
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 201));
             await Layout();
-            Check(Single.Visible && Labels().Any(label => label.Text.StartsWith("회관")) && Labels().Any(label => label.Text == "체력   740 / 1000"), "Building displays its name and current HP");
+            Check(Single.Visible && Labels().Any(label => label.Text.StartsWith("HQ")) && Labels().Any(label => label.Text == "체력   740 / 1000"), "Building displays its name and current HP");
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 202));
             Receive("STATE 202 ATTACK 0 201 1");
             await Layout();

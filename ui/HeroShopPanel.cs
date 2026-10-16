@@ -111,7 +111,7 @@ public partial class HeroShopPanel : Control
     {
         if (!_heroRole || Inventory==null || !_catalog.TryGetValue(id,out var item)) return "정보 대기 중";
         var s=Inventory;
-        if (s.TeamTier < item.Tier) return $"아군 회관 {item.Tier}티어 필요";
+        if (s.TeamTier < item.Tier) return $"아군 HQ {item.Tier}티어 필요";
         if (item.From!=0)
         {
             int slot=Array.IndexOf(s.Items,item.From);
@@ -143,7 +143,7 @@ public partial class HeroShopPanel : Control
             if (item.Tier!=lastTier)
             {
                 lastTier=item.Tier;
-                _list.AddChild(new Label { Text=$"{item.Tier}티어 · {(item.Tier==1 ? "시작부터 구매 가능" : $"아군 회관 {item.Tier}티어 필요")}" });
+                _list.AddChild(new Label { Text=$"{item.Tier}티어 · {(item.Tier==1 ? "시작부터 구매 가능" : $"아군 HQ {item.Tier}티어 필요")}" });
             }
             uint id=item.Id;
             var b=Button("",()=>RequestBuy(id));b.Name=$"Item{id}";b.CustomMinimumSize=new Vector2(0,58);
@@ -160,7 +160,7 @@ public partial class HeroShopPanel : Control
         _toggle.Disabled=Inventory==null;
         _recall.Disabled=!_canRecall || _channel.Active;
         _recall.Text=_channel.Active ? _channel.Remaining(_tick)>0 ? $"귀환 {_channel.Remaining(_tick):0.0}초" : "귀환 확인 중" : "귀환 [B]";
-        _hint.Text=$"아군 회관 {Inventory?.TeamTier ?? 1}티어\n" + (Inventory?.CanShop==true ? "부활 구역 · 즉시 장착 / 장비를 눌러 판매" :
+        _hint.Text=$"아군 HQ {Inventory?.TeamTier ?? 1}티어\n" + (Inventory?.CanShop==true ? "부활 구역 · 즉시 장착 / 장비를 눌러 판매" :
             "원격 구매 · 본진에 배송 상자가 생성됩니다.\n영웅으로 줍거나 아군 일꾼으로 배달하세요.");
         _notice.Visible=_noticeUntil>Time.GetTicksMsec()/1000.0;
         for (int i=0;i<_slots.Count;i++)
