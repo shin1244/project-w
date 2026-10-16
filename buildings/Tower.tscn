@@ -7,44 +7,43 @@
 [ext_resource type="Script" path="res://visuals/SpinningPart.cs" id="4_ldbqu"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_3tqip"]
-size = Vector3(3, 3.7233748, 3)
+size = Vector3(2, 2.74225, 2)
 
-[node name="Tower" type="Node3D" unique_id=833085936]
+[node name="Tower" type="Node3D" unique_id=129380335]
 script = ExtResource("1_j66jd")
 BuildingType = 6
-HealthBarHeight = 4.173375
-metadata/footprint = Vector2i(3, 3)
+HealthBarHeight = 3.0422502
+metadata/footprint = Vector2i(2, 2)
 metadata/front = "-Z"
 metadata/role = "tower"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=1939452149]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1224236300]
 mesh = ExtResource("2_pxvhn")
 
-[node name="Searchlight" type="MeshInstance3D" parent="Visual" unique_id=134469247]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 2.18, 0.62)
+[node name="Searchlight" type="MeshInstance3D" parent="Visual" unique_id=737409925]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 2.44, 0.62)
 mesh = ExtResource("3_3tqip")
 script = ExtResource("4_ldbqu")
 Speed = 0.6
 
-[node name="Turret" type="Node3D" parent="." unique_id=743932423]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 3.1499999, 0)
+[node name="Turret" type="Node3D" parent="." unique_id=1608350049]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.36, 0)
 
-[node name="Ballista" type="MeshInstance3D" parent="Turret" unique_id=1973051571]
+[node name="Ballista" type="MeshInstance3D" parent="Turret" unique_id=910954190]
 mesh = ExtResource("3_2tg1q")
 
-[node name="Muzzle" type="Marker3D" parent="Turret" unique_id=1981462874]
+[node name="Muzzle" type="Marker3D" parent="Turret" unique_id=1502157196]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.275, -0.7645)
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=41667446]
+[node name="SelectionArea" type="Area3D" parent="." unique_id=199280002]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1353837068]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8616874, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1624881116]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.371125, 0)
 shape = SubResource("BoxShape3D_3tqip")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=1307573671]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+[node name="Entrance" type="Marker3D" parent="." unique_id=1939386869]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1)

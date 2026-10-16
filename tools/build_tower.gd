@@ -1,9 +1,11 @@
 extends "res://tools/build_fortress.gd"
 ## The watchtower (감시탑, server type 6): a riveted steel lattice tower on concrete footings with an
 ## iron-grated lookout, a searchlight that sweeps slowly round (SpinningPart) and the fortress's steam
-## cannon at 0.55 scale on a pedestal. Source grid 2x2, scaled to the server's 3x3.
+## cannon at 0.55 scale on a pedestal. Built on the server's 2x2 footprint at full scale.
 
 const SEARCHLIGHT_MESH := "res://buildings/meshes/TowerSearchlight.res"
+const DECK := 1.9
+const PIVOT := DECK + 0.46
 
 func _initialize() -> void:
 	defence_materials()
@@ -12,7 +14,7 @@ func _initialize() -> void:
 	reset_surfaces()
 	build_steam_gun()
 	var weapon_mesh := finish_mesh("res://buildings/meshes/TowerBallista.res", .55)
-	save_tower(base_mesh, weapon_mesh, "Tower", 6, 2, 2.10, .55)
+	save_tower(base_mesh, weapon_mesh, "Tower", 6, 2, PIVOT, .55)
 	add_searchlight()
 	quit()
 
@@ -20,7 +22,7 @@ func build_lattice() -> void:
 	chamfered_block("concrete_dark", 1.0, 0.16, 0.0, 0.08)
 	var foot := 0.7
 	var top := 0.55
-	var deck := 1.64
+	var deck := DECK
 	for x in [-1.0, 1.0]:
 		for z in [-1.0, 1.0]:
 			box("concrete", Vector3(x * foot, 0.13, z * foot), Vector3(0.26, 0.12, 0.26))
@@ -67,7 +69,7 @@ func build_lattice() -> void:
 		box("iron_light", Vector3(0, lerpf(0.15, deck - 0.05, t), lerpf(-0.84, -0.58, t)), Vector3(0.28, 0.025, 0.03))
 	# Cannon pedestal from the deck up to the pivot.
 	cylinder("iron", Vector3(0, deck + 0.24, 0), 0.16, 0.22, 0.32, Basis.IDENTITY, 14)
-	cylinder("brass", Vector3(0, 2.07, 0), 0.2, 0.2, 0.05, Basis.IDENTITY, 14)
+	cylinder("brass", Vector3(0, deck + 0.43, 0), 0.2, 0.2, 0.05, Basis.IDENTITY, 14)
 	# Company banner off the side rail, and the searchlight's post at the back corner.
 	box("gold", Vector3(0.76, deck - 0.02, 0.1), Vector3(0.03, 0.03, 0.44))
 	face("banner", Vector3(0.765, deck - 0.03, -0.12), Vector3(0.765, deck - 0.03, 0.32), Vector3(0.765, deck - 0.55, 0.32), Vector3(0.765, deck - 0.55, -0.12))
@@ -105,7 +107,7 @@ func add_searchlight() -> void:
 	var light := MeshInstance3D.new()
 	light.name = "Searchlight"
 	light.mesh = load(SEARCHLIGHT_MESH)
-	light.position = Vector3(-0.62, 2.18, 0.62)
+	light.position = Vector3(-0.62, DECK + 0.54, 0.62)
 	light.set_script(load("res://visuals/SpinningPart.cs"))
 	light.set("Speed", 0.6)
 	visual.add_child(light)

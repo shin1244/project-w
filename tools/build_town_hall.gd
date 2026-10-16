@@ -13,7 +13,7 @@ const SERVER_FOOTPRINTS := {
 	3: Vector2i(3, 3),
 	4: Vector2i(4, 3),
 	5: Vector2i(4, 3),
-	6: Vector2i(3, 3),
+	6: Vector2i(2, 2),
 }
 var surfaces: Dictionary = {}
 var materials: Dictionary = {}
