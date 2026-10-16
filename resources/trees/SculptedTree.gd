@@ -95,7 +95,7 @@ static func _linden(wood: SurfaceTool, leaf: SurfaceTool, rng: RandomNumberGener
 	_bough(wood, Vector3.ZERO, crown + Vector3(0, -0.55, 0), 0.23, 0.14, bark_color, rng)
 	_roots(wood, 0.23, bark_color, rng)
 	var size := Vector3(1.0, 1.08, 1.0) * rng.randf_range(0.95, 1.05)
-	_ovoid(leaf, crown, size, Color(0.335, 0.475, 0.225), rng)
+	_ovoid(leaf, crown, size, Color(0.275, 0.37, 0.2), rng)
 
 static func _ovoid(surface: SurfaceTool, center: Vector3, size: Vector3, color: Color, rng: RandomNumberGenerator) -> void:
 	# A smooth egg of even facets; only a whisper of jitter so it reads as pruned, not wild.
@@ -122,7 +122,7 @@ static func _ovoid(surface: SurfaceTool, center: Vector3, size: Vector3, color: 
 	for i in segments:
 		var j := (i + 1) % segments
 		_triangle(surface, center + Vector3(0, -size.y * 0.82, 0), rings[0][j], rings[0][i], color * 0.86)
-		_triangle(surface, center + Vector3(0, size.y, 0), rings[last][i], rings[last][j], color * 1.1)
+		_triangle(surface, center + Vector3(0, size.y, 0), rings[last][i], rings[last][j], color * 1.03)
 
 static func _pine(wood: SurfaceTool, leaf: SurfaceTool, rng: RandomNumberGenerator, lean: Vector3) -> void:
 	var bark_color := Color(0.275, 0.22, 0.16)

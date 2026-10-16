@@ -109,7 +109,7 @@
 | 돌길·잔디 | `maps/materials/Ground.gdshader` | 톤을 낮춘 포석·줄눈·먼지·가는 실금, 군데군데 무리 지어 섞인 빛바랜 어두운 옛 포석(평평하게 닳고 살짝 꺼졌으며 줄눈에서 때가 번짐), 풀 얼룩·클로버 |
 | 유전 균열·기름 | `maps/Oilfield.tscn` | 네 곳이 같은 모델 공유. 지그재그 균열·갈라진 암반과 틈에서 낮게 솟는 기름. 상호작용·충돌 노드 없음 |
 | 벽 | `maps/materials/Wall.gdshader`, `TerrainBuilder.build_walls` | 석회암·이끼·가는 균열·빗물 자국. 둘레의 약 30% 구간은 총안이 떨어져 나가고 철띠와 철판으로 보강한, 어둡고 빛바랜 옛 성벽 |
-| 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수와 깔끔하게 다듬은 둥근 수관의 피나무. 수종은 시작 칸 좌표를 섞어 고르고, 같은 수종 안에서는 고정 변형과 자원 ID 기반 회전·크기 |
+| 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수와 깔끔하게 다듬은 둥근 수관의 피나무(약 1/7, 숲에서 튀지 않게 한 톤 어둡게). 수종은 시작 칸 좌표를 섞어 고르고, 같은 수종 안에서는 고정 변형과 자원 ID 기반 회전·크기 |
 
 `LayoutGuides`에는 본진 마커, 공격로 경로, 활동 구역·확장 부지의 기준점이 있습니다. 미니언의 실제 경유지는 JSON의 `lanes`를 사용합니다.
 

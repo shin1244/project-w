@@ -225,7 +225,8 @@ public partial class MapWorld : Node3D
     public void SetLocalTeam(uint team)
     { foreach (Node child in GetChildren()) if (child is SpawnZoneView zone) zone.SetLocalTeam(team); }
 
-    // 네 수종(참나무·소나무·자작나무·피나무)을 섞되 2×2 격자에서 줄무늬가 지지 않도록 좌표를 섞습니다.
+    // 네 수종을 섞되 2×2 격자에서 줄무늬가 지지 않도록 좌표를 섞습니다. 참나무·소나무·자작나무가
+    // 2/7씩, 다듬은 피나무는 1/7입니다.
     // 외형만 정하며 서버 판정과는 무관합니다.
     private static uint TreeVariant(int x, int z)
     {
@@ -233,7 +234,8 @@ public partial class MapWorld : Node3D
         h ^= h >> 15;
         h *= 0x2C1B3C6Du;
         h ^= h >> 12;
-        return h % 4;
+        uint bucket = h % 7;
+        return bucket == 6 ? 3u : bucket / 2;
     }
 
     private void ResetTrees()
