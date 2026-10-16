@@ -5,41 +5,73 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/ForgeHammer.res" id="3_dwmtk"]
 [ext_resource type="Script" path="res://visuals/ReciprocatingPart.cs" id="4_wyges"]
 
-[sub_resource type="Gradient" id="Gradient_k21gd"]
-colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_81shm"]
-gradient = SubResource("Gradient_k21gd")
-fill = 1
-fill_from = Vector2(0.5, 0.5)
-fill_to = Vector2(0.5, 0)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hfdup"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k21gd"]
 transparency = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_81shm")
 billboard_mode = 3
 particles_anim_h_frames = 1
 particles_anim_v_frames = 1
 particles_anim_loop = false
 
-[sub_resource type="QuadMesh" id="QuadMesh_n545w"]
-material = SubResource("StandardMaterial3D_hfdup")
+[sub_resource type="QuadMesh" id="QuadMesh_81shm"]
+material = SubResource("StandardMaterial3D_k21gd")
+size = Vector2(0.035, 0.035)
+
+[sub_resource type="Gradient" id="Gradient_hfdup"]
+colors = PackedColorArray(1, 0.85, 0.45, 1, 1, 0.35, 0.1, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n545w"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_qiu2m"]
+material = SubResource("StandardMaterial3D_n545w")
+size = Vector2(0.035, 0.035)
+
+[sub_resource type="Gradient" id="Gradient_l081l"]
+colors = PackedColorArray(1, 0.85, 0.45, 1, 1, 0.35, 0.1, 0)
+
+[sub_resource type="Gradient" id="Gradient_dg2ak"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_aj5qg"]
+gradient = SubResource("Gradient_dg2ak")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rcsht"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_aj5qg")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_eeaqp"]
+material = SubResource("StandardMaterial3D_rcsht")
 size = Vector2(0.9, 0.9)
 
-[sub_resource type="Curve" id="Curve_qiu2m"]
+[sub_resource type="Curve" id="Curve_bnxbx"]
 _data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="Gradient" id="Gradient_l081l"]
+[sub_resource type="Gradient" id="Gradient_ac528"]
 offsets = PackedFloat32Array(0, 0.35, 1)
 colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_dwmtk"]
 size = Vector3(4, 4.14, 3)
 
-[node name="Forge" type="Node3D" unique_id=1519638226]
+[node name="Forge" type="Node3D" unique_id=1790949816]
 script = ExtResource("1_aspq1")
 BuildingType = 5
 HealthBarHeight = 4.59
@@ -47,24 +79,54 @@ metadata/role = "forge"
 metadata/footprint = Vector2i(4, 3)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=138978333]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1027746637]
 transform = Transform3D(1.3333334, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 mesh = ExtResource("2_lvs7m")
 
-[node name="SteamHammer" type="MeshInstance3D" parent="Visual" unique_id=1092359421]
+[node name="SteamHammer" type="MeshInstance3D" parent="Visual" unique_id=168293870]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 0.285, -0.06)
 mesh = ExtResource("3_dwmtk")
 script = ExtResource("4_wyges")
 Travel = 0.32
 Period = 1.5
 
-[node name="Smoke" type="CPUParticles3D" parent="Visual" unique_id=1109463337]
+[node name="HammerSparks" type="CPUParticles3D" parent="Visual" unique_id=261817684]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 0.305, -0.12)
+cast_shadow = 0
+amount = 6
+lifetime = 0.9
+preprocess = 0.9
+mesh = SubResource("QuadMesh_81shm")
+direction = Vector3(0, 1, 0)
+spread = 60.0
+gravity = Vector3(0, -2.5, 0)
+initial_velocity_min = 0.54
+initial_velocity_max = 0.9
+scale_amount_min = 0.6
+color_ramp = SubResource("Gradient_hfdup")
+
+[node name="FurnaceSparks" type="CPUParticles3D" parent="Visual" unique_id=485762073]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 2.78, 0.35)
+cast_shadow = 0
+amount = 10
+lifetime = 0.9
+preprocess = 0.9
+mesh = SubResource("QuadMesh_qiu2m")
+direction = Vector3(0, 1, 0)
+spread = 60.0
+gravity = Vector3(0, -2.5, 0)
+initial_velocity_min = 0.84
+initial_velocity_max = 1.4
+scale_amount_min = 0.6
+color_ramp = SubResource("Gradient_l081l")
+
+[node name="Smoke" type="CPUParticles3D" parent="Visual" unique_id=1332333678]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 2.8, 0.35)
 cast_shadow = 0
 amount = 12
 lifetime = 3.6
 preprocess = 3.6
-mesh = SubResource("QuadMesh_n545w")
+mesh = SubResource("QuadMesh_eeaqp")
 direction = Vector3(0, 1, 0)
 spread = 10.0
 gravity = Vector3(0.18, 0.22, 0.05)
@@ -72,18 +134,18 @@ initial_velocity_min = 0.45
 initial_velocity_max = 0.7
 scale_amount_min = 0.45
 scale_amount_max = 0.7
-scale_amount_curve = SubResource("Curve_qiu2m")
-color_ramp = SubResource("Gradient_l081l")
+scale_amount_curve = SubResource("Curve_bnxbx")
+color_ramp = SubResource("Gradient_ac528")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1904196428]
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1545655418]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1998231282]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=653262702]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.07, 0)
 shape = SubResource("BoxShape3D_dwmtk")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=484785283]
+[node name="Entrance" type="Marker3D" parent="." unique_id=2128831389]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
