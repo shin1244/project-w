@@ -86,7 +86,7 @@ public partial class TowerSyncChecks : Main
             Receive("BUILDING 6 601 1 10 7 0");
             Building smallTower = Buildings.GetNode<Building>("Building_601");
             Check(tower.GetMeta("footprint").AsVector2I() == new Vector2I(4, 4) &&
-                smallTower.GetMeta("footprint").AsVector2I() == new Vector2I(3, 3), "Old fortress and buildable tower keep distinct enlarged footprint sizes");
+                smallTower.GetMeta("footprint").AsVector2I() == new Vector2I(2, 2), "Fortress and buildable watchtower keep their distinct footprint sizes");
             int smallShots = 0;
             smallTower.StateChanged += (_, fired) => { if (fired) smallShots++; };
             Receive("STATE 601 ATTACK 0 101 20");

@@ -1,5 +1,5 @@
 extends "res://tools/build_town_hall.gd"
-## The lodging house (주택). The store, forge, derrick and tier-two builders also extend this script.
+## The lodgings (숙소). The store, forge, derrick and tier-two builders also extend this script.
 
 const SUPPLY_SCENE := "res://buildings/Supply.tscn"
 const SUPPLY_MESH := "res://buildings/meshes/Supply.res"
@@ -8,156 +8,171 @@ func _initialize() -> void:
 	setup_lodging_materials()
 	build_lodging()
 	save_supply()
+	add_stove_smoke()
 	quit()
 
-# ── Lodging house (주택, server type 3) ──
-# A soot-blackened 19th-century British common lodging house for the company's day labourers:
-# a three-storey brick terrace with two front doors, a hanging "beds" board in the company
-# colour, chimney stacks crowded with clay pots, washing strung across the yard, a privy and a
-# water pump out the back, and a worn-out lodger slumped on the step. Source grid 2x2, scaled to 3x3.
+# ── Lodgings (숙소, server type 3) ──
+# A low, ramshackle doss-house row for the company's day labourers: patched brick and plank huts
+# under rusted corrugated sheets, a sagging tarp lean-to, boarded windows and a door hanging askew,
+# bent stovepipes, a crude painted "beds" board, and lodgers warming their hands at a burning drum.
+# Kept low on purpose so it never reads like the tall labour office. Source grid 2x2, scaled to 3x3.
 
 func setup_lodging_materials() -> void:
-	material("brick", Color("6e3f33"))
-	material("brick_dark", Color("4d2c24"))
+	material("cobble", Color("4a4742"))
+	material("brick", Color("6a3e33"))
+	material("plank", Color("6e5e4c"))
+	material("wood", Color("4a3a2c"))
+	material("rust", Color("8a4f33"), 0.25, 0.75)
+	material("tarp", Color("6d6857"))
 	material("soot", Color("1e2226"))
-	material("concrete", Color("858179"))
-	material("cobble", Color("4f4c47"))
-	material("tar", Color("2b2a29"), 0.2, 0.7)
-	material("roof", Color("3d5f77"), 0.3, 0.6) # Painted flashing, company colour.
+	material("iron", Color("2f363d"), 0.4, 0.6)
+	material("roof", Color("3d5f77"), 0.15, 0.75) # One painted sheet, company colour.
 	material("banner", Color("376a94"))
-	material("wood_dark", Color("3b2c22"))
-	material("glass", Color("8f7444"), 0.0, 0.4, 0.15)
-	material("terracotta", Color("a35a3c"))
-	material("iron", Color("2f363d"), 0.5, 0.55)
-	material("paper", Color("cfc5aa"))
+	material("glass", Color("6e5c3c"), 0.0, 0.5, 0.1)
 	material("coat", Color("4a4642"))
 	material("skin", Color("b08668"))
+	material("fire", Color("ffb257"), 0.0, 0.5, 2.4)
 
 func build_lodging() -> void:
 	lodging_yard()
-	terrace()
-	terrace_roof()
+	huts()
+	hut_roofs()
+	lean_to()
+	stovepipes()
 	lodging_sign()
-	backyard()
+	brazier()
 	washing_line()
-	lodger()
+	sleeper()
 
 func lodging_yard() -> void:
 	box("cobble", Vector3(0, 0.03, 0), Vector3(2.0, 0.06, 2.0))
-	for i in range(9): # Setts along the front.
-		box("soot", Vector3(-0.88 + i * 0.22, 0.062, -0.88), Vector3(0.01, 0.004, 0.22))
-	box("soot", Vector3(0.1, 0.063, -0.62), Vector3(0.5, 0.003, 0.18)) # Coal dust by the doors.
+	box("soot", Vector3(0.1, 0.062, -0.55), Vector3(1.3, 0.003, 0.5)) # Trodden mud.
+	# A broken plank fence down the left side.
+	for i in range(6):
+		var z := -0.85 + i * 0.3
+		if i == 3:
+			continue
+		box("plank", Vector3(-0.95, 0.22 + (i % 2) * 0.03, z), Vector3(0.04, 0.34 + (i % 3) * 0.05, 0.22), Basis(Vector3.FORWARD, (i % 2) * 0.08))
+	box("wood", Vector3(-0.95, 0.3, -0.1), Vector3(0.04, 0.04, 1.6))
 
-func terrace() -> void:
-	var x0 := -0.95
+func huts() -> void:
+	# Two joined single-storey huts: patched brick below, planks above, rough and uneven.
+	var x0 := -0.88
+	var x1 := 0.5
+	var z0 := -0.2
+	var z1 := 0.72
+	box("brick", Vector3((x0 + x1) * 0.5, 0.3, (z0 + z1) * 0.5), Vector3(x1 - x0, 0.48, z1 - z0))
+	box("plank", Vector3((x0 + x1) * 0.5, 0.66, (z0 + z1) * 0.5), Vector3(x1 - x0 - 0.02, 0.26, z1 - z0 - 0.02))
+	for i in range(9): # Plank seams on the front.
+		box("wood", Vector3(x0 + 0.08 + i * 0.16, 0.66, z0 - 0.012), Vector3(0.012, 0.26, 0.006))
+	box("soot", Vector3((x0 + x1) * 0.5, 0.75, z0 - 0.013), Vector3(x1 - x0, 0.08, 0.004))
+	# A plank patch nailed over missing brick.
+	box("plank", Vector3(-0.55, 0.3, z0 - 0.01), Vector3(0.22, 0.18, 0.02), Basis(Vector3.FORWARD, 0.1))
+	# Doors: one shut, one hanging off its top hinge.
+	box("wood", Vector3(-0.2, 0.36, z0 - 0.012), Vector3(0.2, 0.56, 0.02))
+	box("wood", Vector3(0.26, 0.36, z0 - 0.04), Vector3(0.2, 0.56, 0.02), Basis(Vector3.UP, -0.5) * Basis(Vector3.FORWARD, 0.06))
+	box("soot", Vector3(0.26, 0.36, z0 - 0.006), Vector3(0.2, 0.56, 0.004))
+	for p in [Vector3(-0.2, 0.08, -0.3), Vector3(0.26, 0.08, -0.3)]: # Crate steps.
+		box("wood", p, Vector3(0.18, 0.08, 0.14))
+	# Boarded windows.
+	for x in [-0.62, 0.02]:
+		box("glass", Vector3(x, 0.52, z0 - 0.01), Vector3(0.2, 0.18, 0.006))
+		box("plank", Vector3(x, 0.52, z0 - 0.018), Vector3(0.26, 0.04, 0.008), Basis(Vector3.FORWARD, 0.5))
+		box("plank", Vector3(x, 0.52, z0 - 0.02), Vector3(0.26, 0.04, 0.008), Basis(Vector3.FORWARD, -0.45))
+
+func hut_roofs() -> void:
+	# Rusted corrugated sheets laid unevenly as a shed roof, one tar patch, one company-painted sheet.
+	var sheets := [[-0.72, 0.0, "rust"], [-0.4, 0.06, "rust"], [-0.08, -0.04, "roof"], [0.24, 0.05, "rust"]]
+	for s in sheets:
+		var x: float = s[0]
+		var tilt: float = s[1]
+		var basis := Basis(Vector3.RIGHT, -0.16) * Basis(Vector3.FORWARD, tilt)
+		box(s[2], Vector3(x + 0.08, 0.86 + tilt * 0.3, 0.26), Vector3(0.36, 0.025, 1.08), basis)
+		for k in range(4): # Corrugation ridges.
+			box("iron" if s[2] == "rust" else "roof", Vector3(x - 0.04 + k * 0.08, 0.875 + tilt * 0.3, 0.26), Vector3(0.012, 0.02, 1.06), basis)
+	box("soot", Vector3(-0.3, 0.9, 0.05), Vector3(0.3, 0.012, 0.28), Basis(Vector3.RIGHT, -0.16))
+	# Stones weighing the sheets down.
+	for p in [Vector3(-0.6, 0.93, -0.12), Vector3(0.1, 0.93, 0.5), Vector3(-0.25, 0.86, 0.62)]:
+		sphere("cobble", p, 0.045, 0.6)
+
+func lean_to() -> void:
+	# A plank lean-to on the right under a sagging tarp.
+	var x0 := 0.5
 	var x1 := 0.95
-	var z0 := -0.45
-	var z1 := 0.5
-	var top := 2.12
-	box("brick", Vector3(0, (0.06 + top) * 0.5, (z0 + z1) * 0.5), Vector3(x1 - x0, top - 0.06, z1 - z0))
-	# Soot blackens the upper storeys; a dark band marks each floor.
-	box("soot", Vector3(0, top - 0.18, z0 - 0.004), Vector3(x1 - x0, 0.36, 0.006))
-	for y in [0.75, 1.42]:
-		box("brick_dark", Vector3(0, y, z0 - 0.006), Vector3(x1 - x0, 0.04, 0.012))
-	# Party wall down the middle: two houses on one plot.
-	box("brick_dark", Vector3(0, (0.06 + top) * 0.5, z0 - 0.012), Vector3(0.06, top - 0.06, 0.02))
-	for side in [-1.0, 1.0]:
-		var door := Vector3(side * 0.6, 0, z0)
-		box("concrete", door + Vector3(0, 0.1, -0.12), Vector3(0.32, 0.08, 0.2))
-		box("concrete", door + Vector3(0, 0.05, -0.2), Vector3(0.34, 0.04, 0.12))
-		box("wood_dark", door + Vector3(0, 0.42, -0.012), Vector3(0.24, 0.62, 0.02))
-		box("banner", door + Vector3(0, 0.42, -0.025), Vector3(0.19, 0.56, 0.006)) # Company paint on the doors.
-		box("glass", door + Vector3(0, 0.79, -0.02), Vector3(0.2, 0.07, 0.006)) # Fanlight.
-		box("concrete", door + Vector3(0, 0.84, -0.02), Vector3(0.28, 0.03, 0.03))
-		window(Vector3(side * 0.22, 0.45, z0), 0.24, 0.36, false)
-		for y in [1.08, 1.75]:
-			window(Vector3(side * 0.24, y, z0), 0.22, 0.4, y > 1.5 and side < 0)
-			window(Vector3(side * 0.7, y, z0), 0.22, 0.4, side > 0)
-	# Iron downpipes and a coal hole cover.
-	for x in [x0 + 0.03, x1 - 0.03]:
-		box("iron", Vector3(x, (0.06 + top) * 0.5, z0 - 0.03), Vector3(0.035, top - 0.06, 0.035))
-	cylinder("iron", Vector3(-0.2, 0.065, -0.62), 0.06, 0.06, 0.01, Basis.IDENTITY, 10)
-	# Side and back walls: a few small, dirty windows.
-	for z in [-0.1, 0.25]:
-		box("glass", Vector3(x0 - 0.008, 1.42, z), Vector3(0.008, 0.3, 0.16))
-	for x in [-0.6, 0.6]:
-		box("glass", Vector3(x, 1.1, z1 + 0.008), Vector3(0.18, 0.3, 0.008))
+	for p in [Vector3(x1, 0, -0.15), Vector3(x1, 0, 0.6)]:
+		box("wood", p + Vector3(0, 0.3, 0), Vector3(0.05, 0.6, 0.05))
+	box("plank", Vector3(x1 - 0.01, 0.25, 0.22), Vector3(0.03, 0.4, 0.7))
+	face("tarp", Vector3(x0, 0.7, -0.2), Vector3(x1 + 0.03, 0.58, -0.2), Vector3(x1 + 0.03, 0.58, 0.65), Vector3(x0, 0.7, 0.65))
+	face("tarp", Vector3(x0 + 0.2, 0.6, 0.1), Vector3(x0 + 0.3, 0.6, 0.1), Vector3(x0 + 0.3, 0.6, 0.35), Vector3(x0 + 0.2, 0.6, 0.35))
+	box("wood", Vector3(0.75, 0.12, 0.3), Vector3(0.3, 0.12, 0.4)) # A bunk of crates inside.
+	box("tarp", Vector3(0.75, 0.2, 0.3), Vector3(0.28, 0.03, 0.38))
 
-func window(center: Vector3, width: float, height: float, curtained: bool) -> void:
-	box("concrete", center + Vector3(0, -height * 0.5 - 0.02, -0.02), Vector3(width + 0.06, 0.03, 0.05))
-	box("wood_dark", center + Vector3(0, 0, -0.008), Vector3(width, height, 0.014))
-	box("paper" if curtained else "glass", center + Vector3(0, 0, -0.018), Vector3(width - 0.05, height - 0.05, 0.006))
-	box("wood_dark", center + Vector3(0, 0, -0.022), Vector3(width - 0.04, 0.02, 0.004)) # Sash rail.
-	box("concrete", center + Vector3(0, height * 0.5 + 0.03, -0.012), Vector3(width + 0.04, 0.04, 0.03)) # Lintel.
-
-func terrace_roof() -> void:
-	var eave := 2.12
-	var ridge := 2.5
-	var z0 := -0.5
-	var z1 := 0.55
-	var mid := (z0 + z1) * 0.5
-	face("tar", Vector3(-0.98, eave, z0), Vector3(0.98, eave, z0), Vector3(0.98, ridge, mid), Vector3(-0.98, ridge, mid))
-	face("tar", Vector3(-0.98, eave, z1), Vector3(0.98, eave, z1), Vector3(0.98, ridge, mid), Vector3(-0.98, ridge, mid))
-	for x in [-1.0, 1.0]: # Gable ends.
-		face("brick_dark", Vector3(x * 0.95, eave, z0 + 0.05), Vector3(x * 0.95, ridge, mid), Vector3(x * 0.95, eave, z1 - 0.05), Vector3(x * 0.95, eave, z0 + 0.05))
-	# Company-painted ridge flashing and gutters: the colour that reads from above.
-	box("roof", Vector3(0, ridge + 0.02, mid), Vector3(1.98, 0.05, 0.14))
-	for z in [z0, z1]:
-		box("roof", Vector3(0, eave - 0.01, z), Vector3(1.98, 0.05, 0.06))
-	# A patch of iron sheet and a grimy skylight.
-	box("iron", Vector3(-0.35, eave + 0.2, mid - 0.25), Vector3(0.28, 0.02, 0.2), Basis(Vector3.RIGHT, 0.63))
-	box("glass", Vector3(0.4, eave + 0.17, mid + 0.3), Vector3(0.22, 0.02, 0.18), Basis(Vector3.RIGHT, -0.63))
-	# Chimney stacks crowded with clay pots.
-	for x in [-0.62, 0.0, 0.62]:
-		box("brick_dark", Vector3(x, ridge + 0.17, mid), Vector3(0.3, 0.4, 0.2))
-		box("concrete", Vector3(x, ridge + 0.38, mid), Vector3(0.34, 0.04, 0.24))
-		for i in range(3):
-			var pot := Vector3(x - 0.09 + i * 0.09, ridge + 0.47, mid)
-			cylinder("terracotta", pot, 0.028, 0.038, 0.14, Basis.IDENTITY, 8)
-			cylinder("soot", pot + Vector3(0, 0.072, 0), 0.026, 0.026, 0.004, Basis.IDENTITY, 8)
+func stovepipes() -> void:
+	# Thin iron stovepipes through the roof, one bent over at the top.
+	for p in [Vector3(-0.55, 0, 0.45), Vector3(0.15, 0, 0.35)]:
+		cylinder("iron", p + Vector3(0, 1.08, 0), 0.035, 0.035, 0.42, Basis.IDENTITY, 8)
+		cylinder("soot", p + Vector3(0, 1.3, 0), 0.037, 0.037, 0.04, Basis.IDENTITY, 8)
+	beam("iron", Vector3(0.15, 1.28, 0.35), Vector3(0.28, 1.36, 0.35), 0.06, 0.06)
+	cylinder("iron", Vector3(-0.55, 1.33, 0.45), 0.07, 0.0, 0.06, Basis.IDENTITY, 6) # A tin hat.
 
 func lodging_sign() -> void:
-	# A "good beds" board on an iron bracket at the corner, company colour, letters as blocks.
-	var at := Vector3(-0.9, 1.3, -0.68)
-	box("iron", Vector3(-0.9, 1.47, -0.57), Vector3(0.025, 0.025, 0.24))
-	box("iron", Vector3(-0.9, 1.45, -0.68), Vector3(0.01, 0.05, 0.01))
-	box("wood_dark", at, Vector3(0.03, 0.3, 0.3))
-	box("banner", at + Vector3(-0.018, 0, 0), Vector3(0.006, 0.26, 0.26))
-	box("banner", at + Vector3(0.018, 0, 0), Vector3(0.006, 0.26, 0.26))
-	for side in [-1.0, 1.0]:
-		for i in range(3):
-			box("paper", at + Vector3(side * 0.022, 0.07 - i * 0.07, 0), Vector3(0.004, 0.035, 0.18 - i * 0.04))
+	# A crude board painted in the company colour, nailed on crooked over the doors.
+	var at := Vector3(0.0, 0.88, -0.25)
+	var basis := Basis(Vector3.FORWARD, 0.07)
+	box("plank", at, Vector3(0.62, 0.14, 0.02), basis)
+	box("banner", at + Vector3(0, 0, -0.012), Vector3(0.58, 0.11, 0.006), basis)
+	for i in range(4):
+		box("plank", at + basis * Vector3(-0.2 + i * 0.13, 0, -0.016), Vector3(0.07, 0.05, 0.004), basis)
 
-func backyard() -> void:
-	# A brick privy and a cast-iron pump behind the houses.
-	box("brick", Vector3(0.62, 0.36, 0.76), Vector3(0.4, 0.6, 0.36))
-	face("tar", Vector3(0.4, 0.7, 0.56), Vector3(0.84, 0.7, 0.56), Vector3(0.84, 0.62, 0.95), Vector3(0.4, 0.62, 0.95))
-	box("wood_dark", Vector3(0.62, 0.3, 0.575), Vector3(0.18, 0.44, 0.012))
-	cylinder("iron", Vector3(-0.55, 0.3, 0.76), 0.05, 0.06, 0.48, Basis.IDENTITY, 10)
-	beam("iron", Vector3(-0.55, 0.5, 0.76), Vector3(-0.38, 0.62, 0.76), 0.02, 0.02)
-	box("iron", Vector3(-0.55, 0.36, 0.66), Vector3(0.03, 0.03, 0.12))
-	cylinder("iron", Vector3(-0.55, 0.1, 0.6), 0.1, 0.09, 0.08, Basis.IDENTITY, 10)
-	box("brick_dark", Vector3(0, 0.25, 0.97), Vector3(2.0, 0.38, 0.04))
+func brazier() -> void:
+	# A burning drum in the yard with two lodgers warming their hands.
+	var drum := Vector3(0.45, 0.06, -0.62)
+	cylinder("rust", drum + Vector3(0, 0.15, 0), 0.08, 0.08, 0.3, Basis.IDENTITY, 10)
+	cylinder("fire", drum + Vector3(0, 0.31, 0), 0.07, 0.04, 0.06, Basis.IDENTITY, 8)
+	cylinder("fire", drum + Vector3(0, 0.36, 0), 0.035, 0.0, 0.08, Basis.IDENTITY, 6)
+	for side in [-1.0, 1.0]:
+		var p := drum + Vector3(side * 0.2, 0, 0.05)
+		var face_in := Basis(Vector3.UP, side * PI * 0.5)
+		for x in [-0.03, 0.03]:
+			box("coat", p + face_in * Vector3(x, 0.1, 0), Vector3(0.045, 0.2, 0.05), face_in)
+		cylinder("coat", p + Vector3(0, 0.33, 0), 0.055, 0.075, 0.28, Basis(Vector3.FORWARD, -side * 0.12), 8)
+		sphere("skin", p + Vector3(-side * 0.02, 0.51, 0), 0.045)
+		cylinder("coat", p + Vector3(-side * 0.02, 0.55, 0), 0.05, 0.052, 0.025, Basis.IDENTITY, 10)
+		box("coat", p + Vector3(-side * 0.09, 0.36, 0), Vector3(0.12, 0.035, 0.04)) # Arms out to the fire.
 
 func washing_line() -> void:
-	# Grey washing strung across the yard between two iron posts.
-	for x in [-0.88, 0.88]:
-		box("iron", Vector3(x, 0.46, -0.86), Vector3(0.025, 0.8, 0.025))
-	box("iron", Vector3(0, 0.84, -0.86), Vector3(1.76, 0.006, 0.006))
-	var hangs := [[-0.6, 0.16, 0.2, "paper"], [-0.32, 0.14, 0.26, "coat"], [-0.05, 0.2, 0.16, "paper"],
-		[0.25, 0.12, 0.22, "coat"], [0.55, 0.18, 0.18, "paper"]]
-	for h in hangs:
-		box(h[3], Vector3(h[0], 0.84 - h[2] * 0.5, -0.86), Vector3(h[1], h[2], 0.008))
+	# Grey rags strung from the hut corner to a pole.
+	box("wood", Vector3(-0.7, 0.42, -0.78), Vector3(0.03, 0.72, 0.03))
+	beam("iron", Vector3(-0.7, 0.75, -0.78), Vector3(-0.86, 0.72, -0.21), 0.006, 0.006)
+	for i in range(3):
+		var t := 0.2 + i * 0.28
+		var p := Vector3(-0.7, 0.75, -0.78).lerp(Vector3(-0.86, 0.72, -0.21), t)
+		box("tarp" if i % 2 == 0 else "coat", p + Vector3(0, -0.09, 0), Vector3(0.012, 0.16, 0.12))
 
-func lodger() -> void:
-	# A worn-out lodger slumped on the left step, cap pulled down.
-	var p := Vector3(-0.6, 0.14, -0.64)
-	box("coat", p + Vector3(0, 0.12, 0.02), Vector3(0.14, 0.2, 0.12), Basis(Vector3.RIGHT, 0.35))
-	for x in [-0.035, 0.035]:
-		box("coat", p + Vector3(x, 0.04, -0.07), Vector3(0.05, 0.05, 0.14))
-		box("coat", p + Vector3(x, -0.03, -0.14), Vector3(0.05, 0.1, 0.05))
-	sphere("skin", p + Vector3(0, 0.26, -0.02), 0.045)
-	cylinder("coat", p + Vector3(0, 0.29, -0.025), 0.05, 0.052, 0.025, Basis(Vector3.RIGHT, 0.4), 10)
+func sleeper() -> void:
+	# A lodger asleep against the wall on a crate, knees up, cap over his eyes.
+	var p := Vector3(-0.42, 0.1, -0.34)
+	box("wood", p, Vector3(0.2, 0.08, 0.14))
+	box("coat", p + Vector3(0, 0.14, 0.04), Vector3(0.13, 0.18, 0.1), Basis(Vector3.RIGHT, -0.3))
+	box("coat", p + Vector3(0, 0.09, -0.08), Vector3(0.11, 0.08, 0.14))
+	sphere("skin", p + Vector3(0, 0.27, 0.07), 0.042)
+	cylinder("coat", p + Vector3(0, 0.29, 0.05), 0.05, 0.052, 0.025, Basis(Vector3.RIGHT, -0.5), 10)
+
+func add_stove_smoke() -> void:
+	# save_compact packs only the mesh; reopen the scene for a thin wisp from the stovepipe.
+	var scene: PackedScene = load(SUPPLY_SCENE)
+	var root := scene.instantiate()
+	var visual := root.get_node("Visual") as Node3D
+	var wisp := smoke("Smoke", Vector3(-0.55, 1.36, 0.45))
+	wisp.amount = 6
+	wisp.scale_amount_min = 0.12
+	wisp.scale_amount_max = 0.18
+	visual.add_child(wisp)
+	wisp.owner = root
+	var packed := PackedScene.new()
+	assert(packed.pack(root) == OK)
+	assert(ResourceSaver.save(packed, SUPPLY_SCENE) == OK)
+	root.free()
 
 # ── Helpers shared with the forge, derrick and tier-two builders that extend this script ──
 

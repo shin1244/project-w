@@ -1,9 +1,10 @@
 extends "res://tools/build_supply.gd"
 ## The arsenal (조병창, server type 5, key "forge"): the company's arms works, where army attack
-## and armour research happens (docs/art-direction.md). A brick foundry hall under a sawtooth roof
+## and armour research happens (docs/art-direction.md). Kept black and fiery, unlike the bright
+## branch: an iron-clad foundry hall under a sawtooth roof
 ## with an open bay onto a glowing forge floor and a steam hammer that keeps striking
-## (ReciprocatingPart), a riveted cupola furnace with a smoking stack and a molten tap, and crated
-## rifles, armour plate and shells in the yard. Source grid 3x2, scaled to the server's 4x3.
+## (ReciprocatingPart) throwing sparks, a riveted cupola furnace spitting embers from its stack and
+## a molten tap, and crated rifles, racked gun barrels and shells in the yard. Source grid 3x2, scaled to the server's 4x3.
 
 const SCENE := "res://buildings/Forge.tscn"
 const MESH := "res://buildings/meshes/Forge.res"
@@ -56,12 +57,19 @@ func foundry_hall() -> void:
 	var bay_top := 1.1
 	var cx := (x0 + x1) * 0.5
 	# Rear block, and the front built around an open bay.
-	box("brick", Vector3(cx, (0.06 + eave) * 0.5, (back + z1) * 0.5), Vector3(x1 - x0, eave - 0.06, z1 - back))
-	box("brick", Vector3((x0 + bay0) * 0.5, (0.06 + eave) * 0.5, (z0 + back) * 0.5), Vector3(bay0 - x0, eave - 0.06, back - z0))
-	box("brick", Vector3((bay1 + x1) * 0.5, (0.06 + eave) * 0.5, (z0 + back) * 0.5), Vector3(x1 - bay1, eave - 0.06, back - z0))
-	box("brick", Vector3((bay0 + bay1) * 0.5, (bay_top + eave) * 0.5, (z0 + back) * 0.5), Vector3(bay1 - bay0, eave - bay_top, back - z0))
+	box("iron", Vector3(cx, (0.06 + eave) * 0.5, (back + z1) * 0.5), Vector3(x1 - x0, eave - 0.06, z1 - back))
+	box("iron", Vector3((x0 + bay0) * 0.5, (0.06 + eave) * 0.5, (z0 + back) * 0.5), Vector3(bay0 - x0, eave - 0.06, back - z0))
+	box("iron", Vector3((bay1 + x1) * 0.5, (0.06 + eave) * 0.5, (z0 + back) * 0.5), Vector3(x1 - bay1, eave - 0.06, back - z0))
+	box("iron", Vector3((bay0 + bay1) * 0.5, (bay_top + eave) * 0.5, (z0 + back) * 0.5), Vector3(bay1 - bay0, eave - bay_top, back - z0))
 	box("soot", Vector3((bay0 + bay1) * 0.5, bay_top + 0.005, (z0 + back) * 0.5), Vector3(bay1 - bay0, 0.01, back - z0)) # Recess ceiling.
 	box("soot", Vector3(cx, eave - 0.1, z0 - 0.004), Vector3(x1 - x0, 0.2, 0.006))
+	# Low brick plinth and rows of rivets on the armour cladding.
+	box("brick", Vector3(cx, 0.15, (z0 + z1) * 0.5), Vector3(x1 - x0 + 0.02, 0.18, z1 - z0 + 0.02))
+	for y in [0.45, 0.8, 1.15]:
+		for x in [x0 + 0.1, x0 + 0.3, bay1 + 0.12, bay1 + 0.32]:
+			sphere("iron_light", Vector3(x, y, z0 - 0.006), 0.016)
+		for z in [-0.2, 0.15, 0.5, 0.85]:
+			sphere("iron_light", Vector3(x0 - 0.006, y, z), 0.016)
 	for x in [x0, bay0, bay1, x1]:
 		box("brick_dark", Vector3(x, (0.06 + eave) * 0.5, z0 - 0.02), Vector3(0.1, eave - 0.06, 0.04))
 	for z in [-0.05, 0.35, 0.7]:
@@ -135,13 +143,20 @@ func cupola() -> void:
 	box("ember", c + Vector3(-0.2, 1.0, -0.27), Vector3(0.1, 0.08, 0.02), Basis(Vector3.UP, 0.6))
 
 func munitions() -> void:
-	# Long rifle crates, stacked armour plate, a pyramid of shells and bar stock in the yard.
+	# Long rifle crates, racked gun barrels, a pyramid of shells and bar stock in the yard.
 	for i in range(3):
 		var p := Vector3(-1.2, 0.1 + i * 0.09, -0.78 + (i % 2) * 0.02)
 		box("wood", p, Vector3(0.5, 0.08, 0.16))
 		box("paper", p + Vector3(0, 0, -0.082), Vector3(0.16, 0.04, 0.004))
-	for i in range(4):
-		box("iron_light", Vector3(0.35, 0.09 + i * 0.03, -0.72), Vector3(0.36, 0.025, 0.24), Basis(Vector3.UP, 0.08 * i))
+	# Finished gun barrels racked in the yard: what the works makes.
+	for side in [-1.0, 1.0]:
+		box("wood", Vector3(0.2 + side * 0.32, 0.1, -0.72), Vector3(0.06, 0.08, 0.36))
+	for i in range(3):
+		var y := 0.18 + (i / 2) * 0.1
+		var z := -0.8 + (i % 2) * 0.13 + (i / 2) * 0.065
+		cylinder("iron", Vector3(0.2, y, z), 0.05, 0.065, 0.85, Basis(Vector3.FORWARD, PI * 0.5), 12)
+		cylinder("brass", Vector3(0.62, y, z), 0.07, 0.07, 0.03, Basis(Vector3.FORWARD, PI * 0.5), 12)
+		cylinder("brass", Vector3(-0.12, y, z), 0.07, 0.07, 0.03, Basis(Vector3.FORWARD, PI * 0.5), 12)
 	for row in range(3):
 		for k in range(3 - row):
 			var p := Vector3(0.95 + k * 0.08 + row * 0.04, 0.1 + row * 0.07, -0.85)
@@ -170,6 +185,37 @@ func hammer_mesh() -> ArrayMesh:
 	surfaces = saved
 	return mesh
 
+func sparks(name: String, at: Vector3, speed: float, count: int) -> CPUParticles3D:
+	# Bright embers that spray and fall, unlike the branch's quiet chimney.
+	var particles := CPUParticles3D.new()
+	particles.name = name
+	particles.position = at
+	particles.amount = count
+	particles.lifetime = 0.9
+	particles.preprocess = 0.9
+	particles.direction = Vector3(0, 1, 0)
+	particles.spread = 60.0
+	particles.gravity = Vector3(0, -2.5, 0)
+	particles.initial_velocity_min = speed * 0.6
+	particles.initial_velocity_max = speed
+	particles.scale_amount_min = 0.6
+	particles.scale_amount_max = 1.0
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1.0, 0.85, 0.45, 1.0))
+	ramp.set_color(1, Color(1.0, 0.35, 0.1, 0.0))
+	particles.color_ramp = ramp
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.035, 0.035)
+	var mat := StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.vertex_color_use_as_albedo = true
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	quad.material = mat
+	particles.mesh = quad
+	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return particles
+
 func add_moving_parts() -> void:
 	# save_compact packs only the static mesh; reopen the scene for the hammer and the smoke.
 	assert(ResourceSaver.save(hammer_mesh(), HAMMER_MESH, ResourceSaver.FLAG_COMPRESS) == OK)
@@ -185,6 +231,10 @@ func add_moving_parts() -> void:
 	hammer.set("Period", 1.5)
 	visual.add_child(hammer)
 	hammer.owner = root
+	visual.add_child(sparks("HammerSparks", HAMMER_REST + Vector3(0, 0.02, -0.06), 0.9, 6))
+	visual.get_node("HammerSparks").owner = root
+	visual.add_child(sparks("FurnaceSparks", Vector3(1.0, 2.78, 0.35), 1.4, 10))
+	visual.get_node("FurnaceSparks").owner = root
 	var stack := smoke("Smoke", Vector3(1.0, 2.8, 0.35))
 	stack.amount = 12
 	stack.scale_amount_min = 0.45

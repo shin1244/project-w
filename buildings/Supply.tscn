@@ -3,30 +3,78 @@
 [ext_resource type="Script" path="res://buildings/Building.cs" id="1_emlak"]
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Supply.res" id="2_7idce"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_5bnij"]
-size = Vector3(3, 4.566, 3)
+[sub_resource type="Gradient" id="Gradient_emlak"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="Supply" type="Node3D" unique_id=988028080]
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7idce"]
+gradient = SubResource("Gradient_emlak")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5bnij"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_7idce")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_85kmw"]
+material = SubResource("StandardMaterial3D_5bnij")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_y50gj"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_ff62p"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5bnij"]
+size = Vector3(3, 2.0783246, 3)
+
+[node name="Supply" type="Node3D" unique_id=452329299]
 script = ExtResource("1_emlak")
 BuildingType = 3
-HealthBarHeight = 5.0160003
+HealthBarHeight = 2.5283244
 metadata/role = "supply"
 metadata/footprint = Vector2i(3, 3)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=1190412275]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1024440639]
 transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 mesh = ExtResource("2_7idce")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1655354907]
+[node name="Smoke" type="CPUParticles3D" parent="Visual" unique_id=1439393696]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.55, 1.36, 0.45)
+cast_shadow = 0
+amount = 6
+lifetime = 3.6
+preprocess = 3.6
+mesh = SubResource("QuadMesh_85kmw")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.12
+scale_amount_max = 0.18
+scale_amount_curve = SubResource("Curve_y50gj")
+color_ramp = SubResource("Gradient_ff62p")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=249137261]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=783761934]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.283, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=683232474]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0391623, 0)
 shape = SubResource("BoxShape3D_5bnij")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=280256821]
+[node name="Entrance" type="Marker3D" parent="." unique_id=1462298022]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)

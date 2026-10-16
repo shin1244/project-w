@@ -4,42 +4,86 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Fortress.res" id="2_qn5na"]
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/FortressBallista.res" id="3_wvnaj"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_m5yoi"]
-size = Vector3(4, 5.9566667, 4)
+[sub_resource type="Gradient" id="Gradient_qde4i"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
 
-[node name="Fortress" type="Node3D" unique_id=976485757]
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_qn5na"]
+gradient = SubResource("Gradient_qde4i")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wvnaj"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_qn5na")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_m5yoi"]
+material = SubResource("StandardMaterial3D_wvnaj")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_f45m4"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_xvq5o"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_m5yoi"]
+size = Vector3(4, 5.7733335, 4)
+
+[node name="Fortress" type="Node3D" unique_id=852964374]
 script = ExtResource("1_qde4i")
 BuildingType = 1
-HealthBarHeight = 6.5333333
-ShotWidth = 0.18
-ShotDuration = 0.2
-ImpactRadius = 0.35
+HealthBarHeight = 6.533334
 metadata/footprint = Vector2i(4, 4)
 metadata/front = "-Z"
 metadata/role = "fortress"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=130770142]
-transform = Transform3D(1.3333333, 0, 0, 0, 1.3333333, 0, 0, 0, 1.3333333, 0, 0, 0)
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=108356145]
+transform = Transform3D(1.3333334, 0, 0, 0, 1.3333334, 0, 0, 0, 1.3333334, 0, 0, 0)
 mesh = ExtResource("2_qn5na")
 
-[node name="Turret" type="Node3D" parent="." unique_id=223902915]
-transform = Transform3D(1.3333333, 0, 0, 0, 1.3333333, 0, 0, 0, 1.3333333, 0, 4.84, 0)
+[node name="Smoke" type="CPUParticles3D" parent="Visual" unique_id=1957683875]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 4.35, 0.75)
+cast_shadow = 0
+lifetime = 3.6
+preprocess = 3.6
+mesh = SubResource("QuadMesh_m5yoi")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.35
+scale_amount_max = 0.55
+scale_amount_curve = SubResource("Curve_f45m4")
+color_ramp = SubResource("Gradient_xvq5o")
 
-[node name="Ballista" type="MeshInstance3D" parent="Turret" unique_id=1210342975]
+[node name="Turret" type="Node3D" parent="." unique_id=1190535297]
+transform = Transform3D(1.3333334, 0, 0, 0, 1.3333334, 0, 0, 0, 1.3333334, 0, 4.84, 0)
+
+[node name="Ballista" type="MeshInstance3D" parent="Turret" unique_id=1550293634]
 mesh = ExtResource("3_wvnaj")
 
-[node name="Muzzle" type="Marker3D" parent="Turret" unique_id=316107137]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, -1.39)
+[node name="Muzzle" type="Marker3D" parent="Turret" unique_id=58931340]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -1.39)
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=744288447]
+[node name="SelectionArea" type="Area3D" parent="." unique_id=2006220359]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1521243014]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9783333, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=2135249271]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8866668, 0)
 shape = SubResource("BoxShape3D_m5yoi")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=583520501]
+[node name="Entrance" type="Marker3D" parent="." unique_id=1618892592]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
