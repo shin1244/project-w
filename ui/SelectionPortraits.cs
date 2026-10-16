@@ -16,6 +16,7 @@ public partial class SelectionPortraits : Node
             "res://units/HeroTest.tscn" => "mutant-wolf",
             "res://units/HeroGolem.tscn" => "rune-golem",
             "res://units/HeroMarshal.tscn" => "marshal",
+            "res://units/HeroRanger.tscn" => enemy ? "archer-enemy" : "archer", // Same model as the archer, scaled up.
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
             "res://units/Medic.tscn" => enemy ? "medic-enemy" : "medic",
             "res://units/FlameAutomaton.tscn" => enemy ? "flame-automaton-enemy" : "flame-automaton",

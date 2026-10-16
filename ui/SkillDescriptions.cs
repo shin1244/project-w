@@ -24,6 +24,13 @@ public static class SkillDescriptions
             return $"P · 전선 지휘\n주변 5m 아군 미니언·용병{(rank >= 4 ? "·영웅" : "")}에게 공격 피해 +{amount}, 받는 피해 −{amount}."+
                 (rank >= 2 ? "\n오라 대상 이동 속도 +10%." : "")+"\n자신과 일꾼에게는 적용되지 않으며 같은 오라는 중첩되지 않습니다.";
         }
+        if (heroType == UnitCatalog.HeroRanger)
+        {
+            int percent=rank switch { 0=>6,1 or 2=>7,_=>8 };
+            int maximum=rank >= 2 ? 5 : 4;
+            return $"P · 집중 사격\n같은 대상을 연달아 맞힐 때마다 그 대상에게 주는 피해 +{percent}%, 최대 {maximum}중첩.\n일반 공격과 Q 명중이 쌓고, 대상을 바꾸거나 3초 동안 쏘지 않으면 초기화."+
+                (rank >= 4 ? "\n최대 중첩 명중 시 대상 이동 속도 20% 감소, 1초." : "");
+        }
         return "";
     }
     public static string PassiveUpgrade(uint? heroType,int next)
@@ -43,6 +50,10 @@ public static class SkillDescriptions
             (UnitCatalog.HeroMarshal,2) => "오라 대상 이동 속도 +10%",
             (UnitCatalog.HeroMarshal,3) => "오라 공격 피해 +1, 받는 피해 −1",
             (UnitCatalog.HeroMarshal,4) => "주변 아군 영웅도 모든 패시브 오라 효과를 받음",
+            (UnitCatalog.HeroRanger,1) => "중첩당 피해 +6% → +7%",
+            (UnitCatalog.HeroRanger,2) => "최대 4중첩 → 5중첩",
+            (UnitCatalog.HeroRanger,3) => "중첩당 피해 +7% → +8%",
+            (UnitCatalog.HeroRanger,4) => "최대 중첩 명중 시 대상 이동 속도 20% 감소, 1초",
             _ => ""
         };
     }
@@ -67,6 +78,10 @@ public static class SkillDescriptions
             "marshal-shot" => $"Q · 집중 사격\n지정한 적에게 공격력 {150*scale:0}% 피해. 소집 부대가 집중 공격.\n사거리 7m · 재사용 7초",
             "marshal-bulwark" => $"W · 방벽\n자신에게 최대 체력 {10*scale:0.#}%, 주변 5m 아군에게 자신의 최대 체력 {5*scale:0.#}% 보호막.\n5초 지속 · 재사용 12초",
             "marshal-march" => $"E · 진군\n자신과 주변 5m 아군 미니언·용병에게 이동 속도 ×1.25, 공격 속도 ×1.2.\n{4+steps}초 지속 · 재사용 12초",
+            "ranger-pierce" => $"Q · 관통 화살\n지정한 적에게 공격력 {160*scale:0}% 피해. 일반 공격 판정이라 집중 사격을 쌓고 적용받음.\n사거리 8m · 재사용 8초",
+            "ranger-stride" => $"W · 바람 걸음\n{2.5f+.5f*steps:0.#}초 동안 이동 속도 ×1.35, {4+.5f*steps:0.#}초 동안 공격 속도 ×1.3.\n재사용 12초",
+            "ranger-volley" => $"E · 화살비\n찍은 곳 {(rank >= 4 ? 4 : 3)}m 안 적에게 공격력 {110*scale:0}% 피해, 2초 동안 이동 속도 30% 감소.\n사거리 8m · 재사용 11초",
+            "ranger-snipe" => $"R · 저격\n지정한 적에게 공격력 {350*scale:0}% 피해.\n사거리 {(rank > 0 ? 18 : 14)}m · 대상이 시야에 있어야 함 · 재사용 45초",
             "marshal-command" => $"R · 부대 소집\n주변 6m의 아군 미니언{(rank > 0 ? "·용병" : "")}을 소집.\n30초 동안 따라 이동하며 지정한 적을 집중 공격. 종료 시 소집 유닛 소멸.\n재사용 60초",
             _ => skillId ?? ""
         };
@@ -80,11 +95,12 @@ public static class SkillDescriptions
     }
     public static string Upgrade(string id, int next)
     {
-        if (id is "wolf-devour" or "golem-up" or "marshal-command")
+        if (id is "wolf-devour" or "golem-up" or "marshal-command" or "ranger-snipe")
             return next != 1 ? "최대 강화" : id switch
             {
                 "wolf-devour" => "주변 8m 아군 미니언·용병 전체 포식 (일꾼 제외) · 가장 높은 체력 ×1 보호막·공격력 ×2 · 먹은 수만큼 강화 공격",
                 "golem-up" => "다음 Q/W/E 2회 강화",
+                "ranger-snipe" => "사거리 14m → 18m, 피해 20% 증가",
                 _ => "아군 용병도 소집 가능 (일꾼 제외)"
             };
         if (next is < 1 or > 4) return "최대 강화";
@@ -92,6 +108,7 @@ public static class SkillDescriptions
         {
             "wolf-drain" => $"흡혈 { (next == 1 ? 60 : 70) }%로 증가",
             "marshal-march" => $"진군 지속 시간 {(next == 1 ? 5 : 6)}초로 증가",
+            "ranger-stride" => $"바람 걸음 지속 시간 +{(next == 1 ? 0.5 : 1)}초",
             _ => $"기본 피해·보호막의 {(next == 1 ? 20 : 40)}%만큼 증가 (누적)"
         };
         return (id,next) switch
@@ -114,6 +131,12 @@ public static class SkillDescriptions
             ("marshal-bulwark",4) => "보호막을 받은 대상의 체력을 시전자 최대 체력 2%만큼 회복",
             ("marshal-march",2) => "진군 중 받는 피해 10% 감소",
             ("marshal-march",4) => "진군을 받은 대상의 체력을 시전자 최대 체력 2%만큼 회복",
+            ("ranger-pierce",2) => "대상을 2초간 25% 둔화",
+            ("ranger-pierce",4) => "대상이 받는 피해를 3초간 10% 증가",
+            ("ranger-stride",2) => "바람 걸음 동안 받는 피해 15% 감소",
+            ("ranger-stride",4) => "시전 시 최대 체력 6% 보호막, 3초",
+            ("ranger-volley",2) => "맞은 적이 가하는 피해를 2초간 15% 감소",
+            ("ranger-volley",4) => "범위 3m → 4m",
             _ => ""
         };
     }

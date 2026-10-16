@@ -68,8 +68,8 @@ public partial class MatchFlowChecks : Node
                 _rosterVerified = (_spectate ? new uint[] { 1, 2 } : new[] { match.Team }).All(team =>
                 {
                     var heroes = game.Units.LiveUnits.Where(unit => unit.Team == team && UnitCatalog.IsHero(unit.UnitType)).ToArray();
-                    return heroes.Length == 3 && heroes.Select(unit => unit.UnitType).OrderBy(type => type)
-                        .SequenceEqual(new[] { UnitCatalog.HeroTest, UnitCatalog.HeroGolem, UnitCatalog.HeroMarshal });
+                    // Three different heroes out of the four; spectator matches draw them at random.
+                    return heroes.Length == 3 && heroes.Select(unit => unit.UnitType).Distinct().Count() == 3;
                 });
             _played += delta;
             if (match.Role=="HERO" && !_requestedEquipment && game.Shop?.Inventory!=null && game.Skills.Definition(1).HasValue)

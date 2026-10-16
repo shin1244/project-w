@@ -14,12 +14,13 @@ public static class UnitCatalog
     public const uint HeroTest = 200;
     public const uint HeroGolem = 201;
     public const uint HeroMarshal = 202;
+    public const uint HeroRanger = 203;
     public const uint SiegeRam = 300;
     public const uint JungleBoar = 400;
     public const uint JungleTreant = 401;
 
     public static bool IsMinion(uint type) => type is MinionMelee or MinionRanged or MinionHealer;
-    public static bool IsHero(uint type) => type is HeroTest or HeroGolem or HeroMarshal;
+    public static bool IsHero(uint type) => type is HeroTest or HeroGolem or HeroMarshal or HeroRanger;
     public static bool IsTrainable(uint type) => type is Worker or Knight or Archer or Medic or FlameAutomaton or SteamArtillery;
     public static bool IsWorkshopUnit(uint type) => type is FlameAutomaton or SteamArtillery;
     public static bool IsObjective(uint type) => type == SiegeRam;
@@ -41,7 +42,7 @@ public static class UnitCatalog
     {
         Worker => "일꾼", Knight => "스팀돌격병", Archer => "공압사수", Medic => "치유사", FlameAutomaton => "화염기계", SteamArtillery => "증기포격차",
         MinionMelee => "근접 미니언", MinionRanged => "원거리 미니언", MinionHealer => "생명의 미니언",
-        HeroTest => "돌연변이 늑대", HeroGolem => "룬 골렘", HeroMarshal => "사령관", SiegeRam => "공성추",
+        HeroTest => "돌연변이 늑대", HeroGolem => "룬 골렘", HeroMarshal => "사령관", HeroRanger => "레인저", SiegeRam => "공성추",
         JungleBoar => "가시 멧돼지", JungleTreant => "고목 수호자", _ => "유닛"
     };
 }
