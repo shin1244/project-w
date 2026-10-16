@@ -185,7 +185,6 @@ public partial class BattleStage : Main
         if (folder != null) DirAccess.MakeDirRecursiveAbsolute(folder);
         double clock = 0;
         int frame = 0;
-        float start = shots.Length > 0 ? 0 : 0;
         while (clock < seconds)
         {
             double delta = folder != null ? 1.0 / Fps : GetProcessDeltaTime();
