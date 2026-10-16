@@ -15,7 +15,8 @@ public partial class MapSyncChecks : Node3D
             {
                 OakScene = GD.Load<PackedScene>("res://resources/trees/Oak.tscn"),
                 PineScene = GD.Load<PackedScene>("res://resources/trees/Pine.tscn"),
-                BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn")
+                BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn"),
+                LindenScene = GD.Load<PackedScene>("res://resources/trees/Linden.tscn")
             };
             AddChild(resources);
             var map = new MapWorld { Resources = resources, MapPath = "res://tests/fixtures/map-sync.json" };
@@ -26,8 +27,8 @@ public partial class MapSyncChecks : Node3D
             Check(resources.TryGetResource(firstTree, out var tree) &&
                 tree.Position.IsEqualApprox(new Vector3(-40.5f, 0, -19.5f)) && tree.Amount == 400,
                 "Cross-language cell ID and center");
-            Check(resources.GetChildren().Cast<ResourceNode>().Select(t => t.VisualVariant).Distinct().Count() == 3,
-                "Deterministic three tree variants");
+            Check(resources.GetChildren().Cast<ResourceNode>().Select(t => t.VisualVariant).Distinct().Count() == 4,
+                "Deterministic four tree variants");
             await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
             var mesh = map.GetNode<MeshInstance3D>("SymmetricArena/TerrainSurface").Mesh;

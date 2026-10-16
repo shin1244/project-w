@@ -44,6 +44,10 @@ const OIL_CLEARING_RADII := Vector2(6.0, 10.0)
 const OIL_ENTRANCE_X := 28.0
 const OIL_ENTRANCE_Z := 8.0
 const OIL_CONNECTION_WIDTH := 5.0
+# Faded, darker stretches of older iron-strapped masonry break up the rim. Chosen per arc
+# around the map centre and repeated by the 180-degree rotation.
+const OLD_WALL_ARCS := 56
+const OLD_WALL_SHARE := 0.3
 
 var arena: Node3D
 var map_data: Dictionary
@@ -343,19 +347,54 @@ func wall_box(st: SurfaceTool, lo: Vector3, size: Vector3) -> void:
 	wall_face(st, Vector3(hi.x, lo.y, hi.z), hi, Vector3(lo.x, hi.y, hi.z), Vector3(lo.x, lo.y, hi.z))
 	wall_face(st, Vector3(lo.x, lo.y, hi.z), Vector3(lo.x, hi.y, hi.z), Vector3(lo.x, hi.y, lo.z), lo)
 
+func is_old_wall(center: Vector2) -> bool:
+	var arc := posmod(floori((atan2(center.y, center.x) + PI) / TAU * OLD_WALL_ARCS), OLD_WALL_ARCS / 2)
+	return absf(fmod(sin(arc * 12.9898 + 4.1) * 43758.5453, 1.0)) < OLD_WALL_SHARE
+
+func is_wall_cell(x: int, z: int) -> bool:
+	return z >= 0 and z < rows.size() and x >= 0 and x < rows[z].length() and rows[z][x] == "W"
+
+func iron_straps(st: SurfaceTool, x: int, z: int, p: Vector2) -> void:
+	# Iron bands along every face that looks onto open ground, with a strap on every other cell.
+	for side: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var nx := x + side.x
+		var nz := z + side.y
+		if nz < 0 or nz >= rows.size() or nx < 0 or nx >= rows[nz].length() or rows[nz][nx] in ["W", "#"]:
+			continue
+		var along := Vector3(absf(side.y), 0, absf(side.x)) * cell_size
+		var out := Vector3(side.x, 0, side.y)
+		var thick := Vector3(absf(side.x), 0, absf(side.y)) * 0.04
+		var face_center := Vector3(p.x + cell_size * 0.5, 0, p.y + cell_size * 0.5) + out * (cell_size * 0.5 + 0.02)
+		for band in [[1.72, 0.12], [0.42, 0.1]]:
+			var size: Vector3 = along + thick + Vector3(0, band[1], 0)
+			wall_box(st, face_center + Vector3(0, band[0], 0) - size * 0.5, size)
+		if (x + z) % 2 == 0:
+			var strap := Vector3(absf(side.y), 0, absf(side.x)) * 0.16 + thick * 1.5 + Vector3(0, 2.3, 0)
+			wall_box(st, face_center + out * 0.01 + Vector3(0, 1.2, 0) - strap * 0.5, strap)
+
 func build_walls() -> void:
 	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var old := SurfaceTool.new()
+	var iron := SurfaceTool.new()
+	for tool: SurfaceTool in [st, old, iron]:
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
+	var old_count := 0
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
 			if rows[z][x] != "W":
 				continue
 			var p := map_origin + Vector2(x, z) * cell_size
-			wall_box(st, Vector3(p.x, 0, p.y), Vector3(cell_size, 2.4, cell_size))
-			wall_box(st, Vector3(p.x, 2.4, p.y), Vector3(cell_size, 0.2, cell_size))
 			var center := p + Vector2.ONE * cell_size * 0.5
-			if (floori(absf(center.x)) + floori(absf(center.y))) % 3 == 0:
+			var aged := is_old_wall(center)
+			var target := old if aged else st
+			wall_box(target, Vector3(p.x, 0, p.y), Vector3(cell_size, 2.4, cell_size))
+			wall_box(target, Vector3(p.x, 2.4, p.y), Vector3(cell_size, 0.2, cell_size))
+			if aged:
+				# Older stretches have lost their merlons and are held together with iron.
+				iron_straps(iron, x, z, p)
+				old_count += 1
+			elif (floori(absf(center.x)) + floori(absf(center.y))) % 3 == 0:
 				wall_box(st, Vector3(p.x + cell_size * 0.08, 2.6, p.y + cell_size * 0.08), Vector3(cell_size * 0.84, 0.65, cell_size * 0.84))
 			count += 1
 	if count == 0:
@@ -363,9 +402,29 @@ func build_walls() -> void:
 	var material := ShaderMaterial.new()
 	material.shader = load("res://maps/materials/Wall.gdshader")
 	st.set_material(material)
+	var old_material := ShaderMaterial.new()
+	old_material.shader = material.shader
+	old_material.set_shader_parameter("stone_dark", Color(0.36, 0.35, 0.33))
+	old_material.set_shader_parameter("stone_light", Color(0.47, 0.45, 0.42))
+	old_material.set_shader_parameter("coping_color", Color(0.52, 0.5, 0.46))
+	old_material.set_shader_parameter("seam_color", Color(0.24, 0.23, 0.21))
+	old_material.set_shader_parameter("mossy_ratio", 0.7)
+	old_material.set_shader_parameter("cracked_ratio", 0.14)
+	old_material.set_shader_parameter("cobweb_ratio", 0.1)
+	old_material.set_shader_parameter("streak_strength", 0.2)
+	old_material.set_shader_parameter("colour_fade", 0.4)
+	old.set_material(old_material)
+	var iron_material := StandardMaterial3D.new()
+	iron_material.albedo_color = Color("2c3034")
+	iron_material.metallic = 0.45
+	iron_material.roughness = 0.55
+	iron.set_material(iron_material)
 	var wall := MeshInstance3D.new()
 	wall.name = "OuterWalls"
 	wall.mesh = st.commit()
+	if old_count > 0:
+		old.commit(wall.mesh)
+		iron.commit(wall.mesh)
 	attach(wall)
 	var body := StaticBody3D.new()
 	body.name = "WallCollision"
@@ -374,7 +433,7 @@ func build_walls() -> void:
 	shape.name = "WallShape"
 	shape.shape = wall.mesh.create_trimesh_shape()
 	attach(shape, body)
-	print("Outer wall cells: ", count)
+	print("Outer wall cells: ", count, " (old: ", old_count, ")")
 
 func build_guides() -> void:
 	var guides := Node3D.new()

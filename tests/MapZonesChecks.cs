@@ -11,7 +11,8 @@ public partial class MapZonesChecks : Node3D
             {
                 OakScene = GD.Load<PackedScene>("res://resources/trees/Oak.tscn"),
                 PineScene = GD.Load<PackedScene>("res://resources/trees/Pine.tscn"),
-                BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn")
+                BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn"),
+                LindenScene = GD.Load<PackedScene>("res://resources/trees/Linden.tscn")
             };
             AddChild(resources);
             var map = new MapWorld { Resources = resources, MapPath = "res://tests/fixtures/map-zones.json" };

@@ -7,6 +7,7 @@ public partial class ResourceManager : Node3D
     [Export] public PackedScene OakScene;
     [Export] public PackedScene PineScene;
     [Export] public PackedScene BirchScene;
+    [Export] public PackedScene LindenScene;
 
     private readonly Dictionary<uint, ResourceNode> _resources = new();
 
@@ -30,6 +31,7 @@ public partial class ResourceManager : Node3D
             0 => OakScene,
             1 => PineScene,
             2 => BirchScene,
+            3 => LindenScene,
             _ => null
         };
         if (scene == null)

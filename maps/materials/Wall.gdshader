@@ -12,6 +12,9 @@ uniform vec4 web_color : source_color = vec4(0.75, 0.75, 0.69, 1.0);
 uniform float cobweb_ratio : hint_range(0.0, 0.5) = 0.06;
 uniform float cracked_ratio : hint_range(0.0, 0.5) = 0.055;
 uniform float mossy_ratio : hint_range(0.0, 1.0) = 0.45;
+// Old, iron-strapped stretches reuse this shader with darker stone, heavier soot runs and faded colour.
+uniform float streak_strength : hint_range(0.0, 0.5) = 0.045;
+uniform float colour_fade : hint_range(0.0, 1.0) = 0.0;
 
 const float WALL_TOP = 2.4; // TerrainBuilder.build_walls의 벽 몸체 높이(갓돌 아래)
 
@@ -111,7 +114,7 @@ void fragment() {
 		stone = mix(stone, moss_color.rgb * (0.94 + grain * 0.12), moss * 0.55 * step(0.001, mossy_ratio));
 		// 갓돌 아래의 빗물 자국도 가늘고 낮은 대비로 연결한다.
 		float streak = smoothstep(0.56, 0.82, noise(vec2(along * 3.7, p.y * 0.25)));
-		stone *= 1.0 - streak * smoothstep(0.8, WALL_TOP, p.y) * 0.045;
+		stone *= 1.0 - streak * smoothstep(0.8, WALL_TOP, p.y) * streak_strength;
 		float seed = hash(cell + 47.0);
 		if (seed < cobweb_ratio && p.y < WALL_TOP) {
 			float right = step(0.5, hash(cell + 3.0));
@@ -127,6 +130,7 @@ void fragment() {
 		stone *= 1.0 - seam * 0.13 + bevel * highlight * 0.055;
 		if (!top) stone *= 1.0 + smoothstep(WALL_TOP + 0.12, WALL_TOP + 0.2, p.y) * 0.065;
 	}
+	stone = mix(stone, vec3(dot(stone, vec3(0.299, 0.587, 0.114))) * vec3(1.02, 1.0, 0.96), colour_fade);
 	ALBEDO = stone;
 	ROUGHNESS = 0.91 + grain * 0.055;
 	SPECULAR = 0.13;

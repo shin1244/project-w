@@ -22,7 +22,8 @@ public partial class FogSyncChecks : Main
             {
                 OakScene = GD.Load<PackedScene>("res://resources/trees/Oak.tscn"),
                 PineScene = GD.Load<PackedScene>("res://resources/trees/Pine.tscn"),
-                BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn")
+                BirchScene = GD.Load<PackedScene>("res://resources/trees/Birch.tscn"),
+                LindenScene = GD.Load<PackedScene>("res://resources/trees/Linden.tscn")
             };
             AddChild(Resources);
             Map = new MapWorld { Resources = Resources, MapPath = "res://tests/fixtures/map-fog-open.json" };

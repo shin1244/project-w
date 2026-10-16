@@ -6,6 +6,8 @@
 
 [ext_resource type="PackedScene" path="res://resources/trees/Birch.tscn" id="Birch"]
 
+[ext_resource type="PackedScene" path="res://resources/trees/Linden.tscn" id="Linden"]
+
 [ext_resource type="Script" path="res://previews/TreesPreview.gd" id="Capture"]
 
 [sub_resource type="Environment" id="Environment"]
@@ -32,7 +34,7 @@ script = ExtResource("Capture")
 position = Vector3(0, 6.5, -13)
 rotation = Vector3(-0.33, 3.141593, 0)
 projection = 1
-size = 8.0
+size = 10.0
 current = true
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
@@ -51,10 +53,10 @@ position = Vector3(0, -0.015, 0)
 mesh = SubResource("Floor")
 
 [node name="Oak" parent="." instance=ExtResource("Oak")]
-position = Vector3(4, 0, 0)
+position = Vector3(6, 0, 0)
 
 [node name="OakLabel" type="Label3D" parent="."]
-position = Vector3(4, 4.9, 0)
+position = Vector3(6, 4.9, 0)
 billboard = 1
 text = "OAK"
 font_size = 44
@@ -62,10 +64,10 @@ pixel_size = 0.006
 outline_size = 4
 
 [node name="Pine" parent="." instance=ExtResource("Pine")]
-position = Vector3(0, 0, 0)
+position = Vector3(2, 0, 0)
 
 [node name="PineLabel" type="Label3D" parent="."]
-position = Vector3(0, 4.9, 0)
+position = Vector3(2, 4.9, 0)
 billboard = 1
 text = "PINE"
 font_size = 44
@@ -73,12 +75,23 @@ pixel_size = 0.006
 outline_size = 4
 
 [node name="Birch" parent="." instance=ExtResource("Birch")]
-position = Vector3(-4, 0, 0)
+position = Vector3(-2, 0, 0)
 
 [node name="BirchLabel" type="Label3D" parent="."]
-position = Vector3(-4, 4.9, 0)
+position = Vector3(-2, 4.9, 0)
 billboard = 1
 text = "BIRCH"
+font_size = 44
+pixel_size = 0.006
+outline_size = 4
+
+[node name="Linden" parent="." instance=ExtResource("Linden")]
+position = Vector3(-6, 0, 0)
+
+[node name="LindenLabel" type="Label3D" parent="."]
+position = Vector3(-6, 4.9, 0)
+billboard = 1
+text = "LINDEN"
 font_size = 44
 pixel_size = 0.006
 outline_size = 4

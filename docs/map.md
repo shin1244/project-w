@@ -106,10 +106,10 @@
 
 | 대상 | 파일 | 표현 |
 | --- | --- | --- |
-| 돌길·잔디 | `maps/materials/Ground.gdshader` | 포석·줄눈·먼지·가는 실금, 풀 얼룩·클로버 |
+| 돌길·잔디 | `maps/materials/Ground.gdshader` | 톤을 낮춘 포석·줄눈·먼지·가는 실금, 군데군데 무리 지어 섞인 빛바랜 어두운 옛 포석(평평하게 닳고 살짝 꺼졌으며 줄눈에서 때가 번짐), 풀 얼룩·클로버 |
 | 유전 균열·기름 | `maps/Oilfield.tscn` | 네 곳이 같은 모델 공유. 지그재그 균열·갈라진 암반과 틈에서 낮게 솟는 기름. 상호작용·충돌 노드 없음 |
-| 벽 | `maps/materials/Wall.gdshader` | 석회암·이끼·가는 균열·빗물 자국 |
-| 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수의 고정 변형과 자원 ID 기반 회전·크기 |
+| 벽 | `maps/materials/Wall.gdshader`, `TerrainBuilder.build_walls` | 석회암·이끼·가는 균열·빗물 자국. 둘레의 약 30% 구간은 총안이 떨어져 나가고 철띠와 철판으로 보강한, 어둡고 빛바랜 옛 성벽 |
+| 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수와 깔끔하게 다듬은 둥근 수관의 피나무(약 1/7, 숲에서 튀지 않게 한 톤 어둡게). 수종은 시작 칸 좌표를 섞어 고르고, 같은 수종 안에서는 고정 변형과 자원 ID 기반 회전·크기 |
 
 `LayoutGuides`에는 본진 마커, 공격로 경로, 활동 구역·확장 부지의 기준점이 있습니다. 미니언의 실제 경유지는 JSON의 `lanes`를 사용합니다.
 
@@ -119,7 +119,7 @@
 
 ## 수정 및 재생성
 
-자동 배치 기준은 `maps/TerrainBuilder.gd`에 있습니다. 본진 잔디는 `BASE_MEADOW_RADII`, 중앙·정글은 `activity_areas()`, 외곽 확장 부지는 `EXPANSION_*`, 유전과 공터는 `OIL_CLEARING_*`·`OIL_ENTRANCE_*`·`OIL_CONNECTION_*`·`oil_fields()`·`is_oilfield_clearing()`에서 조절합니다. 전체 배열의 원점과 크기는 `MAP_ORIGIN`, `MAP_SIZE`로 고정합니다.
+자동 배치 기준은 `maps/TerrainBuilder.gd`에 있습니다. 본진 잔디는 `BASE_MEADOW_RADII`, 중앙·정글은 `activity_areas()`, 외곽 확장 부지는 `EXPANSION_*`, 유전과 공터는 `OIL_CLEARING_*`·`OIL_ENTRANCE_*`·`OIL_CONNECTION_*`·`oil_fields()`·`is_oilfield_clearing()`에서 조절합니다. 옛 성벽 구간은 지도 중심 기준 호 개수 `OLD_WALL_ARCS`와 비율 `OLD_WALL_SHARE`로 고르며 180도 회전 위치에도 같은 구간이 생깁니다. 옛 포석의 비율은 `Ground.gdshader`의 `aged_ratio`·`aged_cluster`입니다. 전체 배열의 원점과 크기는 `MAP_ORIGIN`, `MAP_SIZE`로 고정합니다.
 
 클라이언트 프로젝트 루트에서 실행합니다. `Godot`은 설치한 Godot .NET 실행 파일 경로로 바꿉니다.
 
@@ -138,7 +138,7 @@ Godot --headless --path . --script tools/build_arena.gd
 
 지도 변경 후에는 클라이언트의 MapSyncChecks·MapZonesChecks·FogSyncChecks와 `check_arena`를 확인합니다. 서버에서는 맵 동기화·경로·건설 검사를 통해 네 유전 옆의 실제 브랜치 배치, 중앙 유전의 본진 방향 직선 차단과 중앙 도로 쪽 우회 통행, 유전 지면 건설 제한과 기존 라인·활동 구역 보존을 확인합니다. 실행기와 검증 범위는 [테스트 안내](../tests/README.md)를 참고하세요.
 
-서버 `TestArenaTownHallSideConstructionBays`는 본진 네 부지마다 실제 건설 명령으로 인력 사무소·조병창·공방을 완공하고, 일꾼이 HQ 입구로 돌아갈 경로를 확인합니다. 건물 면적·비용·공사 시간은 현재 서버 정의를 사용합니다.
+서버 `TestArenaTownHallSideConstructionBays`는 본진 네 부지마다 실제 건설 명령으로 인력 사무소·조병창·공장을 완공하고, 일꾼이 HQ 입구로 돌아갈 경로를 확인합니다. 건물 면적·비용·공사 시간은 현재 서버 정의를 사용합니다.
 
 클라이언트 검사는 모의 메시지와 로컬 지도 기반이며 실제 서버 대전 검사는 아닙니다. 실제 이동 경로와 브랜치 완공은 서버의 별도 검사로 확인합니다.
 

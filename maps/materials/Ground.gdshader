@@ -8,12 +8,15 @@ uniform vec2 map_size;
 uniform vec4 grass_dark : source_color = vec4(0.20, 0.30, 0.15, 1.0);
 uniform vec4 grass_light : source_color = vec4(0.36, 0.45, 0.24, 1.0);
 uniform vec4 grass_dry : source_color = vec4(0.43, 0.43, 0.27, 1.0);
-uniform vec4 stone_dark : source_color = vec4(0.42, 0.44, 0.42, 1.0);
-uniform vec4 stone_light : source_color = vec4(0.57, 0.58, 0.54, 1.0);
-uniform vec4 curb_color : source_color = vec4(0.54, 0.55, 0.49, 1.0);
-uniform vec4 dust_color : source_color = vec4(0.50, 0.47, 0.39, 1.0);
+// Paving is toned down so units and buildings read above it.
+uniform vec4 stone_dark : source_color = vec4(0.35, 0.36, 0.34, 1.0);
+uniform vec4 stone_light : source_color = vec4(0.47, 0.47, 0.44, 1.0);
+uniform vec4 curb_color : source_color = vec4(0.45, 0.45, 0.41, 1.0);
+uniform vec4 dust_color : source_color = vec4(0.43, 0.41, 0.35, 1.0);
 uniform float dusty_ratio : hint_range(0.0, 0.5) = 0.18;
 uniform float cracked_ratio : hint_range(0.0, 0.5) = 0.065;
+uniform float aged_ratio : hint_range(0.0, 0.5) = 0.04; // Scattered old slabs outside the clusters.
+uniform float aged_cluster : hint_range(0.0, 1.0) = 0.9; // Share of old slabs inside a cluster.
 uniform float bump_strength : hint_range(0.0, 1.0) = 0.30;
 
 varying vec2 map_position;
@@ -107,13 +110,24 @@ void fragment() {
 	stone += vec3(0.014, 0.014, 0.012) * face_wear;
 	stone *= 1.0 - bevel * 0.085;
 
+	// Faded, darker old slabs sit in loose clusters among the newer paving: worn flat,
+	// sunk a little, greyed by years of soot and darkened where grime creeps in from the joints.
+	vec2 stone_center = p - local;
+	float cluster = smoothstep(0.5, 0.78, noise(stone_center * 0.16 + vec2(71.0, 13.0)));
+	float aged = step(hash(stone_id + vec2(63.1, 2.7)), cluster * aged_cluster + aged_ratio);
+	vec3 aged_stone = mix(stone_dark.rgb * 0.8, stone_light.rgb * 0.74, 0.35 + variation * 0.3 + batch * 0.15);
+	aged_stone = mix(aged_stone, vec3(dot(aged_stone, vec3(0.299, 0.587, 0.114))) * vec3(1.02, 1.0, 0.95), 0.55);
+	float grime_rim = 1.0 - smoothstep(0.02, 0.16, -edge_distance);
+	aged_stone *= (1.0 - grime_rim * 0.2) * (0.94 + grain * 0.1);
+	stone = mix(stone, aged_stone, aged);
+
 	// Dust follows broad patches and collects at recessed edges, never whole square tiles.
 	float dust_patch = smoothstep(0.44, 0.76, noise(p * 0.37 + 51.0));
 	float dust = dust_patch * (0.16 + dusty_ratio) * (0.25 + bevel * 0.45 + joint * 0.45);
 	stone = mix(stone, dust_color.rgb, dust);
 
 	// Rare fine fissures start from one edge and taper into the stone's face.
-	float cracked = 1.0 - step(cracked_ratio, hash(stone_id + vec2(41.7, 13.1)));
+	float cracked = 1.0 - step(mix(cracked_ratio, 0.4, aged), hash(stone_id + vec2(41.7, 13.1)));
 	float crack_side = mix(-1.0, 1.0, step(0.5, hash(stone_id + 6.1)));
 	float depth = half_size.x - local.x * crack_side;
 	float crack_length = half_size.x * mix(0.42, 0.96, hash(stone_id + 14.2));
@@ -139,7 +153,7 @@ void fragment() {
 	vec3 color = mix(grass, paving, road);
 
 	float height = mix(grain * 0.012 + blade * 0.005,
-		grain * 0.005 + face_wear * 0.009 - bevel * 0.017 - joint * 0.025 - crack * 0.005, road);
+		grain * 0.005 + face_wear * 0.009 * (1.0 - aged) - bevel * 0.017 - joint * 0.025 - crack * 0.005 - aged * 0.006, road);
 	vec3 n = normalize(NORMAL);
 	vec3 dx = dFdx(VERTEX);
 	vec3 dy = dFdy(VERTEX);

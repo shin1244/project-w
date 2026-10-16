@@ -2,30 +2,132 @@
 
 [ext_resource type="Script" path="res://buildings/Building.cs" id="1_15iyc"]
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Workshop.res" id="2_8i6u8"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/WorkshopFlywheel.res" id="3_ha06r"]
+[ext_resource type="Script" path="res://visuals/SpinningPart.cs" id="4_sahm3"]
+
+[sub_resource type="Gradient" id="Gradient_guhci"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_q44vb"]
+gradient = SubResource("Gradient_guhci")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e4v0b"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_q44vb")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_domai"]
+material = SubResource("StandardMaterial3D_e4v0b")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_jv7cb"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_c6miv"]
+colors = PackedColorArray(0.95, 0.95, 0.95, 0.75, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="Gradient_exum1"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_lolqn"]
+gradient = SubResource("Gradient_exum1")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3r8gu"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_lolqn")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_8d5qi"]
+material = SubResource("StandardMaterial3D_3r8gu")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_ino2v"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_1sxw0"]
+colors = PackedColorArray(0.95, 0.95, 0.95, 0.75, 1, 1, 1, 0)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ha06r"]
-size = Vector3(4, 4.0325, 4)
+size = Vector3(4, 2.92, 4)
 
-[node name="Workshop" type="Node3D" unique_id=253225984]
+[node name="Workshop" type="Node3D" unique_id=1412847785]
 script = ExtResource("1_15iyc")
 BuildingType = 8
-HealthBarHeight = 4.3325
+HealthBarHeight = 3.22
 metadata/role = "workshop"
 metadata/footprint = Vector2i(4, 4)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=849223882]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=807585148]
 mesh = ExtResource("2_8i6u8")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=1272536966]
+[node name="Flywheel" type="MeshInstance3D" parent="Visual" unique_id=185856744]
+transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 1.33, 1, 0.45)
+mesh = ExtResource("3_ha06r")
+script = ExtResource("4_sahm3")
+Speed = 2.2
+
+[node name="SteamLeft" type="CPUParticles3D" parent="Visual" unique_id=928011422]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.72, 2.8, 0.92)
+cast_shadow = 0
+amount = 6
+lifetime = 1.6
+preprocess = 1.6
+mesh = SubResource("QuadMesh_domai")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.1
+scale_amount_max = 0.15
+scale_amount_curve = SubResource("Curve_jv7cb")
+color_ramp = SubResource("Gradient_c6miv")
+
+[node name="SteamRight" type="CPUParticles3D" parent="Visual" unique_id=1903017091]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.72, 2.8, 0.92)
+cast_shadow = 0
+amount = 6
+lifetime = 1.6
+preprocess = 1.6
+mesh = SubResource("QuadMesh_8d5qi")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.1
+scale_amount_max = 0.15
+scale_amount_curve = SubResource("Curve_ino2v")
+color_ramp = SubResource("Gradient_1sxw0")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=720487463]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=869147083]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.01625, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=1994074061]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.46, 0)
 shape = SubResource("BoxShape3D_ha06r")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=2108003024]
+[node name="Entrance" type="Marker3D" parent="." unique_id=879637172]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
