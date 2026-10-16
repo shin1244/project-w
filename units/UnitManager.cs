@@ -164,12 +164,12 @@ public partial class UnitManager : Node3D
     public string ArmyUpgradeBlockReason(Building forge, bool attack)
     {
         if (!CommanderControl || Spectating || _controlledHeroType.HasValue || !CanUseSelectedBuilding(forge) ||
-            forge.BuildingType != BuildingCatalog.Forge) return "아군 대장간을 선택하세요";
-        if (forge.IsUnderConstruction) return "대장간 건설 중";
+            forge.BuildingType != BuildingCatalog.Forge) return "아군 조병창을 선택하세요";
+        if (forge.IsUnderConstruction) return "조병창 건설 중";
         var state = Buildings.ArmyUpgrade(forge.SideId);
         if (state.Research(attack).Researching) return "연구 중";
         if (state.Level(attack) >= ArmyUpgradeSnapshot.MaxLevel) return "최고 단계";
-        if (state.ForgeBusy(forge.BuildingId)) return "이 대장간은 다른 연구 중";
+        if (state.ForgeBusy(forge.BuildingId)) return "이 조병창은 다른 연구 중";
         int wood = state.Research(attack).NextWood;
         return wood <= 0 ? "연구 정보 수신 대기" : Buildings.CommanderWood < wood ? "나무 부족" : null;
     }

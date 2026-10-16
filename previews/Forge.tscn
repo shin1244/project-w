@@ -23,7 +23,7 @@ tonemap_mode = 2
 
 [node name="ForgePreview" type="Node3D"]
 script = ExtResource("2_preview")
-target_height = 1.95
+target_height = 2.2
 capture_path = "res://docs/images/forge-preview.png"
 
 [node name="Forge" parent="." instance=ExtResource("1_model")]
@@ -35,7 +35,7 @@ cast_shadow = 0
 
 [node name="Camera3D" type="Camera3D" parent="."]
 projection = 1
-size = 7.6
+size = 8.4
 current = true
 far = 80.0
 

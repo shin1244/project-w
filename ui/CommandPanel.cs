@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// 선택한 일꾼의 건설 메뉴, HQ·인력 사무소의 생산 버튼, 대장간 연구 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
+// 선택한 일꾼의 건설 메뉴, HQ·인력 사무소의 생산 버튼, 조병창 연구 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
 public partial class CommandPanel : PanelContainer
 {
     [Export] public UnitManager Units;
@@ -124,11 +124,11 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Units or DisplayMode.Workers, 5) => "정지(S)",
                 (DisplayMode.Units or DisplayMode.Workers, 6) => "홀드(D)",
                 (DisplayMode.Workers, 1) => "건설(Z)",
-                (DisplayMode.BuildMenu, 7) => "보급기지\n(Q)",
-                (DisplayMode.BuildMenu, 8) => "주택\n(W)",
+                (DisplayMode.BuildMenu, 7) => "브랜치\n(Q)",
+                (DisplayMode.BuildMenu, 8) => "숙소\n(W)",
                 (DisplayMode.BuildMenu, 9) => "시추탑\n(E)",
                 (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",
-                (DisplayMode.BuildMenu, 5) => "대장간\n(S)",
+                (DisplayMode.BuildMenu, 5) => "조병창\n(S)",
                 (DisplayMode.BuildMenu, 6) => "망루\n(D)",
                 (DisplayMode.BuildMenu, 1) => "공방\n(Z)",
                 (DisplayMode.BuildMenu, 2) => "기술연구소\n(X)",

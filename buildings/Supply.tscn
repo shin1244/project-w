@@ -4,29 +4,29 @@
 [ext_resource type="ArrayMesh" path="res://buildings/meshes/Supply.res" id="2_7idce"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_5bnij"]
-size = Vector3(3, 4.092, 3)
+size = Vector3(3, 4.566, 3)
 
-[node name="Supply" type="Node3D" unique_id=435533352]
+[node name="Supply" type="Node3D" unique_id=988028080]
 script = ExtResource("1_emlak")
 BuildingType = 3
-HealthBarHeight = 4.542
+HealthBarHeight = 5.0160003
 metadata/role = "supply"
 metadata/footprint = Vector2i(3, 3)
 metadata/front = "-Z"
 
-[node name="Visual" type="MeshInstance3D" parent="." unique_id=1697551859]
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=1190412275]
 transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 mesh = ExtResource("2_7idce")
 
-[node name="SelectionArea" type="Area3D" parent="." unique_id=611970877]
+[node name="SelectionArea" type="Area3D" parent="." unique_id=1655354907]
 collision_layer = 8
 collision_mask = 0
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=509954710]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.046, 0)
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=783761934]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.283, 0)
 shape = SubResource("BoxShape3D_5bnij")
 
-[node name="Entrance" type="Marker3D" parent="." unique_id=1297674758]
+[node name="Entrance" type="Marker3D" parent="." unique_id=280256821]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)

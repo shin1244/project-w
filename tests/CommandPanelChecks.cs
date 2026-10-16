@@ -214,7 +214,7 @@ public partial class CommandPanelChecks : Main
         int sent = _commands.Count;
         _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
         Units.RequestTrain(UnitCatalog.Knight);
-        Check(_slots[7].Disabled && !_slots[8].Disabled && _slots[7].TooltipText.Contains("대장간") &&
+        Check(_slots[7].Disabled && !_slots[8].Disabled && _slots[7].TooltipText.Contains("조병창") &&
             _commands.Count == sent, "Enemy and incomplete prerequisites do not unlock training or direct commands");
         Receive("CONSTRUCTION 903 100");
         Check(!_slots[7].Disabled, "Completion immediately refreshes the selected producer");
@@ -638,8 +638,8 @@ public partial class CommandPanelChecks : Main
     }
 
     private void ExpectTierMenu(string message) => Expect(message,
-        (7, "보급기지\n(Q)"), (8, "주택\n(W)"), (9, "시추탑\n(E)"),
-        (4, "인력\n사무소\n(A)"), (5, "대장간\n(S)"), (6, "망루\n(D)"),
+        (7, "브랜치\n(Q)"), (8, "숙소\n(W)"), (9, "시추탑\n(E)"),
+        (4, "인력\n사무소\n(A)"), (5, "조병창\n(S)"), (6, "망루\n(D)"),
         (1, "공방\n(Z)"), (2, "기술연구소\n(X)"), (3, "뒤로(C)"));
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>

@@ -82,7 +82,7 @@ public partial class BuildingPlacementChecks : Main
             Check(Placement.Begin(BuildingCatalog.Supply), "Completed prerequisites allow placement");
             Receive("REMOVE 900");
             Check(!Placement.TryPlace(Screen(-10.5f, -3.5f)) && Placement.Active &&
-                Placement.BlockReason.Contains("대장간") && _commands.Count == 0,
+                Placement.BlockReason.Contains("조병창") && _commands.Count == 0,
                 "Losing prerequisites during placement blocks the click without sending BUILD");
             Receive("REQUIRES BUILDING 3");
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
@@ -125,7 +125,7 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", supply);
             var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
             var title = (Label)typeof(SelectionDetails).GetField("_title", Private).GetValue(details);
-            Check(title.Text == "주택", "New building selection uses its correct name");
+            Check(title.Text == "숙소", "New building selection uses its correct name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(4);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
@@ -147,7 +147,7 @@ public partial class BuildingPlacementChecks : Main
                     $"Type {unavailable} is unavailable for player construction in both preview and command paths");
             ChooseBuilding(7);
             Placement.UpdatePreview(Screen(-6f, -9f));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("보급기지 배치"),
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("브랜치 배치"),
                 "Tier-one slot 7 selects the supply depot placement preview");
             before = _wire.Length;
             int buildingsBefore = Buildings.LiveBuildings.Count;
@@ -163,13 +163,13 @@ public partial class BuildingPlacementChecks : Main
                 Issue(-6f + depotSize.X / 2 + .4f, -9f, 1, 1)?.Contains("다른 건물") == true,
                 "Depot occupancy allows touching edges and rejects overlap using its scene footprint");
             Invoke("SelectBuilding", store);
-            Check(title.Text == "보급기지", "Supply depot selection displays its name");
+            Check(title.Text == "브랜치", "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(5);
             Vector2 forgeSize = SceneFootprint(BuildingCatalog.Forge);
             Vector2 forgeCenter = new Vector2(-8, -5) + forgeSize * .5f;
             Placement.UpdatePreview(Screen(forgeCenter.X, forgeCenter.Y));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("대장간 배치"),
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("조병창 배치"),
                 "Tier-one slot 5 selects the cached forge preview");
             before = _wire.Length;
             buildingsBefore = Buildings.LiveBuildings.Count;
@@ -182,7 +182,7 @@ public partial class BuildingPlacementChecks : Main
             Check(Buildings.TryGetBuilding(505, out Building forge) && forge.BuildingType == BuildingCatalog.Forge &&
                 (Vector2)forge.GetMeta("footprint").AsVector2I() == forgeSize, "Type 5 response uses the scene footprint");
             Invoke("SelectBuilding", forge);
-            Check(title.Text == "대장간", "Forge selection displays its synchronized name");
+            Check(title.Text == "조병창", "Forge selection displays its synchronized name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(6);
             before = _wire.Length;

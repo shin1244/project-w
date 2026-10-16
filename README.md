@@ -38,7 +38,7 @@ network/          TCP 연결과 명령 문자열
 events/           서버 상태로 표시하는 공물과 수집 진행 효과
 units/            UnitManager, 공통 유닛 스크립트와 일꾼·기사·궁수 씬
 resources/        ResourceManager, 자원 공통 스크립트와 나무 외형 3종
-buildings/        HQ·요새·보급기지·주택·시추탑·인력 사무소·대장간·망루 씬, 공통 공사 부지 표시
+buildings/        HQ·요새·브랜치·숙소·시추탑·인력 사무소·조병창·망루 씬, 공통 공사 부지 표시
 maps/             맵 장면과 서버와 공유하는 격자 데이터(test.json)
   resources/      지형 메시와 충돌 리소스
 previews/         서버 없이 보는 맵·유닛 미리보기

@@ -1,215 +1,198 @@
 extends "res://tools/build_supply.gd"
-## 3x2 forge: stone forge, tall chimney and an open anvil court. Server type 5.
+## The arsenal (조병창, server type 5, key "forge"): the company's arms works, where army attack
+## and armour research happens (docs/art-direction.md). A brick foundry hall under a sawtooth roof
+## with an open bay onto a glowing forge floor and a steam hammer that keeps striking
+## (ReciprocatingPart), a riveted cupola furnace with a smoking stack and a molten tap, and crated
+## rifles, armour plate and shells in the yard. Source grid 3x2, scaled to the server's 4x3.
+
+const SCENE := "res://buildings/Forge.tscn"
+const MESH := "res://buildings/meshes/Forge.res"
+const HAMMER_MESH := "res://buildings/meshes/ForgeHammer.res"
+const HAMMER_REST := Vector3(-0.45, 0.285, -0.06)
 
 func _initialize() -> void:
-	material("stone", Color("777e77"))
-	material("stone_light", Color("a3aa9d"))
-	material("stone_dark", Color("505a54"))
-	material("wood", Color("583b29"))
-	material("wood_light", Color("a47947"))
-	material("wood_warm", Color("896039"))
-	material("dark", Color("252c2b"), .25)
-	material("roof", Color("274e66"))
-	material("roof_mid", Color("315971"))
-	material("roof_light", Color("3b667d"))
-	material("gold", Color("c9a25a"), .25)
-	material("steel", Color("a9b8bd"), .55)
-	material("banner", Color("376a94"))
-	material("ember", Color("e76424"))
-	material("fire", Color("ffd07a"))
-	for key in ["ember", "fire"]:
-		materials[key].emission_enabled = true
-		materials[key].emission = materials[key].albedo_color
-		materials[key].emission_energy_multiplier = .8
-	forge_foundation()
-	workshop()
-	workshop_roof()
-	forge()
-	anvil_and_tools()
-	smith_sign()
-	save_compact("res://buildings/Forge.tscn", "res://buildings/meshes/Forge.res", "Forge", 5, "forge", Vector2i(3, 2))
+	arsenal_materials()
+	arsenal_yard()
+	foundry_hall()
+	sawtooth_roof()
+	forge_floor()
+	cupola()
+	munitions()
+	save_compact(SCENE, MESH, "Forge", 5, "forge", Vector2i(3, 2))
+	add_moving_parts()
 	quit()
 
-func forge_foundation() -> void:
-	var corners := [Vector2(-1.37, -1), Vector2(1.37, -1), Vector2(1.5, -.87), Vector2(1.5, .87),
-		Vector2(1.37, 1), Vector2(-1.37, 1), Vector2(-1.5, .87), Vector2(-1.5, -.87)]
-	for i in range(corners.size()):
-		var a: Vector2 = corners[i]
-		var b: Vector2 = corners[(i + 1) % corners.size()]
-		triangle("stone", Vector3(0, .14, 0), Vector3(b.x, .14, b.y), Vector3(a.x, .14, a.y))
-		quad("stone_dark", Vector3(a.x, 0, a.y), Vector3(a.x, .14, a.y), Vector3(b.x, .14, b.y), Vector3(b.x, 0, b.y))
-	for col in range(8):
-		for row in range(2):
-			box("stone_light" if (col + row) % 4 == 0 else "stone_dark", Vector3(-1.24 + col * .35, .151, -.79 + row * .32), Vector3(.33, .024, .30))
-	box("stone_dark", Vector3(-.62, .26, .23), Vector3(1.50, .24, 1.29))
-	box("stone_light", Vector3(-.62, .40, .23), Vector3(1.55, .06, 1.33))
-	box("stone", Vector3(-.53, .22, -.60), Vector3(.70, .14, .31))
-	box("stone_light", Vector3(-.53, .32, -.45), Vector3(.65, .10, .22))
+func arsenal_materials() -> void:
+	material("brick", Color("74443a"))
+	material("brick_dark", Color("4f2e26"))
+	material("soot", Color("1e2226"))
+	material("cobble", Color("4f4c47"))
+	material("iron", Color("2f363d"), 0.55, 0.45)
+	material("iron_light", Color("7d868d"), 0.6, 0.4)
+	material("brass", Color("a88349"), 0.7, 0.32)
+	material("wood", Color("5a4232"))
+	material("paper", Color("d6ccb0"))
+	material("glass", Color("7c6a48"), 0.0, 0.4, 0.25)
+	material("roof", Color("3d5f77"), 0.35, 0.55) # Painted iron, company colour.
+	material("banner", Color("376a94"))
+	material("ember", Color("e8642a"), 0.0, 0.6, 1.6)
+	material("fire", Color("ffc86a"), 0.0, 0.5, 2.2)
 
-func workshop() -> void:
-	box("stone", Vector3(-.62, 1.02, .24), Vector3(1.33, 1.19, 1.13))
-	# Low stone courses and heavy oak framing leave the open forge readable beside it.
-	for z in [-.337, .817]:
-		for row in range(2):
-			for col in range(5):
-				box("stone_light" if (col + row) % 3 == 0 else "stone_dark", Vector3(-1.15 + col * .267, .54 + row * .22, z), Vector3(.25, .20, .035))
-		for x in [-1.29, -.62, .05]:
-			box("wood", Vector3(x, 1.02, z), Vector3(.095, 1.30, .10))
-		for y in [.86, 1.61]:
-			box("wood", Vector3(-.62, y, z), Vector3(1.45, .10, .12))
-		var a := Vector3(-1.29, 1.64, z)
-		var b := Vector3(.05, 1.64, z)
-		var c := Vector3(-.62, 2.28, z)
-		if z < 0: triangle("wood_warm", a, c, b)
-		else: triangle("wood_warm", a, b, c)
-		beam("wood", a, c, .065, .07)
-		beam("wood", b, c, .065, .07)
-		box("wood", Vector3(-.62, 1.90, z), Vector3(.08, .54, .08))
-	for x in [-1.31, .07]:
-		box("wood", Vector3(x, 1.60, .24), Vector3(.10, .13, 1.29))
-		box("wood", Vector3(x, .89, .24), Vector3(.08, .08, 1.24))
-		beam("wood", Vector3(x, .95, .0), Vector3(x, 1.54, .71), .065, .065)
-	# Iron-strapped workshop door and a barred side window.
-	box("dark", Vector3(-.53, .94, -.37), Vector3(.63, 1.02, .04))
-	for i in range(5):
-		box("wood_light", Vector3(-.772 + i * .121, .94, -.4), Vector3(.111, .97, .04))
-	for y in [.61, 1.25]:
-		box("dark", Vector3(-.53, y, -.429), Vector3(.57, .045, .02))
-	sphere("gold", Vector3(-.34, .93, -.45), .024)
-	box("wood", Vector3(-.53, 1.48, -.395), Vector3(.76, .10, .12))
-	for z in [.0, .55]:
-		box("dark", Vector3(-1.323, 1.22, z), Vector3(.03, .36, .32))
-		for dz in [-.09, 0.0, .09]:
-			box("steel", Vector3(-1.35, 1.22, z + dz), Vector3(.018, .34, .021))
-	# Rear materials hatch keeps the model detailed from the in-game camera direction.
-	box("dark", Vector3(-.59, 1.22, .846), Vector3(.47, .38, .03))
+func arsenal_yard() -> void:
+	box("cobble", Vector3(0, 0.03, 0), Vector3(3.0, 0.06, 2.0))
+	box("soot", Vector3(-0.4, 0.062, -0.62), Vector3(1.1, 0.003, 0.4)) # Scorched in front of the bay.
+	for x in [-1.2, -0.7, 0.3]:
+		box("iron", Vector3(x, 0.065, -0.75), Vector3(0.02, 0.006, 0.5)) # Rails into the hall.
+
+func foundry_hall() -> void:
+	var x0 := -1.45
+	var x1 := 0.5
+	var z0 := -0.35
+	var z1 := 0.95
+	var back := 0.25 # The bay is a recess down to here.
+	var eave := 1.4
+	var bay0 := -0.95
+	var bay1 := 0.05
+	var bay_top := 1.1
+	var cx := (x0 + x1) * 0.5
+	# Rear block, and the front built around an open bay.
+	box("brick", Vector3(cx, (0.06 + eave) * 0.5, (back + z1) * 0.5), Vector3(x1 - x0, eave - 0.06, z1 - back))
+	box("brick", Vector3((x0 + bay0) * 0.5, (0.06 + eave) * 0.5, (z0 + back) * 0.5), Vector3(bay0 - x0, eave - 0.06, back - z0))
+	box("brick", Vector3((bay1 + x1) * 0.5, (0.06 + eave) * 0.5, (z0 + back) * 0.5), Vector3(x1 - bay1, eave - 0.06, back - z0))
+	box("brick", Vector3((bay0 + bay1) * 0.5, (bay_top + eave) * 0.5, (z0 + back) * 0.5), Vector3(bay1 - bay0, eave - bay_top, back - z0))
+	box("soot", Vector3((bay0 + bay1) * 0.5, bay_top + 0.005, (z0 + back) * 0.5), Vector3(bay1 - bay0, 0.01, back - z0)) # Recess ceiling.
+	box("soot", Vector3(cx, eave - 0.1, z0 - 0.004), Vector3(x1 - x0, 0.2, 0.006))
+	for x in [x0, bay0, bay1, x1]:
+		box("brick_dark", Vector3(x, (0.06 + eave) * 0.5, z0 - 0.02), Vector3(0.1, eave - 0.06, 0.04))
+	for z in [-0.05, 0.35, 0.7]:
+		box("glass", Vector3(x0 - 0.008, 0.85, z), Vector3(0.008, 0.6, 0.2))
+		cylinder("glass", Vector3(x0 - 0.008, 1.15, z), 0.1, 0.1, 0.008, Basis(Vector3.FORWARD, PI * 0.5), 10)
+	box("iron", Vector3((bay0 + bay1) * 0.5, bay_top + 0.03, z0 - 0.04), Vector3(bay1 - bay0 + 0.1, 0.08, 0.06))
+	for x in [bay0, bay1]:
+		for y in [0.3, 0.6, 0.9]:
+			sphere("iron_light", Vector3(x, y, z0 - 0.045), 0.016)
+	# Company board over the bay.
+	box("wood", Vector3(-0.45, 1.27, z0 - 0.03), Vector3(1.0, 0.16, 0.03))
+	box("banner", Vector3(-0.45, 1.27, z0 - 0.05), Vector3(0.94, 0.12, 0.01))
+	for i in range(6):
+		box("paper", Vector3(-0.85 + i * 0.16, 1.27, z0 - 0.057), Vector3(0.09, 0.06, 0.004))
+	# A smaller door on the right.
+	box("iron", Vector3(0.28, 0.4, z0 - 0.02), Vector3(0.3, 0.68, 0.03))
+	box("glass", Vector3(0.28, 0.6, z0 - 0.04), Vector3(0.18, 0.12, 0.006))
+
+func sawtooth_roof() -> void:
+	# Three teeth: painted iron slopes face the street, the glazed north lights face the back.
+	var x0 := -1.48
+	var x1 := 0.53
+	var eave := 1.4
+	var rise := 0.42
+	for i in range(3):
+		var za := -0.38 + i * 0.443
+		var zb := za + 0.443
+		face("roof", Vector3(x0, eave, za), Vector3(x1, eave, za), Vector3(x1, eave + rise, zb), Vector3(x0, eave + rise, zb))
+		face("glass", Vector3(x0, eave, zb), Vector3(x1, eave, zb), Vector3(x1, eave + rise, zb), Vector3(x0, eave + rise, zb))
+		box("iron", Vector3((x0 + x1) * 0.5, eave + rise + 0.015, zb), Vector3(x1 - x0 + 0.02, 0.03, 0.04))
+		for x in [x0, x1]:
+			face("brick_dark", Vector3(x, eave, za), Vector3(x, eave + rise, zb), Vector3(x, eave, zb), Vector3(x, eave, za))
+		for k in range(1, 6): # Seams in the painted iron.
+			var x := lerpf(x0, x1, k / 6.0)
+			beam("iron", Vector3(x, eave + 0.01, za), Vector3(x, eave + rise + 0.01, zb), 0.015, 0.015)
+
+func forge_floor() -> void:
+	# In the bay: the glowing hearth on the back wall, the steam hammer frame over its anvil.
+	box("ember", Vector3(-0.45, 0.42, 0.235), Vector3(0.7, 0.6, 0.02))
+	box("fire", Vector3(-0.45, 0.28, 0.22), Vector3(0.45, 0.2, 0.02))
+	box("iron", Vector3(-0.45, 0.13, -0.05), Vector3(0.36, 0.14, 0.24))
+	box("iron_light", Vector3(-0.45, 0.22, -0.05), Vector3(0.3, 0.04, 0.2)) # Anvil face.
+	box("ember", Vector3(-0.45, 0.255, -0.06), Vector3(0.16, 0.03, 0.06)) # The billet being struck.
+	for x in [-0.78, -0.12]:
+		box("iron", Vector3(x, 0.58, -0.05), Vector3(0.08, 1.04, 0.12))
+	box("iron", Vector3(-0.45, 1.02, -0.05), Vector3(0.76, 0.1, 0.16))
+	cylinder("brass", Vector3(-0.45, 0.93, -0.05), 0.08, 0.08, 0.1)
+
+func cupola() -> void:
+	# A riveted cupola furnace on the right with a charging bridge, its stack trailing smoke.
+	var c := Vector3(1.0, 0, 0.35)
+	cylinder("brick_dark", c + Vector3(0, 0.2, 0), 0.38, 0.4, 0.28, Basis.IDENTITY, 16)
+	cylinder("iron", c + Vector3(0, 1.0, 0), 0.32, 0.36, 1.4, Basis.IDENTITY, 16)
+	for y in [0.45, 0.8, 1.15, 1.5]:
+		cylinder("iron_light", c + Vector3(0, y, 0), 0.355 - y * 0.02, 0.36 - y * 0.02, 0.04, Basis.IDENTITY, 16)
+	cylinder("iron", c + Vector3(0, 2.2, 0), 0.17, 0.22, 1.0, Basis.IDENTITY, 14)
+	cylinder("soot", c + Vector3(0, 2.66, 0), 0.172, 0.175, 0.12, Basis.IDENTITY, 14)
+	cylinder("iron", c + Vector3(0, 2.74, 0), 0.21, 0.21, 0.04, Basis.IDENTITY, 14)
+	# Tap hole and a molten runner into a ladle at the front.
+	box("fire", c + Vector3(0, 0.38, -0.36), Vector3(0.1, 0.08, 0.04))
+	box("ember", c + Vector3(0, 0.3, -0.5), Vector3(0.08, 0.02, 0.26), Basis(Vector3.RIGHT, -0.2))
+	cylinder("iron", c + Vector3(0, 0.17, -0.68), 0.12, 0.09, 0.2, Basis.IDENTITY, 12)
+	cylinder("fire", c + Vector3(0, 0.275, -0.68), 0.1, 0.1, 0.01, Basis.IDENTITY, 12)
+	# Charging bridge from the roof line with a skip of coke.
+	box("iron", Vector3(0.68, 1.42, 0.35), Vector3(0.3, 0.04, 0.24))
+	for z in [0.24, 0.46]:
+		box("iron", Vector3(0.68, 1.5, z), Vector3(0.3, 0.012, 0.012))
+	box("iron", Vector3(0.62, 1.5, 0.35), Vector3(0.14, 0.1, 0.12))
+	box("soot", Vector3(0.62, 1.555, 0.35), Vector3(0.12, 0.02, 0.1))
+	# Furnace glow through an inspection port.
+	box("ember", c + Vector3(-0.2, 1.0, -0.27), Vector3(0.1, 0.08, 0.02), Basis(Vector3.UP, 0.6))
+
+func munitions() -> void:
+	# Long rifle crates, stacked armour plate, a pyramid of shells and bar stock in the yard.
+	for i in range(3):
+		var p := Vector3(-1.2, 0.1 + i * 0.09, -0.78 + (i % 2) * 0.02)
+		box("wood", p, Vector3(0.5, 0.08, 0.16))
+		box("paper", p + Vector3(0, 0, -0.082), Vector3(0.16, 0.04, 0.004))
 	for i in range(4):
-		box("wood_light", Vector3(-.59, 1.08 + i * .09, .87), Vector3(.44, .039, .025))
-
-func workshop_roof() -> void:
-	var center := -.62
-	var half := .79
-	var front := -.50
-	var back := .91
-	for side in [-1.0, 1.0]:
-		var left := minf(center, center + side * half)
-		var right := maxf(center, center + side * half)
-		quad("roof", Vector3(left, roof_y(left - center, half, 1.72, 2.36), front),
-			Vector3(left, roof_y(left - center, half, 1.72, 2.36), back),
-			Vector3(right, roof_y(right - center, half, 1.72, 2.36), back),
-			Vector3(right, roof_y(right - center, half, 1.72, 2.36), front))
-		for row in range(5):
-			for col in range(8):
-				var xa: float = center + side * (half * row / 5.0 + .007)
-				var xb: float = center + side * (half * (row + 1) / 5.0 - .009)
-				var low := minf(xa, xb)
-				var high := maxf(xa, xb)
-				var za := front + col * (back - front) / 8.0 + .007
-				var zb := front + (col + 1) * (back - front) / 8.0 - .007
-				var ya := roof_y(low - center, half, 1.72, 2.36) + .025
-				var yb := roof_y(high - center, half, 1.72, 2.36) + .025
-				var key: String = ["roof", "roof_mid", "roof_light"][(col * 5 + row) % 3]
-				quad(key, Vector3(low, ya, za), Vector3(low, ya, zb), Vector3(high, yb, zb), Vector3(high, yb, za))
-		box("wood", Vector3(center + side * half, 1.69, .205), Vector3(.075, .10, 1.48))
-	for z in [front, back]:
-		beam("wood", Vector3(center - half, 1.72, z), Vector3(center, 2.36, z), .075, .075)
-		beam("wood", Vector3(center, 2.36, z), Vector3(center + half, 1.72, z), .075, .075)
-	box("gold", Vector3(center, 2.40, .205), Vector3(.095, .035, 1.49))
-
-func forge() -> void:
-	var x := .82
-	# Real open mouth: recessed soot-dark back, two masonry piers and a stone arch.
-	box("stone_dark", Vector3(x, .26, .20), Vector3(1.04, .23, 1.19))
-	box("stone_light", Vector3(x, .395, .13), Vector3(1.08, .07, 1.24))
-	box("stone_dark", Vector3(x, .75, .64), Vector3(.99, .72, .24))
-	box("dark", Vector3(x, .72, .49), Vector3(.67, .59, .035))
-	for side in [-1.0, 1.0]:
-		box("stone", Vector3(x + side * .405, .73, .17), Vector3(.22, .64, .93))
-		for row in range(3):
-			box("stone_light" if row % 2 == 0 else "stone", Vector3(x + side * .405, .50 + row * .21, -.306), Vector3(.235, .191, .035))
-	# Arch wedges in the XY plane, extruded along Z.
-	for i in range(7):
-		var angle := PI * (i + .5) / 7.0
-		box("stone_light" if i % 2 == 0 else "stone", Vector3(x + cos(angle) * .36, .89 + sin(angle) * .27, -.29),
-			Vector3(.17, .23, .25), Basis(Vector3.BACK, angle - PI * .5))
-	box("dark", Vector3(x, .452, .05), Vector3(.67, .036, .59))
+		box("iron_light", Vector3(0.35, 0.09 + i * 0.03, -0.72), Vector3(0.36, 0.025, 0.24), Basis(Vector3.UP, 0.08 * i))
+	for row in range(3):
+		for k in range(3 - row):
+			var p := Vector3(0.95 + k * 0.08 + row * 0.04, 0.1 + row * 0.07, -0.85)
+			cylinder("brass", p, 0.035, 0.035, 0.1, Basis.IDENTITY, 8)
+			sphere("iron", p + Vector3(0, 0.06, 0), 0.034)
 	for i in range(5):
-		cylinder("dark", Vector3(.57 + i * .12, .48, -.04), .05, .065, .30, Basis(Vector3.RIGHT, PI * .5))
-		box("ember", Vector3(.57 + i * .12, .504, -.055), Vector3(.084, .022, .22))
-	# Faceted flames are static emissive geometry; no particles or per-frame lighting work.
-	for i in range(3):
-		var center := Vector3(.63 + i * .19, .53, -.09 + (i % 2) * .08)
-		flame("ember", center, .11, .30 + (i % 2) * .12)
-		flame("fire", center + Vector3(0, .015, -.045), .060, .19 + (i % 2) * .07)
-	# Tapered stone smoke hood transitioning into the square chimney shaft.
-	var low := [Vector3(.30, 1.04, -.39), Vector3(1.34, 1.04, -.39), Vector3(1.34, 1.04, .78), Vector3(.30, 1.04, .78)]
-	var high := [Vector3(.56, 1.61, .14), Vector3(1.08, 1.61, .14), Vector3(1.08, 1.61, .67), Vector3(.56, 1.61, .67)]
-	for i in range(4):
-		var next := (i + 1) % 4
-		quad("stone" if i % 2 == 0 else "stone_dark", low[i], high[i], high[next], low[next])
-	box("stone_dark", Vector3(x, 2.28, .405), Vector3(.48, 1.37, .49))
-	for row in range(8):
-		var y := 1.70 + row * .16
-		for z in [.147, .663]:
-			for col in range(2):
-				box("stone_light" if (row + col) % 4 == 0 else "stone", Vector3(x - .127 + col * .254, y, z), Vector3(.240, .146, .038))
-		for sx in [.556, 1.084]:
-			box("stone" if row % 3 == 0 else "stone_dark", Vector3(sx, y, .405), Vector3(.038, .146, .48))
-	for y in [1.62, 2.45]:
-		box("dark", Vector3(x, y, .405), Vector3(.565, .075, .575))
-	# Four cap stones leave a visible black flue instead of a solid top.
-	box("dark", Vector3(x, 2.982, .405), Vector3(.38, .03, .39))
-	for z in [.107, .703]:
-		box("stone_light", Vector3(x, 3.02, z), Vector3(.68, .14, .10))
-	for sx in [.53, 1.11]:
-		box("stone_light", Vector3(sx, 3.02, .405), Vector3(.10, .14, .51))
+		box("iron", Vector3(-0.15, 0.08 + (i / 3) * 0.04, -0.85 + (i % 3) * 0.06), Vector3(0.3, 0.035, 0.05))
+	cylinder("iron", Vector3(1.35, 0.21, -0.3), 0.11, 0.11, 0.3, Basis.IDENTITY, 12) # Quench drum.
+	cylinder("soot", Vector3(1.35, 0.365, -0.3), 0.095, 0.095, 0.01, Basis.IDENTITY, 12)
 
-func flame(key: String, bottom: Vector3, radius: float, height: float) -> void:
-	var peak := bottom + Vector3(radius * .20, height, 0)
-	for i in range(5):
-		var a := TAU * i / 5.0
-		var b := TAU * (i + 1) / 5.0
-		triangle(key, bottom + Vector3(cos(a) * radius, 0, sin(a) * radius), peak,
-			bottom + Vector3(cos(b) * radius, 0, sin(b) * radius))
+func hammer_mesh() -> ArrayMesh:
+	# The striking ram: iron head and tup on a brass piston rod, rest pose on the billet.
+	var saved := surfaces
+	surfaces = {}
+	for key in ["iron", "brass", "iron_light"]:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		st.set_material(materials[key])
+		surfaces[key] = st
+	box("iron", Vector3(0, 0.08, 0), Vector3(0.24, 0.14, 0.18))
+	box("iron_light", Vector3(0, 0.0, 0), Vector3(0.18, 0.025, 0.14))
+	cylinder("brass", Vector3(0, 0.33, 0), 0.03, 0.03, 0.4, Basis.IDENTITY, 10)
+	var mesh := ArrayMesh.new()
+	for key in surfaces:
+		surfaces[key].commit(mesh)
+	surfaces = saved
+	return mesh
 
-func anvil_and_tools() -> void:
-	# Broad steel face, narrow waist and tapered horn on an oak stump.
-	cylinder("wood", Vector3(.49, .305, -.73), .22, .26, .29)
-	cylinder("dark", Vector3(.49, .32, -.73), .225, .24, .05)
-	box("dark", Vector3(.49, .465, -.73), Vector3(.36, .065, .26))
-	box("dark", Vector3(.49, .57, -.73), Vector3(.18, .18, .17))
-	box("steel", Vector3(.49, .705, -.73), Vector3(.48, .13, .23))
-	cylinder("steel", Vector3(.16, .71, -.73), 0, .103, .25, Basis(Vector3.BACK, PI * .5))
-	box("dark", Vector3(.62, .772, -.73), Vector3(.044, .007, .045))
-	# Hammer rests across the working face.
-	beam("wood_light", Vector3(.38, .79, -.86), Vector3(.65, .79, -.59), .033, .033)
-	box("dark", Vector3(.65, .815, -.59), Vector3(.19, .087, .080), Basis(Vector3.UP, -.78))
-	# Low bench with billets and tongs to the left of the workshop door.
-	for x in [-1.29, -.99]:
-		for z in [-.87, -.61]:
-			box("wood", Vector3(x, .36, z), Vector3(.06, .40, .06))
-	box("wood_light", Vector3(-1.14, .57, -.74), Vector3(.50, .09, .42))
-	for i in range(3):
-		box("steel", Vector3(-1.27 + i * .115, .655, -.76), Vector3(.09, .08, .22))
-	for direction in [-1.0, 1.0]:
-		beam("dark", Vector3(-1.25, .643, -.54 + direction * .035), Vector3(-1.00, .643, -.54 - direction * .025), .016, .016)
-	# Cooling tub and a rack of forged blades fill the outer edge without overhang.
-	barrel(Vector3(1.20, .16, -.72), .19, .37)
-	cylinder("dark", Vector3(1.20, .538, -.72), .149, .149, .01)
-	cylinder("steel", Vector3(1.20, .544, -.72), .126, .126, .005)
-	for z in [.06, .65]:
-		box("wood", Vector3(1.405, .54, z), Vector3(.065, .74, .065))
-	for y in [.39, .80]:
-		box("wood_light", Vector3(1.405, y, .355), Vector3(.07, .06, .73))
-	for i in range(3):
-		var z := .13 + i * .20
-		beam("steel", Vector3(1.42, .28, z), Vector3(1.37, 1.06, z), .038, .045)
-		box("gold", Vector3(1.38, .91, z), Vector3(.06, .028, .14))
-		box("wood", Vector3(1.375, .999, z), Vector3(.045, .14, .047))
-
-func smith_sign() -> void:
-	# Gold hammer on a blue gable plate; the plate and roof support existing team tint.
-	box("dark", Vector3(-.62, 1.96, -.381), Vector3(.47, .43, .045))
-	box("banner", Vector3(-.62, 1.96, -.411), Vector3(.41, .37, .025))
-	beam("gold", Vector3(-.73, 1.84, -.432), Vector3(-.54, 2.04, -.432), .042, .025)
-	box("steel", Vector3(-.54, 2.04, -.451), Vector3(.22, .092, .038), Basis(Vector3.BACK, -.75))
+func add_moving_parts() -> void:
+	# save_compact packs only the static mesh; reopen the scene for the hammer and the smoke.
+	assert(ResourceSaver.save(hammer_mesh(), HAMMER_MESH, ResourceSaver.FLAG_COMPRESS) == OK)
+	var scene: PackedScene = load(SCENE)
+	var root := scene.instantiate()
+	var visual := root.get_node("Visual") as Node3D
+	var hammer := MeshInstance3D.new()
+	hammer.name = "SteamHammer"
+	hammer.mesh = load(HAMMER_MESH)
+	hammer.position = HAMMER_REST
+	hammer.set_script(load("res://visuals/ReciprocatingPart.cs"))
+	hammer.set("Travel", 0.32)
+	hammer.set("Period", 1.5)
+	visual.add_child(hammer)
+	hammer.owner = root
+	var stack := smoke("Smoke", Vector3(1.0, 2.8, 0.35))
+	stack.amount = 12
+	stack.scale_amount_min = 0.45
+	stack.scale_amount_max = 0.7
+	visual.add_child(stack)
+	stack.owner = root
+	var packed := PackedScene.new()
+	assert(packed.pack(root) == OK)
+	assert(ResourceSaver.save(packed, SCENE) == OK)
+	root.free()
+	print("PASS: Forge hammer and smoke added")
