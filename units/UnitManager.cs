@@ -676,7 +676,15 @@ public partial class UnitManager : Node3D
     // STATE id activity carrying focusId swingSequence [carryType]
     public void HandleState(StateSnapshot snapshot)
     {
-        if (_units.TryGetValue(snapshot.Id, out Unit unit)) unit.ApplyServerState(snapshot.State);
+        if (!_units.TryGetValue(snapshot.Id, out Unit unit)) return;
+        unit.ApplyServerState(snapshot.State);
+        if (snapshot.State.Activity != UnitActivity.Inside) return;
+        // Like gas in StarCraft, a worker going into a derrick drops out of the selection.
+        unit.SetSelected(false);
+        bool selectionChanged = _selectedUnitIds.Remove(snapshot.Id);
+        if (InspectedUnit == unit) { InspectedUnit = null; selectionChanged = true; }
+        if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
+        if (selectionChanged) SelectionChanged?.Invoke();
     }
 
     public void HandleRemove(string[] parts)

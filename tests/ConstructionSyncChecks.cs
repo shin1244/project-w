@@ -262,6 +262,12 @@ public partial class ConstructionSyncChecks : Main
         Receive("STATE 102 IDLE 0 0 0 0");
         Units.RequestContextOrder(Building(502), Building(502).GlobalPosition);
         Check(_commands.Last() == "RETURN 502 101", "A completed supply depot accepts cargo while excluding empty workers");
+        Receive("STATE 101 INSIDE 0 750 3 0");
+        Check(Worker().State.Activity == UnitActivity.Inside && !Worker().Visible && !Units.SelectedUnitIds.Contains(101u) &&
+            !Units.CanInspect(Worker()), "A worker inside the derrick leaves the world: hidden, deselected and not inspectable");
+        Receive("STATE 101 IDLE 4 0 3 2");
+        Check(Worker().Visible && Worker().State == new UnitState(UnitActivity.Idle, 4, 0, 3, ResourceType.Oil),
+            "It comes back out visible, carrying its oil");
 
         Invoke("SelectUnit", Worker(201));
         before = _commands.Count;

@@ -456,6 +456,7 @@ public partial class SelectionDetails : PanelContainer
         UnitActivity.Hold => "상태   위치 사수",
         UnitActivity.Dash => "상태   돌진 중", UnitActivity.Stun => "상태   기절",
         UnitActivity.Channel => "상태   공물 수집 중",
+        UnitActivity.Inside => "상태   시추탑 안",
         UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
     };
 
