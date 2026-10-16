@@ -5,6 +5,7 @@ public partial class BuildingManager
 {
     private readonly Dictionary<uint, TeamTierSnapshot> _teamTiers = new();
     private readonly Dictionary<uint, ArmyUpgradeSnapshot> _armyUpgrades = new();
+    private readonly SortedDictionary<uint, MinionUpgradeStep> _minionUpgradeSteps = new();
     public long CommanderWood { get; private set; }
     public long CommanderOil { get; private set; }
     public TeamTierSnapshot TeamTier(uint team) => _teamTiers.GetValueOrDefault(team, new(team, 1, 0, 0, 0, 0));
@@ -29,6 +30,16 @@ public partial class BuildingManager
         ProductionChanged?.Invoke();
     }
 
+    // Fixed per-level forge research gains of each lane minion type, in type order.
+    public IEnumerable<MinionUpgradeStep> MinionUpgradeSteps => _minionUpgradeSteps.Values;
+
+    public void HandleMinionUpgradeStep(string[] parts)
+    {
+        if (!MinionUpgradeStep.TryParse(parts, out var step)) return;
+        _minionUpgradeSteps[step.UnitType] = step;
+        ProductionChanged?.Invoke();
+    }
+
     public void HandleCommanderStock(string[] parts)
     {
         if (parts.Length != 3 || parts[0] != "STOCK" || parts[1] is not ("0" or "2") ||
@@ -42,6 +53,7 @@ public partial class BuildingManager
     {
         _teamTiers.Clear();
         _armyUpgrades.Clear();
+        _minionUpgradeSteps.Clear();
         _knightResearch.Clear();
         CommanderWood = 0;
         CommanderOil = 0;

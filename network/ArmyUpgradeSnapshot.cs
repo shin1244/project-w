@@ -6,6 +6,21 @@ public readonly record struct ArmyResearchState(uint ForgeId, int TargetLevel, i
     public bool Researching => TargetLevel != 0;
 }
 
+// MINION_UPGRADE_STEP unitType hpPerLevel attackPerLevel: lane minions gain these fixed amounts per
+// forge research level; stepPercent in ARMY_UPGRADE applies to mercenaries only.
+public readonly record struct MinionUpgradeStep(uint UnitType, float Hp, float Attack)
+{
+    public static bool TryParse(string[] p, out MinionUpgradeStep step)
+    {
+        step = default;
+        if (p.Length != 4 || p[0] != "MINION_UPGRADE_STEP" || !WireNumber.UInt(p[1], out uint type) || !UnitCatalog.IsMinion(type) ||
+            !float.TryParse(p[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float hp) || !float.IsFinite(hp) || hp < 0 ||
+            !float.TryParse(p[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float attack) || !float.IsFinite(attack) || attack < 0) return false;
+        step = new(type, hp, attack);
+        return true;
+    }
+}
+
 // ARMY_UPGRADE team attackLevel hpLevel stepPercent, then ATTACK and HP:
 // forgeID targetLevel remainingSeconds totalSeconds nextWood nextSeconds.
 public readonly record struct ArmyUpgradeSnapshot(uint Team, int AttackLevel, int HpLevel, int StepPercent,

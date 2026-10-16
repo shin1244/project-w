@@ -434,11 +434,17 @@ public partial class CommandPanelChecks : Main
         Check(_slots[7].Text == "공격력 1단계\n(Q)" && _slots[8].Text == "체력 1단계\n(W)" && _slots[7].Disabled && _slots[8].Disabled,
             "A forge shows both researches, locked until the server sends terms");
         Receive("ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 300 45");
+        foreach (string line in new[] { "MINION_UPGRADE_STEP 100 40 4", "MINION_UPGRADE_STEP 102 20 1.5",
+                     "MINION_UPGRADE_STEP 1 99 99", "MINION_UPGRADE_STEP 101 -1 2", "MINION_UPGRADE_STEP 101 nan 2", "MINION_UPGRADE_STEP 101 30" })
+            Receive(line);
         Receive("STOCK 0 299");
         int sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
         Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("나무 300") &&
             _slots[7].TooltipText.Contains("+15%"), "Research cost and step come from the server and gate the button");
+        Check(_slots[7].TooltipText.Contains("근접 +4 · 치유 +1.5") && _slots[8].TooltipText.Contains("근접 +40 · 치유 +20") &&
+            !_slots[7].TooltipText.Contains("원거리") && !_slots[7].TooltipText.Contains("+99"),
+            "Minion per-level gains come from valid MINION_UPGRADE_STEP lines only");
         Receive("STOCK 0 300");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_ARMY 206 ATTACK" && Buildings.ArmyUpgrade(1).AttackLevel == 0,

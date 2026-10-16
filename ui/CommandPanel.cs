@@ -269,9 +269,21 @@ public partial class CommandPanel : PanelContainer
         slot.Text = research.Researching ? $"{name} {research.TargetLevel}단계\n{research.Remaining}초" :
             level >= ArmyUpgradeSnapshot.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
         string terms = research.NextWood > 0 ? $"나무 {research.NextWood:N0} · {research.NextSeconds}초\n" : "";
-        slot.TooltipText = terms + $"미니언·용병의 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{ArmyUpgradeSnapshot.MaxLevel}단계" +
+        var minionGains = new List<string>();
+        foreach (var step in Buildings.MinionUpgradeSteps)
+            minionGains.Add($"{MinionShortName(step.UnitType)} +{(attack ? step.Attack : step.Hp):0.##}");
+        string minions = minionGains.Count > 0 ? $"미니언 {name} 단계당 {string.Join(" · ", minionGains)}\n" : "";
+        slot.TooltipText = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{ArmyUpgradeSnapshot.MaxLevel}단계" +
             (reason == null ? "" : "\n" + reason);
     }
+
+    private static string MinionShortName(uint type) => type switch
+    {
+        UnitCatalog.MinionMelee => "근접",
+        UnitCatalog.MinionRanged => "원거리",
+        UnitCatalog.MinionHealer => "치유",
+        _ => UnitCatalog.Name(type)
+    };
 
     private void ApplyUnitRequirement(Button slot, uint type)
     {
