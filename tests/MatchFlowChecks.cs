@@ -68,14 +68,15 @@ public partial class MatchFlowChecks : Node
                 _rosterVerified = (_spectate ? new uint[] { 1, 2 } : new[] { match.Team }).All(team =>
                 {
                     var heroes = game.Units.LiveUnits.Where(unit => unit.Team == team && UnitCatalog.IsHero(unit.UnitType)).ToArray();
-                    // Three different heroes out of the four; spectator matches draw them at random.
+                    // Three different heroes; spectator matches draw them at random.
                     return heroes.Length == 3 && heroes.Select(unit => unit.UnitType).Distinct().Count() == 3;
                 });
             _played += delta;
             if (match.Role=="HERO" && !_requestedEquipment && game.Shop?.Inventory!=null && game.Skills.Definition(1).HasValue)
             {
-                if (game.Shop.Catalog.Count!=18 || Enumerable.Range(1,3).Any(tier => game.Shop.Catalog.Values.Count(item => item.Tier==tier)!=6))
-                    throw new Exception("Server item catalog must contain six items for each of three tiers");
+                var tiers = game.Shop.Catalog.Values.GroupBy(item => item.Tier).OrderBy(group => group.Key).ToArray();
+                if (tiers.Length == 0 || tiers.Any(group => group.Count() != 6) || !tiers.Select(group => group.Key).SequenceEqual(Enumerable.Range(1, tiers.Length)))
+                    throw new Exception("Server item catalog must contain six items for each tier up to its last HQ tier");
                 if (game.Skills.Progress is not HeroSkillProgressSnapshot progression || progression.Level != 1 ||
                     progression.Points != 0 || progression.UltimateLearned || game.Skills.CanUse(3))
                     throw new Exception("Initial skill progression or ultimate lock missing from live server");

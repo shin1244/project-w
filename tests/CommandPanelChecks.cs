@@ -410,6 +410,13 @@ public partial class CommandPanelChecks : Main
         sent = _commands.Count;
         Units.RequestUpgradeTownHall();
         Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText == "최고 단계", "Tier three is the maximum and shows no obsolete costs");
+        Receive("TEAM_TIER 1 2 201 0 0 0 0 0 0");
+        Units.RequestUpgradeTownHall();
+        Check(Buildings.TeamTier(1) is { Tier: 2, TopTier: true } && _slots[1].Disabled && _commands.Count == sent &&
+            _slots[1].Text == "2티어\n최고 단계" && Units.TownHallUpgradeBlockReason(Buildings.LiveBuildings.First(b => b.BuildingId == 201)) == "최고 단계",
+            "Zero next-tier terms make the current tier the top even below three");
+        foreach (string invalid in new[] { "TEAM_TIER 1 1 201 2 4 9 0 0 0", "TEAM_TIER 1 1 201 0 0 0 0 0 -1" }) Receive(invalid);
+        Check(Buildings.TeamTier(1) is { Tier: 2, TopTier: true }, "An upgrade cannot run toward no next tier");
         SelectBuilding(203);
         Units.RequestUpgradeTownHall();
         Check(_commands.Count == sent, "Enemy hall cannot be upgraded");

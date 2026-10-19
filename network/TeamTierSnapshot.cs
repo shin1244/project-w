@@ -1,11 +1,13 @@
 using System;
 using System.Globalization;
 
+// TopTier: the server sends zero next-tier terms once the HQ reached its last tier, which
+// may be below three (the demo stops at two). The old seven-field message only knew three.
 public readonly record struct TeamTierSnapshot(uint Team, int Tier, uint HallId, int TargetTier, double Remaining, double Total,
-    int NextWood = 0, int NextOil = 0, double NextSeconds = 0)
+    int NextWood = 0, int NextOil = 0, double NextSeconds = 0, bool TopTier = false)
 {
     public bool Upgrading => TargetTier != 0;
-    public bool HasUpgradeTerms => Tier < 3 && NextSeconds > 0;
+    public bool HasUpgradeTerms => NextSeconds > 0;
     public double Percent => Total > 0 ? 100 * (1 - Remaining / Total) : 0;
     public static bool TryParse(string[] p, out TeamTierSnapshot snapshot)
     {
@@ -24,9 +26,10 @@ public readonly record struct TeamTierSnapshot(uint Team, int Tier, uint HallId,
             !int.TryParse(p[7], NumberStyles.None, CultureInfo.InvariantCulture, out nextWood) ||
             !int.TryParse(p[8], NumberStyles.None, CultureInfo.InvariantCulture, out nextOil) ||
             !double.TryParse(p[9], NumberStyles.Float, CultureInfo.InvariantCulture, out nextSeconds) || !double.IsFinite(nextSeconds) ||
-            (tier < 3 ? nextSeconds <= 0 : nextWood != 0 || nextOil != 0 || nextSeconds != 0))) return false;
+            nextSeconds < 0 || (nextSeconds > 0 ? tier >= 3 : nextWood != 0 || nextOil != 0 || target != 0))) return false;
         // 이전 7필드 메시지도 진행 상황은 표시하되, 비용을 추측해서 업그레이드를 허용하지 않습니다.
-        snapshot = new(team, tier, hall, target, remaining, total, nextWood, nextOil, nextSeconds);
+        bool top = p.Length == 10 ? nextSeconds == 0 : tier >= 3;
+        snapshot = new(team, tier, hall, target, remaining, total, nextWood, nextOil, nextSeconds, top);
         return true;
     }
 }

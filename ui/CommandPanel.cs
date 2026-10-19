@@ -222,9 +222,9 @@ public partial class CommandPanel : PanelContainer
             string reason = Units.TownHallUpgradeBlockReason(producer);
             _slots[6].Disabled = reason != null;
             _slots[6].Text = state.Upgrading ? $"{state.TargetTier}티어 강화\n{state.Remaining:0}초" :
-                state.Tier >= 3 ? "3티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
+                state.TopTier ? $"{state.Tier}티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
             string terms = state.HasUpgradeTerms ? $"나무 {state.NextWood:N0} · 기름 {state.NextOil:N0} · {state.NextSeconds:0.##}초\n" : "";
-            _slots[6].TooltipText = state.Tier >= 3 ? "최고 단계" : terms +
+            _slots[6].TooltipText = state.TopTier ? "최고 단계" : terms +
                 "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
             if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
