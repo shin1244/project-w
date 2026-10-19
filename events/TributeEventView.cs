@@ -5,6 +5,9 @@ using System;
 public partial class TributeEventView : Node3D
 {
     public const uint PickLayer = 1u << 4;
+    private const float ArcInner = 1.78f, ArcOuter = 1.93f;
+    private const int ArcSteps = 64;
+    private static readonly Vector3 ArcPosition = new(0, .055f, 0);
     public uint EventId { get; private set; }
     public bool Active => _snapshot?.Active == true;
     public float ChannelProgress => _snapshot?.Progress(_tick) ?? 0;
@@ -36,8 +39,8 @@ public partial class TributeEventView : Node3D
         AddMesh("AltarInlay", RingMesh(.71f, .77f, 32, 32), Unlit(Amber),
             new Vector3(0, .666f, 0), false);
         _progressMaterial = Unlit(Amber);
-        _progress = AddMesh("ChannelArc", RingMesh(1.78f, 1.93f, 0), _progressMaterial,
-            new Vector3(0, .055f, 0), false);
+        _progress = AddMesh("ChannelArc", RingMesh(ArcInner, ArcOuter, 0), _progressMaterial,
+            ArcPosition, false);
         _progress.Visible = false;
 
         _relic = new Node3D { Name = "Relic", Position = new Vector3(0, 1.45f, 0) };
@@ -68,6 +71,12 @@ public partial class TributeEventView : Node3D
 
     public void Apply(TributeSnapshot snapshot, uint currentTick, uint localTeam)
     {
+        // The server ends a channel without a reason. While the stone stays up it was interrupted
+        // (completion takes the stone away), so the arc on screen breaks instead of just vanishing.
+        if (_snapshot is { Channeling: true } previous && snapshot.Active && snapshot.EventId == previous.EventId &&
+            (snapshot.CapturerId != previous.CapturerId || snapshot.ChannelStartTick != previous.ChannelStartTick) &&
+            _progress is { Visible: true })
+            TributeChannelBreak.Spawn(this, ArcPosition, ArcInner, ArcOuter, _arcSteps, ArcSteps, _progressMaterial.AlbedoColor);
         _snapshot = snapshot;
         _tick = currentTick;
         _localTeam = localTeam;
@@ -87,6 +96,7 @@ public partial class TributeEventView : Node3D
     {
         _snapshot = null; EventId = 0; _tick = 0; _animationTime = 0;
         Visible = false;
+        foreach (Node child in GetChildren()) if (child is TributeChannelBreak) child.QueueFree();
         Refresh();
     }
 
@@ -107,11 +117,11 @@ public partial class TributeEventView : Node3D
         Color color = channeling ? TeamColor(_snapshot.CapturerTeam) : Amber;
         _progressMaterial.AlbedoColor = color;
         _progress.Visible = channeling;
-        int steps = channeling ? Math.Clamp((int)Math.Ceiling(ChannelProgress * 64), 0, 64) : 0;
+        int steps = channeling ? Math.Clamp((int)Math.Ceiling(ChannelProgress * ArcSteps), 0, ArcSteps) : 0;
         if (steps != _arcSteps)
         {
             _arcSteps = steps;
-            _progress.Mesh = RingMesh(1.78f, 1.93f, steps);
+            _progress.Mesh = RingMesh(ArcInner, ArcOuter, steps);
         }
     }
 
@@ -138,7 +148,7 @@ public partial class TributeEventView : Node3D
         CullMode = BaseMaterial3D.CullModeEnum.Disabled
     };
 
-    private static ArrayMesh RingMesh(float inner, float outer, int segments, int fullCircleSegments = 64)
+    private static ArrayMesh RingMesh(float inner, float outer, int segments, int fullCircleSegments = ArcSteps)
     {
         var mesh = new ArrayMesh();
         if (segments <= 0) return mesh;
