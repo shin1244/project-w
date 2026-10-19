@@ -356,7 +356,7 @@ public partial class UnitManager : Node3D
                 CommandRequested?.Invoke(Protocol.BuildDeliverItem(crate.Snapshot.Id, worker.UnitId));
             return;
         }
-        // 공물은 영웅의 전용 상호작용이다. RTS 선택/집결 명령으로 흘려보내지 않는다.
+        // 중앙 마석은 영웅의 전용 상호작용이다. RTS 선택/집결 명령으로 흘려보내지 않는다.
         if (target is GoldNuggetView nugget)
         {
             if (!_controlledHeroType.HasValue || !GodotObject.IsInstanceValid(nugget) ||

@@ -12,7 +12,10 @@ public partial class MinionPanel : Control
     public bool IsPickerOpen => _picker?.Visible == true;
     public bool IsRequestPending => _pendingLane.HasValue;
     public string TimerText => _timer?.Text ?? "";
-    public uint FreeAdds { get; private set; }
+    // An extra slot costs this (마석 today); the balance is the commander's STOCK of it.
+    public MinionAddCostSnapshot? AddCost { get; private set; }
+    public long MagicStones => AddCost is { } cost && _stock.TryGetValue(cost.ResourceId, out long amount) ? amount : 0;
+    public bool CanAffordAdd => AddCost is { } cost && MagicStones >= cost.Amount;
 
     private readonly SortedDictionary<int, MinionLaneSnapshot> _lanes = new();
     private readonly SortedDictionary<uint, MinionOptionSnapshot> _options = new();
@@ -28,7 +31,7 @@ public partial class MinionPanel : Control
     private VBoxContainer _rows, _choices;
     private ScrollContainer _laneScroll;
     private Label _timer, _hint, _pickerTitle;
-    private Label _freeLabel;
+    private Label _stoneLabel;
     private Button _defaultTab, _minionTab;
     private Control _pickerAnchor;
     private MinionRulesSnapshot? _rules;
@@ -77,11 +80,12 @@ public partial class MinionPanel : Control
         var title = Text("미니언 편성", 15, "ece6cf");
         title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         header.AddChild(title);
-        _freeLabel = Text("", 12, "9ce7b5");
-        _freeLabel.Name = "FreeAdds";
-        _freeLabel.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
-        _freeLabel.Visible = false;
-        header.AddChild(_freeLabel);
+        _stoneLabel = Text("", 12, "9ce7b5");
+        _stoneLabel.Name = "MagicStone";
+        _stoneLabel.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
+        _stoneLabel.MouseFilter = MouseFilterEnum.Pass;
+        _stoneLabel.Visible = false;
+        header.AddChild(_stoneLabel);
         _timer = Text("웨이브 정보 대기 중", 13, "e6d59e");
         _timer.Name = "WaveTimer";
         _timer.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
@@ -123,7 +127,7 @@ public partial class MinionPanel : Control
         pickerContent.AddChild(_choices);
         Resized += PositionPicker;
         _ready = true;
-        RefreshFreeLabel();
+        RefreshStoneLabel();
         Visible = _enabled;
         RefreshView();
         RebuildLanes();
@@ -154,8 +158,8 @@ public partial class MinionPanel : Control
         _laneNames.Clear();
         _rules = null;
         _experienceRule = null;
-        FreeAdds = 0;
-        RefreshFreeLabel();
+        AddCost = null;
+        RefreshStoneLabel();
         _hasTick = _hasNextWave = false;
         _tick = _nextWaveTick = 0;
         _pendingLane = null;
@@ -189,11 +193,10 @@ public partial class MinionPanel : Control
     public void HandleMessage(string[] parts)
     {
         if (!_enabled || parts.Length == 0) return;
-        if (parts.Length == 2 && parts[0] == "MINION_FREE" &&
-            uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint free))
+        if (MinionAddCostSnapshot.TryParse(parts, out var addCost))
         {
-            FreeAdds = free;
-            RefreshFreeLabel();
+            AddCost = addCost;
+            RefreshStoneLabel();
             RefreshPurchases();
         }
         else if (MinionRulesSnapshot.TryParse(parts, out var rules))
@@ -249,6 +252,7 @@ public partial class MinionPanel : Control
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint resource) ||
             !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out long amount)) return;
         _stock[resource] = amount;
+        RefreshStoneLabel();
         RefreshPurchases();
     }
 
@@ -379,11 +383,9 @@ public partial class MinionPanel : Control
             !_options.TryGetValue(type, out var option) || !_lanes.TryGetValue(_pickerLane, out var lane) ||
             lane.Revision != _pickerRevision || _pickerSlot >= lane.UnitTypes.Length ||
             _pickerSlot >= 0 && lane.UnitTypes[_pickerSlot] == type ||
-            _pickerSlot < 0 && (lane.UnitTypes.Length >= _rules.Value.MaxSlots || FreeAdds == 0)) return;
-        // 슬롯 추가는 무료권으로만 한다. 목재는 기존 슬롯 교체에만 쓴다.
-        long cost = _pickerSlot < 0 ? 0 : option.ReplaceCost;
-        long balance = _stock.TryGetValue(option.ResourceId, out long amount) ? amount : 0;
-        if (balance < cost) return;
+            _pickerSlot < 0 && (lane.UnitTypes.Length >= _rules.Value.MaxSlots || !CanAffordAdd)) return;
+        // 슬롯 추가는 마석으로만 한다. 목재는 기존 슬롯 교체에만 쓴다.
+        if (_pickerSlot >= 0 && (_stock.TryGetValue(option.ResourceId, out long wood) ? wood : 0) < option.ReplaceCost) return;
         string command = _pickerSlot < 0
             ? FormattableString.Invariant($"MINION_ADD {_pickerLane} {lane.Revision} {type}")
             : FormattableString.Invariant($"MINION_SET {_pickerLane} {lane.Revision} {_pickerSlot} {type}");
@@ -402,31 +404,33 @@ public partial class MinionPanel : Control
         {
             bool full = add && _rules is MinionRulesSnapshot rules &&
                 _lanes.TryGetValue(laneIndex, out var lane) && lane.UnitTypes.Length >= rules.MaxSlots;
-            button.Disabled = full || (add && FreeAdds == 0) || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
-            if (add && !full) button.TooltipText = FreeAdds > 0
-                ? $"미니언 무료권 {FreeAdds}개\n원하는 미니언을 선택하면 이 라인에 영구 추가됩니다"
-                : "미니언 무료권이 필요합니다\n공물이나 정글 금덩어리를 수집하면 얻습니다";
+            button.Disabled = full || (add && !CanAffordAdd) || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
+            if (add && !full) button.TooltipText = AddCost is not { } price ? "슬롯 추가 가격을 받는 중"
+                : CanAffordAdd ? $"{ResourceName(price.ResourceId)} {price.Amount:N0}으로 원하는 미니언을 이 라인에 영구 추가합니다\n보유 {ResourceName(price.ResourceId)} {MagicStones:N0}"
+                : $"{ResourceName(price.ResourceId)} {price.Amount:N0}이 필요합니다 (보유 {MagicStones:N0})\n중앙 마석이나 정글 큰 금덩어리를 수집하면 얻습니다";
         }
         if (!IsPickerOpen || !_lanes.TryGetValue(_pickerLane, out var selected)) return;
         foreach (var (button, label, option) in _optionButtons)
         {
             bool current = _pickerSlot >= 0 && selected.UnitTypes[_pickerSlot] == option.UnitType;
             bool add = _pickerSlot < 0;
-            long cost = add ? 0 : option.ReplaceCost;
-            long balance = _stock.TryGetValue(option.ResourceId, out long amount) ? amount : 0;
-            bool affordable = add ? FreeAdds > 0 : balance >= cost;
-            label.Text = current ? "현재 편성" : add ? affordable ? "미니언 무료권 1개 사용" : "미니언 무료권 필요"
-                : $"{ResourceName(option.ResourceId)} {cost:N0}" + (affordable ? "" : " · 부족");
+            uint resource = add ? AddCost?.ResourceId ?? 0 : option.ResourceId;
+            long cost = add ? AddCost?.Amount ?? 0 : option.ReplaceCost;
+            bool affordable = add ? CanAffordAdd : (_stock.TryGetValue(resource, out long amount) ? amount : 0) >= cost;
+            label.Text = current ? "현재 편성" : add && AddCost == null ? "가격 받는 중"
+                : $"{ResourceName(resource)} {cost:N0}" + (affordable ? "" : " · 부족");
             label.AddThemeColorOverride("font_color", new Color(current ? "9fb3a2" : affordable ? "e6d59e" : "ed9785"));
             button.Disabled = current || !affordable || _pendingLane.HasValue || selected.Revision != _pickerRevision;
         }
     }
 
-    private void RefreshFreeLabel()
+    private void RefreshStoneLabel()
     {
-        if (_freeLabel == null) return;
-        _freeLabel.Text = $"미니언 무료권 {FreeAdds}개";
-        _freeLabel.Visible = FreeAdds > 0;
+        if (_stoneLabel == null) return;
+        _stoneLabel.Visible = AddCost.HasValue;
+        if (AddCost is not { } price) return;
+        _stoneLabel.Text = $"{ResourceName(price.ResourceId)} {MagicStones:N0}";
+        _stoneLabel.TooltipText = $"슬롯 추가 1번에 {ResourceName(price.ResourceId)} {price.Amount:N0}";
     }
 
     private Variant BeginSlotDrag(int laneIndex, int slot, Button source)
@@ -555,7 +559,7 @@ public partial class MinionPanel : Control
 
     private string LaneName(int index) => index >= 0 && index < _laneNames.Count && !string.IsNullOrWhiteSpace(_laneNames[index])
         ? _laneNames[index] : $"라인 {index + 1}";
-    private static string ResourceName(uint resource) => resource == 0 ? "목재" : $"자원 {resource}";
+    private static string ResourceName(uint resource) => resource switch { 0 => "목재", 2 => "기름", 3 => "마석", _ => $"자원 {resource}" };
     private static string MinionName(uint type) => type switch
     {
         100 => "근접 미니언", 101 => "원거리 미니언", 102 => "생명의 미니언", _ => $"미니언 {type}"

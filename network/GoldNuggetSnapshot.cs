@@ -2,7 +2,7 @@ using Godot;
 using System.Globalization;
 
 // NUGGET id x z gold xp credit capturer team start end. 정글몹이 떨어뜨린 공개 목표이며 수집 완료는 서버가 NUGGET_REMOVE로 확정한다.
-// credit 1은 고목 수호자의 큰 금덩어리(수집한 팀에 미니언 무료권), 0은 가시 멧돼지의 작은 금덩어리다.
+// credit 1은 고목 수호자의 큰 금덩어리(수집한 팀 지휘관에게 마석), 0은 가시 멧돼지의 작은 금덩어리다.
 public readonly record struct GoldNuggetSnapshot(
     uint Id, Vector3 Position, uint Gold, uint Experience, bool Credit,
     uint CapturerId, uint CapturerTeam, uint ChannelStartTick, uint ChannelEndTick)
