@@ -7,13 +7,13 @@
 script = ExtResource("2_loading")
 
 [node name="Kicker" parent="Center/Card/Content" index="0"]
-text = "매칭 완료"
+text = "경기 시작"
 
 [node name="Title" parent="Center/Card/Content" index="1"]
 text = "전장 준비 중"
 
 [node name="Description" parent="Center/Card/Content" index="2"]
-text = "매칭이 완료됐어요. 잠시만 기다려주세요."
+text = "전장을 준비하고 있어요. 잠시만 기다려주세요."
 
 [node name="Status" parent="Center/Card/Content/StatusArea" index="0"]
 text = "전장을 확인하고 있어요"
@@ -28,7 +28,7 @@ visible = true
 visible = true
 
 [node name="PrimaryButton" parent="Center/Card/Content/Actions" index="0"]
-text = "로비로 돌아가기"
+text = "방으로 돌아가기"
 
 [node name="SecondaryButton" parent="Center/Card/Content/Actions" index="1"]
 visible = false

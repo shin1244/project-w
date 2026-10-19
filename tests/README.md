@@ -4,9 +4,9 @@
 이전 저장소의 완료 기록 경로 재해석, 최신 체크포인트 선택, 정책 대체 경로를 검사합니다.
 이 검사는 Godot 빌드와 PyTorch 없이 실행됩니다.
 
-관전은 `run.ps1 -Check SpectatorChecks`로 중립 역할·전체 시야·명령 차단·대상 조회·따라가기/사망·역할 초기화를 검사합니다. 실제 학습 모델 관전은 `run-match.ps1 -Players 1 -Spectate -PolicyDirectory <hero.json과 commander.json이 있는 폴더> -SkipBuild`로 두 번의 새 경기와 로비 복귀를 확인합니다. `-RenderCapture`는 숨김 렌더 창에서 실제 경기 화면을 `docs/images/spectator-trained-ai.png`에 저장합니다. 기본 검사는 서버 메시지를 모의 주입하고, 실제 경기 검사는 Go 로비·서버를 실행합니다. All은 현재 23개 검사입니다.
+관전은 `run.ps1 -Check SpectatorChecks`로 중립 역할·전체 시야·명령 차단·대상 조회·따라가기/사망·역할 초기화를 검사합니다. 실제 학습 모델 관전은 `run-match.ps1 -Players 1 -Spectate -PolicyDirectory <hero.json과 commander.json이 있는 폴더> -SkipBuild`로 관전 방에서 두 번의 새 경기와 방 복귀를 확인합니다. `-RenderCapture`는 숨김 렌더 창에서 실제 경기 화면을 `docs/images/spectator-trained-ai.png`에 저장합니다. 기본 검사는 서버 메시지를 모의 주입하고, 실제 경기 검사는 Go 로비·서버를 실행합니다. All은 현재 23개 검사입니다.
 
-로비부터 실제 전장까지의 연결 검사는 별도 `run-match.ps1 -Players 2` 또는 `-Players 6`로 실행합니다. Go 서버를 로컬에서 실행하는 선택적 통합 검사이며 기본 검사에 포함되지 않습니다. 사용법은 [지인 테스트 안내](../docs/friend-test.md#검증)를 참고하세요.
+로비·방부터 실제 전장까지의 연결 검사는 별도 `run-match.ps1 -Players 2` 또는 `-Players 8`로 실행합니다. Go 서버를 로컬에서 실행하는 선택적 통합 검사이며 기본 검사에 포함되지 않습니다. 사용법은 [지인 테스트 안내](../docs/friend-test.md#검증)를 참고하세요.
 
 실제 서버 없이 Main 메시지 분기, 입력, 상태 변경을 확인한다. 상태를 바꾸는 명령·소유권·동기화·재접속과 주요 게임 규칙을 남겼다. 외형·재질·색상·스크린샷 검사는 미리보기 장면으로 확인한다.
 
@@ -26,7 +26,7 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시 |
 | World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·공물 이벤트·공성추 |
 | UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀 |
-| Network | NetClient, Reconnect | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달·마지막 `LEAVE` 전송, 경기 중 끊김의 제자리 재접속·무응답 감지·AI 대행 팀원 표시·로비 복귀 제안 |
+| Network | NetClient, Reconnect | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달·마지막 `LEAVE` 전송, 경기 중 끊김의 제자리 재접속·무응답 감지·AI 대행 팀원 표시·방의 경기 복귀 제안 |
 | 단일 검사 `-Check RtsControlChecks` | RtsControl | 입력·편성 구매·탭 전환·네이티브 드래그 순서 변경·취소·오래된 리비전·역할 변경 |
 | 단일 검사 `-Check TributeChecks` | Tribute | 공물 스냅샷·대기/수집 시간·영웅 우클릭·역할 제한·재동기화/연결 종료 |
 | 단일 검사 `-Check SiegeRamChecks` | SiegeRam | 자동 공성추 소환·체력·실제 우클릭 공격·서버 충돌 연출·정리 |
@@ -36,13 +36,13 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 
 표에서 `check_arena`를 제외한 이름에는 `Checks` 접미사가 붙는다. 한 기능만 바꿨으면 `-Check 이름`이 우선이며, 관련 그룹을 실행했다면 기본 검사까지 추가 실행할 필요는 없다. 문서·외형만 바꿨다면 자동 테스트는 생략할 수 있다.
 
-`ReconnectChecks`는 실제 Main 장면에 서버 메시지를 주입합니다. 시작한 경기에서 연결이 끊기면 경기 정보를 유지한 채 같은 입장권으로 다시 접속하고 새 스냅샷의 `MATCH_START`로 끝나는지, 5초 무응답을 끊김으로 보는지, `AWAY`로 AI가 조종하는 팀원을 표시하고 다시 동기화할 때 지우는지, `로비로 나가기`가 `LEAVE`를 보내고 로비 항목을 남겨 복귀 버튼을 띄우는지 확인합니다. 서버의 자리 유지·AI 인계 판정은 서버 검사 범위입니다.
+`ReconnectChecks`는 실제 Main 장면에 서버 메시지를 주입합니다. 시작한 경기에서 연결이 끊기면 경기 정보를 유지한 채 같은 입장권으로 다시 접속하고 새 스냅샷의 `MATCH_START`로 끝나는지, 5초 무응답을 끊김으로 보는지, `AWAY`로 AI가 조종하는 팀원을 표시하고 다시 동기화할 때 지우는지, `방으로 나가기`가 `LEAVE`를 보내고, 그 경기가 아직 진행 중인 방이 경기로 끌어들이지 않고 **진행 중인 경기로 돌아가기**를 띄우는지 확인합니다. 서버의 자리 유지·AI 인계 판정은 서버 검사 범위입니다.
 
 `NetClientChecks`는 소켓 대신 쓰기를 정지할 수 있는 스트림을 사용합니다. 실제 서버 없이 전송 중 UI 호출이 즉시 반환하는지, 명령 순서와 5초 제한 시간, 연결 교체 후 이전 오류가 새 세션에 영향을 주지 않는지 확인합니다.
 
 `CommandPanelChecks`는 조병창 Q/W 연구(서버 `ARMY_UPGRADE`의 비용·진행·잘못된 스냅샷 무시)와 HQ Z 업그레이드의 서버 제공 목재·기름 비용, 자원 부족 시 송신 차단, 비용이 없는 이전 메시지의 잠금, 생산 대기열과 업그레이드 중 생산 차단, 서버 진행률, 최대 3티어, 적·영웅 역할 제한과 재접속·초기화를 검사합니다. 비용·시간은 검사에서 임의로 주입하며 실제 밸런스 수치를 복제하지 않습니다. `RecoveryClientChecks`는 3단계 아이템 계보와 HQ 티어 구매 조건, 배송 중 강화 차단, 같은 계열 중복 방지, 누적 구매가의 50% 판매 표시, 기존 12필드 인벤토리의 안전한 읽기도 검사합니다.
 
-`run-match.ps1 -Players 1`은 실제 복원 서버로 사령관 영웅 연습 → 로비 복귀 → 지휘관 연습을 확인합니다. 영웅 경기는 아이템 목록 수신, 실제 구매·장착 응답과 W 요청을 포함합니다. 전체 전투 밸런스나 학습 모델 성능 검사는 아닙니다. `RecoveryClientChecks.tscn -- --capture`는 사령관·상자·상점의 렌더 미리보기를 `docs/images/recovered-client.png`에 저장하며, 이 장면의 상점 목록은 3개 테스트 항목입니다.
+`run-match.ps1 -Players 1`은 실제 복원 서버로 혼자 만든 방에서 사령관 영웅 연습 → 방 복귀 → 지휘관 연습을 확인합니다. 영웅 경기는 아이템 목록 수신, 실제 구매·장착 응답과 W 요청을 포함합니다. 전체 전투 밸런스나 학습 모델 성능 검사는 아닙니다. `RecoveryClientChecks.tscn -- --capture`는 사령관·상자·상점의 렌더 미리보기를 `docs/images/recovered-client.png`에 저장하며, 이 장면의 상점 목록은 3개 테스트 항목입니다.
 
 실행기는 빌드 한 번 후 선택한 검사만 실행하고, 성공은 한 줄로 요약한다. 상세 출력은 Git에서 제외된 `.godot/check-logs/`에 저장한다. 실패·엔진 오류·PASS 누락·제한 시간 초과는 실패로 처리하며 즉시 멈춘다. 기본 제한은 검사당 30초다. 이미 같은 소스를 빌드했다면 `-SkipBuild`를 사용할 수 있다.
 

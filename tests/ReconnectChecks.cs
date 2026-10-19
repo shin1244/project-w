@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 // Drop and reconnect without a server: the session keeps the match and retries in place,
 // a fresh snapshot ends the retry, teammates the AI plays are shown, and leaving a running
-// match says LEAVE and keeps the way back. Server-side seat handling is checked in Go.
+// match says LEAVE and the room offers the way back. Server-side seat handling is checked in Go.
 public partial class ReconnectChecks : Main
 {
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -33,13 +33,11 @@ public partial class ReconnectChecks : Main
             var match = new MatchAssignment { MatchId = "m", Host = "127.0.0.1", Port = 9, Ticket = new string('a', 32),
                 Team = 1, Role = "HERO", Hero = UnitCatalog.HeroTest, Players = 8, Bots = 6 };
             typeof(MatchSession).GetProperty("Match").SetValue(_session, match);
-            string queue = "http://127.0.0.1:9/queue/" + match.Ticket;
-            typeof(MatchSession).GetField("_queueUrl", Private).SetValue(_session, queue);
             InvokeMain("ConnectInput");
             Join();
             _session.EnterGame();
             InvokeSession("OnMessage", "MATCH_START");
-            Check(_session.Started && SessionField<string>("_rejoinUrl") == queue, "a started match must remember its way back");
+            Check(_session.Started && !_session.Rejoining, "MATCH_START must start the match");
 
             // AWAY: teammates the AI plays are named, listed on the team frame and cleared by a resync.
             InvokeMain("OnMessage", "AWAY 9 1");
@@ -76,7 +74,7 @@ public partial class ReconnectChecks : Main
             Check(_session.Reconnecting, "a silent link must start reconnecting even with long frames");
             InvokeSession("OnMessage", "MATCH_START");
 
-            // Leaving a running match says LEAVE, keeps the lobby entry and offers the way back.
+            // Leaving a running match says LEAVE, and the room offers the way back.
             typeof(NetClient).GetField("_writer", Private).SetValue(net, writer);
             long before = wire.Length;
             foreach (Node node in FindChildren("*", "CanvasLayer", true, false)) ((CanvasLayer)node).Hide();
@@ -85,22 +83,27 @@ public partial class ReconnectChecks : Main
             for (int i = 0; i < 100 && wire.Length == before; i++) await Task.Delay(10);
             Check(Encoding.UTF8.GetString(wire.ToArray()[(int)before..]).Replace("\r", "") == "LEAVE\n",
                 "leaving a running match must tell the server");
-            Check(_session.Match == null && !_session.InGame && SessionField<string>("_rejoinUrl") == queue &&
-                ReferenceEquals(SessionField<Task>("_cleanupTask"), Task.CompletedTask),
-                "leaving a running match must keep its lobby entry");
+            Check(_session.Match == null && !_session.InGame && SessionField<string>("_leftMatchId") == match.MatchId,
+                "leaving a running match must remember it as left, not finished");
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            var lobby = GetTree().CurrentScene as Lobby ?? throw new Exception("lobby did not open");
-            typeof(MatchSession).GetProperty("Rejoinable").SetValue(_session, match);
-            typeof(Lobby).GetMethod("Refresh", Private).Invoke(lobby, null);
-            var start = lobby.GetNode<Button>("%PrimaryButton");
-            var cancel = lobby.GetNode<Button>("%SecondaryButton");
-            Check(start.Text == "진행 중인 경기로 돌아가기" && !start.Disabled && !cancel.Disabled, "the lobby must offer the running match");
-            cancel.EmitSignal(Button.SignalName.Pressed);
-            Check(_session.Rejoinable == null && SessionField<string>("_rejoinUrl") == null && start.Text != "진행 중인 경기로 돌아가기",
-                "declining must forget the running match");
+            // The room still playing that match offers it back instead of pulling the player in.
+            var room = new RoomState { Id = "r", Name = "방", HostId = "me", You = "me", Region = "kr", State = "playing", Match = match,
+                Regions = { new RegionInfo { Id = "kr", Name = "한국" } }, Members = { new RoomMember { Id = "me", Name = "나", Seat = 1, Ping = -1 } } };
+            for (int i = 0; i < 8; i++)
+                room.Seats.Add(new RoomSeat { Index = i, Team = (uint)(i / 4 + 1), Role = i % 4 == 0 ? "COMMANDER" : "HERO", PlayerId = i == 1 ? "me" : null, Hero = i == 1 ? match.Hero : 0 });
+            InvokeSession("ApplyRoom", room);
+            Check(_session.Match == null && _session.Rejoinable?.MatchId == match.MatchId, "the room must offer the left match, not rejoin it");
+            GetTree().ChangeSceneToFile("res://lobby/Room.tscn");
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            var screen = GetTree().CurrentScene as Room ?? throw new Exception("room did not open");
+            var rejoin = screen.FindChildren("*", "Button", true, false).OfType<Button>().First(b => b.Text == "진행 중인 경기로 돌아가기");
+            Check(rejoin.Visible, "the room must show the way back to the running match");
+            _session.ForgetRejoin();
+            Check(_session.Rejoinable == null && !rejoin.Visible, "forgetting the match must hide the way back");
             await writer.DisposeAsync();
-            GD.Print("PASS: in-place reconnect with the same ticket, silent-link detection, AI-played teammates, LEAVE and lobby rejoin offer");
+            GD.Print("PASS: in-place reconnect with the same ticket, silent-link detection, AI-played teammates, LEAVE and room rejoin offer");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
