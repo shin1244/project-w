@@ -8,27 +8,63 @@ using System.Text.Json;
 // Staged battles for the README GIFs: the real map, buildings and unit scenes, driven by a tiny
 // local fight simulation that feeds the client the same messages a server would (UNIT, POS,
 // STATE, HP, SKILL, SIEGE_STATE). No server and no game rules; the numbers only shape the shot.
+// Movement copies the server's shape of a fight (project-w-server attack_slots.go, move.go): armies
+// march in formation, melee units split the ring around their target into attack slots, wait one
+// ring further out or switch to an enemy with room, allies push apart and enemies block.
 // F6 plays the three scenes in a loop. `-- --capture=DIR` records each scene's frames as JPGs.
 public partial class BattleStage : Main
 {
     private const int TickRate = 30;
     private const int Fps = 15;
+    // The server tuning the staged movement follows (attack_move.go, attack_slots.go, move.go).
+    private const float ScanRadius = 10, ChaseRadius = 12, MeleeSlotMaxRange = 1.5f, SlotEngage = 2, SlotArcStep = .3f;
+    private const float AvoidanceMargin = .3f, SeparationWeight = 2, SidestepWeight = .6f, SlowRadius = .5f;
+    private const float SlotJitter = .5f, StuckTime = 1, SlotStall = 2;
+    private const int SlotSweep = 48;
     private static readonly MethodInfo Receive = typeof(Main).GetMethod("OnMessage", BindingFlags.Instance | BindingFlags.NonPublic);
+
+    private enum SlotKind { None, Fixed, Ring, Wait, Hold }
+
+    // A melee unit's place around its target: where it stands (Fixed: already in range), the ring
+    // spot it walks to, the waiting spot one ring further out, or where it stands when both are full.
+    private struct Slot
+    {
+        public uint Target;
+        public SlotKind Kind;
+        public Vector2 Pos, Route;
+        public float Angle;
+    }
 
     private sealed class Fighter
     {
         public uint Id, Type, Team, Owner, Focus, Swing;
-        public Vector2 Pos;
-        public float Hp, MaxHp, Speed, Range, Interval, Damage, Cooldown;
+        public Vector2 Pos, March, Velocity, SlotAnchor;
+        public float Hp, MaxHp, Speed, MarchSpeed, Range, Radius, Interval, Damage, Cooldown, Stride, SlotStill;
+        public Fighter Target;
+        public Slot Slot;
+        public uint StalledUntil;
         public string Activity = "IDLE", SentActivity = "";
         public uint SentFocus, SentSwing;
         public float SentHp;
-        public bool Moved, Deployed, Anchored;
+        public bool Moved, Deployed, Anchored, Blocks;
         public float SkillTimer;
+        public bool Alive => Hp > 0;
+        public bool Melee => Range <= MeleeSlotMaxRange;
+        public bool ToSlot => Slot.Kind is SlotKind.Ring or SlotKind.Wait;
+    }
+
+    private readonly record struct Body(Vector2 Pos, float Radius, uint Team, bool Blocks);
+
+    // Bodies around one target this tick: units that took a spot, and everyone else close by.
+    private sealed class Ring
+    {
+        public Fighter Victim;
+        public readonly List<Body> Placed = new(), Obstacles = new();
     }
 
     private readonly List<Fighter> _fighters = new();
     private readonly Dictionary<uint, (Vector2 Pos, uint Team)> _towers = new();
+    private readonly Dictionary<uint, Ring> _rings = new();
     private readonly RandomNumberGenerator _rng = new() { Seed = 7 };
     private uint _tick, _nextId = 50000;
     private double _accumulator;
@@ -114,7 +150,8 @@ public partial class BattleStage : Main
                 foreach (Vector2 at in new[] { new Vector2(6, 30), new Vector2(7, 34) })
                 {
                     Fighter gun = Spawn(UnitCatalog.SteamArtillery, 2, at);
-                    gun.Anchored = true;
+                    gun.Anchored = gun.Blocks = true;
+                    gun.Range = 14;
                     Send($"SIEGE_STATE {gun.Id} DEPLOYING {_tick + 1} {_tick + 1 + TickRate * 2}");
                 }
                 shots = new[] { new Shot(0, new Vector2(5, 31), 12), new Shot(2.6f, new Vector2(1, 31), 18), new Shot(6.8f, new Vector2(-8, 31), 34) };
@@ -125,44 +162,57 @@ public partial class BattleStage : Main
         await Run(length, capture == null ? null : $"{capture}/scene-{scene}", shots);
     }
 
+    // One army as an attack-move in formation: every unit heads for its own spot of the same block,
+    // shifted toward the enemy, at the pace of the slowest so the block keeps its shape.
     private void Army(uint team, Vector2 at, Vector2 forward, bool minions, int mercs, uint[] heroes, int machines)
     {
         Vector2 side = new(-forward.Y, forward.X);
+        var army = new List<Fighter>();
         if (minions)
         {
             uint[] wave = { 100, 100, 100, 102, 101, 101, 101 };
             for (int i = 0; i < wave.Length; i++)
-                Spawn(wave[i], team, at + forward * (wave[i] == 100 ? 2.5f : wave[i] == 102 ? 0.5f : -1f) + side * ((i % 3) - 1) * 2f + Jitter());
+                army.Add(Spawn(wave[i], team, at + forward * (wave[i] == 100 ? 2.5f : wave[i] == 102 ? 0.5f : -1f) + side * ((i % 3) - 1) * 2f + Jitter()));
         }
         uint[] roster = { UnitCatalog.Knight, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Medic };
         for (int i = 0; i < mercs; i++)
-            Spawn(roster[i % roster.Length], team, at - forward * (1.5f + (i / 3) * 1.6f) + side * ((i % 3) - 1) * 2.2f + Jitter());
+            army.Add(Spawn(roster[i % roster.Length], team, at - forward * (1.5f + (i / 3) * 1.6f) + side * ((i % 3) - 1) * 2.2f + Jitter()));
         for (int i = 0; i < heroes.Length; i++)
-            Spawn(heroes[i], team, at - forward * 3.5f + side * (i - (heroes.Length - 1) / 2f) * 3f + Jitter());
+            army.Add(Spawn(heroes[i], team, at - forward * 3.5f + side * (i - (heroes.Length - 1) / 2f) * 3f + Jitter()));
         for (int i = 0; i < machines; i++)
-            Spawn(i % 2 == 0 ? UnitCatalog.FlameAutomaton : UnitCatalog.SteamArtillery, team, at + forward * 0.5f + side * (i == 0 ? 3.5f : -3.5f) + Jitter());
+            army.Add(Spawn(i % 2 == 0 ? UnitCatalog.FlameAutomaton : UnitCatalog.SteamArtillery, team, at + forward * 0.5f + side * (i == 0 ? 3.5f : -3.5f) + Jitter()));
+        float pace = army.Min(f => f.Speed);
+        foreach (Fighter f in army)
+        {
+            f.March = f.Pos + forward * 30;
+            f.MarchSpeed = pace;
+        }
     }
 
     private Vector2 Jitter() => new(_rng.RandfRange(-.5f, .5f), _rng.RandfRange(-.5f, .5f));
 
     private Fighter Spawn(uint type, uint team, Vector2 pos)
     {
-        var f = new Fighter { Id = _nextId++, Type = type, Team = team, Pos = pos, SkillTimer = _rng.RandfRange(.4f, 1.8f) };
+        var f = new Fighter { Id = _nextId++, Type = type, Team = team, Pos = pos, March = pos, SkillTimer = _rng.RandfRange(.4f, 1.8f) };
         bool autonomous = UnitCatalog.IsAutonomous(type);
         f.Owner = autonomous ? 0 : team * 10 + (uint)_fighters.Count(o => o.Team == team) % 4 + 1;
-        (f.MaxHp, f.Speed, f.Range, f.Interval, f.Damage) = type switch
+        // Ranges are gaps between bodies like the server's; bodies are a little wider than the server's
+        // so the larger models stand shoulder to shoulder instead of overlapping on screen.
+        (f.MaxHp, f.Speed, f.Range, f.Interval, f.Damage, f.Radius) = type switch
         {
-            100 => (900f, 5f, 1.4f, 1f, 15f),
-            101 => (420f, 5f, 6f, 1.2f, 8f),
-            102 => (420f, 5f, 3f, 1.1f, 6f),
-            UnitCatalog.Knight => (1100f, 5.5f, 1.5f, 1.1f, 16f),
-            UnitCatalog.Archer => (600f, 5.5f, 5.5f, 1.4f, 19f),
-            UnitCatalog.Medic => (600f, 6f, 5f, 1.5f, 5f),
-            UnitCatalog.FlameAutomaton => (1800f, 4.5f, 3f, .8f, 14f),
-            UnitCatalog.SteamArtillery => (2000f, 4f, 15f, 3f, 60f),
-            >= 200 and <= 203 => (3000f, 7f, type is 202 or 203 ? 6f : 1.6f, .9f, 40f),
-            _ => (500f, 5f, 1.5f, 1f, 10f)
+            100 => (900f, 5f, 1f, 1f, 15f, .55f),
+            101 => (420f, 5f, 6f, 1.2f, 8f, .5f),
+            102 => (420f, 5f, 3f, 1.1f, 6f, .5f),
+            UnitCatalog.Knight => (1100f, 5.5f, 1f, 1.1f, 16f, .7f),
+            UnitCatalog.Archer => (600f, 5.5f, 5.5f, 1.4f, 19f, .6f),
+            UnitCatalog.Medic => (600f, 6f, 5f, 1.5f, 5f, .55f),
+            UnitCatalog.FlameAutomaton => (1800f, 4.5f, 3f, .8f, 14f, .9f),
+            UnitCatalog.SteamArtillery => (2000f, 4f, 6f, 3f, 60f, 1.3f),
+            UnitCatalog.HeroGolem => (3000f, 7f, 1f, .9f, 40f, 1f),
+            >= 200 and <= 203 => (3000f, 7f, 1f, .9f, 40f, .85f),
+            _ => (500f, 5f, 1f, 1f, 10f, .6f)
         };
+        f.MarchSpeed = f.Speed;
         f.Hp = f.MaxHp;
         f.Cooldown = _rng.RandfRange(0, f.Interval);
         _fighters.Add(f);
@@ -176,6 +226,7 @@ public partial class BattleStage : Main
     {
         foreach (Fighter f in _fighters) Send($"REMOVE {f.Id}");
         _fighters.Clear();
+        _rings.Clear();
     }
 
     // ── Simulation and recording ──
@@ -225,61 +276,29 @@ public partial class BattleStage : Main
         _tick++;
         Send($"TICK {_tick}");
         float dt = 1f / TickRate;
-        var alive = _fighters.Where(f => f.Hp > 0).ToList();
+        var alive = _fighters.Where(f => f.Alive).ToList();
         foreach (Fighter f in alive)
-        {
-            Fighter target = alive.Where(o => o.Team != f.Team && o.Hp > 0).OrderBy(o => o.Pos.DistanceSquaredTo(f.Pos)).FirstOrDefault();
-            f.Moved = false;
-            if (target == null) { f.Activity = "IDLE"; continue; }
-            float reach = f.Range + .9f;
-            float distance = f.Pos.DistanceTo(target.Pos);
             if (f.Type == UnitCatalog.SteamArtillery && f.Anchored && !f.Deployed && _tick > TickRate * 2)
             {
                 f.Deployed = true;
                 Send($"SIEGE_STATE {f.Id} DEPLOYED 0 0");
             }
-            if (distance > reach && !f.Anchored)
-            {
-                f.Pos += (target.Pos - f.Pos).Normalized() * f.Speed * dt;
-                f.Moved = true;
-                f.Activity = "IDLE";
-                f.Focus = 0;
-            }
-            else if (!f.Anchored || f.Deployed)
-            {
-                f.Activity = "ATTACK";
-                f.Focus = target.Id;
-                f.Cooldown -= dt;
-                if (f.Cooldown <= 0 && distance <= reach + (f.Anchored ? 6 : 0))
-                {
-                    f.Cooldown += f.Interval;
-                    f.Swing++;
-                    target.Hp -= f.Damage;
-                }
-            }
-            if (f.Type >= 200 && f.Type <= 203 && (f.SkillTimer -= dt) <= 0)
-            {
-                f.SkillTimer = _rng.RandfRange(1.2f, 2.4f);
-                int slot = _rng.RandiRange(0, 2);
-                Send($"SKILL {f.Id} {slot} {target.Id}");
-            }
-        }
-        // Bodies keep apart, friend or foe, so the fight reads as two lines instead of one blob.
-        for (int pass = 0; pass < 3; pass++)
+        Retarget(alive);
+        AssignSlots(alive);
+        foreach (Fighter f in alive) Steer(f, alive);
         foreach (Fighter f in alive)
-            foreach (Fighter o in alive)
-            {
-                if (o.Id <= f.Id) continue;
-                float gap = Body(f) + Body(o), distance = f.Pos.DistanceTo(o.Pos);
-                if (distance >= gap || distance < .001f) continue;
-                Vector2 push = (f.Pos - o.Pos) / distance * (gap - distance) * .5f;
-                if (!f.Anchored) { f.Pos += push; f.Moved = true; }
-                if (!o.Anchored) { o.Pos -= push; o.Moved = true; }
-            }
+        {
+            Vector2 old = f.Pos;
+            if (f.Velocity != Vector2.Zero) MoveTo(f, f.Pos + f.Velocity.LimitLength(f.Speed) * dt, alive);
+            f.Moved = f.Pos.DistanceSquaredTo(old) > 1e-6f;
+            if (!f.Moved) f.Pos = old;
+            f.Stride = f.Pos.DistanceTo(old);
+        }
+        foreach (Fighter f in alive) Fight(f, dt);
         // Towers on the fortress line shoot whoever comes close.
         foreach (var (id, tower) in _towers)
         {
-            Fighter target = alive.Where(o => o.Team != tower.Team && o.Hp > 0 && o.Pos.DistanceTo(tower.Pos) < 9).OrderBy(o => o.Pos.DistanceTo(tower.Pos)).FirstOrDefault();
+            Fighter target = alive.Where(o => o.Team != tower.Team && o.Alive && o.Pos.DistanceTo(tower.Pos) < 9).OrderBy(o => o.Pos.DistanceTo(tower.Pos)).FirstOrDefault();
             if (target != null && _tick % (TickRate * 3 / 2) == 0)
             {
                 target.Hp -= 40;
@@ -299,18 +318,374 @@ public partial class BattleStage : Main
                 Send($"HP {f.Id} {Num(Math.Max(0, f.Hp))} {Num(f.MaxHp)}");
                 f.SentHp = f.Hp;
             }
-            if (f.Hp <= 0) Send($"REMOVE {f.Id}");
+            if (!f.Alive) Send($"REMOVE {f.Id}");
         }
         Send($"TICK_END {_tick}");
     }
 
-    private static float Body(Fighter f) => f.Type switch
+    // Attack-move targeting: keep the target until it dies or runs off, else take the nearest enemy.
+    // Melee units take an enemy with room on its ring first, and leave a full ring for one with room.
+    private void Retarget(List<Fighter> alive)
     {
-        UnitCatalog.SteamArtillery or UnitCatalog.FlameAutomaton => 1.4f,
-        >= 200 and <= 203 => 1.2f,
-        >= 100 and <= 102 => .55f,
-        _ => .65f
-    };
+        foreach (Fighter u in alive)
+        {
+            if (u.Target != null && (!u.Target.Alive || Gap(u, u.Target) > Math.Max(ChaseRadius, u.Range)))
+                u.Target = null;
+            if (u.Target == null)
+                u.Target = NearestEnemy(u, alive, u.Melee ? t => HasRoom(u, t, false) : null) ?? NearestEnemy(u, alive, null);
+            else if (u.Melee && u.Slot.Target == u.Target.Id && u.Slot.Kind is SlotKind.Wait or SlotKind.Hold)
+            {
+                Fighter current = u.Target;
+                Fighter roomier = NearestEnemy(u, alive, t => t != current && HasRoom(u, t, false));
+                if (roomier != null && HasRoom(u, roomier, true)) u.Target = roomier;
+            }
+        }
+    }
+
+    private static Fighter NearestEnemy(Fighter u, List<Fighter> alive, Func<Fighter, bool> accept)
+    {
+        float scan = Math.Max(ScanRadius, u.Range);
+        return alive.Where(o => o.Team != u.Team && o.Alive && Gap(u, o) <= scan && (accept == null || accept(o)))
+            .OrderBy(o => Gap(u, o)).ThenBy(o => o.Id).FirstOrDefault();
+    }
+
+    // Whether u fits on the target's ring now. Reserving keeps the spot, so several waiting units
+    // do not all switch to the same gap. A target nobody fights yet has room.
+    private bool HasRoom(Fighter u, Fighter target, bool reserve)
+    {
+        if (!reserve && u.Slot.Target == target.Id && u.Slot.Kind is SlotKind.Fixed or SlotKind.Ring) return true;
+        if (!_rings.TryGetValue(target.Id, out Ring ring)) _rings[target.Id] = ring = new Ring { Victim = target };
+        if (!Find(ring, u, RingRadius(u, target), AngleOf(target, u.Pos), out Vector2 pos, out _)) return false;
+        if (reserve) ring.Placed.Add(new Body(pos, u.Radius, u.Team, true));
+        return true;
+    }
+
+    // ── Melee attack slots (attack_slots.go) ──
+
+    private static float RingRadius(Fighter u, Fighter victim) => victim.Radius + u.Radius + u.Range * .95f;
+    private static float LaneRadius(Fighter u, Fighter victim) => RingRadius(u, victim) + u.Radius * 2 + AvoidanceMargin;
+    private static float WaitRadius(Fighter u, Fighter victim) => LaneRadius(u, victim) + u.Radius * 2;
+
+    // Melee units close to their target split its ring among themselves: units already in range keep
+    // where they stand, then heroes, units that had a spot here, and the nearest take the free spot
+    // closest to where they come from. A full ring sends the rest to wait one ring further out.
+    // Only a target that stands (fighting, waiting or anchored) is ringed. Two units walking at each
+    // other meet head on instead; on the stage, spots around a walking target dragged both sides along.
+    private void AssignSlots(List<Fighter> alive)
+    {
+        _rings.Clear();
+        var claims = new SortedDictionary<uint, List<Fighter>>();
+        foreach (Fighter u in alive)
+        {
+            Fighter victim = u.Target;
+            bool claimed = victim != null && u.Melee && !u.Anchored && (victim.Blocks || victim.Stride < victim.Speed / TickRate * .3f);
+            if (claimed)
+            {
+                float reach = WaitRadius(u, victim) + SlotEngage * (u.Slot.Target == victim.Id && u.Slot.Kind != SlotKind.None ? 2 : 1);
+                claimed = u.Pos.DistanceTo(victim.Pos) <= reach;
+            }
+            if (!claimed) { u.Slot = default; continue; }
+            if (!claims.TryGetValue(victim.Id, out var list)) claims[victim.Id] = list = new List<Fighter>();
+            list.Add(u);
+        }
+        foreach (var (id, claimants) in claims)
+        {
+            Fighter victim = claimants[0].Target;
+            var ring = new Ring { Victim = victim };
+            _rings[id] = ring;
+            float reach = claimants.Max(u => WaitRadius(u, victim) + u.Radius);
+            foreach (Fighter n in alive)
+                if (n != victim && !claimants.Contains(n) && n.Pos.DistanceTo(victim.Pos) < reach + n.Radius)
+                    ring.Obstacles.Add(new Body(n.Pos, n.Radius, n.Team, n.Blocks));
+            var queue = new List<(Fighter Unit, float Desired)>();
+            foreach (Fighter u in claimants)
+            {
+                if (InRange(u, victim)) Take(ring, u, SlotKind.Fixed, u.Pos, AngleOf(victim, u.Pos));
+                else if (u.StalledUntil > _tick) u.Slot = new Slot { Target = id, Kind = SlotKind.Hold, Pos = u.Pos, Angle = AngleOf(victim, u.Pos) };
+                else queue.Add((u, u.Slot.Target == id && u.Slot.Kind != SlotKind.Hold ? u.Slot.Angle : AngleOf(victim, u.Pos)));
+            }
+            queue = queue.OrderBy(q => UnitCatalog.IsHero(q.Unit.Type) ? 0 : q.Unit.Slot.Target == id && q.Unit.Slot.Kind is SlotKind.Fixed or SlotKind.Ring ? 1 : 2)
+                .ThenBy(q => Gap(q.Unit, victim)).ThenBy(q => q.Unit.Id).ToList();
+            foreach (var (u, desired) in queue)
+            {
+                if (Find(ring, u, RingRadius(u, victim), desired, out Vector2 pos, out float angle)) Take(ring, u, SlotKind.Ring, pos, angle);
+                else if (Find(ring, u, WaitRadius(u, victim), desired, out pos, out angle)) Take(ring, u, SlotKind.Wait, pos, angle);
+                else u.Slot = new Slot { Target = id, Kind = SlotKind.Hold, Pos = u.Pos, Angle = AngleOf(victim, u.Pos) };
+            }
+            Untangle(victim, queue.Select(q => q.Unit).ToList());
+            var fighting = claimants.Where(u => u.Slot.Kind == SlotKind.Fixed).ToList();
+            foreach (Fighter u in claimants)
+                u.Slot.Route = u.ToSlot ? Route(ring, u, fighting) : u.Slot.Pos;
+        }
+    }
+
+    private static void Take(Ring ring, Fighter u, SlotKind kind, Vector2 pos, float angle)
+    {
+        u.Slot = new Slot { Target = ring.Victim.Id, Kind = kind, Pos = pos, Angle = angle };
+        ring.Placed.Add(new Body(pos, u.Radius, u.Team, true));
+    }
+
+    // The free spot on the circle closest to the desired direction. Candidates are that direction,
+    // the directions that just touch a body already there (so no gaps are left), and an even sweep.
+    private bool Find(Ring ring, Fighter u, float radius, float desired, out Vector2 pos, out float angle)
+    {
+        Vector2 center = ring.Victim.Pos;
+        var candidates = new List<float> { desired };
+        foreach (Body b in ring.Placed.Concat(ring.Obstacles))
+        {
+            Vector2 q = b.Pos - center;
+            float d = q.Length(), touch = u.Radius + b.Radius;
+            float c = (radius * radius + d * d - touch * touch) / (2 * radius * d);
+            if (d == 0 || c < -1 || c > 1) continue;
+            candidates.Add(q.Angle() + Mathf.Acos(c));
+            candidates.Add(q.Angle() - Mathf.Acos(c));
+        }
+        for (int k = 1; k < SlotSweep; k++) candidates.Add(desired + Mathf.Tau * k / SlotSweep);
+        foreach (float a in candidates.OrderBy(a => Mathf.Abs(Delta(a, desired))).ThenBy(a => a))
+        {
+            pos = center + Vector2.FromAngle(a) * radius;
+            if (Fits(ring, u, pos)) { angle = a; return true; }
+        }
+        pos = default;
+        angle = 0;
+        return false;
+    }
+
+    // Spots on trees or walls, or over another taken spot, an enemy or an ally that holds its ground are out.
+    // Moving allies step aside on their own.
+    private bool Fits(Ring ring, Fighter u, Vector2 pos)
+    {
+        foreach (Body b in ring.Placed)
+            if (pos.DistanceTo(b.Pos) < u.Radius + b.Radius - .001f) return false;
+        foreach (Body b in ring.Obstacles)
+            if ((b.Team != u.Team || b.Blocks) && pos.DistanceTo(b.Pos) < u.Radius + b.Radius - .001f) return false;
+        return !TerrainBlocked(pos, u.Radius);
+    }
+
+    // Swap spots on the same circle so nobody walks around past another unit going the other way.
+    private static void Untangle(Fighter victim, List<Fighter> units)
+    {
+        float Travel(Fighter u, Slot s) => Mathf.Abs(Delta(s.Angle, AngleOf(victim, u.Pos)));
+        for (int pass = 0; pass < units.Count; pass++)
+        {
+            bool swapped = false;
+            for (int i = 0; i < units.Count; i++)
+                for (int j = i + 1; j < units.Count; j++)
+                {
+                    Fighter a = units[i], b = units[j];
+                    Slot sa = a.Slot, sb = b.Slot;
+                    if (sa.Kind != sb.Kind || !a.ToSlot || a.Radius != b.Radius || a.Range != b.Range) continue;
+                    if (Travel(a, sb) + Travel(b, sa) < Travel(a, sa) + Travel(b, sb) - 1e-3f)
+                    {
+                        (a.Slot.Pos, a.Slot.Angle, b.Slot.Pos, b.Slot.Angle) = (sb.Pos, sb.Angle, sa.Pos, sa.Angle);
+                        swapped = true;
+                    }
+                }
+            if (!swapped) return;
+        }
+    }
+
+    // Walk to the entry just outside the spot and then straight in. If the target or the units
+    // fighting it stand in the way, walk around the outer lane toward the spot, the short way unless
+    // that way is blocked.
+    private Vector2 Route(Ring ring, Fighter u, List<Fighter> fighting)
+    {
+        Fighter victim = ring.Victim;
+        Slot slot = u.Slot;
+        Vector2 outward = Vector2.FromAngle(slot.Angle), rel = u.Pos - victim.Pos;
+        float outer = LaneRadius(u, victim);
+        Vector2 goal = slot.Pos;
+        if (slot.Kind == SlotKind.Ring)
+        {
+            if (Mathf.Abs(outward.Cross(rel)) < u.Radius * .5f && rel.Dot(outward) > slot.Pos.DistanceTo(victim.Pos))
+                return slot.Pos;
+            goal = victim.Pos + outward * outer;
+        }
+        bool Crosses(Vector2 at, float radius) => DistanceToSegment(at, u.Pos, goal) < u.Radius + radius - .001f;
+        bool clear = !Crosses(victim.Pos, victim.Radius) && !fighting.Any(f => f != u && Crosses(f.Pos, f.Radius))
+            && !ring.Obstacles.Any(b => (b.Team != u.Team || b.Blocks) && Crosses(b.Pos, b.Radius));
+        float current = rel.Angle(), gap = Delta(slot.Angle, current);
+        if (clear || Mathf.Abs(gap) * rel.Length() < u.Radius) return goal;
+        if (rel.Length() < outer - u.Radius * .5f) return victim.Pos + Vector2.FromAngle(current) * outer;
+        float radius = Mathf.Max(outer, rel.Length());
+        if (ArcBlocked(ring, u, current, gap, radius))
+        {
+            // The server stands here and gives the spot up after a while; without its path finding the
+            // stage would leave whole back rows standing, so it walks on and slides along the crowd.
+            float other = gap - Mathf.Sign(gap) * Mathf.Tau;
+            if (ArcBlocked(ring, u, current, other, radius)) return goal;
+            gap = other;
+        }
+        return victim.Pos + Vector2.FromAngle(current + Mathf.Clamp(gap, -SlotArcStep, SlotArcStep)) * radius;
+    }
+
+    private bool ArcBlocked(Ring ring, Fighter u, float current, float delta, float radius)
+    {
+        int steps = (int)(Mathf.Abs(delta) * radius / u.Radius) + 1;
+        for (int k = 1; k <= steps; k++)
+        {
+            Vector2 at = ring.Victim.Pos + Vector2.FromAngle(current + delta * k / steps) * radius;
+            if (TerrainBlocked(at, u.Radius)) return true;
+            foreach (Body b in ring.Obstacles)
+                if ((b.Team != u.Team || b.Blocks) && at.DistanceTo(b.Pos) < u.Radius + b.Radius - .001f) return true;
+        }
+        return false;
+    }
+
+    // ── Steering and fighting (move.go, attack.go) ──
+
+    // What the order wants plus a push away from overlapping allies. Units fighting in range hold
+    // their ground; the others walk around them, sidestepping when an ally blocks them head on.
+    private void Steer(Fighter u, List<Fighter> alive)
+    {
+        u.Velocity = Vector2.Zero;
+        if (u.Anchored) return;
+        Fighter t = u.Target;
+        Vector2 desired;
+        if (t == null) desired = Arrive(u, u.March, 0, u.MarchSpeed);
+        else if (InRange(u, t) || u.Slot.Kind == SlotKind.Hold || (u.Slot.Kind == SlotKind.Wait && u.Pos.DistanceTo(u.Slot.Pos) < .1f)) desired = Vector2.Zero;
+        else if (u.ToSlot)
+        {
+            // A unit that only jitters in the crowd gives its spot up for a while (attack.go toSlot).
+            if (u.Pos.DistanceTo(u.SlotAnchor) > SlotJitter) (u.SlotAnchor, u.SlotStill) = (u.Pos, 0);
+            else if ((u.SlotStill += 1f / TickRate) > StuckTime) (u.SlotStill, u.StalledUntil) = (0, _tick + (uint)(SlotStall * TickRate));
+            desired = Arrive(u, u.Slot.Route, 0, u.Speed, .01f);
+        }
+        else desired = Arrive(u, t.Pos, t.Radius + u.Radius + u.Range * .9f, u.Speed);
+        if (u.Blocks && t != null && InRange(u, t)) return;
+        Vector2 push = Vector2.Zero;
+        foreach (Fighter n in alive)
+        {
+            if (n == u || n.Team != u.Team) continue;
+            float min = u.Radius + n.Radius + (n.Blocks && !u.ToSlot ? AvoidanceMargin : 0);
+            Vector2 d = u.Pos - n.Pos;
+            if (d.LengthSquared() >= min * min) continue;
+            float distance = d.Length();
+            push += (distance > 0 ? d / distance : Vector2.FromAngle(u.Id * 2.399963f)) * ((min - distance) / min);
+        }
+        push *= u.Speed * SeparationWeight;
+        u.Velocity = desired + push;
+        bool slowing = t == null && desired.LengthSquared() < u.MarchSpeed * u.MarchSpeed * .99f;
+        if (desired != Vector2.Zero && push != Vector2.Zero && !slowing && desired.Normalized().Dot(push.Normalized()) <= -.7f)
+        {
+            Vector2 dir = desired.Normalized(), side = new(-dir.Y, dir.X);
+            if (u.Id % 2 == 0) side = -side;
+            if (TerrainBlocked(u.Pos + side * u.Radius, u.Radius)) side = -side;
+            u.Velocity += side * u.Speed * SidestepWeight;
+        }
+    }
+
+    private static Vector2 Arrive(Fighter u, Vector2 target, float stop, float speed, float arrived = .06f)
+    {
+        Vector2 offset = target - u.Pos;
+        float remain = offset.Length() - stop;
+        if (remain <= arrived) return Vector2.Zero;
+        return offset.Normalized() * speed * Mathf.Min(1, remain / SlowRadius);
+    }
+
+    // Trees, walls, enemies and allies fighting in place block the way; a glancing hit slides along them.
+    // A unit squeezed onto an ally with no way out may pass the allies that block it (the server's
+    // push recovery), so two bodies wedged between a fighting ally and the trees come apart.
+    private void MoveTo(Fighter u, Vector2 next, List<Fighter> alive)
+    {
+        bool recovering = false;
+        Fighter Blocker(Vector2 p)
+        {
+            Fighter blocker = null;
+            foreach (Fighter n in alive)
+            {
+                if (n == u || (n.Team == u.Team && (!n.Blocks || recovering)) || (blocker != null && n.Id > blocker.Id)) continue;
+                float min = u.Radius + n.Radius - .001f, ahead = p.DistanceSquaredTo(n.Pos);
+                if (ahead < min * min && ahead < u.Pos.DistanceSquaredTo(n.Pos)) blocker = n;
+            }
+            return blocker;
+        }
+        bool Blocked(Vector2 p) => TerrainBlocked(p, u.Radius) || Blocker(p) != null;
+        bool Slide()
+        {
+            Fighter blocker = TerrainBlocked(next, u.Radius) ? null : Blocker(next);
+            if (blocker == null && !TerrainBlocked(next, u.Radius)) { u.Pos = next; return true; }
+            if (blocker != null)
+            {
+                // Slide toward the side the step leans to; the server picks it by ID, which on the stage
+                // walked units at the back into the tree line and back.
+                Vector2 step = next - u.Pos, normal = (u.Pos - blocker.Pos).Normalized(), side = new(normal.Y, -normal.X);
+                if (side.Dot(step) < 0 || (side.Dot(step) == 0 && u.Id % 2 == 0)) side = -side;
+                foreach (float sign in new[] { 1f, -1f })
+                {
+                    Vector2 p = u.Pos + side * step.Length() * sign;
+                    if (!Blocked(p)) { u.Pos = p; return true; }
+                }
+            }
+            if (!Blocked(new Vector2(next.X, u.Pos.Y))) u.Pos.X = next.X;
+            else if (!Blocked(new Vector2(u.Pos.X, next.Y))) u.Pos.Y = next.Y;
+            else return false;
+            return true;
+        }
+        if (TerrainBlocked(u.Pos, u.Radius)) { u.Pos = next; return; }
+        if (Slide()) return;
+        recovering = alive.Any(n => n != u && n.Team == u.Team && n.Pos.DistanceTo(u.Pos) < u.Radius + n.Radius - .05f);
+        if (recovering) Slide();
+    }
+
+    private void Fight(Fighter f, float dt)
+    {
+        Fighter target = f.Target;
+        bool ready = !f.Anchored || f.Deployed;
+        if (target == null || !target.Alive || !InRange(f, target) || !ready)
+        {
+            f.Activity = "IDLE";
+            f.Focus = 0;
+            f.Blocks = f.Anchored;
+            return;
+        }
+        f.Activity = "ATTACK";
+        f.Focus = target.Id;
+        f.Blocks = true;
+        f.Cooldown -= dt;
+        if (f.Cooldown <= 0)
+        {
+            f.Cooldown += f.Interval;
+            f.Swing++;
+            target.Hp -= f.Damage;
+        }
+        if (UnitCatalog.IsHero(f.Type) && (f.SkillTimer -= dt) <= 0)
+        {
+            f.SkillTimer = _rng.RandfRange(1.2f, 2.4f);
+            Send($"SKILL {f.Id} {_rng.RandiRange(0, 2)} {target.Id}");
+        }
+    }
+
+    // ── Geometry ──
+
+    private static float Gap(Fighter a, Fighter b) => Mathf.Max(0, a.Pos.DistanceTo(b.Pos) - a.Radius - b.Radius);
+    private static bool InRange(Fighter u, Fighter t) => Gap(u, t) <= u.Range;
+    private static float AngleOf(Fighter victim, Vector2 pos) => (pos - victim.Pos).Angle();
+    private static float Delta(float to, float from) => Mathf.Wrap(to - from, -Mathf.Pi, Mathf.Pi);
+
+    private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float t = ab.LengthSquared() > 0 ? Mathf.Clamp((p - a).Dot(ab) / ab.LengthSquared(), 0, 1) : 0;
+        return p.DistanceTo(a + ab * t);
+    }
+
+    private bool TerrainBlocked(Vector2 pos, float radius)
+    {
+        Vector2 origin = Map.GridOrigin;
+        float cell = Map.CellSize, r = Mathf.Max(0, radius - .05f);
+        int x0 = Mathf.FloorToInt((pos.X - r - origin.X) / cell), x1 = Mathf.FloorToInt((pos.X + r - origin.X) / cell);
+        int z0 = Mathf.FloorToInt((pos.Y - r - origin.Y) / cell), z1 = Mathf.FloorToInt((pos.Y + r - origin.Y) / cell);
+        for (int z = z0; z <= z1; z++)
+            for (int x = x0; x <= x1; x++)
+            {
+                if (!Map.IsTerrainBlocked(x, z)) continue;
+                Vector2 low = origin + new Vector2(x, z) * cell;
+                Vector2 near = new(Mathf.Clamp(pos.X, low.X, low.X + cell), Mathf.Clamp(pos.Y, low.Y, low.Y + cell));
+                if (near.DistanceSquaredTo(pos) < r * r) return true;
+            }
+        return false;
+    }
 
     private static string Num(float value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 }
