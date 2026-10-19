@@ -20,6 +20,7 @@ public partial class TeamFrame : PanelContainer
     }
 
     private readonly Dictionary<uint, Mate> _mates = new(); // By owning player.
+    private readonly HashSet<uint> _away = new(); // Players whose seat the AI plays (server AWAY).
     private readonly List<StyleBoxFlat> _styles = new();
     private VBoxContainer _rows;
     private bool _active;
@@ -103,10 +104,17 @@ public partial class TeamFrame : PanelContainer
         if (_mates.Values.Any(m => m.Dead)) Refresh();
     }
 
+    public void SetAway(uint owner, bool away)
+    {
+        if (away ? !_away.Add(owner) : !_away.Remove(owner)) return;
+        Refresh();
+    }
+
     public void Clear()
     {
         foreach (Mate mate in _mates.Values) mate.Row.QueueFree();
         _mates.Clear();
+        _away.Clear();
         _hasTick = false; _tick = 0;
         Visible = false;
     }
@@ -154,8 +162,9 @@ public partial class TeamFrame : PanelContainer
             mate.Health.Value = knownHealth ? 100.0 * mate.Hp / mate.MaxHp : 0;
             mate.HealthText.Text = knownHealth ? HealthDisplay.Whole(mate.Hp) + " / " + HealthDisplay.Whole(mate.MaxHp) : "— / —";
             mate.ManaBar.Value = !mate.Dead && mate.MaxMana > 0 ? 100.0 * mate.Mana / mate.MaxMana : 0;
-            mate.Status.Text = !mate.Dead ? "" : mate.RespawnTick is uint at && _hasTick
+            string status = !mate.Dead ? "" : mate.RespawnTick is uint at && _hasTick
                 ? $"부활 {Math.Ceiling(Math.Max(0, unchecked((int)(at - _tick))) / (double)InterpolationClock.TickRate)}초" : "사망";
+            mate.Status.Text = !_away.Contains(mate.Owner) ? status : status == "" ? "AI 대행" : "AI · " + status;
         }
     }
 

@@ -19,8 +19,8 @@ public partial class Loading : Control
         _status = GetNode<Label>("%Status");
         _percent = GetNode<Label>("%ProgressValue");
         GetNode<Button>("%PrimaryButton").Pressed += ReturnToLobby;
-        GetNode<Label>("%Footnote").Text = "모든 참가자의 맵 준비가 끝나면 함께 시작합니다.";
-        GetNode<Label>("Header/Row/PreviewBadge").Text = "지인 테스트 · 전장 준비";
+        GetNode<Label>("%Footnote").Text = _session.Rejoining ? "진행 중인 경기로 돌아갑니다. AI가 맡던 자리를 이어받습니다." : "모든 참가자의 맵 준비가 끝나면 함께 시작합니다.";
+        GetNode<Label>("Header/Row/PreviewBadge").Text = _session.Rejoining ? "진행 중인 경기로 복귀" : "지인 테스트 · 전장 준비";
         // The overlay sits above Main's in-game CanvasLayers.
         var overlay = new CanvasLayer { Layer = 100 };
         AddChild(overlay);
