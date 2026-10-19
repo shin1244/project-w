@@ -17,6 +17,30 @@
   </tr>
 </table>
 
+### 협력해 강해지세요
+
+영웅이 장비를 사면 부활 지점에 상자가 떨어지고, 지휘관의 일꾼이 싸우고 있는 영웅에게 날라 줍니다.
+
+<p align="center">
+  <img src="docs/images/store/teamwork.gif" alt="일꾼이 부활 지점에 떨어진 장비 상자를 싸우는 영웅에게 나르는 장면" width="100%">
+</p>
+
+### 강력한 마석을 차지하세요
+
+맵 한가운데의 마석에 정신집중을 마치면 공성추가 적 본진으로 향합니다. 집중하는 동안 공격을 받으면 끊깁니다.
+
+<p align="center">
+  <img src="docs/images/store/magic-stone.gif" alt="마석에 정신집중하던 빨간 팀 골렘이 파란 팀 공압사수의 사격에 끊기고 달아나는 장면" width="100%">
+</p>
+
+### 적의 HQ를 무너트리세요
+
+적 본진의 HQ를 무너트리면 승리합니다.
+
+<p align="center">
+  <img src="docs/images/store/hq-siege.gif" alt="파란 팀 병력이 빨간 팀 HQ를 둘러싸고 공격하는 장면" width="100%">
+</p>
+
 - **한국 · 미국 서버**에서 플레이할 수 있습니다.
 - 빈자리는 AI가 채워서 혼자서도 한 판을 시작할 수 있습니다.
 
