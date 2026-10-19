@@ -49,6 +49,17 @@ public partial class MatchSession : Node
     public bool InGame { get; private set; }
     public QueueStatus Status { get; private set; }
     public MatchAssignment Match { get; private set; }
+    // The server keeps a dropped seat for the AI until the match ends, so the same ticket can
+    // come back: in place while the game scene is open, or from the lobby (even after a restart).
+    public bool Reconnecting { get; private set; }
+    public bool Rejoining { get; private set; }
+    public MatchAssignment Rejoinable { get; private set; }
+    private const double SilenceLimit = 5, ReconnectWindow = 120, RetryInterval = 2;
+    private string _rejoinUrl;
+    private double _silence, _reconnectElapsed, _retryIn;
+    private bool _attempting;
+    private CanvasLayer _reconnectOverlay;
+    private Label _reconnectLabel;
     private readonly System.Net.Http.HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
     private NetClient _net;
@@ -92,12 +103,7 @@ public partial class MatchSession : Node
             (uri.Scheme != "http" && uri.Scheme != "https") || uri.AbsolutePath != "/" || uri.Query != "" || uri.Fragment != "" || uri.UserInfo != "")
         { Fail("서버 주소를 http://주소:8080 형식으로 입력해 주세요."); return; }
         LobbyUrl = uri.GetLeftPart(UriPartial.Authority);
-        if (RememberAddress)
-        {
-            var config = new ConfigFile();
-            config.SetValue("network", "lobby_url", LobbyUrl);
-            config.Save("user://network.cfg");
-        }
+        if (RememberAddress) SaveSetting("network", "lobby_url", LobbyUrl);
         ErrorMessage = null;
         Result = null;
         Started = false;
@@ -160,9 +166,12 @@ public partial class MatchSession : Node
         Status = null;
         Match = null;
         Started = false;
+        Rejoining = false;
+        EndReconnect();
         string url = _queueUrl;
         _queueUrl = null;
-        if (url != null) _cleanupTask = ReleaseQueue(url, _pollTask);
+        // A started match's entry stays until its game exits: it is how this seat comes back.
+        if (url != null && url != _rejoinUrl) _cleanupTask = ReleaseQueue(url, _pollTask);
         Changed?.Invoke();
     }
 
@@ -199,13 +208,16 @@ public partial class MatchSession : Node
 
     public void ReturnToLobby()
     {
+        // Leaving a running match hands the seat to the AI; the lobby can bring it back.
+        if (InGame && Started && Result == null && !Reconnecting) _net.Leave("LEAVE");
+        else _net.Disconnect();
+        if (Result != null) ForgetRejoin();
         InGame = false;
         _results?.QueueFree();
         _results = null;
         Result = null;
         _gameMenu?.QueueFree();
         _gameMenu = null;
-        _net.Disconnect();
         CancelQueue();
         GetTree().ChangeSceneToFile("res://lobby/Lobby.tscn");
     }
@@ -224,17 +236,180 @@ public partial class MatchSession : Node
     private void OnMessage(string message)
     {
         if (Match == null) return;
-        if (message == "MATCH_START") { Started = true; Changed?.Invoke(); }
+        _silence = 0;
+        if (message == "MATCH_START")
+        {
+            Started = true;
+            Rejoining = false;
+            RememberRejoin(_queueUrl);
+            EndReconnect();
+            Changed?.Invoke();
+        }
         else if (!Started && message.StartsWith("ERR ", StringComparison.Ordinal)) Fail(message[4..]);
     }
 
-    private void OnClosed(string reason) { if (Match != null && Result == null) Fail(reason); }
+    private void OnClosed(string reason)
+    {
+        if (Match == null || Result != null) return;
+        _attempting = false;
+        if (InGame && Started) BeginReconnect();
+        else Fail(reason);
+    }
 
     public override void _Process(double delta)
     {
         if (Match == null || Result != null) { _heartbeat = 0; return; }
+        if (Reconnecting) { ContinueReconnect(delta); return; }
         _heartbeat += delta;
         if (_heartbeat >= 10) { _heartbeat = 0; _net.Send("PING"); }
+        // A running server sends TICK every frame. Silence means a dead link the OS has not
+        // reported yet; a long local stall must not look like one, hence the per-frame cap.
+        if (!InGame || !Started) return;
+        _silence += Math.Min(delta, 0.5);
+        if (_silence < SilenceLimit) return;
+        _net.Disconnect();
+        BeginReconnect();
+    }
+
+    private void BeginReconnect()
+    {
+        if (Reconnecting) return;
+        Reconnecting = true;
+        _reconnectElapsed = 0;
+        _retryIn = 0.5;
+        _attempting = false;
+        ShowReconnect();
+        Changed?.Invoke();
+    }
+
+    private void ContinueReconnect(double delta)
+    {
+        _reconnectElapsed += delta;
+        if (_reconnectElapsed > ReconnectWindow)
+        {
+            Fail("서버에 다시 연결하지 못했습니다. 경기가 계속되고 있으면 로비에서 돌아갈 수 있습니다.");
+            return;
+        }
+        _reconnectLabel.Text = $"서버와 연결이 끊겼습니다. 다시 연결하는 중… {(int)_reconnectElapsed}초\n그동안 AI가 대신 조종합니다.";
+        _retryIn -= delta;
+        if (_attempting || _retryIn > 0) return;
+        _retryIn = RetryInterval;
+        _attempting = true;
+        _ = Reconnect(_generation);
+    }
+
+    // The lobby knows whether the match is still running; the game socket alone cannot tell
+    // a finished match from a network problem.
+    private async Task Reconnect(int generation)
+    {
+        if (await LookUpMatch(_rejoinUrl) is { State: "gone" })
+        {
+            if (generation != _generation || !Reconnecting) return;
+            ForgetRejoin();
+            Fail("경기가 끝났습니다.");
+            return;
+        }
+        if (generation != _generation || !Reconnecting || Match == null) return;
+        _net.ConnectToServer(Match.Host, Match.Port); // Main resends MAP_READY with the ticket.
+    }
+
+    private void EndReconnect()
+    {
+        Reconnecting = false;
+        _attempting = false;
+        _silence = 0;
+        _reconnectOverlay?.QueueFree();
+        _reconnectOverlay = null;
+        _reconnectLabel = null;
+    }
+
+    private void ShowReconnect()
+    {
+        _reconnectOverlay = new CanvasLayer { Layer = 110 };
+        var shade = new ColorRect { Color = new Color(0.04f, 0.07f, 0.09f, 0.72f) };
+        shade.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _reconnectOverlay.AddChild(shade);
+        var box = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        box.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        box.AddThemeConstantOverride("separation", 14);
+        shade.AddChild(box);
+        _reconnectLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        _reconnectLabel.AddThemeFontSizeOverride("font_size", 18);
+        box.AddChild(_reconnectLabel);
+        var leave = new Button { Text = "로비로 나가기", SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        leave.Pressed += ReturnToLobby;
+        box.AddChild(leave);
+        AddChild(_reconnectOverlay);
+        _reconnectLabel.Text = "서버와 연결이 끊겼습니다. 다시 연결하는 중…\n그동안 AI가 대신 조종합니다.";
+    }
+
+    // Offers the lobby a way back into a match this client left or lost while it still runs.
+    public async void CheckRejoin()
+    {
+        if (_rejoinUrl == null && RememberAddress)
+        {
+            var config = new ConfigFile();
+            if (config.Load("user://network.cfg") == Error.Ok) _rejoinUrl = config.GetValue("match", "rejoin_url", "").AsString();
+            if (_rejoinUrl == "") _rejoinUrl = null;
+        }
+        if (_rejoinUrl == null || IsQueued || Match != null) return;
+        string url = _rejoinUrl;
+        QueueStatus status = await LookUpMatch(url);
+        if (url != _rejoinUrl || IsQueued || Match != null) return;
+        if (status?.State == "matched" && status.Match?.IsValid == true) Rejoinable = status.Match;
+        else if (status != null) ForgetRejoin(); // Gone or failed; null means the lobby is unreachable.
+        Changed?.Invoke();
+    }
+
+    public void Rejoin()
+    {
+        if (Rejoinable == null || IsQueued || Match != null) return;
+        ++_generation;
+        ErrorMessage = null;
+        Result = null;
+        Started = false;
+        Rejoining = true;
+        Match = Rejoinable;
+        Rejoinable = null;
+        _queueUrl = _rejoinUrl;
+        Changed?.Invoke();
+    }
+
+    public void ForgetRejoin()
+    {
+        _rejoinUrl = null;
+        Rejoinable = null;
+        if (RememberAddress) SaveSetting("match", "rejoin_url", null);
+    }
+
+    private void RememberRejoin(string url)
+    {
+        if (url == null || url == _rejoinUrl) return;
+        _rejoinUrl = url;
+        if (RememberAddress) SaveSetting("match", "rejoin_url", url);
+    }
+
+    // State "gone" when the lobby no longer has the entry (the match ended); null if unreachable.
+    private async Task<QueueStatus> LookUpMatch(string url)
+    {
+        if (url == null) return null;
+        try
+        {
+            using var response = await _http.GetAsync(url);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new QueueStatus { State = "gone" };
+            if (!response.IsSuccessStatusCode) return null;
+            return JsonSerializer.Deserialize<QueueStatus>(await response.Content.ReadAsStringAsync(), JsonOptions);
+        }
+        catch (Exception) { return null; }
+    }
+
+    private static void SaveSetting(string section, string key, string value)
+    {
+        var config = new ConfigFile();
+        config.Load("user://network.cfg"); // Keep the other saved keys.
+        if (value == null) { if (config.HasSectionKey(section, key)) config.EraseSectionKey(section, key); }
+        else config.SetValue(section, key, value);
+        config.Save("user://network.cfg");
     }
 
     public override void _ExitTree()

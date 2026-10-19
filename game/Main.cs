@@ -34,6 +34,10 @@ public partial class Main : Node3D
     private readonly Dictionary<uint,ItemCrateView> _crates=new();
     public IReadOnlyDictionary<uint,GoldNuggetView> Nuggets => _nuggets;
     private readonly Dictionary<uint,GoldNuggetView> _nuggets=new();
+    // Teammates whose seat the AI plays while they are disconnected (server AWAY).
+    public string AwayNotice => _awayNotice?.Visible == true ? _awayNotice.Text : null;
+    private readonly HashSet<uint> _away = new();
+    private Label _awayNotice;
 
     private NetClient _net;
     private MatchSession _matchSession;
@@ -84,6 +88,15 @@ public partial class Main : Node3D
         {
             _battleGuide = new BattleGuide { Name = "BattleGuide" };
             ui.AddChild(_battleGuide);
+            _awayNotice = new Label { Name = "AwayNotice", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore,
+                HorizontalAlignment = HorizontalAlignment.Center };
+            _awayNotice.AddThemeFontSizeOverride("font_size", 12);
+            _awayNotice.AddThemeColorOverride("font_color", new Color("ffc393"));
+            _awayNotice.AddThemeColorOverride("font_outline_color", new Color("101820"));
+            _awayNotice.AddThemeConstantOverride("outline_size", 3);
+            ui.AddChild(_awayNotice);
+            _awayNotice.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.CenterTop);
+            _awayNotice.OffsetLeft = -220; _awayNotice.OffsetRight = 220; _awayNotice.OffsetTop = 62; _awayNotice.OffsetBottom = 80;
             _tributePanel = new TributeEventPanel { Name = "TributeEventPanel" };
             ui.AddChild(_tributePanel);
             Shop=new HeroShopPanel { Name="HeroShop" };
@@ -439,6 +452,15 @@ public partial class Main : Node3D
             case "RESPAWN":
                 if (LocalRole == PlayerRole.Hero) Skills?.HandleRespawn(parts);
                 break;
+            case "AWAY":
+                if (parts.Length == 3 && WireNumber.UInt(parts[1], out uint awayPlayer) && parts[2] is "0" or "1")
+                {
+                    bool away = parts[2] == "1";
+                    if (away) _away.Add(awayPlayer); else _away.Remove(awayPlayer);
+                    Teammates?.SetAway(awayPlayer, away);
+                    RefreshAwayNotice();
+                }
+                break;
             case "TEAM_RESPAWN":
                 if (TeamRespawnSnapshot.TryParse(parts, out var teamRespawn)) Teammates?.HandleRespawn(teamRespawn);
                 break;
@@ -710,6 +732,8 @@ public partial class Main : Node3D
     private void SetPlayerRole(PlayerRole role, uint? heroType = null, uint playerId = 0, uint team = 0)
     {
         LocalRole = role;
+        _away.Clear(); // The snapshot after WELCOME lists the seats the AI plays now.
+        RefreshAwayNotice();
         Buildings?.ResetTeamTiers();
         if (Units != null) Units.CommanderControl = role == PlayerRole.Commander;
         LocalHeroType = role == PlayerRole.Hero ? heroType : null;
@@ -739,6 +763,25 @@ public partial class Main : Node3D
         Teammates?.SetLocal(role, playerId, team);
         Shop?.SetRole(role==PlayerRole.Hero);
         Map?.SetLocalTeam(team);
+    }
+
+    private void RefreshAwayNotice()
+    {
+        if (_awayNotice == null) return;
+        _awayNotice.Visible = _away.Count > 0;
+        _awayNotice.Text = "연결 끊김 · AI가 대신 조종 중: " + string.Join(", ", _away.OrderBy(id => id).Select(PlayerName));
+    }
+
+    private string PlayerName(uint player)
+    {
+        bool owns = false;
+        foreach (Unit unit in Units.LiveUnits)
+        {
+            if (unit.OwnerId != player) continue;
+            if (UnitCatalog.IsHero(unit.UnitType)) return UnitCatalog.Name(unit.UnitType);
+            owns = true;
+        }
+        return Teammates?.NameOf(player) ?? (owns ? "지휘관" : "팀원");
     }
 
     private void OnPositionsRendered()

@@ -4,7 +4,7 @@
 이전 저장소의 완료 기록 경로 재해석, 최신 체크포인트 선택, 정책 대체 경로를 검사합니다.
 이 검사는 Godot 빌드와 PyTorch 없이 실행됩니다.
 
-관전은 `run.ps1 -Check SpectatorChecks`로 중립 역할·전체 시야·명령 차단·대상 조회·따라가기/사망·역할 초기화를 검사합니다. 실제 학습 모델 관전은 `run-match.ps1 -Players 1 -Spectate -PolicyDirectory <hero.json과 commander.json이 있는 폴더> -SkipBuild`로 두 번의 새 경기와 로비 복귀를 확인합니다. `-RenderCapture`는 숨김 렌더 창에서 실제 경기 화면을 `docs/images/spectator-trained-ai.png`에 저장합니다. 기본 검사는 서버 메시지를 모의 주입하고, 실제 경기 검사는 Go 로비·서버를 실행합니다. All은 현재 22개 검사입니다.
+관전은 `run.ps1 -Check SpectatorChecks`로 중립 역할·전체 시야·명령 차단·대상 조회·따라가기/사망·역할 초기화를 검사합니다. 실제 학습 모델 관전은 `run-match.ps1 -Players 1 -Spectate -PolicyDirectory <hero.json과 commander.json이 있는 폴더> -SkipBuild`로 두 번의 새 경기와 로비 복귀를 확인합니다. `-RenderCapture`는 숨김 렌더 창에서 실제 경기 화면을 `docs/images/spectator-trained-ai.png`에 저장합니다. 기본 검사는 서버 메시지를 모의 주입하고, 실제 경기 검사는 Go 로비·서버를 실행합니다. All은 현재 23개 검사입니다.
 
 로비부터 실제 전장까지의 연결 검사는 별도 `run-match.ps1 -Players 2` 또는 `-Players 6`로 실행합니다. Go 서버를 로컬에서 실행하는 선택적 통합 검사이며 기본 검사에 포함되지 않습니다. 사용법은 [지인 테스트 안내](../docs/friend-test.md#검증)를 참고하세요.
 
@@ -26,15 +26,17 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시 |
 | World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·공물 이벤트·공성추 |
 | UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀 |
-| Network | NetClient | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달 |
+| Network | NetClient, Reconnect | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달·마지막 `LEAVE` 전송, 경기 중 끊김의 제자리 재접속·무응답 감지·AI 대행 팀원 표시·로비 복귀 제안 |
 | 단일 검사 `-Check RtsControlChecks` | RtsControl | 입력·편성 구매·탭 전환·네이티브 드래그 순서 변경·취소·오래된 리비전·역할 변경 |
 | 단일 검사 `-Check TributeChecks` | Tribute | 공물 스냅샷·대기/수집 시간·영웅 우클릭·역할 제한·재동기화/연결 종료 |
 | 단일 검사 `-Check SiegeRamChecks` | SiegeRam | 자동 공성추 소환·체력·실제 우클릭 공격·서버 충돌 연출·정리 |
 | 단일 검사 `-Check RecoveryClientChecks` | RecoveryClient | 사령관, 상점·장비, 아이템 상자 우클릭·일꾼 배달, 귀환·효과 타이머, 액티브·패시브 강화 및 포인트 동기화, 역할·맵·연결 초기화 |
 | 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 치유사 생산 조건·대기열·모델·회복 표시, 무료 추가권과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
-| All | 중복을 제거한 22개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
+| All | 중복을 제거한 23개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
 
 표에서 `check_arena`를 제외한 이름에는 `Checks` 접미사가 붙는다. 한 기능만 바꿨으면 `-Check 이름`이 우선이며, 관련 그룹을 실행했다면 기본 검사까지 추가 실행할 필요는 없다. 문서·외형만 바꿨다면 자동 테스트는 생략할 수 있다.
+
+`ReconnectChecks`는 실제 Main 장면에 서버 메시지를 주입합니다. 시작한 경기에서 연결이 끊기면 경기 정보를 유지한 채 같은 입장권으로 다시 접속하고 새 스냅샷의 `MATCH_START`로 끝나는지, 5초 무응답을 끊김으로 보는지, `AWAY`로 AI가 조종하는 팀원을 표시하고 다시 동기화할 때 지우는지, `로비로 나가기`가 `LEAVE`를 보내고 로비 항목을 남겨 복귀 버튼을 띄우는지 확인합니다. 서버의 자리 유지·AI 인계 판정은 서버 검사 범위입니다.
 
 `NetClientChecks`는 소켓 대신 쓰기를 정지할 수 있는 스트림을 사용합니다. 실제 서버 없이 전송 중 UI 호출이 즉시 반환하는지, 명령 순서와 5초 제한 시간, 연결 교체 후 이전 오류가 새 세션에 영향을 주지 않는지 확인합니다.
 
