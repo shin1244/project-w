@@ -81,7 +81,7 @@ public partial class PneumaticRiflePreview : Node3D
     {
         var canvas = new CanvasLayer(); AddChild(canvas);
         _layout = new Control { MouseFilter = Control.MouseFilterEnum.Ignore }; canvas.AddChild(_layout);
-        Text("PROJECT W     /     BARRACKS", 64, 42, 1100, 18, "b6a282");
+        Text("BURN QUARTER     /     BARRACKS", 64, 42, 1100, 18, "b6a282");
         Text("공압사수", 60, 80, 1100, 43, "f0e7d4");
         Text("목제 총몸 · 황동 압력 장치 · 등짐 공기통", 64, 143, 1200, 19, "a5b4bb");
         _layout.AddChild(new ColorRect { Position = new Vector2(64, 199), Size = new Vector2(1472, 1), Color = new Color("4c5a61") });

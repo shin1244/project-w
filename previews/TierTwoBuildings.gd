@@ -8,7 +8,7 @@ func _ready() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	var heading := label("PROJECT W  /  2티어 건물", 30, Color("edf0e4"))
+	var heading := label("BURN QUARTER  /  2티어 건물", 30, Color("edf0e4"))
 	heading.position = Vector2(38, 24)
 	add_child(heading)
 	var layout := HBoxContainer.new()

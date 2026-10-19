@@ -60,10 +60,14 @@ public partial class MatchSession : Node
     private Task _pollTask = Task.CompletedTask;
     private Task _cleanupTask = Task.CompletedTask;
 
+    // Godot names the user folder after config/name, so an address saved before the rename to
+    // Burn Quarter is still in the Project W folder beside it until the next queue saves a new one.
+    private static string LegacyNetworkConfig() => OS.GetUserDataDir().GetBaseDir().PathJoin("Project W").PathJoin("network.cfg");
+
     public override void _Ready()
     {
         var config = new ConfigFile();
-        if (config.Load("user://network.cfg") == Error.Ok)
+        if (config.Load("user://network.cfg") == Error.Ok || config.Load(LegacyNetworkConfig()) == Error.Ok)
             LobbyUrl = config.GetValue("network", "lobby_url", LobbyUrl).AsString();
         foreach (string argument in OS.GetCmdlineUserArgs())
         {

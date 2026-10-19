@@ -19,7 +19,7 @@ public partial class RuneGolemPreview : Control
         background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         _layout = new Control { MouseFilter = MouseFilterEnum.Ignore };
         AddChild(_layout);
-        Text("PROJECT W   /   HERO 02", new Vector2(26, 18), 650, 17, "92a8b2");
+        Text("BURN QUARTER   /   HERO 02", new Vector2(26, 18), 650, 17, "92a8b2");
         Text("룬 골렘", new Vector2(24, 48), 950, 40, "e9e3d1");
         Text("돌가죽 · 룬 심장 · 거대한 돌주먹", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
         AddView(new Rect2(24, 125, 1050, 735), new Vector3(5.8f, 3.5f, -6.2f), 3.9f);

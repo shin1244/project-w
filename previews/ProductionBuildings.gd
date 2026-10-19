@@ -12,7 +12,7 @@ func _ready() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	var heading := label("PROJECT W  /  생활 · 군수 시설", 30, Color("edf0e4"))
+	var heading := label("BURN QUARTER  /  생활 · 군수 시설", 30, Color("edf0e4"))
 	heading.position = Vector2(38, 24)
 	add_child(heading)
 	var subtitle := label("숙소 · 브랜치 · 인력 사무소 · 증기 해머가 도는 조병창", 17, Color("9eaca8"))

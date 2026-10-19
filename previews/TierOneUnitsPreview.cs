@@ -81,7 +81,7 @@ public partial class TierOneUnitsPreview : Node3D
         AddChild(canvas);
         _layout = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
         canvas.AddChild(_layout);
-        Text("PROJECT W     /     BARRACKS", 64, 42, 650, 19, "9faeaf");
+        Text("BURN QUARTER     /     BARRACKS", 64, 42, 650, 19, "9faeaf");
         Text("1티어 정규군", 60, 76, 1000, 48, "f0e8d5");
         Text("스팀돌격병과 공압사수  ·  실제 게임 모델 / 동일한 카메라 배율", 64, 143, 1200, 20, "abb9bd");
         Line(64, 202, 1472, "4c5e65");
