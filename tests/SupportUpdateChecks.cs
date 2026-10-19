@@ -52,43 +52,46 @@ public partial class SupportUpdateChecks : Main
             ConfigureMinions();
             CheckLaneExperience(0,100);CheckLaneExperience(1,100);
             foreach (string malformed in new[]{"MINION_XP_RULE 0 5","MINION_XP_RULE 6 -1","MINION_XP_RULE 6 101","MINION_XP_RULE 6 10 extra","MINION_XP_RULE 99999999999 5"}) Receive(malformed);
-            Receive("MINION_FREE 2");Receive("STOCK 0 0");
-            foreach (string malformed in new[]{"MINION_FREE -1","MINION_FREE 1 extra","MINION_FREE 4294967296"}) Receive(malformed);
-            Check(Minions.FreeAdds==2,"Malformed credit messages cannot replace valid balance");
+            Receive("MINION_ADD_COST 3 100");Receive("STOCK 0 0");Receive("STOCK 3 200");
+            foreach (string malformed in new[]{"MINION_ADD_COST 3 -1","MINION_ADD_COST 3 100 extra","MINION_ADD_COST x 100","MINION_ADD_COST 3 99999999999999999999"}) Receive(malformed);
+            Check(Minions.AddCost==new MinionAddCostSnapshot(3,100) && Minions.MagicStones==200 && Minions.CanAffordAdd,
+                "Malformed slot prices cannot replace the server's 마석 price");
             Minions.GetNode<Button>("Tabs/MinionTab").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
-            var creditLabel=Minions.GetNode<Label>("Body/Content/Header/FreeAdds");
-            Check(creditLabel.IsVisibleInTree() && creditLabel.Size.X>60 && Minions.GetGlobalRect().Encloses(creditLabel.GetGlobalRect()),
-                "Free reward count must remain readable inside the actual HUD");
+            var stoneLabel=Minions.GetNode<Label>("Body/Content/Header/MagicStone");
+            Check(stoneLabel.IsVisibleInTree() && stoneLabel.Text.Contains("마석") && stoneLabel.Text.Contains("200") &&
+                Minions.GetGlobalRect().Encloses(stoneLabel.GetGlobalRect()),
+                "The 마석 balance must remain readable inside the actual HUD");
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
             var option=Minions.GetNode<Button>("Picker/Content/Options/Option102");
-            Check(!option.Disabled && option.FindChildren("Cost","Label",true,false).OfType<Label>().Single().Text.Contains("무료"),
-                "Existing + picker offers free choice without wood");
+            Check(!option.Disabled && option.FindChildren("Cost","Label",true,false).OfType<Label>().Single().Text.Contains("마석 100"),
+                "The + picker shows the server's 마석 price instead of wood");
             before=wire.Length;option.EmitSignal(BaseButton.SignalName.Pressed);
-            Check(After(wire,before)=="MINION_ADD 0 0 102\n" && Minions.IsRequestPending && Minions.FreeAdds==2,
-                "Free add sends once and waits for authoritative credit and lane response");
-            Receive("MINION_FREE 1");Receive("MINION_LANE 0 1 7 100 100 100 101 101 101 102");await Flush();
-            Check(!Minions.IsRequestPending && Minions.FreeAdds==1,"Server acknowledgement consumes one credit");
+            Check(After(wire,before)=="MINION_ADD 0 0 102\n" && Minions.IsRequestPending && Minions.MagicStones==200,
+                "An add sends once and waits for the authoritative balance and lane");
+            Receive("STOCK 3 100");Receive("MINION_LANE 0 1 7 100 100 100 101 101 101 102");await Flush();
+            Check(!Minions.IsRequestPending && Minions.MagicStones==100,"The server's STOCK spends the 마석");
             CheckLaneExperience(0,95);CheckLaneExperience(1,100);
             var laneLabel=Minions.GetNode<Label>("Body/Content/Lanes/Rows/Lane0/Name");
             Check(laneLabel.Size.X>=80 && laneLabel.GetLineCount()==3 &&
                 Minions.GetGlobalRect().Encloses(laneLabel.GetGlobalRect()),"Lane experience label fits inside HUD");
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Slot0").EmitSignal(BaseButton.SignalName.Pressed);
-            Check(Minions.GetNode<Button>("Picker/Content/Options/Option102").Disabled,"Replacement still requires wood even with a free addition");
-            Receive("MINION_FREE 0");
+            Check(Minions.GetNode<Button>("Picker/Content/Options/Option102").Disabled,"Replacement still requires wood even with 마석");
+            Receive("STOCK 3 99");
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").EmitSignal(BaseButton.SignalName.Pressed);
-            Check(Minions.GetNode<Button>("Picker/Content/Options/Option102").Disabled,"Without credits ordinary prices apply");
+            Check(!Minions.CanAffordAdd && Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").Disabled,
+                "Less 마석 than one slot locks the + button");
             Receive("MINION_LANE 0 2 8 100 100 100 101 101 101 102 100");CheckLaneExperience(0,90);
             Receive("MINION_LANE 0 3 12 100 100 100 101 101 101 102 100 100 100 100 100");CheckLaneExperience(0,70);
-            Receive("MINION_FREE 2");Receive($"MAP 2 {Map.MapHash}");
-            Check(Minions.FreeAdds==0 && !Minions.IsPickerOpen,"Map reset drops old credits and picker");
+            Receive("STOCK 3 200");Receive($"MAP 2 {Map.MapHash}");
+            Check(Minions.AddCost==null && Minions.MagicStones==0 && !Minions.IsPickerOpen,"Map reset drops the old price, 마석 and picker");
             Begin();ConfigureMinions(false);
             Check(!Minions.GetNode<Label>("Body/Content/Lanes/Rows/Lane0/Name").Text.Contains("경험치"),
                 "Map reset clears old experience rule; old servers do not display an assumed rate");
-            Receive("MINION_XP_RULE 6 5");CheckLaneExperience(0,100);Receive("MINION_FREE 1");
+            Receive("MINION_XP_RULE 6 5");CheckLaneExperience(0,100);Receive("MINION_ADD_COST 3 100");Receive("STOCK 3 100");
             if (OS.GetCmdlineUserArgs().Contains("--capture") || OS.GetCmdlineUserArgs().Contains("--capture-xp")) await Capture();
             Receive("WELCOME 7 1 HERO 202");
-            Check(Minions.FreeAdds==0 && !Minions.Visible,"Hero role cannot keep commander reward UI");
-            GD.Print("PASS: medic production/heal; tribute free + choice; lane XP 100/95/90/70%, rule validation, HUD fit and lifecycle reset");
+            Check(Minions.AddCost==null && Minions.MagicStones==0 && !Minions.Visible,"Hero role cannot keep commander 마석 UI");
+            GD.Print("PASS: medic production/heal; 마석 + choice; lane XP 100/95/90/70%, rule validation, HUD fit and lifecycle reset");
             GetTree().Quit();
         }
         catch(Exception error) { GD.PushError(error.ToString());GetTree().Quit(1); }

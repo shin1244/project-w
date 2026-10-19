@@ -22,16 +22,16 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | 선택 | 남긴 검증 | 실행할 변경 |
 | --- | --- | --- |
 | Smoke (기본) | MapSync, UnitScene, CommandPanel, Stock | 여러 핵심 흐름을 간단히 확인할 때 |
-| Units | UnitScene, Interpolation, MinionSync, RecoveryClient, SupportUpdate | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간, 사령관·상점·귀환, 치유사·무료 추가 |
+| Units | UnitScene, Interpolation, MinionSync, RecoveryClient, SupportUpdate | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간, 사령관·상점·귀환, 치유사·마석 슬롯 추가 |
 | Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시 |
-| World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·공물 이벤트·공성추 |
+| World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·마석 이벤트·공성추 |
 | UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀 |
 | Network | NetClient, Reconnect | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달·마지막 `LEAVE` 전송, 경기 중 끊김의 제자리 재접속·무응답 감지·AI 대행 팀원 표시·방의 경기 복귀 제안 |
 | 단일 검사 `-Check RtsControlChecks` | RtsControl | 입력·편성 구매·탭 전환·네이티브 드래그 순서 변경·취소·오래된 리비전·역할 변경 |
-| 단일 검사 `-Check TributeChecks` | Tribute | 공물 스냅샷·대기/수집 시간·영웅 우클릭·역할 제한·재동기화/연결 종료 |
+| 단일 검사 `-Check TributeChecks` | Tribute | 마석 스냅샷·대기/수집 시간·영웅 우클릭·역할 제한·재동기화/연결 종료 |
 | 단일 검사 `-Check SiegeRamChecks` | SiegeRam | 자동 공성추 소환·체력·실제 우클릭 공격·서버 충돌 연출·정리 |
 | 단일 검사 `-Check RecoveryClientChecks` | RecoveryClient | 사령관, 상점·장비, 아이템 상자 우클릭·일꾼 배달, 귀환·효과 타이머, 액티브·패시브 강화 및 포인트 동기화, 역할·맵·연결 초기화 |
-| 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 치유사 생산 조건·대기열·모델·회복 표시, 무료 추가권과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
+| 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 치유사 생산 조건·대기열·모델·회복 표시, 마석 가격·잔액과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
 | All | 중복을 제거한 23개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
 
 표에서 `check_arena`를 제외한 이름에는 `Checks` 접미사가 붙는다. 한 기능만 바꿨으면 `-Check 이름`이 우선이며, 관련 그룹을 실행했다면 기본 검사까지 추가 실행할 필요는 없다. 문서·외형만 바꿨다면 자동 테스트는 생략할 수 있다.
@@ -46,13 +46,13 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 
 실행기는 빌드 한 번 후 선택한 검사만 실행하고, 성공은 한 줄로 요약한다. 상세 출력은 Git에서 제외된 `.godot/check-logs/`에 저장한다. 실패·엔진 오류·PASS 누락·제한 시간 초과는 실패로 처리하며 즉시 멈춘다. 기본 제한은 검사당 30초다. 이미 같은 소스를 빌드했다면 `-SkipBuild`를 사용할 수 있다.
 
-`TributeChecks`는 실제 Main 장면에 서버 스냅샷을 주입하고 Viewport 우클릭이 메모리 네트워크 출력에 정확한 공물 명령 하나만 보내는지 확인한다. 최초 2분·공성추 진군 중 대기·공성추 모두 소멸 후 서버가 예약한 3분 카운트다운, 진군 중 재접속, 7초 채널의 표시와 완료 응답 대기, RTS·다른 소유 영웅의 수집 거부를 포함한다. 서버의 실제 접근 거리·채널 중단·공물 보상 판정은 별도 서버 검사 범위다. 이미 빌드한 뒤 렌더 미리보기만 저장하려면 Godot를 화면 렌더 모드로 실행한다.
+`TributeChecks`는 실제 Main 장면에 서버 스냅샷을 주입하고 Viewport 우클릭이 메모리 네트워크 출력에 정확한 마석 명령 하나만 보내는지 확인한다. 최초 2분·공성추 진군 중 대기·공성추 모두 소멸 후 서버가 예약한 3분 카운트다운, 진군 중 재접속, 7초 채널의 표시와 완료 응답 대기, RTS·다른 소유 영웅의 수집 거부를 포함한다. 서버의 실제 접근 거리·채널 중단·마석 보상 판정은 별도 서버 검사 범위다. 이미 빌드한 뒤 렌더 미리보기만 저장하려면 Godot를 화면 렌더 모드로 실행한다.
 
 ```powershell
 & $env:GODOT_BIN --path . --resolution 1152x648 res://tests/TributeChecks.tscn -- --capture
 ```
 
-위 실행은 검증 중 중앙 공물과 영웅, HUD, 절반 진행된 수집 채널을 `docs/images/tribute-preview.png`에 저장한다.
+위 실행은 검증 중 중앙 마석과 영웅, HUD, 절반 진행된 수집 채널을 `docs/images/tribute-preview.png`에 저장한다.
 
 `SiegeRamChecks`는 실제 Main 장면에 공성추 소환·체력·충돌 메시지를 주입한다. 자율 유닛 소유권, 아군 관찰과 적 우클릭 공격의 분리, 명시적인 `RAM_IMPACT`의 중복 방지와 `HP`·`REMOVE` 이전에 피해나 삭제를 예측하지 않는지 확인한다. `HIDE`·전체 정리·맵 재동기화도 포함하며 서버의 실제 이동·충돌 피해 판정은 별도 서버 검사 범위다.
 

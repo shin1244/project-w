@@ -41,8 +41,9 @@ public partial class RtsControlChecks
         Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("생명"),
             "Only the authoritative lane snapshot confirms a purchased replacement");
         Check(((Button)MinionControl("Body/Content/Lanes/Rows/Lane1/Add")).Disabled,
-            "Plus needs a free minion credit; wood never buys a slot");
-        Receive("MINION_FREE 1");
+            "Plus needs 마석; wood never buys a slot");
+        Receive("MINION_ADD_COST 3 100");
+        Receive("STOCK 3 100");
         await Flush();
         Click(MinionControl("Body/Content/Lanes/Rows/Lane1/Add").GetGlobalRect().GetCenter(), MouseButton.Left);
         await Flush();
