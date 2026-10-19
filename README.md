@@ -2,8 +2,6 @@
   <img src="docs/images/store/header.png" alt="Burn Quarter" width="100%">
 </p>
 
-<h3 align="center">4 대 4 AOS + RTS. 지휘관은 공장을 돌리고, 영웅은 전선을 민다.</h3>
-
 <p align="center">
   <img src="docs/images/store/battle-1.gif" alt="라인 한가운데의 대규모 교전" width="100%">
 </p>
