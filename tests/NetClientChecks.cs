@@ -19,7 +19,8 @@ public partial class NetClientChecks : Node
             await CheckSessionIsolation();
             await CheckQueueLimit();
             await CheckWriteTimeout();
-            GD.Print("PASS: nonblocking ordered writes, session cancellation, bounded queue, write timeout, main-thread errors");
+            await CheckLeaveWritesFarewell();
+            GD.Print("PASS: nonblocking ordered writes, session cancellation, bounded queue, write timeout, main-thread errors, farewell before close");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }
@@ -117,6 +118,32 @@ public partial class NetClientChecks : Node
         Check(reason?.Contains("시간이 초과") == true, "A stalled write must time out and close the connection");
         stream.Release();
         await writer.DisposeAsync();
+    }
+
+    private static async Task CheckLeaveWritesFarewell()
+    {
+        using var net = new NetClient();
+        using var stream = new StalledStream();
+        var writer = Attach(net, stream);
+        int closed = 0;
+        net.ConnectionClosed += _ => closed++;
+        net.Send("LAST_ORDER");
+        Task pending = Tail(net);
+        net.Leave("LEAVE");
+        Check(Queue(net) == null, "Leave must free the client for a new connection at once");
+        using var fresh = new MemoryStream();
+        var freshWriter = Attach(net, fresh);
+        net.Send("NEW");
+        await Tail(net).WaitAsync(TimeSpan.FromSeconds(2));
+        stream.Release();
+        await pending.WaitAsync(TimeSpan.FromSeconds(2));
+        for (int i = 0; i < 100 && !stream.Text.Contains("LEAVE"); i++) await Task.Delay(10);
+        net._Process(0);
+        Check(stream.Text.Replace("\r", "") == "LAST_ORDER\nLEAVE\n" && Encoding.UTF8.GetString(fresh.ToArray()).Trim() == "NEW" && closed == 0,
+            "Leave must write its farewell after queued commands without touching the next connection");
+        net.Disconnect();
+        await writer.DisposeAsync();
+        await freshWriter.DisposeAsync();
     }
 
     private sealed class StalledStream : MemoryStream

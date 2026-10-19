@@ -136,6 +136,30 @@ public partial class NetClient : Node
             _inbox.Enqueue((queue.Session, reason, true));
     }
 
+    // Sends one last line and closes once it is written. The client is free for a new
+    // connection right away; the old socket only lives until the line leaves (or times out).
+    public void Leave(string farewell)
+    {
+        if (_writer == null) { Disconnect(); return; }
+        Send(farewell);
+        Task written = _sendQueue?.Tail ?? Task.CompletedTask;
+        TcpClient tcp = _tcp;
+        CancellationTokenSource lifetime = _lifetime;
+        _tcp = null;
+        _lifetime = null;
+        Disconnect();
+        _ = CloseAfter(written, tcp, lifetime);
+    }
+
+    private static async Task CloseAfter(Task written, TcpClient tcp, CancellationTokenSource lifetime)
+    {
+        try { await written.WaitAsync(WriteTimeout).ConfigureAwait(false); }
+        catch (Exception) { /* The connection closes either way. */ }
+        lifetime?.Cancel();
+        lifetime?.Dispose();
+        tcp?.Close();
+    }
+
     public void Disconnect()
     {
         _session++;
