@@ -11,7 +11,10 @@ using System.Text.Json;
 // Movement copies the server's shape of a fight (project-w-server attack_slots.go, move.go): armies
 // march in formation, melee units split the ring around their target into attack slots, wait one
 // ring further out or switch to an enemy with room, allies push apart and enemies block.
-// F6 plays the three scenes in a loop. `-- --capture=DIR` records each scene's frames as JPGs.
+// Scenes 1-3 are battles; 4-6 add a short script each (an item crate carried to a hero, a magic stone
+// channel broken by fire, a siege on an HQ) on top of the same simulation.
+// F6 plays the six scenes in a loop. `-- --capture=DIR` records each scene's frames as JPGs, and
+// `--scenes=4,5,6` limits either to those scenes.
 public partial class BattleStage : Main
 {
     private const int TickRate = 30;
@@ -47,6 +50,11 @@ public partial class BattleStage : Main
         public uint SentFocus, SentSwing;
         public float SentHp;
         public bool Moved, Deployed, Anchored, Blocks;
+        // Scripted parts: a passive unit picks no target and only walks to March; a pose is the
+        // STATE it shows while it has nothing to fight (a worker chopping, a hero channelling).
+        public bool Passive, Building;
+        public string Pose;
+        public uint PoseFocus;
         public float SkillTimer;
         public bool Alive => Hp > 0;
         public bool Melee => Range <= MeleeSlotMaxRange;
@@ -65,18 +73,23 @@ public partial class BattleStage : Main
     private readonly List<Fighter> _fighters = new();
     private readonly Dictionary<uint, (Vector2 Pos, uint Team)> _towers = new();
     private readonly Dictionary<uint, Ring> _rings = new();
+    private readonly Dictionary<uint, (uint Id, Vector2 Pos)> _bases = new();
     private readonly RandomNumberGenerator _rng = new() { Seed = 7 };
-    private uint _tick, _nextId = 50000;
+    private uint _tick, _nextId = 50000, _sceneTick, _crate;
     private double _accumulator;
     private Camera3D _camera;
+    private Action<float> _script; // runs every tick of a scene with the seconds since it started
 
     public override async void _Ready()
     {
         if (Map.SyncError != null) { GD.PushError(Map.SyncError); GetTree().Quit(1); return; }
         SyncStatus.Hide();
-        // The parts of Main._Ready that do not touch the network.
+        // The parts of Main._Ready that do not touch the network, and the magic stone view it makes with the input.
         Fog?.Configure(Map);
         if (Buildings != null && Fog != null) Buildings.VisibilityCheck = Fog.IsBuildingVisible;
+        var stone = new TributeEventView { Name = "TributeEvent" };
+        AddChild(stone);
+        typeof(Main).GetField("_tributeView", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(this, stone);
         // The same handshake a server sends: map hash, world ready, then a spectator seat.
         Send($"MAP 2 {Map.MapHash}");
         Send("WORLD_READY");
@@ -85,7 +98,10 @@ public partial class BattleStage : Main
         uint id = (uint)(Map.GridSize.X * Map.GridSize.Y + 1);
         uint side = 0;
         foreach (var point in data.RootElement.GetProperty("bases").EnumerateArray())
-            Send($"BUILDING 0 {id++} {++side} {point[0].GetRawText()} {point[1].GetRawText()} 0");
+        {
+            _bases[++side] = (id, new Vector2(point[0].GetSingle(), point[1].GetSingle()));
+            Send($"BUILDING 0 {id++} {side} {point[0].GetRawText()} {point[1].GetRawText()} 0");
+        }
         foreach (var tower in data.RootElement.GetProperty("towers").EnumerateArray())
         {
             var pos = tower.GetProperty("pos");
@@ -100,10 +116,13 @@ public partial class BattleStage : Main
         _camera.SetProcessUnhandledInput(false);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         HideInterface();
-        string capture = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--capture="))?[10..];
+        string[] args = OS.GetCmdlineUserArgs();
+        string capture = args.FirstOrDefault(a => a.StartsWith("--capture="))?[10..];
+        int[] scenes = args.FirstOrDefault(a => a.StartsWith("--scenes="))?[9..].Split(',').Select(int.Parse).ToArray()
+            ?? new[] { 1, 2, 3, 4, 5, 6 };
         do
         {
-            for (int scene = 1; scene <= 3; scene++)
+            foreach (int scene in scenes)
                 await PlayScene(scene, capture);
         } while (capture == null);
         GetTree().Quit();
@@ -144,7 +163,7 @@ public partial class BattleStage : Main
                 shots = new[] { new Shot(0, new Vector2(-2, 0), 13), new Shot(2.5f, new Vector2(0, 0), 16), new Shot(6.5f, new Vector2(1, 0), 30) };
                 length = 6.5f;
                 break;
-            default: // Bottom lane siege: steam artillery digs in and shells the fortress line.
+            case 3: // Bottom lane siege: steam artillery digs in and shells the fortress line.
                 Army(1, new Vector2(-17, 31), Vector2.Right, minions: true, mercs: 5, heroes: new uint[] { 202, 200 }, machines: 0);
                 Army(2, new Vector2(-1, 32), Vector2.Left, minions: true, mercs: 5, heroes: new uint[] { 201 }, machines: 2);
                 foreach (Vector2 at in new[] { new Vector2(6, 30), new Vector2(7, 34) })
@@ -157,9 +176,139 @@ public partial class BattleStage : Main
                 shots = new[] { new Shot(0, new Vector2(5, 31), 12), new Shot(2.6f, new Vector2(1, 31), 18), new Shot(6.8f, new Vector2(-8, 31), 34) };
                 length = 6.8f;
                 break;
+            case 4:
+                (shots, length) = ItemDelivery();
+                break;
+            case 5:
+                (shots, length) = BrokenChannel();
+                break;
+            default:
+                (shots, length) = HeadquartersSiege();
+                break;
         }
         await Run(0.35f, null, shots); // Let the client place everything before the first frame.
+        _sceneTick = _tick;
         await Run(length, capture == null ? null : $"{capture}/scene-{scene}", shots);
+    }
+
+    // The blue hero buys an item mid-fight: the crate drops at the blue spawn, a worker carries it
+    // across the base to the hero, and the hero, armed with it, finishes the red minions.
+    private (Shot[], float) ItemDelivery()
+    {
+        Fighter hero = Spawn(UnitCatalog.HeroTest, 1, new Vector2(-65f, -9.5f));
+        hero.Damage = 15;
+        foreach ((uint type, Vector2 at) in new[] { (100u, new Vector2(-63.5f, -12.3f)), (100u, new Vector2(-66.6f, -12.1f)) })
+            Spawn(type, 2, at).Hp = 520;
+        foreach ((Vector2 at, uint tree) in new[] { (new Vector2(-55.1f, -3f), 10111u), (new Vector2(-55.1f, -.9f), 10447u) })
+        {
+            Fighter chopper = Spawn(UnitCatalog.Worker, 1, at);
+            (chopper.Passive, chopper.Pose, chopper.PoseFocus) = (true, "GATHER", tree);
+        }
+        Fighter porter = Spawn(UnitCatalog.Worker, 1, new Vector2(-72.5f, -5f));
+        porter.Passive = true;
+        Vector2 drop = new(-76, -2); // 2m from the hero spawn point, one of the server's eight drop spots
+        float pickedUp = -1;
+        _script = time =>
+        {
+            if (_crate == 0 && time >= .3f)
+            {
+                _crate = _nextId++;
+                Send($"ITEM_CRATE {_crate} {hero.Owner} 1 0 {Num(drop.X)} {Num(drop.Y)}");
+                porter.March = drop;
+            }
+            else if (_crate != 0 && pickedUp < 0 && porter.Pos.DistanceTo(drop) < .2f)
+                pickedUp = time;
+            else if (pickedUp >= 0 && time >= pickedUp + .3f && hero.Damage < 100)
+            {
+                porter.March = hero.Pos;
+                Send($"ITEM_CRATE {_crate} {hero.Owner} 1 {porter.Id} {Num(porter.Pos.X)} {Num(porter.Pos.Y)}");
+                if (Gap(porter, hero) < .3f)
+                {
+                    Send($"ITEM_CRATE_REMOVE {_crate}");
+                    hero.Damage = 600;
+                    hero.SkillTimer = 0;
+                    porter.March = new Vector2(-72.5f, -5f);
+                }
+            }
+        };
+        return (new[] { new Shot(0, new Vector2(-68f, -6.5f), 18) }, 6f);
+    }
+
+    // A red golem channels on the magic stone; blue pneumatic gunners walk up and fire, the first
+    // real hit breaks the channel (the progress ring is gone) and the golem runs.
+    private (Shot[], float) BrokenChannel()
+    {
+        const uint stone = 7;
+        Fighter golem = Spawn(UnitCatalog.HeroGolem, 2, new Vector2(2.9f, .2f));
+        (golem.Passive, golem.Pose, golem.PoseFocus) = (true, "CHANNEL", stone);
+        uint start = _tick > TickRate ? _tick - TickRate : 0; // channelling for a second already
+        Send($"TRIBUTE {stone} ACTIVE 0 0 0 {golem.Id} 2 {start} {start + TickRate * 6} 1 1");
+        var gunners = new List<(Fighter Unit, Vector2 Post)>();
+        foreach ((Vector2 at, Vector2 post) in new[] { (new Vector2(-16.5f, -1.8f), new Vector2(-1.2f, -2.3f)),
+            (new Vector2(-17f, .9f), new Vector2(-2.4f, .4f)), (new Vector2(-18.5f, -.4f), new Vector2(-.6f, 2.6f)) })
+        {
+            Fighter gunner = Spawn(UnitCatalog.Archer, 1, at);
+            (gunner.March, gunner.MarchSpeed, gunner.Cooldown) = (at + Vector2.Right * 30, gunner.Speed, .2f);
+            gunners.Add((gunner, post));
+        }
+        bool broken = false;
+        _script = time =>
+        {
+            if (!broken && golem.Hp < golem.MaxHp)
+            {
+                broken = true;
+                Send($"TRIBUTE {stone} ACTIVE 0 0 0 0 0 0 0 1 1");
+                (golem.Pose, golem.March, golem.MarchSpeed) = (null, new Vector2(24, -1), 6);
+            }
+            // The gunners fire while the golem is in reach, then take the stone instead of chasing it.
+            if (broken)
+                foreach (var (gunner, post) in gunners)
+                    if (Gap(gunner, golem) > gunner.Range + 1)
+                        (gunner.Passive, gunner.March) = (true, post);
+        };
+        return (new[] { new Shot(0, new Vector2(1.5f, 0), 15) }, 6f);
+    }
+
+    // Blue waves come down both lane entrances of the red base (a forest closes its front) and close on
+    // the HQ: the melee units wrap its walls, the gunners and machines fire over them, the HQ shoots back.
+    private (Shot[], float) HeadquartersSiege()
+    {
+        Headquarters(2, 3200, 4500);
+        const uint K = UnitCatalog.Knight, A = UnitCatalog.Archer;
+        Column(new Vector2(65, -7.5f), Vector2.Down, new uint[] { 100, K, 100, K, 100 }, new uint[] { K, 200, 202, K },
+            new uint[] { 101, A, UnitCatalog.FlameAutomaton, A, 101 });
+        Column(new Vector2(65, 7.5f), Vector2.Up, new uint[] { 100, K, 100, K, 100 }, new uint[] { K, 201, K, K },
+            new uint[] { 101, A, UnitCatalog.SteamArtillery, A, 101 });
+        return (new[] { new Shot(0, new Vector2(65, 0), 21) }, 6.5f);
+    }
+
+    // A blue wave in rows, front row first, walking in formation like Army.
+    private void Column(Vector2 at, Vector2 forward, params uint[][] rows)
+    {
+        Vector2 side = new(-forward.Y, forward.X);
+        var wave = new List<Fighter>();
+        for (int row = 0; row < rows.Length; row++)
+            for (int i = 0; i < rows[row].Length; i++)
+                wave.Add(Spawn(rows[row][i], 1, at - forward * row * 2f + side * (i - (rows[row].Length - 1) / 2f) * 2.1f + Jitter()));
+        float pace = wave.Min(f => f.Speed);
+        foreach (Fighter f in wave)
+            (f.March, f.MarchSpeed) = (f.Pos + forward * 30, pace);
+    }
+
+    // A base HQ as a target: it stands, blocks, has a body as wide as its walls and shoots back.
+    private Fighter Headquarters(uint team, float hp, float maxHp)
+    {
+        var (id, pos) = _bases[team];
+        var hq = new Fighter
+        {
+            Id = id, Type = uint.MaxValue, Team = team, Pos = pos, March = pos, Hp = hp, MaxHp = maxHp,
+            Range = 6, Interval = 1.5f, Damage = 40, Radius = 2.9f,
+            Building = true, Anchored = true, Deployed = true, Blocks = true
+        };
+        _fighters.Add(hq);
+        Send($"HP {id} {Num(hp)} {Num(maxHp)}");
+        hq.SentHp = hp;
+        return hq;
     }
 
     // One army as an attack-move in formation: every unit heads for its own spot of the same block,
@@ -208,6 +357,7 @@ public partial class BattleStage : Main
             UnitCatalog.Medic => (600f, 6f, 5f, 1.5f, 5f, .55f),
             UnitCatalog.FlameAutomaton => (1800f, 4.5f, 3f, .8f, 14f, .9f),
             UnitCatalog.SteamArtillery => (2000f, 4f, 6f, 3f, 60f, 1.3f),
+            UnitCatalog.Worker => (300f, 5f, 1f, 1f, 5f, .45f),
             UnitCatalog.HeroGolem => (3000f, 7f, 1f, .9f, 40f, 1f),
             >= 200 and <= 203 => (3000f, 7f, 1f, .9f, 40f, .85f),
             _ => (500f, 5f, 1f, 1f, 10f, .6f)
@@ -224,9 +374,20 @@ public partial class BattleStage : Main
 
     private void Clear()
     {
-        foreach (Fighter f in _fighters) Send($"REMOVE {f.Id}");
+        foreach (Fighter f in _fighters) Send(f.Building ? $"STATE {f.Id} IDLE 0 0 {f.Swing}" : $"REMOVE {f.Id}");
         _fighters.Clear();
         _rings.Clear();
+        if (_crate != 0) Send($"ITEM_CRATE_REMOVE {_crate}");
+        _crate = 0;
+        Send("TRIBUTE 0 WAITING 0 0 1 0 0 0 0 0 0");
+        (_script, _sceneTick) = (null, 0);
+    }
+
+    // Floating 3D text (crate and spawn-zone labels) stays out of the shot like the interface.
+    private void HideLabels()
+    {
+        foreach (Node node in FindChildren("*", "Label3D", true, false))
+            if (node is Label3D label) label.Visible = false;
     }
 
     // ── Simulation and recording ──
@@ -246,6 +407,7 @@ public partial class BattleStage : Main
                 Step();
             }
             if (folder != null) AimCamera(shots, (float)clock);
+            HideLabels();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             if (folder != null)
             {
@@ -277,6 +439,7 @@ public partial class BattleStage : Main
         Send($"TICK {_tick}");
         float dt = 1f / TickRate;
         var alive = _fighters.Where(f => f.Alive).ToList();
+        if (_script != null && _sceneTick != 0) _script((_tick - _sceneTick) / (float)TickRate);
         foreach (Fighter f in alive)
             if (f.Type == UnitCatalog.SteamArtillery && f.Anchored && !f.Deployed && _tick > TickRate * 2)
             {
@@ -318,7 +481,7 @@ public partial class BattleStage : Main
                 Send($"HP {f.Id} {Num(Math.Max(0, f.Hp))} {Num(f.MaxHp)}");
                 f.SentHp = f.Hp;
             }
-            if (!f.Alive) Send($"REMOVE {f.Id}");
+            if (!f.Alive && !f.Building) Send($"REMOVE {f.Id}");
         }
         Send($"TICK_END {_tick}");
     }
@@ -329,8 +492,9 @@ public partial class BattleStage : Main
     {
         foreach (Fighter u in alive)
         {
-            if (u.Target != null && (!u.Target.Alive || Gap(u, u.Target) > Math.Max(ChaseRadius, u.Range)))
+            if (u.Target != null && (u.Passive || !u.Target.Alive || Gap(u, u.Target) > Math.Max(ChaseRadius, u.Range)))
                 u.Target = null;
+            if (u.Passive) continue;
             if (u.Target == null)
                 u.Target = NearestEnemy(u, alive, u.Melee ? t => HasRoom(u, t, false) : null) ?? NearestEnemy(u, alive, null);
             else if (u.Melee && u.Slot.Target == u.Target.Id && u.Slot.Kind is SlotKind.Wait or SlotKind.Hold)
@@ -634,8 +798,8 @@ public partial class BattleStage : Main
         bool ready = !f.Anchored || f.Deployed;
         if (target == null || !target.Alive || !InRange(f, target) || !ready)
         {
-            f.Activity = "IDLE";
-            f.Focus = 0;
+            f.Activity = f.Pose ?? "IDLE";
+            f.Focus = f.Pose != null ? f.PoseFocus : 0;
             f.Blocks = f.Anchored;
             return;
         }
