@@ -238,6 +238,10 @@ public partial class Main : Node3D
         SendCommand(Protocol.BuildRecall(id));
     }
 
+    // How far the camera zooms out (orthographic size). Neither role sees the whole map;
+    // the commander a little more than a hero. Spectators keep the whole-map view.
+    private const float HeroCameraMaxSize = 50, CommanderCameraMaxSize = 60;
+
     private void FrameStartingView()
     {
         if (!Map.IsSynchronized || Result != null || !TryGetHomePosition(out Vector3 home)) return;
@@ -732,6 +736,13 @@ public partial class Main : Node3D
     private void SetPlayerRole(PlayerRole role, uint? heroType = null, uint playerId = 0, uint team = 0)
     {
         LocalRole = role;
+        if (Units?.Camera is Camera3D camera && camera.HasMethod("limit_zoom")) // ArenaCamera.gd
+            camera.Call("limit_zoom", role switch
+            {
+                PlayerRole.Hero => HeroCameraMaxSize,
+                PlayerRole.Commander => CommanderCameraMaxSize,
+                _ => 0f
+            });
         _away.Clear(); // The snapshot after WELCOME lists the seats the AI plays now.
         RefreshAwayNotice();
         Buildings?.ResetTeamTiers();

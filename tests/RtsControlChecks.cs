@@ -900,6 +900,27 @@ public partial class RtsControlChecks : Main
             Check(GroundCenter().DistanceTo(Unit(1003).GlobalPosition) < .02f, "Space follows the respawned hero's new ID");
         }
         Check(_commands.Count == commandsBefore, "Camera navigation sends no unit orders");
+
+        // Zooming out stops short of the whole map, a little later for the commander.
+        float ZoomedOut(string welcome)
+        {
+            BeginSession();
+            Receive(welcome);
+            using var wheel = new InputEventMouseButton { ButtonIndex = MouseButton.WheelDown, Pressed = true };
+            for (int i = 0; i < 40; i++) camera.Call("_unhandled_input", wheel);
+            return camera.Size;
+        }
+        float whole = camera.Get("home_size").AsSingle();
+        float hero = ZoomedOut("WELCOME 7 1 HERO 200");
+        float commander = ZoomedOut("WELCOME 7 1 COMMANDER");
+        Check(hero < commander && commander < whole, $"Zoom-out limits: hero {hero}, commander {commander}, whole map {whole}");
+        using (var home = new InputEventKey { Keycode = Key.Home, Pressed = true })
+            camera.Call("_unhandled_input", home);
+        Check(Mathf.IsEqualApprox(camera.Size, commander), "Home cannot open the whole map past the limit");
+        Receive("WELCOME 7 1 HERO 200");
+        Check(Mathf.IsEqualApprox(camera.Size, hero), "Becoming a hero pulls a wider commander view in to the hero limit");
+        Check(Mathf.IsEqualApprox(ZoomedOut("WELCOME 7 0 SPECTATOR"), camera.Get("maximum_size").AsSingle()),
+            "Spectators can still zoom out to the whole map");
     }
 
     private async Task CheckBattleClarity()
