@@ -447,7 +447,12 @@ public partial class Main : Node3D
                 break;
             case "ITEM_CRATE_REMOVE":
                 if (parts.Length==2 && WireNumber.UInt(parts[1],out uint crateId) && _crates.Remove(crateId,out var removedCrate))
-                { removedCrate.Deactivate();removedCrate.QueueFree(); }
+                {
+                    // The message has no reason; the owner's hero beside the crate means it was handed over.
+                    if (removedCrate.Visible && ItemCrateHandoff.Receiver(removedCrate,Units.LiveUnits) is { } receiver)
+                        ItemCrateHandoff.Spawn(this,removedCrate,receiver);
+                    removedCrate.Deactivate();removedCrate.QueueFree();
+                }
                 break;
             case "RECALL":
                 if (LocalRole==PlayerRole.Hero && RecallSnapshot.TryParse(parts,out var recall) && Skills?.HeroUnitId==recall.HeroId)
@@ -816,6 +821,7 @@ public partial class Main : Node3D
     {
         foreach (var crate in _crates.Values) { crate.Deactivate();crate.QueueFree(); }
         _crates.Clear();Shop?.SetRole(false);
+        foreach (Node child in GetChildren()) if (child is ItemCrateHandoff) child.QueueFree();
         foreach (var nugget in _nuggets.Values) { nugget.Deactivate(); nugget.QueueFree(); }
         _nuggets.Clear();
         Tribute = null;
