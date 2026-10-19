@@ -6,11 +6,12 @@ param(
     [switch]$SkipBuild,
     [switch]$Spectate,
     [switch]$RenderCapture,
-    [string]$PolicyDirectory
+    [string]$PolicyDirectory,
+    [string]$ServerRoot
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$serverRoot = Join-Path (Split-Path $projectRoot -Parent) 'project-w-server'
+$serverRoot = if ($ServerRoot) { (Resolve-Path -LiteralPath $ServerRoot).Path } else { Join-Path (Split-Path $projectRoot -Parent) 'project-w-server' }
 $logRoot = Join-Path $projectRoot ".godot/check-logs/match-$Players"
 if ($Spectate) {
     if ($Players -ne 1) { throw 'Spectator integration uses -Players 1.' }
@@ -66,11 +67,13 @@ try {
     $lobbyPort = Get-FreePort
     $gamePort = Get-FreePort
     while ($gamePort -eq $lobbyPort) { $gamePort = Get-FreePort }
+    $pingPort = Get-FreePort
+    while ($pingPort -eq $lobbyPort -or $pingPort -eq $gamePort) { $pingPort = Get-FreePort }
     $url = "http://127.0.0.1:$lobbyPort"
-    # Starting eight Godot processes can exceed the short two-client queue window.
-    # A full lobby still starts immediately; allow all eight clients time to load.
-    $queueWait = if ($Players -eq 8) { '15s' } else { '4s' }
-    $lobbyArguments = @('-listen', "127.0.0.1:$lobbyPort", '-game-host', '127.0.0.1', '-game-port', "$gamePort", '-game-bin', "$logRoot/game.exe", '-wait', $queueWait)
+    # Matches run one after another here, so one game port is enough. The host starts
+    # once every client has joined and picked a seat; a short countdown keeps it quick.
+    $lobbyArguments = @('-listen', "127.0.0.1:$lobbyPort", '-game-host', '127.0.0.1', '-game-port', "$gamePort", '-game-ports', '1',
+        '-ping-port', "$pingPort", '-countdown', '1s', '-game-bin', "$logRoot/game.exe")
     if ($PolicyDirectory) { $lobbyArguments += @('-rl-policy', (Join-Path $PolicyDirectory 'commander.json'), '-rl-hero-policy', (Join-Path $PolicyDirectory 'hero.json')) }
     $lobby = Start-Hidden "$logRoot/lobby.exe" $lobbyArguments $serverRoot "$logRoot/lobby.log"
     $jobs += $lobby
@@ -87,6 +90,7 @@ try {
             if (!$Spectate) { throw 'Render capture requires -Spectate.' }
             $arguments = @('--path', $projectRoot, '--log-file', "$logRoot/engine-$i.log", '--resolution', '1440x900', '--rendering-method', 'gl_compatibility', 'res://tests/MatchFlowChecks.tscn', '--', "--lobby-url=$url", '--capture-spectator')
         }
+        $arguments += @("--client=$i", "--players=$Players")
         if ($Players -eq 2) { $arguments += '--check-cancellation' }
         if ($Spectate) { $arguments += '--spectate' } elseif ($Players -eq 1) { $arguments += '--practice' }
         $client = Start-Hidden $GodotPath $arguments $projectRoot "$logRoot/client-$i.log"
