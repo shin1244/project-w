@@ -100,15 +100,15 @@
 
 `oilFields`는 선택적 유전 메타데이터입니다. 각 항목에는 `id`, 유전 영역 `center`·`radii`, 공터 `clearingCenter`·`clearingRadii`, 배치 예시 `supplySite`가 있습니다. 중앙 유전에는 입구 좌표 `entrances`와 폭 `entranceWidth`도 지정합니다. 클라이언트는 중심에 공통 모델을 놓고 반경은 미니맵과 시추탑의 위치 선택에 사용합니다. 서버도 `center`·`radii`를 읽어 시추탑을 유전 중심에 고정하며, 다른 건설·통행·장애물 판정에는 기존 `rows`를 사용합니다. `supplySite`는 자동 건설이나 소유권 배정을 수행하지 않습니다.
 
-`TerrainBuilder.gd`는 JSON 격자를 따라 평평한 Y=0 지면과 충돌을 만듭니다. `Ground.gdshader`는 도로 마스크로 포석과 풀밭을 표현합니다. 유전의 `R` 칸은 포석 대신 풀밭을 표시하고 그 위에 공통 균열 모델을 놓습니다. 갈라진 암반과 기름 연출은 시각 메시이며 이동 판정과 별도의 자원 시스템을 만들지 않습니다. 외곽 절벽과 벽도 같은 격자에서 생성합니다.
+`TerrainBuilder.gd`는 JSON 격자를 따라 평평한 Y=0 지면과 충돌을 만듭니다. `Ground.gdshader`는 도로 마스크로 길과 풀밭을 나누고, `TerrainBuilder.road_surface`가 칸마다 고른 표면 마스크로 길의 재료(라인 벽돌, 작업장 흙, 광장 벽돌, 석탄 가루)를 정합니다. 유전의 `R` 칸은 길 대신 풀밭을 표시하고 그 위에 공통 균열 모델을 놓습니다. 갈라진 암반과 기름 연출은 시각 메시이며 이동 판정과 별도의 자원 시스템을 만들지 않습니다. 외곽 절벽과 벽도 같은 격자에서 생성합니다.
 
 ### 외형 바리에이션
 
 | 대상 | 파일 | 표현 |
 | --- | --- | --- |
-| 돌길·잔디 | `maps/materials/Ground.gdshader` | 톤을 낮춘 포석·줄눈·먼지·가는 실금, 군데군데 무리 지어 섞인 빛바랜 어두운 옛 포석(평평하게 닳고 살짝 꺼졌으며 줄눈에서 때가 번짐), 풀 얼룩·클로버 |
+| 길·잔디 | `maps/materials/Ground.gdshader`, `TerrainBuilder.road_surface`·`lane_curve` | 라인: 길 방향을 따라 쌓은 밝은 벽돌과 드문 붉은 벽돌, 가운데 석탄재 자갈 위 침목·레일(라인 중심선을 곡선으로 다듬어 모퉁이에서 꺾이지 않음), 궤도 양옆의 잿빛 먼지. 본진·부활 지점: 석탄 가루가 무리 지어 앉은 다진 흙. 정글 공터: 다진 흙. 마석 광장: 다섯 줄마다 어두운 띠가 있는 동심원 벽돌. 그 밖의 길: 석탄재 자갈. 길가 풀의 잿가루, 풀 얼룩·클로버 |
 | 유전 균열·기름 | `maps/Oilfield.tscn` | 네 곳이 같은 모델 공유. 지그재그 균열·갈라진 암반과 틈에서 낮게 솟는 기름. 상호작용·충돌 노드 없음 |
-| 벽 | `maps/materials/Wall.gdshader`, `TerrainBuilder.build_walls` | 석회암·이끼·가는 균열·빗물 자국. 둘레의 약 30% 구간은 총안이 떨어져 나가고 철띠와 철판으로 보강한, 어둡고 빛바랜 옛 성벽 |
+| 벽 | `maps/materials/Wall.gdshader`, `TerrainBuilder.build_walls` | 리벳 강판 갓을 씌운 붉은 벽돌 방벽. 위쪽 벽돌의 그을음, 이음매의 가는 녹. 안쪽 면에 철판 띠 두 줄, 다섯 칸마다 I형 철골 버팀대, 드문드문 금박 문장 방패(180도 회전 위치에도 같은 자리). 둘레의 약 30%는 더 그을리고 빛바랜 옛 구간이며 세로 철띠를 둘렀다. 장식은 벽에서 0.15m 안이라 이웃 칸의 평평한 땅을 가리지 않는다(`tests/check_arena.gd`) |
 | 나무 | `resources/trees/SculptedTree.gd`, `Foliage.gdshader` | 참나무·자작나무·침엽수와 깔끔하게 다듬은 둥근 수관의 피나무(약 1/7, 숲에서 튀지 않게 한 톤 어둡게). 수종은 시작 칸 좌표를 섞어 고르고, 같은 수종 안에서는 고정 변형과 자원 ID 기반 회전·크기 |
 
 `LayoutGuides`에는 본진 마커, 공격로 경로, 활동 구역·확장 부지의 기준점이 있습니다. 미니언의 실제 경유지는 JSON의 `lanes`를 사용합니다.
@@ -119,7 +119,7 @@
 
 ## 수정 및 재생성
 
-자동 배치 기준은 `maps/TerrainBuilder.gd`에 있습니다. 본진 잔디는 `BASE_MEADOW_RADII`, 중앙·정글은 `activity_areas()`, 외곽 확장 부지는 `EXPANSION_*`, 유전과 공터는 `OIL_CLEARING_*`·`OIL_ENTRANCE_*`·`OIL_CONNECTION_*`·`oil_fields()`·`is_oilfield_clearing()`에서 조절합니다. 옛 성벽 구간은 지도 중심 기준 호 개수 `OLD_WALL_ARCS`와 비율 `OLD_WALL_SHARE`로 고르며 180도 회전 위치에도 같은 구간이 생깁니다. 옛 포석의 비율은 `Ground.gdshader`의 `aged_ratio`·`aged_cluster`입니다. 전체 배열의 원점과 크기는 `MAP_ORIGIN`, `MAP_SIZE`로 고정합니다.
+자동 배치 기준은 `maps/TerrainBuilder.gd`에 있습니다. 본진 잔디는 `BASE_MEADOW_RADII`, 중앙·정글은 `activity_areas()`, 외곽 확장 부지는 `EXPANSION_*`, 유전과 공터는 `OIL_CLEARING_*`·`OIL_ENTRANCE_*`·`OIL_CONNECTION_*`·`oil_fields()`·`is_oilfield_clearing()`에서 조절합니다. 옛 성벽 구간은 지도 중심 기준 호 개수 `OLD_WALL_ARCS`와 비율 `OLD_WALL_SHARE`로 고르며 180도 회전 위치에도 같은 구간이 생깁니다. 붉은 벽돌 비율과 석탄 가루 양은 `Ground.gdshader`의 `red_brick_ratio`·`coal_ratio`입니다. 전체 배열의 원점과 크기는 `MAP_ORIGIN`, `MAP_SIZE`로 고정합니다.
 
 클라이언트 프로젝트 루트에서 실행합니다. `Godot`은 설치한 Godot .NET 실행 파일 경로로 바꿉니다.
 
