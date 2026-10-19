@@ -44,8 +44,9 @@ const OIL_CLEARING_RADII := Vector2(6.0, 10.0)
 const OIL_ENTRANCE_X := 28.0
 const OIL_ENTRANCE_Z := 8.0
 const OIL_CONNECTION_WIDTH := 5.0
-# Faded, darker stretches of older iron-strapped masonry break up the rim. Chosen per arc
-# around the map centre and repeated by the 180-degree rotation.
+# Older, soot-blackened brick stretches held with iron straps break up the rim. Chosen per
+# arc around the map centre and repeated by the 180-degree rotation.
+const LANE_CURVE_STEPS := 4 # Ground.gdshader's lane_points holds 8 * 4 + 1 of them
 const OLD_WALL_ARCS := 56
 const OLD_WALL_SHARE := 0.3
 
@@ -299,6 +300,7 @@ func build_terrain() -> void:
 	var ground_material := ShaderMaterial.new()
 	ground_material.shader = load("res://maps/materials/Ground.gdshader")
 	var road_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_R8)
+	var surface_image := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_RGBA8)
 	for z in range(rows.size()):
 		for x in range(rows[z].length()):
 			var p := map_origin + (Vector2(x, z) + Vector2.ONE * 0.5) * cell_size
@@ -309,7 +311,10 @@ func build_terrain() -> void:
 					break
 			# Oilfield R cells retain their rules but show grass under the shared fissure model.
 			road_image.set_pixel(x, z, Color.WHITE if rows[z][x] == "R" and not oil_reserved else Color.BLACK)
+			surface_image.set_pixel(x, z, road_surface(p))
 	ground_material.set_shader_parameter("road_mask", ImageTexture.create_from_image(road_image))
+	ground_material.set_shader_parameter("surface_mask", ImageTexture.create_from_image(surface_image))
+	ground_material.set_shader_parameter("lane_points", lane_curve())
 	ground_material.set_shader_parameter("map_origin", map_origin)
 	ground_material.set_shader_parameter("map_size", Vector2(rows[0].length(), rows.size()) * cell_size)
 	top.set_material(ground_material)
@@ -334,6 +339,46 @@ func build_terrain() -> void:
 	print("Terrain triangles: ", count)
 	print("PASS: flat terrain generated from ", rows[0].length(), " x ", rows.size(), " map cells")
 
+# The top lane's centre line rounded through its corners (Catmull-Rom, LANE_CURVE_STEPS points per
+# segment), so the track in Ground.gdshader bends instead of kinking. Minions still walk the JSON lanes.
+func lane_curve() -> PackedVector2Array:
+	var curve := PackedVector2Array()
+	var last := TOP_LANE.size() - 1
+	for i in range(last):
+		var p0: Vector2 = TOP_LANE[maxi(i - 1, 0)]
+		var p1: Vector2 = TOP_LANE[i]
+		var p2: Vector2 = TOP_LANE[i + 1]
+		var p3: Vector2 = TOP_LANE[mini(i + 2, last)]
+		for step in range(LANE_CURVE_STEPS):
+			var t := float(step) / LANE_CURVE_STEPS
+			curve.append(0.5 * ((2.0 * p1) + (p2 - p0) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t * t
+				+ (3.0 * p1 - p0 - 3.0 * p2 + p3) * t * t * t))
+	curve.append(TOP_LANE[last])
+	return curve
+
+# Which paving a road cell shows (Ground.gdshader surface_mask): R lane brick with the track,
+# G works-yard earth (bases, spawn yards, jungle clearings), B the plaza's brick rings, A coal dust.
+# Road cells with none of them are cinder paths. Every cell gets a value, so the linear filter does
+# not fade a surface toward its grass edge; the road mask alone decides road or grass.
+func road_surface(p: Vector2) -> Color:
+	var base := p.abs().distance_to(Vector2(BASE_X, 0)) <= 11.5
+	var yard := base
+	var coal := base
+	var plaza := false
+	for area in map_data.get("activityAreas", []):
+		if not area_contains(area, p):
+			continue
+		match area["kind"]:
+			"spawn":
+				yard = true
+				coal = true
+			"jungle":
+				yard = true
+			"event":
+				plaza = true
+	var lane := not yard and not plaza and lane_distance(p) <= LANE_WIDTH * 0.5 + 1.5
+	return Color(float(lane), float(yard), float(plaza), float(coal))
+
 func wall_face(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
 	st.set_normal((b - a).cross(c - a).normalized())
 	for point in [a, c, b, a, d, c]:
@@ -354,29 +399,79 @@ func is_old_wall(center: Vector2) -> bool:
 func is_wall_cell(x: int, z: int) -> bool:
 	return z >= 0 and z < rows.size() and x >= 0 and x < rows[z].length() and rows[z][x] == "W"
 
-func iron_straps(st: SurfaceTool, x: int, z: int, p: Vector2) -> void:
-	# Iron bands along every face that looks onto open ground, with a strap on every other cell.
+# Rotation-invariant cell hash, so wall fittings repeat under the map's 180-degree symmetry.
+func wall_hash(center: Vector2, salt: float) -> float:
+	var key := Vector3(absf(center.x), absf(center.y), signf(center.x * center.y) + salt)
+	return absf(fmod(sin(key.dot(Vector3(12.9898, 78.233, 37.719))) * 43758.5453, 1.0))
+
+# Iron and gilt on every face that looks onto open ground. All of it stays within 0.15m of the
+# wall, so the cells beside it keep their flat ground (tests/check_arena.gd).
+func wall_fittings(iron: SurfaceTool, gold: SurfaceTool, x: int, z: int, p: Vector2, aged: bool) -> void:
+	var center := p + Vector2.ONE * cell_size * 0.5
+	var buttress := (floori(absf(center.x)) + floori(absf(center.y))) % 5 == 0
+	var crest := not aged and not buttress and wall_hash(center, 1.0) < 0.07
 	for side: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 		var nx := x + side.x
 		var nz := z + side.y
 		if nz < 0 or nz >= rows.size() or nx < 0 or nx >= rows[nz].length() or rows[nz][nx] in ["W", "#"]:
 			continue
-		var along := Vector3(absf(side.y), 0, absf(side.x)) * cell_size
+		var along := Vector3(absf(side.y), 0, absf(side.x))
 		var out := Vector3(side.x, 0, side.y)
-		var thick := Vector3(absf(side.x), 0, absf(side.y)) * 0.04
-		var face_center := Vector3(p.x + cell_size * 0.5, 0, p.y + cell_size * 0.5) + out * (cell_size * 0.5 + 0.02)
-		for band in [[1.72, 0.12], [0.42, 0.1]]:
-			var size: Vector3 = along + thick + Vector3(0, band[1], 0)
-			wall_box(st, face_center + Vector3(0, band[0], 0) - size * 0.5, size)
-		if (x + z) % 2 == 0:
-			var strap := Vector3(absf(side.y), 0, absf(side.x)) * 0.16 + thick * 1.5 + Vector3(0, 2.3, 0)
-			wall_box(st, face_center + out * 0.01 + Vector3(0, 1.2, 0) - strap * 0.5, strap)
+		var face := Vector3(center.x, 0, center.y) + out * cell_size * 0.5
+		# Riveted plate bands at the plinth and two thirds up.
+		for band in [[0.38, 0.14], [1.62, 0.1]]:
+			var size: Vector3 = along * cell_size + out.abs() * 0.04 + Vector3(0, band[1], 0)
+			wall_box(iron, face + out * 0.02 + Vector3(0, band[0], 0) - size * 0.5, size)
+		if buttress:
+			# A rolled-steel I-beam: web against the brick, flange facing out.
+			var web: Vector3 = along * 0.08 + out.abs() * 0.12 + Vector3(0, 2.4, 0)
+			wall_box(iron, face + out * 0.06 + Vector3(0, 1.2, 0) - web * 0.5, web)
+			var flange: Vector3 = along * 0.3 + out.abs() * 0.03 + Vector3(0, 2.4, 0)
+			wall_box(iron, face + out * 0.135 + Vector3(0, 1.2, 0) - flange * 0.5, flange)
+		if aged and not buttress and (x + z) % 2 == 0:
+			# Older stretches are held together with iron straps.
+			var strap: Vector3 = along * 0.14 + out.abs() * 0.05 + Vector3(0, 2.3, 0)
+			wall_box(iron, face + out * 0.025 + Vector3(0, 1.2, 0) - strap * 0.5, strap)
+		if crest:
+			# A gilt company crest on an iron backing, with a dark bar across it.
+			var top := face + Vector3(0, 2.05, 0)
+			heater_shield(iron, top + out * 0.03, along, out, 0.82, 0.98)
+			heater_shield(gold, top + out * 0.05 - Vector3(0, 0.05, 0), along, out, 0.68, 0.84)
+			var bar: Vector3 = along * 0.5 + out.abs() * 0.02 + Vector3(0, 0.09, 0)
+			wall_box(iron, top + out * 0.065 - Vector3(0, 0.36, 0) - bar * 0.5, bar)
+
+# A flat heater shield facing out: straight top and sides curving to a point. top is its top centre.
+func heater_shield(st: SurfaceTool, top: Vector3, along: Vector3, out: Vector3, width: float, height: float) -> void:
+	var outline: Array[Vector2] = [Vector2(-0.5, 0), Vector2(0.5, 0), Vector2(0.5, -0.42)]
+	for i in range(1, 6):
+		var t := i / 6.0
+		outline.append(Vector2(0.5 * cos(t * PI * 0.5), -0.42 - 0.58 * sin(t * PI * 0.5)))
+	outline.append(Vector2(0, -1))
+	for i in range(5, 0, -1):
+		var t := i / 6.0
+		outline.append(Vector2(-0.5 * cos(t * PI * 0.5), -0.42 - 0.58 * sin(t * PI * 0.5)))
+	outline.append(Vector2(-0.5, -0.42))
+	var middle := top + Vector3(0, -0.45 * height, 0)
+	for i in range(outline.size()):
+		var a: Vector2 = outline[i]
+		var b: Vector2 = outline[(i + 1) % outline.size()]
+		var pa := top + along * a.x * width + Vector3(0, a.y * height, 0)
+		var pb := top + along * b.x * width + Vector3(0, b.y * height, 0)
+		var normal := (pa - middle).cross(pb - middle)
+		if normal.dot(out) < 0:
+			var swap := pa
+			pa = pb
+			pb = swap
+		st.set_normal(out)
+		for point in [middle, pb, pa]:
+			st.add_vertex(point)
 
 func build_walls() -> void:
 	var st := SurfaceTool.new()
 	var old := SurfaceTool.new()
 	var iron := SurfaceTool.new()
-	for tool: SurfaceTool in [st, old, iron]:
+	var gold := SurfaceTool.new()
+	for tool: SurfaceTool in [st, old, iron, gold]:
 		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
 	var old_count := 0
@@ -388,14 +483,12 @@ func build_walls() -> void:
 			var center := p + Vector2.ONE * cell_size * 0.5
 			var aged := is_old_wall(center)
 			var target := old if aged else st
+			# Brick body under a riveted steel cap; no merlons on a company rampart.
 			wall_box(target, Vector3(p.x, 0, p.y), Vector3(cell_size, 2.4, cell_size))
 			wall_box(target, Vector3(p.x, 2.4, p.y), Vector3(cell_size, 0.2, cell_size))
+			wall_fittings(iron, gold, x, z, p, aged)
 			if aged:
-				# Older stretches have lost their merlons and are held together with iron.
-				iron_straps(iron, x, z, p)
 				old_count += 1
-			elif (floori(absf(center.x)) + floori(absf(center.y))) % 3 == 0:
-				wall_box(st, Vector3(p.x + cell_size * 0.08, 2.6, p.y + cell_size * 0.08), Vector3(cell_size * 0.84, 0.65, cell_size * 0.84))
 			count += 1
 	if count == 0:
 		return
@@ -404,27 +497,30 @@ func build_walls() -> void:
 	st.set_material(material)
 	var old_material := ShaderMaterial.new()
 	old_material.shader = material.shader
-	old_material.set_shader_parameter("stone_dark", Color(0.36, 0.35, 0.33))
-	old_material.set_shader_parameter("stone_light", Color(0.47, 0.45, 0.42))
-	old_material.set_shader_parameter("coping_color", Color(0.52, 0.5, 0.46))
-	old_material.set_shader_parameter("seam_color", Color(0.24, 0.23, 0.21))
-	old_material.set_shader_parameter("mossy_ratio", 0.7)
-	old_material.set_shader_parameter("cracked_ratio", 0.14)
-	old_material.set_shader_parameter("cobweb_ratio", 0.1)
-	old_material.set_shader_parameter("streak_strength", 0.2)
-	old_material.set_shader_parameter("colour_fade", 0.4)
+	old_material.set_shader_parameter("brick_dark", Color(0.3, 0.18, 0.15))
+	old_material.set_shader_parameter("brick_light", Color(0.42, 0.25, 0.2))
+	old_material.set_shader_parameter("mortar_color", Color(0.4, 0.38, 0.35))
+	old_material.set_shader_parameter("cap_color", Color(0.33, 0.33, 0.33))
+	old_material.set_shader_parameter("soot_strength", 0.6)
+	old_material.set_shader_parameter("colour_fade", 0.3)
 	old.set_material(old_material)
 	var iron_material := StandardMaterial3D.new()
-	iron_material.albedo_color = Color("2c3034")
-	iron_material.metallic = 0.45
+	iron_material.albedo_color = Color("2f363d")
+	iron_material.metallic = 0.5
 	iron_material.roughness = 0.55
 	iron.set_material(iron_material)
+	var gold_material := StandardMaterial3D.new()
+	gold_material.albedo_color = Color("d9ae45")
+	gold_material.metallic = 0.85
+	gold_material.roughness = 0.3
+	gold.set_material(gold_material)
 	var wall := MeshInstance3D.new()
 	wall.name = "OuterWalls"
 	wall.mesh = st.commit()
 	if old_count > 0:
 		old.commit(wall.mesh)
-		iron.commit(wall.mesh)
+	iron.commit(wall.mesh)
+	gold.commit(wall.mesh)
 	attach(wall)
 	var body := StaticBody3D.new()
 	body.name = "WallCollision"
