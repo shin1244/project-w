@@ -13,6 +13,8 @@ var window_focused := false
 var mouse_inside := false
 var mouse_position := Vector2.ZERO
 var ground_bounds := Rect2(-80, -44, 160, 88)
+## Role cap on zooming out (Main.SetPlayerRole). 0 allows the whole map: spectators, previews.
+var zoom_limit := 0.0
 
 func _ready() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
@@ -41,6 +43,13 @@ func configure_map_bounds() -> void:
 	maximum_size = maxf(maximum_size, home_size)
 	if using_home_size:
 		size = home_size
+
+func limit_zoom(limit: float) -> void:
+	zoom_limit = limit
+	size = minf(size, largest_size())
+
+func largest_size() -> float:
+	return minf(maximum_size, zoom_limit) if zoom_limit > 0.0 else maximum_size
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -85,7 +94,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			size = maxf(minimum_size, size / 1.12)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			size = minf(maximum_size, size * 1.12)
+			size = minf(largest_size(), size * 1.12)
 	elif event is InputEventMouseMotion and dragging:
 		var units_per_pixel := size / get_viewport().get_visible_rect().size.y
 		position.x -= event.relative.x * units_per_pixel
@@ -93,7 +102,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		clamp_position()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_HOME:
 		position = home_position
-		size = home_size
+		size = minf(home_size, largest_size())
 
 func clamp_position() -> void:
 	position.x = clampf(position.x, ground_bounds.position.x, ground_bounds.end.x)
