@@ -23,9 +23,9 @@ public partial class MatchResultPanel : CanvasLayer
         screen.GetNode<Label>("%Status").Text = $"플레이 시간  {Result.Seconds / 60:00}:{Result.Seconds % 60:00}";
         screen.GetNode<Label>("%QueueTime").Hide();
         screen.GetNode<Button>("%SecondaryButton").Hide();
-        screen.GetNode<Label>("%Footnote").Text = "로비로 돌아가 새로운 경기를 시작할 수 있습니다.";
+        screen.GetNode<Label>("%Footnote").Text = "방으로 돌아가 같은 멤버와 다시 시작할 수 있습니다.";
         var back = screen.GetNode<Button>("%PrimaryButton");
-        back.Text = "로비로 돌아가기";
+        back.Text = "방으로 돌아가기";
         back.Pressed += () => BackRequested?.Invoke();
         back.GrabFocus();
     }

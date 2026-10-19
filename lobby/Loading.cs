@@ -20,12 +20,12 @@ public partial class Loading : Control
         _percent = GetNode<Label>("%ProgressValue");
         GetNode<Button>("%PrimaryButton").Pressed += ReturnToLobby;
         GetNode<Label>("%Footnote").Text = _session.Rejoining ? "진행 중인 경기로 돌아갑니다. AI가 맡던 자리를 이어받습니다." : "모든 참가자의 맵 준비가 끝나면 함께 시작합니다.";
-        GetNode<Label>("Header/Row/PreviewBadge").Text = _session.Rejoining ? "진행 중인 경기로 복귀" : "지인 테스트 · 전장 준비";
+        GetNode<Label>("Header/Row/PreviewBadge").Text = _session.Rejoining ? "진행 중인 경기로 복귀" : "전장 준비";
         // The overlay sits above Main's in-game CanvasLayers.
         var overlay = new CanvasLayer { Layer = 100 };
         AddChild(overlay);
         foreach (string name in new[] { "Background", "Header", "Center" }) GetNode(name).Reparent(overlay);
-        if (_session.Match == null) { Fail("매칭 정보가 없습니다. 로비에서 다시 시작해 주세요."); return; }
+        if (_session.Match == null) { Fail("경기 정보가 없습니다. 방에서 다시 시작해 주세요."); return; }
         var match = _session.Match;
         GetNode<Label>("%Description").Text = match.Role == "SPECTATOR" ? "AI 영웅 3 vs 3 · 지휘관 각 1명 · 전체 맵 관전" : $"{match.Team}팀 · {(match.Role == "HERO" ? "영웅" : "지휘관")} · 플레이어 {match.Players - match.Bots}명 + AI {match.Bots}명";
         if (ResourceLoader.LoadThreadedRequest(GamePath) != Error.Ok) Fail("전장 리소스를 불러오지 못했습니다.");
@@ -36,7 +36,7 @@ public partial class Loading : Control
         if (_finished || _failed) return;
         _elapsed += delta;
         if (_session.ErrorMessage != null) { Fail(_session.ErrorMessage); return; }
-        if (_elapsed > 100) { Fail("전장 준비 시간이 초과되었습니다. 참가자 모두 다시 매칭해 주세요."); return; }
+        if (_elapsed > 100) { Fail("전장 준비 시간이 초과되었습니다. 방으로 돌아가 다시 시작해 주세요."); return; }
         if (_game == null)
         {
             if (_instantiating) return;
