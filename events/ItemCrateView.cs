@@ -6,6 +6,8 @@ public partial class ItemCrateView : Node3D
     public ItemCrateSnapshot Snapshot { get; private set; }
     public uint LocalTeam { get; private set; }
     public bool Available => _available && Snapshot.CarrierId == 0;
+    // Where the chest is drawn: on the ground, or above the worker carrying it.
+    public Vector3 ChestPosition => _crate?.GlobalPosition ?? GlobalPosition;
     private bool _available;
     private Area3D _pick;
     private Label3D _label;

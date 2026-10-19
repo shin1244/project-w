@@ -54,7 +54,7 @@ game/             메인 게임 장면, 입력·통신 연결과 메시지 분�
 lobby/            게스트 입장·방 목록·방·실제 전장 로딩
 input/            마우스 입력과 맵 카메라
 network/          TCP 연결과 명령 문자열
-events/           서버 상태로 표시하는 마석과 수집 진행 효과
+events/           서버 상태로 표시하는 마석·장비 상자와 그 효과
 units/            UnitManager, 공통 유닛 스크립트와 일꾼·기사·궁수 씬
 resources/        ResourceManager, 자원 공통 스크립트와 나무 외형 4종
 buildings/        HQ·요새·브랜치·숙소·시추탑·인력 사무소·조병창·감시탑·공장·기술연구소 씬, 공통 공사 부지 표시
