@@ -661,7 +661,7 @@ public partial class Main : Node3D
                 break;
             case "MINION_RULES":
             case "MINION_XP_RULE":
-            case "MINION_FREE":
+            case "MINION_ADD_COST":
             case "MINION_OPTION":
             case "MINION_LANE":
             case "MINION_WAVE":

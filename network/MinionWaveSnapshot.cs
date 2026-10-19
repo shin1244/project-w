@@ -49,6 +49,20 @@ public readonly record struct MinionOptionSnapshot(uint UnitType, uint ResourceI
     }
 }
 
+// MINION_ADD_COST resource amount: what one extra slot costs (마석 today). Commanders only.
+public readonly record struct MinionAddCostSnapshot(uint ResourceId, long Amount)
+{
+    public static bool TryParse(string[] parts, out MinionAddCostSnapshot snapshot)
+    {
+        snapshot = default;
+        if (parts.Length != 3 || parts[0] != "MINION_ADD_COST" ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint resource) ||
+            !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out long amount)) return false;
+        snapshot = new(resource, amount);
+        return true;
+    }
+}
+
 public readonly record struct MinionLaneSnapshot(int LaneIndex, uint Revision, uint[] UnitTypes)
 {
     public static bool TryParse(string[] parts, out MinionLaneSnapshot snapshot)

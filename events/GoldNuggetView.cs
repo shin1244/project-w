@@ -78,12 +78,12 @@ public partial class GoldNuggetView : Node3D
         bool channeling = Available && Snapshot.Channeling;
         Color color = channeling ? TeamColor(Snapshot.CapturerTeam) : Gold;
         _label.Modulate = color;
-        // 큰 금덩어리(무료권 포함)는 더 크게 그린다.
+        // 큰 금덩어리(마석 포함)는 더 크게 그린다.
         _pile.Scale = Vector3.One * (Snapshot.Credit ? 1.7f : 1.1f);
         _label.Position = new Vector3(0, Snapshot.Credit ? 1.9f : 1.5f, 0);
         _label.Text = channeling ? $"{Snapshot.CapturerTeam}팀 수집 · {Snapshot.RemainingSeconds(_tick):0.0}초"
             : Snapshot.Credit
-                ? $"큰 금덩어리 · {Snapshot.Gold}골드 · 경험치 {Snapshot.Experience}\n+ 미니언 무료권 · 우클릭 3초 수집"
+                ? $"큰 금덩어리 · {Snapshot.Gold}골드 · 경험치 {Snapshot.Experience}\n+ 팀 지휘관에게 마석 · 우클릭 3초 수집"
                 : $"작은 금덩어리 · {Snapshot.Gold}골드 · 경험치 {Snapshot.Experience}\n우클릭 3초 수집";
         _progressMaterial.AlbedoColor = color;
         _progress.Visible = channeling;

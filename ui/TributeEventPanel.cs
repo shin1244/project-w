@@ -58,7 +58,7 @@ public partial class TributeEventPanel : Control
         if (_snapshot != null && (snapshot.Team1Count > _snapshot.Team1Count || snapshot.Team2Count > _snapshot.Team2Count))
         {
             uint team = snapshot.Team1Count > _snapshot.Team1Count ? 1u : 2u;
-            _notice = $"{team}팀 공물 획득";
+            _notice = $"{team}팀 마석 획득";
             _noticeUntil = unchecked(currentTick + 3 * (uint)InterpolationClock.TickRate);
         }
         _snapshot = snapshot;
@@ -97,7 +97,7 @@ public partial class TributeEventPanel : Control
         }
         else if (_snapshot.Active)
         {
-            _status.Text = "공물 등장";
+            _status.Text = "마석 등장";
         }
         else if (_snapshot.RamsMarching)
         {
@@ -105,7 +105,7 @@ public partial class TributeEventPanel : Control
         }
         else
         {
-            _status.Text = $"공물 · {Countdown(_snapshot.NextSpawnTick)}";
+            _status.Text = $"마석 · {Countdown(_snapshot.NextSpawnTick)}";
             color = new Color("c4c1b0");
         }
         _status.AddThemeColorOverride("font_color", color);
