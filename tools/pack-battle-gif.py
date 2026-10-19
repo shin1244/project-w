@@ -1,7 +1,8 @@
-"""Pack frames captured by previews/BattleStage.tscn into the README battle GIFs.
+"""Pack frames captured by previews/BattleStage.tscn into the README GIFs.
 
 Every other frame (about 7.5fps), 512x320, one 127-colour octree palette per GIF without dithering,
-and index 127 for pixels unchanged since the previous frame. Needs Pillow and NumPy.
+and index 127 for pixels unchanged since the previous frame. Packs every scene-N folder the capture
+has (`--scenes=` can limit a capture). Needs Pillow and NumPy.
 
     python tools/pack-battle-gif.py <capture folder> docs/images/store
 """
@@ -14,6 +15,7 @@ from PIL import Image
 
 SIZE = (512, 320)
 COLOURS = 127  # index 127 stays free for "unchanged"
+NAMES = {1: "battle-1", 2: "battle-2", 3: "battle-3", 4: "teamwork", 5: "magic-stone", 6: "hq-siege"}
 
 
 def pack(frames_dir, out_path):
@@ -54,8 +56,9 @@ def main():
     if len(sys.argv) != 3:
         raise SystemExit(__doc__)
     capture, out_dir = sys.argv[1], sys.argv[2]
-    for scene in (1, 2, 3):
-        pack(os.path.join(capture, f"scene-{scene}"), os.path.join(out_dir, f"battle-{scene}.gif"))
+    for scene, name in NAMES.items():
+        if os.path.isdir(os.path.join(capture, f"scene-{scene}")):
+            pack(os.path.join(capture, f"scene-{scene}"), os.path.join(out_dir, f"{name}.gif"))
 
 
 if __name__ == "__main__":
