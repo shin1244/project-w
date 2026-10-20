@@ -2,22 +2,21 @@ using Godot;
 using System.Collections.Generic;
 using System.Linq;
 
-// One room: four seats per team, [역할 선택] to take a role, chat, the host's server choice and
-// start. Seats nobody took are played by the AI.
+// One room: four seats per team. Each row picks its role on the left (대표 = commander, one per
+// team; 용병 = hero) and, on hero rows, which hero on the right. Chat, the host's server choice and
+// start sit below. Seats nobody took are played by the AI.
 public partial class Room : Control
 {
     private static readonly uint[] Heroes = { UnitCatalog.HeroTest, UnitCatalog.HeroGolem, UnitCatalog.HeroMarshal };
     private static readonly Color Muted = LobbyPalette.Muted, Faint = LobbyPalette.Faint, Accent = LobbyPalette.BrassLight, Warn = LobbyPalette.Ember;
-    private const int SpectatorItem = 100, StandItem = 101;
+    private const int CommanderItem = 0, HeroItem = 1, StandItem = 2;
     private MatchSession _session;
     private Label _title, _status, _waiting, _regionHint;
     private OptionButton _region;
-    private MenuButton _choose;
-    private Button _start, _leave, _rejoin, _send;
-    private PopupMenu _roles;
+    private Button _spectate, _start, _leave, _rejoin, _send;
     private RichTextLabel _chat;
     private LineEdit _chatInput;
-    private readonly List<(Label role, Label name, Label ping)>[] _seatRows = { new(), new() };
+    private readonly List<SeatRow>[] _seatRows = { new(), new() };
     private int _renderedChat;
     private bool _transitioning, _autoPicked, _autoStarted, _updatingRegion;
 
@@ -61,7 +60,7 @@ public partial class Room : Control
         var chatBox = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         chatBox.AddThemeConstantOverride("separation", 8);
         var chatPanel = new PanelContainer { ThemeTypeVariation = "FieldPanel" };
-        _chat = new RichTextLabel { BbcodeEnabled = false, ScrollFollowing = true, CustomMinimumSize = new Vector2(0, 150), SelectionEnabled = true };
+        _chat = new RichTextLabel { BbcodeEnabled = false, ScrollFollowing = true, CustomMinimumSize = new Vector2(0, 120), SelectionEnabled = true };
         _chat.AddThemeFontSizeOverride("normal_font_size", 14);
         chatPanel.AddChild(_chat);
         chatBox.AddChild(chatPanel);
@@ -82,20 +81,17 @@ public partial class Room : Control
             CustomMinimumSize = new Vector2(240, 40), SizeFlagsVertical = SizeFlags.ExpandFill };
         _status.AddThemeFontSizeOverride("font_size", 15);
         actions.AddChild(_status);
-        _choose = new MenuButton { Text = "역할 선택", ThemeTypeVariation = "BrassButton", CustomMinimumSize = new Vector2(0, 42), Flat = false,
-            TooltipText = "고르지 않으면 시작할 때 남은 자리에 앉습니다." };
-        _roles = _choose.GetPopup();
-        _choose.AboutToPopup += FillRoles;
-        _roles.IdPressed += OnRoleChosen;
+        _spectate = new Button { ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 38) };
+        _spectate.Pressed += () => _session.ChooseRole(0, _session.Room?.Me?.Spectator == true ? "" : "SPECTATOR", 0);
         _start = new Button { Text = "시작", CustomMinimumSize = new Vector2(0, 46) };
         _start.Pressed += () => { if (_session.Room?.State == "countdown") _session.CancelStart(); else _session.StartRoom(); };
         _rejoin = new Button { Text = "경기로 돌아가기", CustomMinimumSize = new Vector2(0, 46) };
         _rejoin.Pressed += () => _session.Rejoin();
         _leave = new Button { Text = "방 나가기", ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 38) };
         _leave.Pressed += () => _session.LeaveRoom();
-        actions.AddChild(_choose);
         actions.AddChild(_start);
         actions.AddChild(_rejoin);
+        actions.AddChild(_spectate);
         actions.AddChild(_leave);
         bottom.AddChild(actions);
         content.AddChild(bottom);
@@ -104,30 +100,59 @@ public partial class Room : Control
         Refresh();
     }
 
+    // One seat row: role picker or label, name, ping, and on hero rows the hero picker or label.
+    // Pickers show on a row this guest may take; another guest's row shows plain labels.
+    private sealed class SeatRow
+    {
+        public OptionButton RoleBox, HeroBox;
+        public Label Role, Name, Ping, Hero;
+    }
+
     private Control TeamPanel(uint team)
     {
         var panel = new PanelContainer { ThemeTypeVariation = "PlatePanel", SizeFlagsHorizontal = SizeFlags.ExpandFill };
         var rows = new VBoxContainer();
-        rows.AddThemeConstantOverride("separation", 8);
+        rows.AddThemeConstantOverride("separation", 6);
         rows.AddChild(LobbyPalette.Caption($"{team}팀", 15, LobbyPalette.Brass));
         for (int i = 0; i < 4; i++)
         {
-            var row = new HBoxContainer();
+            var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, 30) };
             row.AddThemeConstantOverride("separation", 10);
-            var role = LobbyPalette.Caption("", 15);
-            role.CustomMinimumSize = new Vector2(96, 0);
-            var name = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis };
-            var ping = LobbyPalette.Caption("", 14);
-            ping.CustomMinimumSize = new Vector2(64, 0);
-            ping.HorizontalAlignment = HorizontalAlignment.Right;
-            row.AddChild(role);
-            row.AddChild(name);
-            row.AddChild(ping);
+            var seat = new SeatRow
+            {
+                RoleBox = Picker(96, "대표는 팀에 한 명입니다. 고르지 않으면 시작할 때 남은 자리에 앉습니다."),
+                Role = Cell(96),
+                Name = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ShrinkCenter, ClipText = true, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis },
+                Ping = LobbyPalette.Caption("", 14),
+                HeroBox = Picker(144, "같은 팀에서 한 용병은 한 명만 고를 수 있습니다."),
+                Hero = Cell(144),
+            };
+            seat.Ping.CustomMinimumSize = new Vector2(52, 0);
+            seat.Ping.HorizontalAlignment = HorizontalAlignment.Right;
+            seat.Ping.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+            uint rowTeam = team;
+            seat.RoleBox.GetPopup().IdPressed += id => OnRoleChosen(rowTeam, (int)id);
+            seat.HeroBox.GetPopup().IdPressed += id => _session.ChooseRole(rowTeam, "HERO", (uint)id);
+            foreach (var cell in new Control[] { seat.RoleBox, seat.Role, seat.Name, seat.Ping, seat.HeroBox, seat.Hero }) row.AddChild(cell);
             rows.AddChild(row);
-            _seatRows[team - 1].Add((role, name, ping));
+            _seatRows[team - 1].Add(seat);
         }
         panel.AddChild(rows);
         return panel;
+    }
+
+    private static OptionButton Picker(float width, string tooltip) => new()
+    {
+        ThemeTypeVariation = "SeatButton", CustomMinimumSize = new Vector2(width, 30), TooltipText = tooltip,
+        SizeFlagsVertical = SizeFlags.ShrinkCenter, FitToLongestItem = false,
+    };
+
+    private static Label Cell(float width)
+    {
+        var label = LobbyPalette.Caption("", 15);
+        label.CustomMinimumSize = new Vector2(width, 0);
+        label.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        return label;
     }
 
     private void Refresh()
@@ -146,21 +171,13 @@ public partial class Room : Control
         bool waiting = room.State == "waiting";
         _title.Text = room.Name;
         RefreshRegions(room);
-        foreach (var seat in room.Seats)
-        {
-            var (role, name, ping) = _seatRows[seat.Team - 1][seat.Index % 4];
-            var member = seat.PlayerId != null ? room.Member(seat.PlayerId) : null;
-            role.Text = seat.Role == "COMMANDER" ? "지휘관" : member != null ? UnitCatalog.Name(seat.Hero) : "영웅";
-            name.Text = member == null ? "AI" : member.Name + (member.Id == room.HostId ? " (방장)" : "");
-            name.AddThemeColorOverride("font_color", member == null ? Faint : member.Id == room.You ? Accent : LobbyPalette.Text);
-            ping.Text = member == null ? "" : member.Ping < 0 ? "-" : $"{member.Ping}ms";
-            ping.AddThemeColorOverride("font_color", member != null && member.Ping >= 150 ? Warn : Muted);
-        }
+        foreach (var seat in room.Seats) RefreshSeat(room, seat, waiting && me != null);
         var unseated = room.Members.Where(m => m.Seat < 0 && !m.Spectator).Select(m => m.Name).ToArray();
         var spectators = room.Members.Where(m => m.Spectator).Select(m => m.Name).ToArray();
         _waiting.Text = $"인원 {room.Members.Count}/8" + (unseated.Length > 0 ? $" · 선택 전: {string.Join(", ", unseated)}" : "") +
             (spectators.Length > 0 ? $" · 관전: {string.Join(", ", spectators)}" : "");
-        _choose.Disabled = !waiting;
+        _spectate.Text = me?.Spectator == true ? "관전 취소" : "관전";
+        _spectate.Disabled = !waiting;
         _start.Visible = room.IsHost;
         _start.Text = room.State == "countdown" ? "시작 취소" : "시작";
         _start.Disabled = room.State is not ("waiting" or "countdown");
@@ -205,50 +222,71 @@ public partial class Room : Control
         _updatingRegion = false;
     }
 
-    // [역할 선택]: each team's commander and heroes, then spectating. A role another guest holds
-    // is greyed out; the server refuses it anyway. Filled each time the menu opens.
-    private void FillRoles()
+    private void RefreshSeat(RoomState room, RoomSeat seat, bool canChoose)
     {
-        _roles.Clear();
+        var row = _seatRows[seat.Team - 1][seat.Index % 4];
+        var member = seat.PlayerId != null ? room.Member(seat.PlayerId) : null;
+        bool mine = seat.PlayerId == room.You, hero = seat.Role == "HERO";
+        bool open = canChoose && (member == null || mine);
+        row.Name.Text = member == null ? "AI" : member.Name + (member.Id == room.HostId ? " (방장)" : "");
+        row.Name.AddThemeColorOverride("font_color", member == null ? Faint : mine ? Accent : LobbyPalette.Text);
+        row.Ping.Text = member == null ? "" : member.Ping < 0 ? "-" : $"{member.Ping}ms";
+        row.Ping.AddThemeColorOverride("font_color", member != null && member.Ping >= 150 ? Warn : Muted);
+
+        row.Role.Text = hero ? "용병" : "대표";
+        row.Role.Visible = !open;
+        row.RoleBox.Visible = open;
+        if (open && !row.RoleBox.GetPopup().Visible)
+        {
+            var commander = room.Seats.First(s => s.Team == seat.Team && s.Role == "COMMANDER");
+            row.RoleBox.Clear();
+            row.RoleBox.AddItem("대표", CommanderItem);
+            row.RoleBox.SetItemDisabled(0, commander.PlayerId != null && commander.PlayerId != room.You);
+            row.RoleBox.AddItem("용병", HeroItem);
+            row.RoleBox.SetItemDisabled(1, FreeHero(room, seat.Team) == 0);
+            if (mine) row.RoleBox.AddItem("비우기", StandItem);
+            row.RoleBox.Select(hero ? 1 : 0);
+        }
+        row.RoleBox.AddThemeColorOverride("font_color", mine ? Accent : LobbyPalette.Text);
+
+        row.Hero.Text = hero && member != null ? UnitCatalog.Name(seat.Hero) : "";
+        row.Hero.Visible = !(hero && open);
+        row.HeroBox.Visible = hero && open;
+        if (hero && open && !row.HeroBox.GetPopup().Visible)
+        {
+            row.HeroBox.Clear();
+            for (int i = 0; i < Heroes.Length; i++)
+            {
+                row.HeroBox.AddItem(UnitCatalog.Name(Heroes[i]), (int)Heroes[i]);
+                row.HeroBox.SetItemDisabled(i, TakenByOther(room, seat.Team, Heroes[i]));
+            }
+            row.HeroBox.Select(mine ? System.Array.IndexOf(Heroes, seat.Hero) : -1);
+            if (!mine) row.HeroBox.Text = "용병 선택";
+        }
+        row.HeroBox.AddThemeColorOverride("font_color", mine ? Accent : Muted);
+    }
+
+    private static bool TakenByOther(RoomState room, uint team, uint hero) =>
+        room.Seats.Any(s => s.Team == team && s.Role == "HERO" && s.PlayerId != null && s.PlayerId != room.You && s.Hero == hero);
+
+    // The hero a guest gets by choosing 용병 on a row: the one they already play in this team,
+    // else the first nobody else in the team holds. 0 when the team has no hero seat left for them.
+    private static uint FreeHero(RoomState room, uint team)
+    {
+        var heroSeats = room.Seats.Where(s => s.Team == team && s.Role == "HERO").ToArray();
+        var mine = heroSeats.FirstOrDefault(s => s.PlayerId == room.You);
+        if (mine != null) return mine.Hero;
+        if (heroSeats.All(s => s.PlayerId != null)) return 0;
+        return Heroes.FirstOrDefault(h => !TakenByOther(room, team, h));
+    }
+
+    private void OnRoleChosen(uint team, int id)
+    {
         var room = _session.Room;
         if (room == null) return;
-        for (uint team = 1; team <= 2; team++)
-        {
-            _roles.AddSeparator($"{team}팀");
-            var seats = room.Seats.Where(s => s.Team == team).ToArray();
-            var commander = seats.First(s => s.Role == "COMMANDER");
-            AddRole("지휘관", Id(team, 0), commander.PlayerId != null && commander.PlayerId != room.You);
-            var heroSeats = seats.Where(s => s.Role == "HERO").ToArray();
-            bool mineHere = heroSeats.Any(s => s.PlayerId == room.You);
-            bool free = mineHere || heroSeats.Any(s => s.PlayerId == null);
-            foreach (uint hero in Heroes)
-            {
-                bool taken = heroSeats.Any(s => s.PlayerId != null && s.PlayerId != room.You && s.Hero == hero);
-                AddRole(UnitCatalog.Name(hero), Id(team, hero), taken || !free);
-            }
-        }
-        _roles.AddSeparator();
-        AddRole("관전", SpectatorItem, false);
-        AddRole("선택 취소", StandItem, false);
-    }
-
-    private void AddRole(string text, int id, bool disabled)
-    {
-        _roles.AddItem(text, id);
-        _roles.SetItemDisabled(_roles.ItemCount - 1, disabled);
-    }
-
-    private static int Id(uint team, uint hero) => (int)(team * 1000 + hero);
-
-    private void OnRoleChosen(long id)
-    {
-        if (id == SpectatorItem) _session.ChooseRole(0, "SPECTATOR", 0);
-        else if (id == StandItem) _session.ChooseRole(0, "", 0);
-        else
-        {
-            uint team = (uint)(id / 1000), hero = (uint)(id % 1000);
-            _session.ChooseRole(team, hero == 0 ? "COMMANDER" : "HERO", hero);
-        }
+        if (id == StandItem) _session.ChooseRole(0, "", 0);
+        else if (id == CommanderItem) _session.ChooseRole(team, "COMMANDER", 0);
+        else if (FreeHero(room, team) is uint hero and not 0) _session.ChooseRole(team, "HERO", hero);
     }
 
     private void RenderChat()
