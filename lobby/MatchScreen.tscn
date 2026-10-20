@@ -1,137 +1,309 @@
 [gd_scene format=3]
 
 [sub_resource type="Gradient" id="BackdropColors"]
-offsets = PackedFloat32Array(0, 0.55, 1)
-colors = PackedColorArray(0.105, 0.165, 0.16, 1, 0.047, 0.082, 0.102, 1, 0.027, 0.047, 0.067, 1)
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(0.055, 0.063, 0.071, 1, 0.067, 0.075, 0.086, 1, 0.141, 0.09, 0.063, 1)
 
 [sub_resource type="GradientTexture2D" id="Backdrop"]
 gradient = SubResource("BackdropColors")
-width = 1024
-height = 1024
+width = 64
+height = 512
 fill_from = Vector2(0, 0)
-fill_to = Vector2(0.85, 1)
+fill_to = Vector2(0, 1)
+
+[sub_resource type="FontVariation" id="BrandFont"]
+variation_embolden = 0.4
+spacing_glyph = 4
 
 [sub_resource type="StyleBoxFlat" id="Card"]
-bg_color = Color(0.059, 0.098, 0.118, 0.96)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.216, 0.294, 0.29, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_left = 14
-corner_radius_bottom_right = 14
+bg_color = Color(0.078, 0.09, 0.102, 0.97)
+border_width_top = 2
+border_color = Color(0.788, 0.627, 0.29, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
 content_margin_left = 32.0
-content_margin_top = 32.0
+content_margin_top = 28.0
 content_margin_right = 32.0
 content_margin_bottom = 28.0
-shadow_color = Color(0, 0, 0, 0.25)
-shadow_size = 24
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 18
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
-bg_color = Color(0.67, 0.8, 0.67, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+bg_color = Color(0.847, 0.4, 0.165, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
 content_margin_left = 18.0
 content_margin_right = 18.0
 
 [sub_resource type="StyleBoxFlat" id="ButtonHover"]
-bg_color = Color(0.79, 0.89, 0.74, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+bg_color = Color(0.918, 0.482, 0.235, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 18.0
+content_margin_right = 18.0
 
 [sub_resource type="StyleBoxFlat" id="ButtonPressed"]
-bg_color = Color(0.53, 0.7, 0.57, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+bg_color = Color(0.706, 0.322, 0.118, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 18.0
+content_margin_right = 18.0
 
 [sub_resource type="StyleBoxFlat" id="ButtonDisabled"]
-bg_color = Color(0.13, 0.21, 0.22, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+bg_color = Color(0.137, 0.153, 0.169, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 18.0
+content_margin_right = 18.0
 
 [sub_resource type="StyleBoxFlat" id="ButtonFocus"]
 bg_color = Color(0, 0, 0, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.86, 0.9, 0.74, 1)
-corner_radius_top_left = 7
-corner_radius_top_right = 7
-corner_radius_bottom_left = 7
-corner_radius_bottom_right = 7
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.878, 0.729, 0.384, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
 expand_margin_left = 3.0
 expand_margin_top = 3.0
 expand_margin_right = 3.0
 expand_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="Secondary"]
-bg_color = Color(0.075, 0.125, 0.145, 1)
+bg_color = Color(0.102, 0.118, 0.133, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.23, 0.32, 0.33, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+border_color = Color(0.227, 0.247, 0.267, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_right = 14.0
 
 [sub_resource type="StyleBoxFlat" id="SecondaryHover"]
-bg_color = Color(0.14, 0.22, 0.24, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+bg_color = Color(0.133, 0.149, 0.165, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.788, 0.627, 0.29, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_right = 14.0
+
+[sub_resource type="StyleBoxFlat" id="SecondaryDisabled"]
+bg_color = Color(0.078, 0.09, 0.102, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.169, 0.188, 0.208, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_right = 14.0
+
+[sub_resource type="StyleBoxFlat" id="Brass"]
+bg_color = Color(0.102, 0.118, 0.133, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.788, 0.627, 0.29, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_right = 14.0
+
+[sub_resource type="StyleBoxFlat" id="BrassHover"]
+bg_color = Color(0.165, 0.149, 0.11, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.878, 0.729, 0.384, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_right = 14.0
+
+[sub_resource type="StyleBoxFlat" id="Field"]
+bg_color = Color(0.055, 0.063, 0.071, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.169, 0.188, 0.208, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="FieldFocus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.788, 0.627, 0.29, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+
+[sub_resource type="StyleBoxFlat" id="Row"]
+bg_color = Color(0.102, 0.118, 0.133, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="Plate"]
+bg_color = Color(0.102, 0.118, 0.133, 1)
+border_width_top = 2
+border_color = Color(0.788, 0.627, 0.29, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Popup"]
+bg_color = Color(0.078, 0.09, 0.102, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.247, 0.267, 1)
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="PopupHover"]
+bg_color = Color(0.165, 0.149, 0.11, 1)
+
+[sub_resource type="StyleBoxFlat" id="ScrollTrack"]
+bg_color = Color(0, 0, 0, 0)
+content_margin_left = 4.0
+content_margin_right = 0.0
+
+[sub_resource type="StyleBoxFlat" id="ScrollGrabber"]
+bg_color = Color(0.227, 0.247, 0.267, 1)
+
+[sub_resource type="StyleBoxFlat" id="ScrollGrabberHover"]
+bg_color = Color(0.788, 0.627, 0.29, 1)
 
 [sub_resource type="StyleBoxFlat" id="ProgressTrack"]
-bg_color = Color(0.14, 0.21, 0.23, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_left = 4
-corner_radius_bottom_right = 4
+bg_color = Color(0.137, 0.153, 0.169, 1)
 
 [sub_resource type="StyleBoxFlat" id="ProgressFill"]
-bg_color = Color(0.67, 0.8, 0.67, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_left = 4
-corner_radius_bottom_right = 4
+bg_color = Color(0.847, 0.4, 0.165, 1)
 
 [sub_resource type="Theme" id="Theme"]
 default_font_size = 16
-Label/colors/font_color = Color(0.9, 0.92, 0.86, 1)
+Label/colors/font_color = Color(0.894, 0.875, 0.827, 1)
 Button/font_sizes/font_size = 17
-Button/colors/font_color = Color(0.055, 0.098, 0.09, 1)
-Button/colors/font_hover_color = Color(0.035, 0.075, 0.06, 1)
-Button/colors/font_pressed_color = Color(0.035, 0.075, 0.06, 1)
-Button/colors/font_focus_color = Color(0.055, 0.098, 0.09, 1)
-Button/colors/font_disabled_color = Color(0.5, 0.63, 0.63, 1)
+Button/colors/font_color = Color(0.102, 0.055, 0.024, 1)
+Button/colors/font_hover_color = Color(0.102, 0.055, 0.024, 1)
+Button/colors/font_pressed_color = Color(0.102, 0.055, 0.024, 1)
+Button/colors/font_focus_color = Color(0.102, 0.055, 0.024, 1)
+Button/colors/font_hover_pressed_color = Color(0.102, 0.055, 0.024, 1)
+Button/colors/font_disabled_color = Color(0.369, 0.361, 0.341, 1)
 Button/styles/normal = SubResource("ButtonNormal")
 Button/styles/hover = SubResource("ButtonHover")
 Button/styles/pressed = SubResource("ButtonPressed")
 Button/styles/disabled = SubResource("ButtonDisabled")
 Button/styles/focus = SubResource("ButtonFocus")
 SecondaryButton/base_type = &"Button"
-SecondaryButton/colors/font_color = Color(0.74, 0.81, 0.8, 1)
-SecondaryButton/colors/font_hover_color = Color(0.93, 0.96, 0.91, 1)
-SecondaryButton/colors/font_pressed_color = Color(0.93, 0.96, 0.91, 1)
-SecondaryButton/colors/font_focus_color = Color(0.93, 0.96, 0.91, 1)
-SecondaryButton/colors/font_disabled_color = Color(0.39, 0.48, 0.49, 1)
+SecondaryButton/colors/font_color = Color(0.784, 0.769, 0.733, 1)
+SecondaryButton/colors/font_hover_color = Color(0.894, 0.875, 0.827, 1)
+SecondaryButton/colors/font_pressed_color = Color(0.894, 0.875, 0.827, 1)
+SecondaryButton/colors/font_focus_color = Color(0.894, 0.875, 0.827, 1)
+SecondaryButton/colors/font_hover_pressed_color = Color(0.894, 0.875, 0.827, 1)
+SecondaryButton/colors/font_disabled_color = Color(0.369, 0.361, 0.341, 1)
+SecondaryButton/font_sizes/font_size = 16
 SecondaryButton/styles/normal = SubResource("Secondary")
 SecondaryButton/styles/hover = SubResource("SecondaryHover")
 SecondaryButton/styles/pressed = SubResource("Secondary")
-SecondaryButton/styles/disabled = SubResource("Secondary")
+SecondaryButton/styles/disabled = SubResource("SecondaryDisabled")
+BrassButton/base_type = &"Button"
+BrassButton/colors/font_color = Color(0.878, 0.729, 0.384, 1)
+BrassButton/colors/font_hover_color = Color(0.96, 0.85, 0.58, 1)
+BrassButton/colors/font_pressed_color = Color(0.96, 0.85, 0.58, 1)
+BrassButton/colors/font_focus_color = Color(0.878, 0.729, 0.384, 1)
+BrassButton/colors/font_hover_pressed_color = Color(0.96, 0.85, 0.58, 1)
+BrassButton/colors/font_disabled_color = Color(0.369, 0.361, 0.341, 1)
+BrassButton/styles/normal = SubResource("Brass")
+BrassButton/styles/hover = SubResource("BrassHover")
+BrassButton/styles/pressed = SubResource("BrassHover")
+BrassButton/styles/disabled = SubResource("SecondaryDisabled")
+LineEdit/colors/font_color = Color(0.894, 0.875, 0.827, 1)
+LineEdit/colors/font_placeholder_color = Color(0.42, 0.412, 0.392, 1)
+LineEdit/colors/font_uneditable_color = Color(0.553, 0.541, 0.51, 1)
+LineEdit/colors/caret_color = Color(0.878, 0.729, 0.384, 1)
+LineEdit/colors/selection_color = Color(0.788, 0.627, 0.29, 0.35)
+LineEdit/styles/normal = SubResource("Field")
+LineEdit/styles/focus = SubResource("FieldFocus")
+LineEdit/styles/read_only = SubResource("Field")
+RichTextLabel/colors/default_color = Color(0.894, 0.875, 0.827, 1)
+RowPanel/base_type = &"PanelContainer"
+RowPanel/styles/panel = SubResource("Row")
+PlatePanel/base_type = &"PanelContainer"
+PlatePanel/styles/panel = SubResource("Plate")
+FieldPanel/base_type = &"PanelContainer"
+FieldPanel/styles/panel = SubResource("Field")
+PopupMenu/colors/font_color = Color(0.894, 0.875, 0.827, 1)
+PopupMenu/colors/font_hover_color = Color(0.96, 0.85, 0.58, 1)
+PopupMenu/colors/font_disabled_color = Color(0.369, 0.361, 0.341, 1)
+PopupMenu/colors/font_separator_color = Color(0.788, 0.627, 0.29, 1)
+PopupMenu/font_sizes/font_size = 16
+PopupMenu/constants/v_separation = 8
+PopupMenu/styles/panel = SubResource("Popup")
+PopupMenu/styles/hover = SubResource("PopupHover")
+TooltipPanel/styles/panel = SubResource("Popup")
+TooltipLabel/colors/font_color = Color(0.894, 0.875, 0.827, 1)
+TooltipLabel/font_sizes/font_size = 14
+VScrollBar/styles/scroll = SubResource("ScrollTrack")
+VScrollBar/styles/grabber = SubResource("ScrollGrabber")
+VScrollBar/styles/grabber_highlight = SubResource("ScrollGrabberHover")
+VScrollBar/styles/grabber_pressed = SubResource("ScrollGrabberHover")
 ProgressBar/styles/background = SubResource("ProgressTrack")
 ProgressBar/styles/fill = SubResource("ProgressFill")
 
@@ -154,6 +326,7 @@ grow_vertical = 2
 mouse_filter = 2
 texture = SubResource("Backdrop")
 expand_mode = 1
+stretch_mode = 0
 
 [node name="Header" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -161,9 +334,9 @@ anchors_preset = 10
 anchor_right = 1.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 22
-theme_override_constants/margin_right = 28
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 32
 
 [node name="Row" type="HBoxContainer" parent="Header"]
 layout_mode = 2
@@ -172,13 +345,14 @@ mouse_filter = 2
 [node name="Brand" type="Label" parent="Header/Row"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.77, 0.84, 0.72, 1)
+theme_override_colors/font_color = Color(0.788, 0.627, 0.29, 1)
+theme_override_fonts/font = SubResource("BrandFont")
 theme_override_font_sizes/font_size = 18
 text = "BURN QUARTER"
 
 [node name="PreviewBadge" type="Label" parent="Header/Row"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.53, 0.66, 0.66, 1)
+theme_override_colors/font_color = Color(0.553, 0.541, 0.51, 1)
 theme_override_font_sizes/font_size = 13
 text = "매칭 미리보기"
 
@@ -205,7 +379,7 @@ theme_override_constants/separation = 16
 [node name="Kicker" type="Label" parent="Center/Card/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.67, 0.8, 0.67, 1)
+theme_override_colors/font_color = Color(0.788, 0.627, 0.29, 1)
 theme_override_font_sizes/font_size = 13
 text = "빠른 대전"
 horizontal_alignment = 1
@@ -220,7 +394,7 @@ horizontal_alignment = 1
 [node name="Description" type="Label" parent="Center/Card/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.63, 0.73, 0.73, 1)
+theme_override_colors/font_color = Color(0.553, 0.541, 0.51, 1)
 theme_override_font_sizes/font_size = 14
 text = "준비가 되면 매칭을 시작하세요."
 horizontal_alignment = 1
@@ -241,7 +415,7 @@ horizontal_alignment = 1
 [node name="QueueTime" type="Label" parent="Center/Card/Content/StatusArea"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.67, 0.68, 1)
+theme_override_colors/font_color = Color(0.553, 0.541, 0.51, 1)
 theme_override_font_sizes/font_size = 14
 text = "대기 시간  00:00"
 horizontal_alignment = 1
@@ -249,7 +423,7 @@ horizontal_alignment = 1
 [node name="Progress" type="ProgressBar" parent="Center/Card/Content/StatusArea"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 8)
+custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
 mouse_filter = 2
 show_percentage = false
@@ -258,7 +432,7 @@ show_percentage = false
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.67, 0.8, 0.67, 1)
+theme_override_colors/font_color = Color(0.788, 0.627, 0.29, 1)
 theme_override_font_sizes/font_size = 14
 text = "0%"
 horizontal_alignment = 1
@@ -269,14 +443,14 @@ theme_override_constants/separation = 10
 
 [node name="PrimaryButton" type="Button" parent="Center/Card/Content/Actions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 text = "매칭 시작"
 
 [node name="SecondaryButton" type="Button" parent="Center/Card/Content/Actions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_type_variation = &"SecondaryButton"
 mouse_default_cursor_shape = 2
@@ -286,7 +460,7 @@ text = "취소"
 [node name="Footnote" type="Label" parent="Center/Card/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.49, 0.61, 0.63, 1)
+theme_override_colors/font_color = Color(0.42, 0.412, 0.392, 1)
 theme_override_font_sizes/font_size = 12
 text = "매칭 시작 후 잠시 뒤 로딩 화면으로 이동합니다."
 horizontal_alignment = 1

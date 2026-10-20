@@ -17,8 +17,8 @@ public partial class MatchResultPanel : CanvasLayer
         var title = screen.GetNode<Label>("%Title");
         title.Text = Result.Title(LocalTeam);
         title.AddThemeFontSizeOverride("font_size", 48);
-        title.AddThemeColorOverride("font_color", Result.Winner == 0 ? new Color("c9d5da") :
-            Result.Winner == LocalTeam ? new Color("b7dca2") : new Color("e3a997"));
+        title.AddThemeColorOverride("font_color", Result.Winner == 0 ? LobbyPalette.Text :
+            Result.Winner == LocalTeam ? LobbyPalette.BrassLight : LobbyPalette.Ember);
         screen.GetNode<Label>("%Description").Text = Result.Description;
         screen.GetNode<Label>("%Status").Text = $"플레이 시간  {Result.Seconds / 60:00}:{Result.Seconds % 60:00}";
         screen.GetNode<Label>("%QueueTime").Hide();

@@ -5,12 +5,13 @@ using System.Linq;
 public partial class Lobby : Control
 {
     private MatchSession _session;
-    private Label _kicker, _title, _description, _status;
+    private Label _kicker, _title, _description, _status, _brand;
     private Button _primary, _secondary, _leave, _create;
     private LineEdit _name, _address, _roomName;
     private VBoxContainer _entry, _list, _rows;
     private Control _statusArea, _footnote;
     private HBoxContainer _listActions;
+    private Font _brandFont;
     private bool _transitioning, _autoCreated;
 
     public override void _Ready()
@@ -23,35 +24,41 @@ public partial class Lobby : Control
         _primary = GetNode<Button>("%PrimaryButton");
         _secondary = GetNode<Button>("%SecondaryButton");
         GetNode<Label>("%QueueTime").Hide();
-        GetNode<Label>("Header/Row/PreviewBadge").Text = "영웅 3 vs 3 · 지휘관 각 1명";
+        _brand = GetNode<Label>("Header/Row/Brand");
+        _brandFont = _brand.GetThemeFont("font");
+        GetNode<Label>("Header/Row/PreviewBadge").Text = "3 vs 3";
         _footnote = GetNode<Label>("%Footnote");
-        ((Label)_footnote).Text = "빈자리는 AI가 맡습니다. 방장이 시작하면 5초 뒤 전장으로 이동합니다.";
+        _footnote.Hide();
+        _kicker.Hide();
         _statusArea = GetNode<Control>("Center/Card/Content/StatusArea");
-        GetNode<PanelContainer>("Center/Card").CustomMinimumSize = new Vector2(620, 0);
+        GetNode<PanelContainer>("Center/Card").CustomMinimumSize = new Vector2(640, 0);
         _status.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         var content = GetNode<VBoxContainer>("Center/Card/Content");
 
         _entry = new VBoxContainer();
-        _entry.AddThemeConstantOverride("separation", 10);
-        _name = new LineEdit { Text = _session.PlayerName, PlaceholderText = "이름", MaxLength = MatchSession.NameMaxLength, TooltipText = "방과 채팅에 보이는 이름" };
-        _address = new LineEdit { Text = _session.LobbyUrl, PlaceholderText = "http://서버주소:8080", TooltipText = "호스트에게 받은 로비 서버 주소" };
+        _entry.AddThemeConstantOverride("separation", 6);
+        _name = new LineEdit { Text = _session.PlayerName, PlaceholderText = "이름", MaxLength = MatchSession.NameMaxLength, CustomMinimumSize = new Vector2(0, 42) };
+        _address = new LineEdit { Text = _session.LobbyUrl, PlaceholderText = "http://서버주소:8080", TooltipText = "호스트에게 받은 로비 서버 주소", CustomMinimumSize = new Vector2(0, 42) };
+        _entry.AddChild(LobbyPalette.Caption("이름"));
         _entry.AddChild(_name);
+        _entry.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
+        _entry.AddChild(LobbyPalette.Caption("서버"));
         _entry.AddChild(_address);
         _name.TextSubmitted += _ => Enter();
         _address.TextSubmitted += _ => Enter();
 
         _list = new VBoxContainer();
-        _list.AddThemeConstantOverride("separation", 10);
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 190), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _list.AddThemeConstantOverride("separation", 12);
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 220), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _rows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _rows.AddThemeConstantOverride("separation", 6);
+        _rows.AddThemeConstantOverride("separation", 4);
         scroll.AddChild(_rows);
         _list.AddChild(scroll);
         var createRow = new HBoxContainer();
-        createRow.AddThemeConstantOverride("separation", 10);
-        _roomName = new LineEdit { PlaceholderText = "방 이름 (비우면 \"이름의 방\")", MaxLength = MatchSession.RoomNameMaxLength, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        createRow.AddThemeConstantOverride("separation", 8);
+        _roomName = new LineEdit { PlaceholderText = "방 이름", MaxLength = MatchSession.RoomNameMaxLength, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _roomName.TextSubmitted += _ => _session.CreateRoom(_roomName.Text);
-        _create = new Button { Text = "방 만들기", CustomMinimumSize = new Vector2(140, 42) };
+        _create = new Button { Text = "방 만들기", CustomMinimumSize = new Vector2(132, 42) };
         _create.Pressed += () => _session.CreateRoom(_roomName.Text);
         createRow.AddChild(_roomName);
         createRow.AddChild(_create);
@@ -64,10 +71,10 @@ public partial class Lobby : Control
         // In the list, refresh and back sit side by side under the list to fit the window.
         var actions = GetNode<VBoxContainer>("Center/Card/Content/Actions");
         _listActions = new HBoxContainer();
-        _listActions.AddThemeConstantOverride("separation", 10);
+        _listActions.AddThemeConstantOverride("separation", 8);
         _secondary.Reparent(_listActions);
         _secondary.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        _leave = new Button { Text = "입장 화면으로", ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 42), SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _leave = new Button { Text = "나가기", ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 40), SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _leave.Pressed += () => _session.LeaveLobby();
         _listActions.AddChild(_leave);
         actions.AddChild(_listActions);
@@ -97,29 +104,38 @@ public partial class Lobby : Control
         _list.Visible = entered;
         _listActions.Visible = entered;
         _primary.Visible = !entered;
-        _footnote.Visible = !entered;
+        _brand.SelfModulate = entered ? Colors.White : Colors.Transparent; // The entry card carries the name; keep its place.
         _secondary.Disabled = false;
-        _statusArea.CustomMinimumSize = entered ? Vector2.Zero : new Vector2(0, 80);
-        GetNode<VBoxContainer>("Center/Card/Content").AddThemeConstantOverride("separation", entered ? 12 : 16);
+        _statusArea.CustomMinimumSize = entered ? Vector2.Zero : new Vector2(0, 24);
+        GetNode<VBoxContainer>("Center/Card/Content").AddThemeConstantOverride("separation", entered ? 14 : 18);
+        string problem = _session.Notice ?? _session.ErrorMessage;
+        _status.AddThemeColorOverride("font_color", problem != null ? LobbyPalette.Ember : LobbyPalette.Muted);
+        var align = entered ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        _title.HorizontalAlignment = _description.HorizontalAlignment = align;
         if (!entered)
         {
-            _kicker.Text = "게스트 입장";
-            _title.Text = "전장으로";
-            _description.Text = "이름과 서버 주소를 정하고 입장하세요.";
-            _primary.Text = _session.Connecting ? "입장하는 중…" : "게스트로 입장";
+            _title.Text = "BURN QUARTER";
+            _title.AddThemeFontOverride("font", _brandFont);
+            _title.AddThemeFontSizeOverride("font_size", 34);
+            _title.AddThemeColorOverride("font_color", LobbyPalette.Brass);
+            _description.Text = "게스트 입장";
+            _primary.Text = _session.Connecting ? "입장 중…" : "입장";
             _primary.Disabled = _session.Connecting;
             _name.Editable = _address.Editable = !_session.Connecting;
-            _status.Text = _session.Notice ?? _session.ErrorMessage ?? "로그인 없이 게스트로 플레이합니다.";
+            _status.Text = problem ?? "";
+            _status.Visible = true; // Holds its height so a refusal does not shift the card.
             return;
         }
-        _kicker.Text = "로비";
         _title.Text = "방 목록";
-        var pings = _session.Lobby.Regions.Select(r => $"{r.Name} {(_session.Pings.TryGetValue(r.Id, out int ms) ? $"{ms}ms" : "측정 중")}");
-        _description.Text = $"{_session.Lobby.Name}님 · 핑 {string.Join(" · ", pings)}";
+        _title.RemoveThemeFontOverride("font");
+        _title.AddThemeFontSizeOverride("font_size", 26);
+        _title.RemoveThemeColorOverride("font_color");
+        var pings = _session.Lobby.Regions.Select(r => $"{r.Name} {(_session.Pings.TryGetValue(r.Id, out int ms) ? $"{ms}ms" : "-")}");
+        _description.Text = $"{_session.Lobby.Name} · {string.Join(" · ", pings)}";
         _secondary.Text = "새로고침";
-        _roomName.PlaceholderText = $"방 이름 (비우면 \"{_session.Lobby.Name}의 방\")";
-        _status.Text = _session.Notice ?? _session.ErrorMessage ?? (!_session.RoomsLoaded ? "방 목록을 불러오는 중…" :
-            _session.Rooms.Count == 0 ? "열린 방이 없습니다. 방을 만들어 보세요." : $"방 {_session.Rooms.Count}개");
+        _roomName.PlaceholderText = $"{_session.Lobby.Name}의 방";
+        _status.Text = problem ?? (!_session.RoomsLoaded ? "불러오는 중…" : _session.Rooms.Count == 0 ? "열린 방 없음" : "");
+        _status.Visible = _status.Text != "";
         foreach (Node row in _rows.GetChildren()) row.QueueFree();
         foreach (var room in _session.Rooms) _rows.AddChild(RoomRow(room));
         if (_session.AutoSpectate && !_autoCreated && _session.Room == null)
@@ -131,23 +147,25 @@ public partial class Lobby : Control
 
     private Control RoomRow(RoomSummary room)
     {
+        var panel = new PanelContainer { ThemeTypeVariation = "RowPanel" };
         var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 10);
+        row.AddThemeConstantOverride("separation", 14);
         var name = new Label { Text = room.Name, SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis };
-        var info = new Label { Text = $"{room.Host} · {room.Players}/{room.Max} · {room.RegionName}" };
-        info.AddThemeColorOverride("font_color", new Color(0.63f, 0.73f, 0.73f));
-        info.AddThemeFontSizeOverride("font_size", 14);
-        var state = new Label { Text = room.Playing ? "게임 중" : "대기 중", CustomMinimumSize = new Vector2(56, 0) };
-        state.AddThemeColorOverride("font_color", room.Playing ? new Color(0.89f, 0.66f, 0.59f) : new Color(0.72f, 0.86f, 0.64f));
-        state.AddThemeFontSizeOverride("font_size", 14);
-        var join = new Button { Text = "입장", CustomMinimumSize = new Vector2(72, 34), Disabled = room.Playing || room.Players >= room.Max };
+        name.AddThemeFontSizeOverride("font_size", 17);
+        var info = LobbyPalette.Caption($"{room.Host} · {room.RegionName}", 14);
+        var count = LobbyPalette.Caption($"{room.Players}/{room.Max}", 14, LobbyPalette.Text);
+        var state = LobbyPalette.Caption(room.Playing ? "진행 중" : "대기", 14, room.Playing ? LobbyPalette.Ember : LobbyPalette.Muted);
+        state.CustomMinimumSize = new Vector2(48, 0);
+        var join = new Button { Text = "입장", CustomMinimumSize = new Vector2(76, 34), Disabled = room.Playing || room.Players >= room.Max };
         join.AddThemeFontSizeOverride("font_size", 15);
         join.Pressed += () => _session.JoinRoom(room.Id);
         row.AddChild(name);
         row.AddChild(info);
+        row.AddChild(count);
         row.AddChild(state);
         row.AddChild(join);
-        return row;
+        panel.AddChild(row);
+        return panel;
     }
 
     public override void _ExitTree() { if (_session != null) _session.Changed -= Refresh; }
