@@ -8,33 +8,54 @@ using System.Collections.Generic;
 // rest of the body falls (docs/combat-feedback.md).
 public static class UnitBreakupEffect
 {
-    public const double PersonSeconds = 1.25, MachineSeconds = 1.8;
+    // About when shattered pieces have come to rest; they then hold for the unit's UnitDeathEffect.Hold and fade.
+    private const float PersonLandSeconds = .75f, MachineLandSeconds = 1.05f;
     private const float StepSeconds = 1 / 60f, Gravity = 16;
 
     // Pieces are listed children before parents; the last piece is the core that keeps what is left.
-    private sealed record Recipe(bool Machine, string[][] Pieces);
+    // A blade cuts only among the first Severable pieces: head and limbs, not packs or weapons.
+    private sealed record Recipe(bool Machine, int Severable, string[][] Pieces);
 
     private static readonly Dictionary<uint, Recipe> Recipes = new()
     {
-        [UnitCatalog.Worker] = new(false, new[]
+        [UnitCatalog.Worker] = new(false, 5, new[]
         {
-            new[] { "Torso/Head" }, new[] { "Torso/Hat", "Torso/HatBrim" }, new[] { "Torso/LeftArm" },
+            new[] { "Torso/Head", "Torso/Hat", "Torso/HatBrim" }, new[] { "Torso/LeftArm" },
             new[] { "Torso/RightArm" }, new[] { "LeftLeg" }, new[] { "RightLeg" }, new[] { "Torso" }
         }),
-        [UnitCatalog.Knight] = new(false, Each("Rig/Head", "Rig/LeftArm", "Rig/RightArm", "Rig/LeftLeg", "Rig/RightLeg",
+        [UnitCatalog.Knight] = new(false, 5, Each("Rig/Head", "Rig/LeftArm", "Rig/RightArm", "Rig/LeftLeg", "Rig/RightLeg",
             "Rig/LeftWinch", "Rig/RightWinch", "Rig/Body")),
-        [UnitCatalog.Archer] = new(false, Each("Rig/Head", "Rig/LeftArm", "Rig/RightArm", "Rig/LeftLeg", "Rig/RightLeg",
+        [UnitCatalog.Archer] = new(false, 5, Each("Rig/Head", "Rig/LeftArm", "Rig/RightArm", "Rig/LeftLeg", "Rig/RightLeg",
             "Rig/Rifle", "Rig/Hose", "Rig/Body")),
-        [UnitCatalog.FlameAutomaton] = new(true, Each("Rig/Head", "Rig/Nozzle", "Rig/LeftTrack", "Rig/RightTrack",
+        // Minions: shield and sword go with the arm that holds them, the bow and staff with theirs.
+        [UnitCatalog.MinionMelee] = new(false, 5, new[]
+        {
+            new[] { "Helmet", "Visor" }, new[] { "LeftArm", "Shield", "ShieldStripe" }, new[] { "RightArm", "Sword", "SwordGuard" },
+            new[] { "LeftLeg" }, new[] { "RightLeg" }, new[] { "Body", "Tabard" }
+        }),
+        [UnitCatalog.MinionRanged] = new(false, 5, new[]
+        {
+            new[] { "Hood", "Face" }, new[] { "LeftArm" }, new[] { "RightArm" }, new[] { "LeftLeg" }, new[] { "RightLeg" },
+            new[] { "Quiver", "ArrowA", "ArrowB" }, new[] { "Tunic" }
+        }),
+        [UnitCatalog.MinionHealer] = new(false, 5, new[]
+        {
+            new[] { "Rig/Body/Hood", "Rig/Body/Face", "Rig/Body/Beard" }, new[] { "Rig/Body/LeftArm" }, new[] { "Rig/Body/RightArm" },
+            new[] { "Rig/LeftLeg" }, new[] { "Rig/RightLeg" }, new[] { "Rig/Body" }
+        }),
+        // The walking artillery loses legs to a blade; a shell also strips the guns and gears off the hull.
+        [UnitCatalog.SteamArtillery] = new(true, 9, Each("Rig/Legs/Left0", "Rig/Legs/Left1", "Rig/Legs/Left2", "Rig/Legs/Left3",
+            "Rig/Legs/Right0", "Rig/Legs/Right1", "Rig/Legs/Right2", "Rig/Legs/Right3", "Rig/Hull/MobileTurret",
+            "Rig/Hull/MainTurret/Barrel", "Rig/Hull/MainTurret/LeftGear", "Rig/Hull/MainTurret/RightGear", "Rig/Hull/MainTurret", "Rig/Hull")),
+        [UnitCatalog.FlameAutomaton] = new(true, 6, Each("Rig/Head", "Rig/Nozzle", "Rig/LeftTrack", "Rig/RightTrack",
             "Rig/LeftWheel", "Rig/RightWheel", "Rig/Body"))
     };
 
-    // How hard pieces fly. Severed parts only drop away: the body's own fall carries the death.
-    private sealed record Style(float Spread, float Lift, float Spin, float Seconds, float FadeFrom);
-    private static readonly Style PersonShatter = new(1.9f, 2.8f, 8.5f, (float)PersonSeconds, (float)PersonSeconds - .45f);
-    private static readonly Style MachineShatter = new(4.6f, 5.4f, 4.5f, (float)MachineSeconds, (float)MachineSeconds - .45f);
-    private static readonly Style Sever = new(1.1f, 1.9f, 7f, UnitDeathEffect.TotalSeconds,
-        (float)(UnitDeathEffect.FallSeconds + UnitDeathEffect.HoldSeconds));
+    // How hard pieces fly. Severed parts hop off and roll along the ground while the body falls.
+    private sealed record Style(float Spread, float Lift, float Spin, bool Roll = false);
+    private static readonly Style PersonShatter = new(1.9f, 2.8f, 8.5f);
+    private static readonly Style MachineShatter = new(4.6f, 5.4f, 4.5f);
+    private static readonly Style Sever = new(2.4f, 1.5f, 7f, Roll: true);
 
     private static readonly SphereMesh PuffMesh = new() { Radius = .5f, Height = 1, RadialSegments = 8, Rings = 4 };
     private static readonly StandardMaterial3D Ash = Puff(new Color(.49f, .48f, .45f, .7f));
@@ -45,46 +66,59 @@ public static class UnitBreakupEffect
     // Null means the caller should play the plain fall instead.
     public static Tween TryShatter(Unit unit)
     {
-        if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups)) return null;
+        if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups, out _)) return null;
         var detached = new List<int>();
         for (int i = 0; i < groups.Count; i++) detached.Add(i);
-        var effect = new Breakup(unit, recipe.Machine ? MachineShatter : PersonShatter, recipe.Machine, groups, detached);
+        float fadeFrom = (recipe.Machine ? MachineLandSeconds : PersonLandSeconds) + (float)UnitDeathEffect.Hold(unit);
+        var effect = new Breakup(unit, recipe.Machine ? MachineShatter : PersonShatter, recipe.Machine, groups, detached, Vector3.Zero, fadeFrom);
         Tween tween = unit.CreateTween();
         using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
         using var finish = tween.TweenCallback(Callable.From(unit.QueueFree));
         return tween;
     }
 
-    // Cuts parts off before the caller's fall starts, so the fall carries only what is left.
-    public static void TrySever(Unit unit)
+    // Cuts two parts off before the caller's fall starts, so the fall carries only what is left.
+    // False means nothing was cut and the caller plays the plain fall.
+    public static bool TrySever(Unit unit)
     {
-        if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups)) return;
-        // Never the core, and the same parts every time for the same unit.
+        if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups, out List<int> severable) || severable.Count == 0)
+            return false;
+        // Two different parts, the same ones every time for the same unit.
         uint seed = unit.UnitId * 2246822519u + 7;
         int Pick(int count) { seed = seed * 1664525u + 1013904223u; return (int)((seed >> 8) % (uint)count); }
-        var detached = new List<int> { Pick(groups.Count - 1) };
-        if (Pick(3) == 0 && groups.Count > 2)
+        int first = Pick(severable.Count);
+        var detached = new List<int> { severable[first] };
+        if (severable.Count > 1)
         {
-            int second = Pick(groups.Count - 2);
-            detached.Add(second >= detached[0] ? second + 1 : second);
+            int second = Pick(severable.Count - 1);
+            detached.Add(severable[second >= first ? second + 1 : second]);
         }
-        var effect = new Breakup(unit, Sever, recipe.Machine, groups, detached);
+        // Throw them away from the side the body falls to (its local +X), so the corpse never covers them.
+        Vector3 clear = -(unit.GetNode<Node3D>("Visual").GlobalBasis * Vector3.Right);
+        clear.Y = 0;
+        // Fades with the body: after its fall and the same hold.
+        float fadeFrom = (float)(UnitDeathEffect.FallSeconds + UnitDeathEffect.SeverHold(unit));
+        var effect = new Breakup(unit, Sever, recipe.Machine, groups, detached, clear.Normalized(), fadeFrom);
         // Bound to the unit: the fall's tween frees the unit, and with it these pieces.
         Tween tween = unit.CreateTween();
         using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
+        return true;
     }
 
-    private static bool TryGroups(Unit unit, out Recipe recipe, out List<List<Node3D>> groups)
+    private static bool TryGroups(Unit unit, out Recipe recipe, out List<List<Node3D>> groups, out List<int> severable)
     {
         groups = new List<List<Node3D>>();
+        severable = new List<int>();
         if (!Recipes.TryGetValue(unit.UnitType, out recipe) || !unit.IsVisibleInTree()) return false;
         Node3D visual = unit.GetNode<Node3D>("Visual");
-        foreach (string[] paths in recipe.Pieces)
+        for (int piece = 0; piece < recipe.Pieces.Length; piece++)
         {
             var nodes = new List<Node3D>();
-            foreach (string path in paths)
+            foreach (string path in recipe.Pieces[piece])
                 if (visual.GetNodeOrNull<Node3D>(path) is { } node) nodes.Add(node);
-            if (nodes.Count > 0) groups.Add(nodes);
+            if (nodes.Count == 0) continue;
+            if (piece < recipe.Severable) severable.Add(groups.Count);
+            groups.Add(nodes);
         }
         return groups.Count >= 2 && UnitDeathEffect.TryReserve(unit);
     }
@@ -103,12 +137,16 @@ public static class UnitBreakupEffect
         private readonly List<MeshInstance3D> _meshes = new();
         private readonly List<(MeshInstance3D Mesh, Vector3 Start, Vector3 Drift, float From, float To, float Life)> _puffs = new();
         private readonly Style _style;
+        private readonly float _fadeFrom;
         private float _time;
-        public float Seconds => _style.Seconds;
+        public float Seconds { get; }
 
-        public Breakup(Unit unit, Style style, bool machine, List<List<Node3D>> groups, List<int> detached)
+        // Bias leans the pieces' outward direction; zero keeps them flying straight out from the body.
+        public Breakup(Unit unit, Style style, bool machine, List<List<Node3D>> groups, List<int> detached, Vector3 bias, float fadeFrom)
         {
             _style = style;
+            _fadeFrom = fadeFrom;
+            Seconds = fadeFrom + (float)UnitDeathEffect.FadeSeconds;
             uint seed = unit.UnitId * 2654435761u + 1;
             float Next() { seed = seed * 1664525u + 1013904223u; return (seed >> 8) / 16777216f; }
             var bounds = new List<Aabb>();
@@ -139,6 +177,8 @@ public static class UnitBreakupEffect
                     float angle = Next() * Mathf.Tau;
                     away = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
                 }
+                away = away.Normalized() + bias;
+                if (away.LengthSquared() < .01f) away = bias;
                 float spread = style.Spread * (.7f + .6f * Next());
                 // Heads and hats pop highest; the core slumps instead of flying.
                 float lift = style.Lift * (.8f + .4f * Next()) + Mathf.Max(0, box.GetCenter().Y - origin.Y) * (sever ? .5f : 1.2f);
@@ -176,9 +216,9 @@ public static class UnitBreakupEffect
             {
                 float dt = Mathf.Min(StepSeconds, time - _time);
                 _time += dt;
-                foreach (Piece piece in _pieces) Step(piece, dt);
+                foreach (Piece piece in _pieces) Step(piece, dt, _style.Roll);
             }
-            float fade = Mathf.Clamp((_time - _style.FadeFrom) / (_style.Seconds - _style.FadeFrom), 0, 1);
+            float fade = Mathf.Clamp((_time - _fadeFrom) / (Seconds - _fadeFrom), 0, 1);
             foreach (MeshInstance3D mesh in _meshes)
                 if (GodotObject.IsInstanceValid(mesh)) mesh.Transparency = fade;
             foreach (var (mesh, start, drift, from, to, life) in _puffs)
@@ -191,7 +231,7 @@ public static class UnitBreakupEffect
             }
         }
 
-        private static void Step(Piece piece, float dt)
+        private static void Step(Piece piece, float dt, bool roll)
         {
             if (!GodotObject.IsInstanceValid(piece.Pivot)) return;
             if (!piece.Resting) piece.Velocity += Vector3.Down * Gravity * dt;
@@ -201,17 +241,20 @@ public static class UnitBreakupEffect
                 position.Y = piece.Radius;
                 if (piece.Velocity.Y < 0)
                 {
-                    // A dull bounce, then the piece skids to a stop on the ground.
-                    piece.Velocity = new Vector3(piece.Velocity.X * .55f, -piece.Velocity.Y * .3f, piece.Velocity.Z * .55f);
+                    // A dull bounce, then the piece skids, or rolls, to a stop on the ground.
+                    float keep = roll ? .8f : .55f;
+                    piece.Velocity = new Vector3(piece.Velocity.X * keep, -piece.Velocity.Y * .3f, piece.Velocity.Z * keep);
                     piece.Spin *= .5f;
                     if (piece.Velocity.Y < .7f) { piece.Velocity.Y = 0; piece.Resting = true; }
                 }
             }
             if (piece.Resting)
             {
-                float friction = Mathf.Max(0, 1 - 5 * dt);
+                float friction = Mathf.Max(0, 1 - (roll ? 1.4f : 5) * dt);
                 piece.Velocity *= friction;
                 piece.Spin *= friction;
+                // Rolling: turn about the ground axis across the motion, as fast as the piece travels.
+                if (roll) piece.Spin = Vector3.Up.Cross(piece.Velocity).LimitLength(12 * piece.Radius) / piece.Radius;
             }
             piece.Pivot.GlobalPosition = position;
             float speed = piece.Spin.Length();

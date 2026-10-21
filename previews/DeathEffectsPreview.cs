@@ -10,7 +10,7 @@ public partial class DeathEffectsPreview : Node3D
 {
     private static readonly string[] Victims = { "Worker", "Knight", "Archer", "FlameAutomaton" };
     // Each pass lasts until its slowest death has finished, plus a short pause.
-    private static readonly (DeathCause Cause, float Seconds)[] Passes = { (DeathCause.None, 1.9f), (DeathCause.Blast, 2.6f) };
+    private static readonly (DeathCause Cause, float Seconds)[] Passes = { (DeathCause.None, 2f), (DeathCause.Blast, 2.6f) };
     private const float AliveSeconds = .5f;
     private readonly List<Unit> _units = new();
     private float _clock;

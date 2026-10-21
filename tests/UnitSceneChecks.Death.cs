@@ -37,9 +37,20 @@ public partial class UnitSceneChecks
         Receive("DEATH 9603 FIRE");
         Check(plain.IsDying && plain.DeathCause == DeathCause.None && Pieces(plain) == 0 && Burns(plain) == 0,
             "A cause arriving after REMOVE cannot change the death that already started");
-        Check(Pieces(cut) is 1 or 2 && Burns(cut) == 0, "A blade cuts one or two parts off and the rest falls");
+        Check(Pieces(cut) == 2 && Burns(cut) == 0, "A blade cuts two parts off and the rest falls");
         Check(Burns(burnt) > 0 && Pieces(burnt) == 0, "Fire chars the model into ash instead of breaking it apart");
         Check(Pieces(shattered) > 2 && Burns(shattered) == 0, "A siege shell throws every part");
+        // Each minion's and the artillery's part list matches its scene: a missing node would silently fall back to the plain fall.
+        foreach ((uint type, uint id, string cause, bool cuts) in new[] { (100u, 9610u, "BLADE", true), (101u, 9611u, "BLAST", false),
+            (102u, 9612u, "BLADE", true), (100u, 9613u, "BLAST", false), (101u, 9614u, "BLADE", true), (102u, 9615u, "BLAST", false),
+            (5u, 9616u, "BLADE", true), (5u, 9617u, "BLAST", false) })
+        {
+            Receive($"UNIT {type} {id} {(UnitCatalog.IsMinion(type) ? 0 : 8)} {(int)id - 9620} 12 2");
+            Units.TryGetUnit(id, out Unit minion);
+            Receive($"DEATH {id} {cause}");
+            Receive($"REMOVE {id}");
+            Check(cuts ? Pieces(minion) == 2 : Pieces(minion) > 2, $"Unit type {type} comes apart on {cause}");
+        }
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 }

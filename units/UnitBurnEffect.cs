@@ -6,8 +6,8 @@ using System.Collections.Generic;
 // darkens and squashes the meshes; nothing is clickable and the unit root never moves (docs/combat-feedback.md).
 public static class UnitBurnEffect
 {
-    public const double Seconds = 1.7;
-    private const float CharEnd = .55f, CrumbleEnd = 1.15f, StepSeconds = 1 / 60f;
+    // The ash has landed by AshLandSeconds, holds for the unit's UnitDeathEffect.Hold, then fades over AshFadeSeconds.
+    private const float CharEnd = .55f, CrumbleEnd = 1.15f, AshLandSeconds = 1.2f, AshFadeSeconds = .4f, StepSeconds = 1 / 60f;
 
     private static readonly SphereMesh EmberMesh = new() { Radius = .05f, Height = .1f, RadialSegments = 6, Rings = 3 };
     private static readonly BoxMesh GrainMesh = new() { Size = new Vector3(.08f, .06f, .08f) };
@@ -31,7 +31,7 @@ public static class UnitBurnEffect
         if (!unit.IsVisibleInTree() || !UnitDeathEffect.TryReserve(unit)) return null;
         var effect = new Burn(unit);
         Tween tween = unit.CreateTween();
-        using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, (float)Seconds, Seconds);
+        using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
         using var finish = tween.TweenCallback(Callable.From(unit.QueueFree));
         return tween;
     }
@@ -53,9 +53,11 @@ public static class UnitBurnEffect
         private readonly List<Grain> _grains = new();
         private readonly List<MeshInstance3D> _dust = new();
         private float _time;
+        public float Seconds { get; }
 
         public Burn(Unit unit)
         {
+            Seconds = AshLandSeconds + (float)UnitDeathEffect.Hold(unit) + AshFadeSeconds;
             _visual = unit.GetNode<Node3D>("Visual");
             _restScale = _visual.Scale;
             UnitBreakupEffect.CollectMeshes(_visual, _meshes);
@@ -116,7 +118,7 @@ public static class UnitBurnEffect
                 mesh.Position = start + new Vector3(Mathf.Sin(_time * 7 + phase) * .08f, _time * .9f, Mathf.Cos(_time * 6 + phase) * .08f);
                 mesh.Transparency = life;
             }
-            float settle = Mathf.Clamp((_time - (float)Seconds + .4f) / .4f, 0, 1);
+            float settle = Mathf.Clamp((_time - Seconds + AshFadeSeconds) / AshFadeSeconds, 0, 1);
             foreach (Grain grain in _grains)
             {
                 grain.Mesh.Visible = _time >= CharEnd && settle < 1;
