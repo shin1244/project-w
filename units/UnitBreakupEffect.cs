@@ -43,6 +43,10 @@ public static class UnitBreakupEffect
             new[] { "Rig/Body/Hood", "Rig/Body/Face", "Rig/Body/Beard" }, new[] { "Rig/Body/LeftArm" }, new[] { "Rig/Body/RightArm" },
             new[] { "Rig/LeftLeg" }, new[] { "Rig/RightLeg" }, new[] { "Rig/Body" }
         }),
+        // The walking artillery loses legs to a blade; a shell also strips the guns and gears off the hull.
+        [UnitCatalog.SteamArtillery] = new(true, 9, Each("Rig/Legs/Left0", "Rig/Legs/Left1", "Rig/Legs/Left2", "Rig/Legs/Left3",
+            "Rig/Legs/Right0", "Rig/Legs/Right1", "Rig/Legs/Right2", "Rig/Legs/Right3", "Rig/Hull/MobileTurret",
+            "Rig/Hull/MainTurret/Barrel", "Rig/Hull/MainTurret/LeftGear", "Rig/Hull/MainTurret/RightGear", "Rig/Hull/MainTurret", "Rig/Hull")),
         [UnitCatalog.FlameAutomaton] = new(true, 6, Each("Rig/Head", "Rig/Nozzle", "Rig/LeftTrack", "Rig/RightTrack",
             "Rig/LeftWheel", "Rig/RightWheel", "Rig/Body"))
     };
