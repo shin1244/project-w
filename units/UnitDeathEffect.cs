@@ -6,11 +6,14 @@ using System.Collections.Generic;
 public static class UnitDeathEffect
 {
     public const double FallSeconds = 0.45;
-    public const double HoldSeconds = 0.15;
     public const double FadeSeconds = 0.45;
-    // 베기는 잘린 부위가 바닥을 굴러가는 모습이 보이도록 쓰러진 뒤 조금 더 머뭅니다.
+    // 쓰러지거나 흩어진 뒤 흐려지기 전까지 그대로 남는 시간입니다. 미니언은 대량 징집병이라 금방 사라집니다.
+    public const double HoldSeconds = 0.3, MinionHoldSeconds = 0.1;
+    // 베기는 잘린 부위가 바닥을 굴러가는 모습이 보이도록 조금 더 머뭅니다(미니언은 그대로 짧게).
     public const double SeverHoldSeconds = 0.4;
-    public const float SeverSeconds = (float)(FallSeconds + SeverHoldSeconds + FadeSeconds);
+
+    public static double Hold(Unit unit) => UnitCatalog.IsMinion(unit.UnitType) ? MinionHoldSeconds : HoldSeconds;
+    public static double SeverHold(Unit unit) => UnitCatalog.IsMinion(unit.UnitType) ? MinionHoldSeconds : SeverHoldSeconds;
     // 분해·재 연출이 동시에 이만큼이면 넘어지는 연출로 대신해 큰 교전에서도 화면과 비용을 지킵니다.
     private const int MaxActive = 16;
     private static int _active;
@@ -20,10 +23,10 @@ public static class UnitDeathEffect
         unit.GetNodeOrNull<AnimationPlayer>("AnimationPlayer")?.Pause();
         switch (unit.DeathCause)
         {
-            case DeathCause.Blast: return UnitBreakupEffect.TryShatter(unit) ?? Fall(unit);
-            case DeathCause.Fire: return UnitBurnEffect.TryPlay(unit) ?? Fall(unit);
-            case DeathCause.Blade: return UnitBreakupEffect.TrySever(unit) ? Fall(unit, SeverHoldSeconds) : Fall(unit);
-            default: return Fall(unit);
+            case DeathCause.Blast: return UnitBreakupEffect.TryShatter(unit) ?? Fall(unit, Hold(unit));
+            case DeathCause.Fire: return UnitBurnEffect.TryPlay(unit) ?? Fall(unit, Hold(unit));
+            case DeathCause.Blade: return Fall(unit, UnitBreakupEffect.TrySever(unit) ? SeverHold(unit) : Hold(unit));
+            default: return Fall(unit, Hold(unit));
         }
     }
 
@@ -36,7 +39,7 @@ public static class UnitDeathEffect
         return true;
     }
 
-    private static Tween Fall(Unit unit, double holdSeconds = HoldSeconds)
+    private static Tween Fall(Unit unit, double holdSeconds)
     {
         Node3D visual = unit.GetNode<Node3D>("Visual");
         var meshes = new List<MeshInstance3D>();

@@ -8,7 +8,8 @@ using System.Collections.Generic;
 // rest of the body falls (docs/combat-feedback.md).
 public static class UnitBreakupEffect
 {
-    public const double PersonSeconds = 1.25, MachineSeconds = 1.8;
+    // About when shattered pieces have come to rest; they then hold for the unit's UnitDeathEffect.Hold and fade.
+    private const float PersonLandSeconds = .75f, MachineLandSeconds = 1.05f;
     private const float StepSeconds = 1 / 60f, Gravity = 16;
 
     // Pieces are listed children before parents; the last piece is the core that keeps what is left.
@@ -26,16 +27,31 @@ public static class UnitBreakupEffect
             "Rig/LeftWinch", "Rig/RightWinch", "Rig/Body")),
         [UnitCatalog.Archer] = new(false, 5, Each("Rig/Head", "Rig/LeftArm", "Rig/RightArm", "Rig/LeftLeg", "Rig/RightLeg",
             "Rig/Rifle", "Rig/Hose", "Rig/Body")),
+        // Minions: shield and sword go with the arm that holds them, the bow and staff with theirs.
+        [UnitCatalog.MinionMelee] = new(false, 5, new[]
+        {
+            new[] { "Helmet", "Visor" }, new[] { "LeftArm", "Shield", "ShieldStripe" }, new[] { "RightArm", "Sword", "SwordGuard" },
+            new[] { "LeftLeg" }, new[] { "RightLeg" }, new[] { "Body", "Tabard" }
+        }),
+        [UnitCatalog.MinionRanged] = new(false, 5, new[]
+        {
+            new[] { "Hood", "Face" }, new[] { "LeftArm" }, new[] { "RightArm" }, new[] { "LeftLeg" }, new[] { "RightLeg" },
+            new[] { "Quiver", "ArrowA", "ArrowB" }, new[] { "Tunic" }
+        }),
+        [UnitCatalog.MinionHealer] = new(false, 5, new[]
+        {
+            new[] { "Rig/Body/Hood", "Rig/Body/Face", "Rig/Body/Beard" }, new[] { "Rig/Body/LeftArm" }, new[] { "Rig/Body/RightArm" },
+            new[] { "Rig/LeftLeg" }, new[] { "Rig/RightLeg" }, new[] { "Rig/Body" }
+        }),
         [UnitCatalog.FlameAutomaton] = new(true, 6, Each("Rig/Head", "Rig/Nozzle", "Rig/LeftTrack", "Rig/RightTrack",
             "Rig/LeftWheel", "Rig/RightWheel", "Rig/Body"))
     };
 
     // How hard pieces fly. Severed parts hop off and roll along the ground while the body falls.
-    private sealed record Style(float Spread, float Lift, float Spin, float Seconds, float FadeFrom, bool Roll = false);
-    private static readonly Style PersonShatter = new(1.9f, 2.8f, 8.5f, (float)PersonSeconds, (float)PersonSeconds - .45f);
-    private static readonly Style MachineShatter = new(4.6f, 5.4f, 4.5f, (float)MachineSeconds, (float)MachineSeconds - .45f);
-    private static readonly Style Sever = new(2.4f, 1.5f, 7f, UnitDeathEffect.SeverSeconds,
-        (float)(UnitDeathEffect.FallSeconds + UnitDeathEffect.SeverHoldSeconds), Roll: true);
+    private sealed record Style(float Spread, float Lift, float Spin, bool Roll = false);
+    private static readonly Style PersonShatter = new(1.9f, 2.8f, 8.5f);
+    private static readonly Style MachineShatter = new(4.6f, 5.4f, 4.5f);
+    private static readonly Style Sever = new(2.4f, 1.5f, 7f, Roll: true);
 
     private static readonly SphereMesh PuffMesh = new() { Radius = .5f, Height = 1, RadialSegments = 8, Rings = 4 };
     private static readonly StandardMaterial3D Ash = Puff(new Color(.49f, .48f, .45f, .7f));
@@ -49,7 +65,8 @@ public static class UnitBreakupEffect
         if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups, out _)) return null;
         var detached = new List<int>();
         for (int i = 0; i < groups.Count; i++) detached.Add(i);
-        var effect = new Breakup(unit, recipe.Machine ? MachineShatter : PersonShatter, recipe.Machine, groups, detached, Vector3.Zero);
+        float fadeFrom = (recipe.Machine ? MachineLandSeconds : PersonLandSeconds) + (float)UnitDeathEffect.Hold(unit);
+        var effect = new Breakup(unit, recipe.Machine ? MachineShatter : PersonShatter, recipe.Machine, groups, detached, Vector3.Zero, fadeFrom);
         Tween tween = unit.CreateTween();
         using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
         using var finish = tween.TweenCallback(Callable.From(unit.QueueFree));
@@ -75,7 +92,9 @@ public static class UnitBreakupEffect
         // Throw them away from the side the body falls to (its local +X), so the corpse never covers them.
         Vector3 clear = -(unit.GetNode<Node3D>("Visual").GlobalBasis * Vector3.Right);
         clear.Y = 0;
-        var effect = new Breakup(unit, Sever, recipe.Machine, groups, detached, clear.Normalized());
+        // Fades with the body: after its fall and the same hold.
+        float fadeFrom = (float)(UnitDeathEffect.FallSeconds + UnitDeathEffect.SeverHold(unit));
+        var effect = new Breakup(unit, Sever, recipe.Machine, groups, detached, clear.Normalized(), fadeFrom);
         // Bound to the unit: the fall's tween frees the unit, and with it these pieces.
         Tween tween = unit.CreateTween();
         using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
@@ -114,13 +133,16 @@ public static class UnitBreakupEffect
         private readonly List<MeshInstance3D> _meshes = new();
         private readonly List<(MeshInstance3D Mesh, Vector3 Start, Vector3 Drift, float From, float To, float Life)> _puffs = new();
         private readonly Style _style;
+        private readonly float _fadeFrom;
         private float _time;
-        public float Seconds => _style.Seconds;
+        public float Seconds { get; }
 
         // Bias leans the pieces' outward direction; zero keeps them flying straight out from the body.
-        public Breakup(Unit unit, Style style, bool machine, List<List<Node3D>> groups, List<int> detached, Vector3 bias)
+        public Breakup(Unit unit, Style style, bool machine, List<List<Node3D>> groups, List<int> detached, Vector3 bias, float fadeFrom)
         {
             _style = style;
+            _fadeFrom = fadeFrom;
+            Seconds = fadeFrom + (float)UnitDeathEffect.FadeSeconds;
             uint seed = unit.UnitId * 2654435761u + 1;
             float Next() { seed = seed * 1664525u + 1013904223u; return (seed >> 8) / 16777216f; }
             var bounds = new List<Aabb>();
@@ -192,7 +214,7 @@ public static class UnitBreakupEffect
                 _time += dt;
                 foreach (Piece piece in _pieces) Step(piece, dt, _style.Roll);
             }
-            float fade = Mathf.Clamp((_time - _style.FadeFrom) / (_style.Seconds - _style.FadeFrom), 0, 1);
+            float fade = Mathf.Clamp((_time - _fadeFrom) / (Seconds - _fadeFrom), 0, 1);
             foreach (MeshInstance3D mesh in _meshes)
                 if (GodotObject.IsInstanceValid(mesh)) mesh.Transparency = fade;
             foreach (var (mesh, start, drift, from, to, life) in _puffs)
