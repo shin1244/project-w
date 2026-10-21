@@ -1,7 +1,8 @@
 using Godot;
 using System.Collections.Generic;
 
-// 세 유닛이 공유하는 화면 연출. 게임에서의 제거는 UnitManager가 먼저 처리합니다.
+// 사망 화면 연출. 게임에서의 제거는 UnitManager가 먼저 처리합니다.
+// 파츠가 분리되는 유닛은 UnitBreakupEffect를, 나머지와 혼잡할 때는 옆으로 넘어지는 공통 연출을 씁니다.
 public static class UnitDeathEffect
 {
     public const double FallSeconds = 0.45;
@@ -10,8 +11,13 @@ public static class UnitDeathEffect
 
     public static Tween Play(Unit unit)
     {
-        Node3D visual = unit.GetNode<Node3D>("Visual");
         unit.GetNodeOrNull<AnimationPlayer>("AnimationPlayer")?.Pause();
+        return UnitBreakupEffect.TryPlay(unit) ?? Fall(unit);
+    }
+
+    private static Tween Fall(Unit unit)
+    {
+        Node3D visual = unit.GetNode<Node3D>("Visual");
         var meshes = new List<MeshInstance3D>();
         CollectMeshes(visual, meshes);
 
