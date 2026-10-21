@@ -407,7 +407,7 @@ public partial class MinionPanel : Control
             button.Disabled = full || (add && !CanAffordAdd) || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
             if (add && !full) button.TooltipText = AddCost is not { } price ? "슬롯 추가 가격을 받는 중"
                 : CanAffordAdd ? $"{ResourceName(price.ResourceId)} {price.Amount:N0}으로 원하는 미니언을 이 라인에 영구 추가합니다\n보유 {ResourceName(price.ResourceId)} {MagicStones:N0}"
-                : $"{ResourceName(price.ResourceId)} {price.Amount:N0}이 필요합니다 (보유 {MagicStones:N0})\n중앙 마석이나 정글 큰 금덩어리를 수집하면 얻습니다";
+                : $"{ResourceName(price.ResourceId)} {price.Amount:N0}이 필요합니다 (보유 {MagicStones:N0})\n중앙 마석·정글 큰 금덩어리를 수집하거나 적 요새를 무너뜨리면 얻습니다";
         }
         if (!IsPickerOpen || !_lanes.TryGetValue(_pickerLane, out var selected)) return;
         foreach (var (button, label, option) in _optionButtons)

@@ -1,4 +1,5 @@
-"""Pack frames captured by previews/BattleStage.tscn into the README GIFs.
+"""Pack frames captured by previews/BattleStage.tscn (scenes 1-6) and previews/DeathEffects.tscn
+(scenes 7-8) into the README GIFs.
 
 Every other frame (about 7.5fps), 512x320, one 127-colour octree palette per GIF without dithering,
 and index 127 for pixels unchanged since the previous frame. Packs every scene-N folder the capture
@@ -15,7 +16,8 @@ from PIL import Image
 
 SIZE = (512, 320)
 COLOURS = 127  # index 127 stays free for "unchanged"
-NAMES = {1: "battle-1", 2: "battle-2", 3: "battle-3", 4: "teamwork", 5: "magic-stone", 6: "hq-siege"}
+NAMES = {1: "battle-1", 2: "battle-2", 3: "battle-3", 4: "teamwork", 5: "magic-stone", 6: "hq-siege", 7: "death-fall",
+         8: "death-blast"}
 
 
 def pack(frames_dir, out_path):
@@ -31,6 +33,15 @@ def pack(frames_dir, out_path):
     palette.putpalette(colours)  # only these colours, so no pixel maps to the "unchanged" index
     colours += [0, 0, 0]
     indices = [np.asarray(frame.quantize(palette=palette, dither=Image.Dither.NONE)) for frame in frames]
+    # Pillow folds a frame identical to the one before into it, so fold it here too and keep the check exact.
+    kept, durations = [], []
+    for index in indices:
+        if kept and np.array_equal(index, kept[-1]):
+            durations[-1] += 130
+            continue
+        kept.append(index)
+        durations.append(130)
+    indices = kept
     packed = []
     for i, index in enumerate(indices):
         delta = index.copy()
@@ -39,7 +50,7 @@ def pack(frames_dir, out_path):
         image = Image.fromarray(delta.astype(np.uint8), "P")
         image.putpalette(colours)
         packed.append(image)
-    packed[0].save(out_path, save_all=True, append_images=packed[1:], duration=130, loop=0,
+    packed[0].save(out_path, save_all=True, append_images=packed[1:], duration=durations, loop=0,
                    disposal=1, transparency=COLOURS, optimize=False)
 
     # Decode the file and compare every frame with what was meant.

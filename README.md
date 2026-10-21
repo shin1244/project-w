@@ -45,6 +45,13 @@
   <img src="docs/images/store/hq-siege.gif" alt="파란 팀 병력이 빨간 팀 HQ를 둘러싸고 공격하는 장면" width="100%">
 </p>
 
+<table>
+  <tr>
+    <td><img src="docs/images/store/death-fall.gif" alt="일꾼·스팀돌격병·공압사수·화염기계가 옆으로 넘어지는 원래 사망 연출"></td>
+    <td><img src="docs/images/store/death-blast.gif" alt="같은 네 유닛이 포격에 맞아 부품째 산산조각 나는 폭사 연출"></td>
+  </tr>
+</table>
+
 - **한국 · 미국 서버**에서 플레이할 수 있습니다.
 - 빈자리는 AI가 채워서 혼자서도 한 판을 시작할 수 있습니다.
 

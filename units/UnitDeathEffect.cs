@@ -1,17 +1,42 @@
 using Godot;
 using System.Collections.Generic;
 
-// 세 유닛이 공유하는 화면 연출. 게임에서의 제거는 UnitManager가 먼저 처리합니다.
+// 사망 화면 연출. 게임에서의 제거는 UnitManager가 먼저 처리합니다.
+// 서버의 DEATH 원인으로 고릅니다: 베기는 부위 절단 + 넘어짐, 화염은 재, 포격은 산산조각, 그 밖은 넘어짐입니다.
 public static class UnitDeathEffect
 {
     public const double FallSeconds = 0.45;
     public const double HoldSeconds = 0.15;
     public const double FadeSeconds = 0.45;
+    public const float TotalSeconds = (float)(FallSeconds + HoldSeconds + FadeSeconds);
+    // 분해·재 연출이 동시에 이만큼이면 넘어지는 연출로 대신해 큰 교전에서도 화면과 비용을 지킵니다.
+    private const int MaxActive = 16;
+    private static int _active;
 
     public static Tween Play(Unit unit)
     {
-        Node3D visual = unit.GetNode<Node3D>("Visual");
         unit.GetNodeOrNull<AnimationPlayer>("AnimationPlayer")?.Pause();
+        switch (unit.DeathCause)
+        {
+            case DeathCause.Blast: return UnitBreakupEffect.TryShatter(unit) ?? Fall(unit);
+            case DeathCause.Fire: return UnitBurnEffect.TryPlay(unit) ?? Fall(unit);
+            case DeathCause.Blade: UnitBreakupEffect.TrySever(unit); return Fall(unit);
+            default: return Fall(unit);
+        }
+    }
+
+    // 유닛이 트리에서 나갈 때까지 연출 하나로 셉니다.
+    public static bool TryReserve(Unit unit)
+    {
+        if (_active >= MaxActive) return false;
+        _active++;
+        unit.Connect(Node.SignalName.TreeExiting, Callable.From(() => _active--), (uint)GodotObject.ConnectFlags.OneShot);
+        return true;
+    }
+
+    private static Tween Fall(Unit unit)
+    {
+        Node3D visual = unit.GetNode<Node3D>("Visual");
         var meshes = new List<MeshInstance3D>();
         CollectMeshes(visual, meshes);
 

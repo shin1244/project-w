@@ -681,6 +681,9 @@ public partial class Main : Node3D
             case "MEDIC_HEAL":
                 Units.HandleMinionHeal(parts);
                 break;
+            case "DEATH":
+                if (DeathSnapshot.TryParse(parts, out var death)) Units.HandleDeath(death);
+                break;
             case "RAM_IMPACT":
                 if (RamImpactSnapshot.TryParse(parts, out var impact)) Units.HandleRamImpact(impact);
                 break;
