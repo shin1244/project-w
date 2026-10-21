@@ -38,14 +38,18 @@ public partial class Lobby : Control
         _entry = new VBoxContainer();
         _entry.AddThemeConstantOverride("separation", 6);
         _name = new LineEdit { Text = _session.PlayerName, PlaceholderText = "이름", MaxLength = MatchSession.NameMaxLength, CustomMinimumSize = new Vector2(0, 42) };
-        _address = new LineEdit { Text = _session.LobbyUrl, PlaceholderText = "http://서버주소:8080", TooltipText = "호스트에게 받은 로비 서버 주소", CustomMinimumSize = new Vector2(0, 42) };
         _entry.AddChild(LobbyPalette.Caption("이름"));
         _entry.AddChild(_name);
-        _entry.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
-        _entry.AddChild(LobbyPalette.Caption("서버"));
-        _entry.AddChild(_address);
         _name.TextSubmitted += _ => Enter();
-        _address.TextSubmitted += _ => Enter();
+        // Players go to the official lobby; only editor runs can point at another server.
+        if (MatchSession.AddressEditable)
+        {
+            _address = new LineEdit { Text = _session.LobbyUrl, PlaceholderText = "http://서버주소:8080", TooltipText = "개발용: 접속할 로비 서버 주소", CustomMinimumSize = new Vector2(0, 42) };
+            _entry.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
+            _entry.AddChild(LobbyPalette.Caption("서버 (개발용)"));
+            _entry.AddChild(_address);
+            _address.TextSubmitted += _ => Enter();
+        }
 
         _list = new VBoxContainer();
         _list.AddThemeConstantOverride("separation", 12);
@@ -87,7 +91,7 @@ public partial class Lobby : Control
         else if (_session.Lobby != null) _session.RefreshRooms();
     }
 
-    private void Enter() => _session.EnterLobby(_address.Text, _name.Text);
+    private void Enter() => _session.EnterLobby(_address?.Text ?? _session.LobbyUrl, _name.Text);
 
     private void Refresh()
     {
@@ -121,7 +125,8 @@ public partial class Lobby : Control
             _description.Text = "게스트 입장";
             _primary.Text = _session.Connecting ? "입장 중…" : "입장";
             _primary.Disabled = _session.Connecting;
-            _name.Editable = _address.Editable = !_session.Connecting;
+            _name.Editable = !_session.Connecting;
+            if (_address != null) _address.Editable = !_session.Connecting;
             _status.Text = problem ?? "";
             _status.Visible = true; // Holds its height so a refusal does not shift the card.
             return;

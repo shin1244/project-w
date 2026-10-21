@@ -19,7 +19,11 @@ public partial class MatchSession : Node
     private const int ChatKeep = 100;
 
     public event Action Changed;
-    public string LobbyUrl { get; private set; } = "http://127.0.0.1:8080";
+    // The demo's lobby (project-w-server/docs/deploy-gcp.md). Exported builds always use it;
+    // editor runs may type and remember another address, and --lobby-url= overrides both.
+    public const string OfficialLobbyUrl = "http://34.50.13.50:8080";
+    public static bool AddressEditable => OS.IsDebugBuild();
+    public string LobbyUrl { get; private set; } = OfficialLobbyUrl;
     public bool RememberAddress { get; set; } = true;
     public string PlayerName { get; private set; } = "";
     // --spectate: enter, open a room, watch an all-AI match (tools/Watch-Latest-AI.ps1).
@@ -64,7 +68,7 @@ public partial class MatchSession : Node
     public override void _Ready()
     {
         var config = LoadConfig();
-        LobbyUrl = config.GetValue("network", "lobby_url", LobbyUrl).AsString();
+        if (AddressEditable) LobbyUrl = config.GetValue("network", "lobby_url", LobbyUrl).AsString();
         PlayerName = config.GetValue("player", "name", "").AsString();
         if (PlayerName == "") PlayerName = $"게스트{Random.Shared.Next(1000, 10000)}";
         foreach (string argument in OS.GetCmdlineUserArgs())
@@ -116,7 +120,8 @@ public partial class MatchSession : Node
         }
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException or JsonException)
         {
-            if (!quiet) SetNotice("로비에 연결할 수 없습니다. 서버 주소와 실행 상태를 확인해 주세요.");
+            if (!quiet) SetNotice(AddressEditable ? "로비에 연결할 수 없습니다. 서버 주소와 실행 상태를 확인해 주세요."
+                : "서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해 주세요.");
             return new Reply<T>(false, null, default, null);
         }
     }
