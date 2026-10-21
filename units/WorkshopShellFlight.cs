@@ -6,6 +6,7 @@ public partial class WorkshopShellFlight : Node3D
     private Vector3 _start, _end;
     private Node3D _target;
     private float _elapsed, _duration, _arc;
+    private bool _landed;
     private MeshInstance3D _projectile;
     private StandardMaterial3D _material;
     public void Launch(Vector3 start, Vector3 end, Node3D target)
@@ -34,6 +35,7 @@ public partial class WorkshopShellFlight : Node3D
         GlobalPosition = _start.Lerp(_end, t) + Vector3.Up * (4 * _arc * t * (1-t));
         if (t >= 1)
         {
+            if (!_landed) { _landed = true; Sfx.At("shell-impact", _end); }
             float impact = (_elapsed - _duration) / .18f;
             if (impact >= 1) { QueueFree(); return; }
             _projectile.Scale = Vector3.One * (1 + impact * 6);

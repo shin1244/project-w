@@ -178,20 +178,25 @@ public partial class Unit : Node3D
         if ((state.Activity == UnitActivity.Inside) != wasInside) Visible = state.Activity != UnitActivity.Inside;
         SetProcess(state.Activity != UnitActivity.Idle && state.FocusId != 0);
         FaceActionTarget();
+        if (swung && IsVisibleInTree() && SoundBank.Swing(UnitType, state.Activity) is string sound) Sfx.At(sound, GlobalPosition);
         StateChanged?.Invoke(state, swung);
     }
 
     public void ApplySiege(SiegeSnapshot snapshot)
     {
         if (IsDying || UnitType != UnitCatalog.SteamArtillery || snapshot.UnitId != UnitId || Siege == snapshot) return;
+        bool begins = snapshot.Transitioning && Siege?.Mode != snapshot.Mode;
         Siege = snapshot;
+        if (begins && IsVisibleInTree()) Sfx.At(snapshot.Mode == SiegeMode.Deploying ? "artillery-deploy" : "artillery-pack", GlobalPosition);
         SiegeChanged?.Invoke(this);
     }
 
     public void ApplyKnightCharge(KnightChargeSnapshot snapshot)
     {
         if (IsDying || UnitType != UnitCatalog.Knight || snapshot.UnitId != UnitId || KnightCharge == snapshot) return;
+        bool charges = snapshot.Charging && KnightCharge?.StartTick != snapshot.StartTick;
         KnightCharge = snapshot;
+        if (charges && IsVisibleInTree()) Sfx.At("knight-charge", GlobalPosition);
         FaceActionTarget();
         KnightChargeChanged?.Invoke(this);
     }

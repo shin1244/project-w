@@ -8,3 +8,6 @@ obj/
 .vs/
 *.user
 *.suo
+
+# Local sound audition page (python tools/synth_sfx.py --preview)
+audio/sfx-preview.html

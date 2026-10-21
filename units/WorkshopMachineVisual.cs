@@ -189,6 +189,7 @@ public partial class WorkshopMachineVisual : Node3D
             var shell = new WorkshopShellFlight { Name = "WorkshopShell" };
             _unit.AddChild(shell);
             shell.Launch(_muzzle.GlobalPosition, TargetCenter(target), target);
+            Sfx.At("artillery-fire", _muzzle.GlobalPosition);
         }
         UpdateFire();
     }
