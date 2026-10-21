@@ -6,7 +6,9 @@
 
 `REMOVE`를 받으면 유닛을 관리자 목록/선택/클릭 판정에서 즉시 제외하고 화면 모델만 남겨 사망 연출을 재생합니다. 서버는 유닛을 지우기만 하고, 연출은 클라이언트에서만 계산합니다. 어떤 연출을 쓸지는 서버가 `REMOVE` 직전에 보내는 `DEATH 유닛ID 원인`(마지막 타격의 무기, 서버 `docs/skills.md`의 사망 원인)으로 고릅니다.
 
-![이전(위)과 지금(아래)의 사망 연출](images/store/death-effects.gif)
+| 넘어짐(원인 없음·사격) | 폭사(포격) |
+| --- | --- |
+| ![넘어지는 사망 연출](images/store/death-fall.gif) | ![폭사 연출](images/store/death-blast.gif) |
 
 | 원인 | 마지막 타격 | 연출 |
 | --- | --- | --- |
@@ -41,6 +43,6 @@
 
 ## 확인
 
-`previews/DeathEffects.tscn`을 열고 F6을 누르면 같은 세 유닛이 이전(뒷줄)과 원인별(앞줄)로 함께 죽는 장면이 베기→사격→화염→포격 순으로 반복됩니다. README GIF로 찍는 방법은 [개발 안내](development.md#readme-교전-gif)에 있습니다. `previews/CombatFeedback.tscn`은 원인 없는 사망(넘어짐)을 반복하고, `-- --capture`로 실행하면 사망 0.525초 시점을 `docs/images/combat-feedback.png`에 저장합니다. 위쪽의 노란/빨간 원은 두 종류의 표시를 비교하는 독립적인 예시입니다.
+`previews/DeathEffects.tscn`을 열고 F6을 누르면 일꾼·스팀돌격병·공압사수·화염기계가 넘어짐과 폭사를 번갈아 반복합니다. README GIF로 찍는 방법은 [개발 안내](development.md#readme-교전-gif)에 있습니다. `previews/CombatFeedback.tscn`은 원인 없는 사망(넘어짐)을 반복하고, `-- --capture`로 실행하면 사망 0.525초 시점을 `docs/images/combat-feedback.png`에 저장합니다. 위쪽의 노란/빨간 원은 두 종류의 표시를 비교하는 독립적인 예시입니다.
 
 `DEATH` 해석·원인별 연출 연결, 명령 대상·사망 후 조종 제외는 `./tests/run.ps1 -Check UnitSceneChecks`, 사망·HIDE 후 위치 반영 중단은 `-Check InterpolationChecks`에서 확인합니다.
