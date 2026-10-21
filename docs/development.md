@@ -38,6 +38,8 @@ README의 교전 GIF는 서버 없이 `previews/BattleStage.tscn`에서 연출�
 
 장면 4~6은 README의 게임 설명 GIF입니다. 같은 시뮬레이션 위에 장면마다 짧은 대본을 얹고 카메라는 고정합니다. 4(`teamwork.gif`)는 영웅이 장비를 사면 파란 팀 부활 지점 옆에 상자(`ITEM_CRATE`)가 떨어지고, 일꾼이 상자를 들고 가 싸우는 영웅에게 건넵니다. 장비를 받은 영웅은 미니언을 곧바로 쓰러뜨립니다. 5(`magic-stone.gif`)는 중앙 마석(`TRIBUTE`)에 정신집중하던 빨간 팀 골렘이 파란 팀 공압사수에게 처음 피해를 받자 집중이 끊기고 달아나며, 공압사수가 마석 앞을 차지합니다. 6(`hq-siege.gif`)는 빨간 본진의 북·남 입구로 들어온 파란 병력이 HQ를 둘러싸고 공격하며, HQ도 맞서 쏩니다. HQ는 벽을 덮는 원으로 보고 근접 유닛에게 둘레 자리를 나눕니다. 서버는 건물에 공격 자리를 나누지 않지만, 연출에서는 둘러싼 모습을 보여 주려고 나눕니다. 떠 있는 3D 글자(상자·부활 지점 이름표)도 UI처럼 숨깁니다.
 
+장면 7(`death-effects.gif`)은 전투 시뮬레이션이 아니라 `previews/DeathEffects.tscn`에서 찍습니다. 일꾼·스팀돌격병·화염기계가 뒷줄에서는 이전처럼 넘어지고 앞줄에서는 `DEATH` 원인(베기·사격·화염·포격)에 따라 함께 죽습니다. `Godot --path . --resolution 1280x800 --fixed-fps 15 res://previews/DeathEffects.tscn -- --capture=<프레임 폴더>`로 네 원인을 한 번씩 찍어 `scene-7`에 두고 같은 묶음 도구로 묶습니다. 움직임이 많아 0.8MB 안팎입니다.
+
 ```text
 Godot --path . --resolution 1280x800 --fixed-fps 15 res://previews/BattleStage.tscn -- --capture=<프레임 폴더>
 python tools/pack-battle-gif.py <프레임 폴더> docs/images/store
@@ -45,7 +47,7 @@ python tools/pack-battle-gif.py <프레임 폴더> docs/images/store
 
 일부 장면만 다시 찍으려면 `--capture=` 뒤에 `--scenes=4,5,6`처럼 장면 번호를 붙입니다. 묶음 도구는 프레임 폴더에 있는 장면만 묶습니다.
 
-F6으로 열면 여섯 장면을 반복 재생합니다. 유닛 움직임은 실행마다 같고, 탑 연기 같은 입자만 조금씩 다릅니다. `tools/pack-battle-gif.py`(Pillow·NumPy 필요)는 프레임을 한 장씩 건너뛰어(약 7.5fps) 512×320으로 줄이고, 디더링 없이 127색 공용 팔레트로 바뀐 픽셀만 담은 GIF로 묶어 `docs/images/store/`에 장면 1~3은 `battle-1.gif`~`battle-3.gif`, 4~6은 `teamwork.gif`·`magic-stone.gif`·`hq-siege.gif`로 둡니다. 팔레트는 옥트리 방식으로 뽑습니다. 중간 절단 방식은 팀 색이 바래고 파일도 더 큽니다. 카메라가 움직이는 교전 GIF는 한 개가 4MB 안팎이며(640×400에 디더링을 넣으면 7MB 가까이 됩니다), 카메라를 고정한 설명 GIF는 0.5MB 안쪽입니다. GIF는 Git 기록에 계속 남으므로 다시 찍을 때도 이 크기를 지킵니다. 레인저는 모델 오류로 아직 연출에 넣지 않았습니다.
+F6으로 열면 여섯 장면을 반복 재생합니다. 유닛 움직임은 실행마다 같고, 탑 연기 같은 입자만 조금씩 다릅니다. `tools/pack-battle-gif.py`(Pillow·NumPy 필요)는 프레임을 한 장씩 건너뛰어(약 7.5fps) 512×320으로 줄이고, 디더링 없이 127색 공용 팔레트로 바뀐 픽셀만 담은 GIF로 묶어 `docs/images/store/`에 장면 1~3은 `battle-1.gif`~`battle-3.gif`, 4~6은 `teamwork.gif`·`magic-stone.gif`·`hq-siege.gif`, 7은 `death-effects.gif`로 둡니다. 앞 프레임과 똑같은 프레임은 GIF가 앞 프레임에 합치므로 도구도 합쳐서 길이를 늘립니다. 팔레트는 옥트리 방식으로 뽑습니다. 중간 절단 방식은 팀 색이 바래고 파일도 더 큽니다. 카메라가 움직이는 교전 GIF는 한 개가 4MB 안팎이며(640×400에 디더링을 넣으면 7MB 가까이 됩니다), 카메라를 고정한 설명 GIF는 0.5MB 안쪽입니다. GIF는 Git 기록에 계속 남으므로 다시 찍을 때도 이 크기를 지킵니다. 레인저는 모델 오류로 아직 연출에 넣지 않았습니다.
 
 ## 폴더
 

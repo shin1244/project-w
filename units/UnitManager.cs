@@ -514,6 +514,11 @@ public partial class UnitManager : Node3D
         if (_units.TryGetValue(shield.Id, out Unit unit) && !unit.IsDying) unit.HealthBar.ApplyShield(shield.Amount);
     }
 
+    public void HandleDeath(DeathSnapshot death)
+    {
+        if (_units.TryGetValue(death.UnitId, out Unit unit)) unit.ApplyDeathCause(death.Cause);
+    }
+
     public void HandleRamImpact(RamImpactSnapshot impact)
     {
         if (!_units.TryGetValue(impact.UnitId, out Unit ram) || ram.UnitType != UnitCatalog.SiegeRam ||

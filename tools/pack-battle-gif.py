@@ -1,4 +1,5 @@
-"""Pack frames captured by previews/BattleStage.tscn into the README GIFs.
+"""Pack frames captured by previews/BattleStage.tscn (scenes 1-6) and previews/DeathEffects.tscn
+(scene 7) into the README GIFs.
 
 Every other frame (about 7.5fps), 512x320, one 127-colour octree palette per GIF without dithering,
 and index 127 for pixels unchanged since the previous frame. Packs every scene-N folder the capture
@@ -15,7 +16,7 @@ from PIL import Image
 
 SIZE = (512, 320)
 COLOURS = 127  # index 127 stays free for "unchanged"
-NAMES = {1: "battle-1", 2: "battle-2", 3: "battle-3", 4: "teamwork", 5: "magic-stone", 6: "hq-siege"}
+NAMES = {1: "battle-1", 2: "battle-2", 3: "battle-3", 4: "teamwork", 5: "magic-stone", 6: "hq-siege", 7: "death-effects"}
 
 
 def pack(frames_dir, out_path):

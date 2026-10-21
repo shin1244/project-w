@@ -3,15 +3,13 @@ using System.Collections.Generic;
 
 // Presentation only: REMOVE has already taken the unit out of the game, so the server never computes this.
 // The blocky rigs come apart at their own part nodes like mass-produced figures, with no blood, wounds or
-// physics bodies and nothing to click, and are gone in about a second. People pop apart in a puff of ash;
-// machines throw their heavy parts out of a fireball (docs/combat-feedback.md).
+// physics bodies and nothing to click. A siege shell (DEATH ... BLAST) throws every part: people pop apart
+// in a puff of ash, machines out of a fireball. A blade (BLADE) cuts one or two random parts off while the
+// rest of the body falls (docs/combat-feedback.md).
 public static class UnitBreakupEffect
 {
     public const double PersonSeconds = 1.25, MachineSeconds = 1.8;
-    // Past this many at once, deaths fall back to the plain fall so big fights stay readable and cheap.
-    private const int MaxActive = 16;
     private const float StepSeconds = 1 / 60f, Gravity = 16;
-    private static int _active;
 
     // Pieces are listed children before parents; the last piece is the core that keeps what is left.
     private sealed record Recipe(bool Machine, string[][] Pieces);
@@ -31,6 +29,13 @@ public static class UnitBreakupEffect
             "Rig/LeftWheel", "Rig/RightWheel", "Rig/Body"))
     };
 
+    // How hard pieces fly. Severed parts only drop away: the body's own fall carries the death.
+    private sealed record Style(float Spread, float Lift, float Spin, float Seconds, float FadeFrom);
+    private static readonly Style PersonShatter = new(1.9f, 2.8f, 8.5f, (float)PersonSeconds, (float)PersonSeconds - .45f);
+    private static readonly Style MachineShatter = new(4.6f, 5.4f, 4.5f, (float)MachineSeconds, (float)MachineSeconds - .45f);
+    private static readonly Style Sever = new(1.1f, 1.9f, 7f, UnitDeathEffect.TotalSeconds,
+        (float)(UnitDeathEffect.FallSeconds + UnitDeathEffect.HoldSeconds));
+
     private static readonly SphereMesh PuffMesh = new() { Radius = .5f, Height = 1, RadialSegments = 8, Rings = 4 };
     private static readonly StandardMaterial3D Ash = Puff(new Color(.49f, .48f, .45f, .7f));
     private static readonly StandardMaterial3D Smoke = Puff(new Color(.24f, .23f, .21f, .75f));
@@ -38,11 +43,42 @@ public static class UnitBreakupEffect
     private static readonly StandardMaterial3D Flash = Glow("ffd37a");
 
     // Null means the caller should play the plain fall instead.
-    public static Tween TryPlay(Unit unit)
+    public static Tween TryShatter(Unit unit)
     {
-        if (!Recipes.TryGetValue(unit.UnitType, out Recipe recipe) || _active >= MaxActive || !unit.IsVisibleInTree()) return null;
+        if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups)) return null;
+        var detached = new List<int>();
+        for (int i = 0; i < groups.Count; i++) detached.Add(i);
+        var effect = new Breakup(unit, recipe.Machine ? MachineShatter : PersonShatter, recipe.Machine, groups, detached);
+        Tween tween = unit.CreateTween();
+        using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
+        using var finish = tween.TweenCallback(Callable.From(unit.QueueFree));
+        return tween;
+    }
+
+    // Cuts parts off before the caller's fall starts, so the fall carries only what is left.
+    public static void TrySever(Unit unit)
+    {
+        if (!TryGroups(unit, out Recipe recipe, out List<List<Node3D>> groups)) return;
+        // Never the core, and the same parts every time for the same unit.
+        uint seed = unit.UnitId * 2246822519u + 7;
+        int Pick(int count) { seed = seed * 1664525u + 1013904223u; return (int)((seed >> 8) % (uint)count); }
+        var detached = new List<int> { Pick(groups.Count - 1) };
+        if (Pick(3) == 0 && groups.Count > 2)
+        {
+            int second = Pick(groups.Count - 2);
+            detached.Add(second >= detached[0] ? second + 1 : second);
+        }
+        var effect = new Breakup(unit, Sever, recipe.Machine, groups, detached);
+        // Bound to the unit: the fall's tween frees the unit, and with it these pieces.
+        Tween tween = unit.CreateTween();
+        using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, effect.Seconds, effect.Seconds);
+    }
+
+    private static bool TryGroups(Unit unit, out Recipe recipe, out List<List<Node3D>> groups)
+    {
+        groups = new List<List<Node3D>>();
+        if (!Recipes.TryGetValue(unit.UnitType, out recipe) || !unit.IsVisibleInTree()) return false;
         Node3D visual = unit.GetNode<Node3D>("Visual");
-        var groups = new List<List<Node3D>>();
         foreach (string[] paths in recipe.Pieces)
         {
             var nodes = new List<Node3D>();
@@ -50,15 +86,7 @@ public static class UnitBreakupEffect
                 if (visual.GetNodeOrNull<Node3D>(path) is { } node) nodes.Add(node);
             if (nodes.Count > 0) groups.Add(nodes);
         }
-        if (groups.Count < 2) return null;
-        var effect = new Breakup(unit, recipe.Machine, groups);
-        double seconds = recipe.Machine ? MachineSeconds : PersonSeconds;
-        _active++;
-        unit.Connect(Node.SignalName.TreeExiting, Callable.From(() => _active--), (uint)GodotObject.ConnectFlags.OneShot);
-        Tween tween = unit.CreateTween();
-        using var play = tween.TweenMethod(Callable.From<float>(effect.AdvanceTo), 0f, (float)seconds, seconds);
-        using var finish = tween.TweenCallback(Callable.From(unit.QueueFree));
-        return tween;
+        return groups.Count >= 2 && UnitDeathEffect.TryReserve(unit);
     }
 
     private sealed class Piece
@@ -74,13 +102,13 @@ public static class UnitBreakupEffect
         private readonly List<Piece> _pieces = new();
         private readonly List<MeshInstance3D> _meshes = new();
         private readonly List<(MeshInstance3D Mesh, Vector3 Start, Vector3 Drift, float From, float To, float Life)> _puffs = new();
-        private readonly float _seconds, _fadeFrom;
+        private readonly Style _style;
         private float _time;
+        public float Seconds => _style.Seconds;
 
-        public Breakup(Unit unit, bool machine, List<List<Node3D>> groups)
+        public Breakup(Unit unit, Style style, bool machine, List<List<Node3D>> groups, List<int> detached)
         {
-            _seconds = (float)(machine ? MachineSeconds : PersonSeconds);
-            _fadeFrom = _seconds - .45f;
+            _style = style;
             uint seed = unit.UnitId * 2654435761u + 1;
             float Next() { seed = seed * 1664525u + 1013904223u; return (seed >> 8) / 16777216f; }
             var bounds = new List<Aabb>();
@@ -94,7 +122,8 @@ public static class UnitBreakupEffect
             // Burst from just below the middle of the figure so the pieces fly up and out.
             origin /= groups.Count;
             origin.Y -= machine ? .15f : .25f;
-            for (int i = 0; i < groups.Count; i++)
+            bool sever = style == Sever;
+            foreach (int i in detached)
             {
                 Aabb box = bounds[i];
                 var pivot = new Node3D { Name = "BreakupPiece" + i };
@@ -110,19 +139,22 @@ public static class UnitBreakupEffect
                     float angle = Next() * Mathf.Tau;
                     away = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
                 }
-                float spread = (machine ? 4.6f : 1.9f) * (.7f + .6f * Next());
+                float spread = style.Spread * (.7f + .6f * Next());
                 // Heads and hats pop highest; the core slumps instead of flying.
-                float lift = (machine ? 5.4f : 2.8f) * (.8f + .4f * Next()) + Mathf.Max(0, box.GetCenter().Y - origin.Y) * 1.2f;
+                float lift = style.Lift * (.8f + .4f * Next()) + Mathf.Max(0, box.GetCenter().Y - origin.Y) * (sever ? .5f : 1.2f);
                 if (core) { spread *= .3f; lift *= .45f; }
                 Vector3 axis = new Vector3(Next() - .5f, Next() - .5f, Next() - .5f).Normalized();
                 _pieces.Add(new Piece
                 {
                     Pivot = pivot,
                     Velocity = away.Normalized() * spread + Vector3.Up * lift,
-                    Spin = axis * (machine ? 4.5f : 8.5f) * (.6f + .8f * Next()) * (core ? machine ? .8f : .4f : 1),
+                    Spin = axis * style.Spin * (.6f + .8f * Next()) * (core ? machine ? .8f : .4f : 1),
                     Radius = Mathf.Clamp(Mathf.Min(box.Size.X, Mathf.Min(box.Size.Y, box.Size.Z)) / 2, .05f, .6f)
                 });
+                // A clean cut shows a spark, never a wound.
+                if (sever) AddPuff(unit, Flash, unit.ToLocal(box.GetCenter()), Vector3.Zero, .08f, .32f, .18f);
             }
+            if (sever) return;
             Vector3 local = unit.ToLocal(origin);
             if (machine)
             {
@@ -146,7 +178,7 @@ public static class UnitBreakupEffect
                 _time += dt;
                 foreach (Piece piece in _pieces) Step(piece, dt);
             }
-            float fade = Mathf.Clamp((_time - _fadeFrom) / (_seconds - _fadeFrom), 0, 1);
+            float fade = Mathf.Clamp((_time - _style.FadeFrom) / (_style.Seconds - _style.FadeFrom), 0, 1);
             foreach (MeshInstance3D mesh in _meshes)
                 if (GodotObject.IsInstanceValid(mesh)) mesh.Transparency = fade;
             foreach (var (mesh, start, drift, from, to, life) in _puffs)
@@ -201,7 +233,7 @@ public static class UnitBreakupEffect
             new Vector3(next() - .5f, (next() - .5f) * .5f, next() - .5f) * size * 2;
     }
 
-    private static Aabb Bounds(List<Node3D> nodes)
+    public static Aabb Bounds(List<Node3D> nodes)
     {
         var meshes = new List<MeshInstance3D>();
         foreach (Node3D node in nodes) CollectMeshes(node, meshes);
@@ -215,7 +247,7 @@ public static class UnitBreakupEffect
         return total ?? new Aabb(nodes[0].GlobalPosition - Vector3.One * .1f, Vector3.One * .2f);
     }
 
-    private static void CollectMeshes(Node node, List<MeshInstance3D> meshes)
+    public static void CollectMeshes(Node node, List<MeshInstance3D> meshes)
     {
         if (node is MeshInstance3D mesh) meshes.Add(mesh);
         foreach (Node child in node.GetChildren()) CollectMeshes(child, meshes);

@@ -37,6 +37,7 @@ public partial class Unit : Node3D
         }
     }
     public bool IsDying { get; private set; }
+    public DeathCause DeathCause { get; private set; }
     public event Action<UnitState, bool> StateChanged;
     // 관리자가 조회 방법만 연결합니다. Unit은 자원/유닛/건물 목록을 직접 소유하지 않습니다.
     public Func<uint, Node3D> ResolveFocus { private get; set; }
@@ -100,6 +101,7 @@ public partial class Unit : Node3D
             SiegeChanged?.Invoke(this);
             KnightCharge = null;
             KnightChargeChanged?.Invoke(this);
+            DeathCause = DeathCause.None;
         }
         UnitId = unitId;
         OwnerId = ownerId;
@@ -227,6 +229,12 @@ public partial class Unit : Node3D
 
     private static bool IsAvailable(Node3D node) => GodotObject.IsInstanceValid(node)
         && node.IsInsideTree() && !node.IsQueuedForDeletion() && node is not Unit { IsDying: true };
+
+    // DEATH는 같은 틱의 REMOVE보다 먼저 오며 연출만 고릅니다. 사망 뒤의 늦은 원인은 무시합니다.
+    public void ApplyDeathCause(DeathCause cause)
+    {
+        if (!IsDying) DeathCause = cause;
+    }
 
     public Tween BeginDeath()
     {

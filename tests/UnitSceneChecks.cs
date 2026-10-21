@@ -61,6 +61,7 @@ public partial class UnitSceneChecks : Main
             await CheckKnightChargeSnapshots();
             await CheckInput(knight, archer);
             await CheckResources();
+            await CheckDeathCauses();
 
             Receive("UNIT 0 707 7 1 2 1");
             Unit worker = Units.GetNode<Unit>("Unit_707");
