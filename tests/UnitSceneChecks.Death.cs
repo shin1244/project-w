@@ -37,7 +37,7 @@ public partial class UnitSceneChecks
         Receive("DEATH 9603 FIRE");
         Check(plain.IsDying && plain.DeathCause == DeathCause.None && Pieces(plain) == 0 && Burns(plain) == 0,
             "A cause arriving after REMOVE cannot change the death that already started");
-        Check(Pieces(cut) is 1 or 2 && Burns(cut) == 0, "A blade cuts one or two parts off and the rest falls");
+        Check(Pieces(cut) == 2 && Burns(cut) == 0, "A blade cuts two parts off and the rest falls");
         Check(Burns(burnt) > 0 && Pieces(burnt) == 0, "Fire chars the model into ash instead of breaking it apart");
         Check(Pieces(shattered) > 2 && Burns(shattered) == 0, "A siege shell throws every part");
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
