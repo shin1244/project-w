@@ -97,7 +97,7 @@ Windows에서는 클라이언트 프로젝트 폴더에서 다음 명령으로 �
 
 스크립트는 C# Debug 어셈블리를 먼저 빌드하고, `.godot/exported`의 변환 장면 캐시를 `.godot/export-backups`로 보관한 뒤 새 에디터 프로세스로 Release를 내보냅니다. C#의 `[Export]` 필드를 추가했을 때 오래된 장면 캐시에 노드 연결이 누락되는 문제를 방지합니다. 결과는 프로젝트 옆 `build/` 폴더이며, 로그는 `.godot/check-logs/export-windows/`에서 확인합니다. ZIP 파일은 자동 갱신되지 않으므로 배포할 때 새 `build/` 폴더를 압축하세요.
 
-Godot 4.7.2 **.NET** 에디터와 같은 버전의 내보내기 템플릿을 사용합니다. Export에 Windows Desktop 프리셋을 만들고 x86_64로 내보냅니다. 비리소스 포함 필터에 **`*.json`**을 추가해 `maps/test.json`과 건설 미리보기 목록을 포함합니다. 로비와 로딩은 기본 메인 씬에서 참조되며 실제 Main 씬도 내보내기에 포함해야 하므로 모든 리소스 내보내기를 사용합니다.
+Godot 4.7.2 **.NET** 에디터와 같은 버전의 내보내기 템플릿을 사용합니다. Export에 Windows Desktop 프리셋을 만들고 x86_64로 내보냅니다. 비리소스 포함 필터에 **`*.json`**을 추가해 `maps/test.json`과 건설 미리보기 목록을 포함합니다. 로비와 로딩은 기본 메인 씬에서 참조되며 실제 Main 씬도 내보내기에 포함해야 하므로 모든 리소스 내보내기를 사용합니다. 개발용 폴더는 빼고 내보냅니다. 프리셋의 제외 필터가 `tests/*, tools/*, previews/*`의 장면·스크립트·검사 데이터를 팩에서 빼고, `Project W.csproj`는 `ExportRelease`·`ExportDebug` 구성에서 같은 폴더의 C# 코드를 어셈블리에서 뺍니다. `docs/`는 `.gdignore`로 처음부터 가져오지 않습니다. 게임 코드가 이 폴더를 참조하게 되면 내보내기 빌드가 컴파일 오류로 알려 줍니다(`dotnet build "Project W.csproj" -c ExportRelease`).
 
 내보낸 빌드는 공식 로비에 바로 접속하므로 친구에게 주소를 따로 알려 줄 필요가 없습니다. 서버 주소가 바뀌면 `MatchSession.OfficialLobbyUrl`을 고치고 다시 내보냅니다. 실행 파일만 보내지 말고 내보내기 폴더 전체를 압축해서 전달하세요. 클라이언트와 서버의 `maps/test.json`은 바이트 단위로 같아야 합니다. 빌드 파일에서 두 PC로 같은 팀 협동을 확인한 뒤 6인 대전을 확인합니다.
 
