@@ -31,6 +31,15 @@ def pack(frames_dir, out_path):
     palette.putpalette(colours)  # only these colours, so no pixel maps to the "unchanged" index
     colours += [0, 0, 0]
     indices = [np.asarray(frame.quantize(palette=palette, dither=Image.Dither.NONE)) for frame in frames]
+    # Pillow folds a frame identical to the one before into it, so fold it here too and keep the check exact.
+    kept, durations = [], []
+    for index in indices:
+        if kept and np.array_equal(index, kept[-1]):
+            durations[-1] += 130
+            continue
+        kept.append(index)
+        durations.append(130)
+    indices = kept
     packed = []
     for i, index in enumerate(indices):
         delta = index.copy()
@@ -39,7 +48,7 @@ def pack(frames_dir, out_path):
         image = Image.fromarray(delta.astype(np.uint8), "P")
         image.putpalette(colours)
         packed.append(image)
-    packed[0].save(out_path, save_all=True, append_images=packed[1:], duration=130, loop=0,
+    packed[0].save(out_path, save_all=True, append_images=packed[1:], duration=durations, loop=0,
                    disposal=1, transparency=COLOURS, optimize=False)
 
     # Decode the file and compare every frame with what was meant.
