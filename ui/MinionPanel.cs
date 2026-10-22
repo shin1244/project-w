@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 // 중앙 HUD의 두 보기를 전환한다. 선택 유닛과 이미 출발한 웨이브는 변경하지 않는다.
 public partial class MinionPanel : Control
@@ -19,12 +20,13 @@ public partial class MinionPanel : Control
 
     private readonly SortedDictionary<int, MinionLaneSnapshot> _lanes = new();
     private readonly SortedDictionary<uint, MinionOptionSnapshot> _options = new();
+    private readonly SortedDictionary<uint, MinionUpgradeSnapshot> _upgrades = new();
     private readonly Dictionary<uint, long> _stock = new();
     private readonly Dictionary<uint, Texture2D> _portraits = new();
     private readonly List<string> _laneNames = new();
     private readonly List<StyleBoxFlat> _styles = new();
     private readonly List<(Button Button, int Lane, bool Add)> _slotButtons = new();
-    private readonly List<(Button Button, Label Cost, MinionOptionSnapshot Option)> _optionButtons = new();
+    private readonly List<(Button Button, Label Cost, Choice Option)> _optionButtons = new();
     private StyleBoxFlat _normal, _hover, _pressed, _disabled;
     private PanelContainer _body, _picker;
     private HBoxContainer _tabs;
@@ -38,6 +40,7 @@ public partial class MinionPanel : Control
     private MinionExperienceRuleSnapshot? _experienceRule;
     private uint _tick, _nextWaveTick, _pickerRevision, _pendingRevision;
     private int _pickerLane, _pickerSlot;
+    private int _teamTier = 1;
     private int? _pendingLane;
     private MouseButton? _consumedRelease;
     private bool _enabled, _ready, _hasTick, _hasNextWave;
@@ -154,6 +157,8 @@ public partial class MinionPanel : Control
         CancelSlotDrag();
         _lanes.Clear();
         _options.Clear();
+        _upgrades.Clear();
+        _teamTier = 1;
         _stock.Clear();
         _laneNames.Clear();
         _rules = null;
@@ -216,6 +221,11 @@ public partial class MinionPanel : Control
             _options[option.UnitType] = option;
             RebuildLanes();
         }
+        else if (MinionUpgradeSnapshot.TryParse(parts, out var upgrade))
+        {
+            _upgrades[upgrade.UnitType] = upgrade;
+            RebuildLanes();
+        }
         else if (MinionLaneSnapshot.TryParse(parts, out var lane))
         {
             if (_rules is MinionRulesSnapshot limits && lane.UnitTypes.Length > limits.MaxSlots ||
@@ -254,6 +264,14 @@ public partial class MinionPanel : Control
         _stock[resource] = amount;
         RefreshStoneLabel();
         RefreshPurchases();
+    }
+
+    // HQ tier of the commander's team: tier-two choices unlock when it reaches theirs.
+    public void SetTeamTier(int tier)
+    {
+        if (tier == _teamTier) return;
+        _teamTier = tier;
+        RebuildLanes();
     }
 
     public void SetTick(uint tick)
@@ -310,7 +328,7 @@ public partial class MinionPanel : Control
                 int slot = i;
                 uint type = lane.UnitTypes[i];
                 var button = MakeButton($"Slot{i}", "", new Vector2(44, 48));
-                button.TooltipText = $"{MinionName(type)} · {i + 1}번째 생성\n{Description(type)}\n클릭: 종류 변경 · 드래그: 같은 라인에서 무료 순서 이동";
+                button.TooltipText = $"{MinionName(type)} · {i + 1}번째 생성\n{Description(type)}\n{SlotActions(type)}";
                 button.Disabled = _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
                 AddPortrait(button, type, 3);
                 row.AddChild(button);
@@ -338,17 +356,25 @@ public partial class MinionPanel : Control
         if (_suppressSlotClick || !_enabled || !IsMinionView || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0 ||
             !_lanes.TryGetValue(laneIndex, out var lane) || slot >= lane.UnitTypes.Length ||
             slot < 0 && lane.UnitTypes.Length >= _rules.Value.MaxSlots) return;
+        // Slots never change type; only a melee slot's one tier-two upgrade opens a picker.
+        if (slot >= 0 && !Choices(lane.UnitTypes[slot]).Any())
+        {
+            ClosePicker();
+            SetHint("미니언 종류는 바꿀 수 없습니다 · 근접 미니언만 2티어로 강화");
+            return;
+        }
         _pickerLane = laneIndex;
         _pickerSlot = slot;
         _pickerRevision = lane.Revision;
         _pickerAnchor = anchor;
-        _pickerTitle.Text = slot < 0 ? $"{LaneName(laneIndex)} · 미니언 추가" : $"{LaneName(laneIndex)} · {slot + 1}번 변경";
+        _pickerTitle.Text = slot < 0 ? $"{LaneName(laneIndex)} · 미니언 추가" : $"{LaneName(laneIndex)} · {slot + 1}번 2티어 강화";
         ClearChildren(_choices);
         _optionButtons.Clear();
-        foreach (MinionOptionSnapshot option in _options.Values)
+        foreach (Choice option in Choices(slot < 0 ? null : lane.UnitTypes[slot]))
         {
             var button = MakeButton($"Option{option.UnitType}", "", new Vector2(270, 54));
-            button.TooltipText = $"{MinionName(option.UnitType)}\n{Description(option.UnitType)}";
+            button.TooltipText = $"{MinionName(option.UnitType)}\n{Description(option.UnitType)}" +
+                (option.Upgrade is { } upgrade ? $"\n{Effect(upgrade)}\nHQ {upgrade.Tier}티어부터 · 한 번 바꾸면 되돌릴 수 없음" : "");
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 8);
             button.AddChild(row);
@@ -361,7 +387,7 @@ public partial class MinionPanel : Control
             var information = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
             information.AddThemeConstantOverride("separation", 0);
             row.AddChild(information);
-            information.AddChild(Text(MinionName(option.UnitType), 13, "ece6cf"));
+            information.AddChild(Text(option.Upgrade.HasValue ? $"{MinionName(option.UnitType)} · 2티어" : MinionName(option.UnitType), 13, "ece6cf"));
             var cost = Text("", 12, "e6d59e");
             cost.Name = "Cost";
             information.AddChild(cost);
@@ -380,12 +406,15 @@ public partial class MinionPanel : Control
     private void Purchase(uint type)
     {
         if (!IsPickerOpen || !_enabled || !IsMinionView || _pendingLane.HasValue || !_rules.HasValue ||
-            !_options.TryGetValue(type, out var option) || !_lanes.TryGetValue(_pickerLane, out var lane) ||
+            !_lanes.TryGetValue(_pickerLane, out var lane) ||
             lane.Revision != _pickerRevision || _pickerSlot >= lane.UnitTypes.Length ||
             _pickerSlot >= 0 && lane.UnitTypes[_pickerSlot] == type ||
             _pickerSlot < 0 && (lane.UnitTypes.Length >= _rules.Value.MaxSlots || !CanAffordAdd)) return;
-        // 슬롯 추가는 마석으로만 한다. 목재는 기존 슬롯 교체에만 쓴다.
-        if (_pickerSlot >= 0 && (_stock.TryGetValue(option.ResourceId, out long wood) ? wood : 0) < option.ReplaceCost) return;
+        Choice? choice = null;
+        foreach (Choice candidate in Choices(_pickerSlot < 0 ? null : lane.UnitTypes[_pickerSlot]))
+            if (candidate.UnitType == type) choice = candidate;
+        // 슬롯 추가는 마석, 2티어 강화는 서버가 보낸 비용(목재·기름)으로 한다.
+        if (choice is not { } option || option.Upgrade is { } upgrade && upgrade.Tier > _teamTier || !Affordable(option)) return;
         string command = _pickerSlot < 0
             ? FormattableString.Invariant($"MINION_ADD {_pickerLane} {lane.Revision} {type}")
             : FormattableString.Invariant($"MINION_SET {_pickerLane} {lane.Revision} {_pickerSlot} {type}");
@@ -412,15 +441,14 @@ public partial class MinionPanel : Control
         if (!IsPickerOpen || !_lanes.TryGetValue(_pickerLane, out var selected)) return;
         foreach (var (button, label, option) in _optionButtons)
         {
-            bool current = _pickerSlot >= 0 && selected.UnitTypes[_pickerSlot] == option.UnitType;
-            bool add = _pickerSlot < 0;
-            uint resource = add ? AddCost?.ResourceId ?? 0 : option.ResourceId;
-            long cost = add ? AddCost?.Amount ?? 0 : option.ReplaceCost;
-            bool affordable = add ? CanAffordAdd : (_stock.TryGetValue(resource, out long amount) ? amount : 0) >= cost;
-            label.Text = current ? "현재 편성" : add && AddCost == null ? "가격 받는 중"
-                : $"{ResourceName(resource)} {cost:N0}" + (affordable ? "" : " · 부족");
-            label.AddThemeColorOverride("font_color", new Color(current ? "9fb3a2" : affordable ? "e6d59e" : "ed9785"));
-            button.Disabled = current || !affordable || _pendingLane.HasValue || selected.Revision != _pickerRevision;
+            bool affordable = Affordable(option);
+            string price = string.Join(" · ", option.Costs.Select(cost => $"{ResourceName(cost.Resource)} {cost.Amount:N0}"));
+            int? lockedTier = option.Upgrade is { } upgrade && upgrade.Tier > _teamTier ? upgrade.Tier : null;
+            label.Text = lockedTier is int tier ? $"HQ {tier}티어 필요 · {price}"
+                : option.Costs.Length == 0 ? "가격 받는 중"
+                : price + (affordable ? "" : " · 부족");
+            label.AddThemeColorOverride("font_color", new Color(lockedTier.HasValue ? "a8b9b1" : affordable ? "e6d59e" : "ed9785"));
+            button.Disabled = lockedTier.HasValue || !affordable || _pendingLane.HasValue || selected.Revision != _pickerRevision;
         }
     }
 
@@ -562,13 +590,54 @@ public partial class MinionPanel : Control
     private static string ResourceName(uint resource) => resource switch { 0 => "목재", 2 => "기름", 3 => "마석", _ => $"자원 {resource}" };
     private static string MinionName(uint type) => type switch
     {
-        100 => "근접 미니언", 101 => "원거리 미니언", 102 => "생명의 미니언", _ => $"미니언 {type}"
+        100 => "근접 미니언", 101 => "원거리 미니언", 102 => "생명의 미니언",
+        103 => "화로 미니언", 104 => "호위 미니언", 105 => "전격 미니언", _ => $"미니언 {type}"
     };
     private static string Description(uint type) => type switch
     {
         100 => "앞에서 적을 막는 근접 전투원", 101 => "뒤에서 공격하는 원거리 전투원",
-        102 => "사망 시 주변 아군 최대 HP 10% 회복", _ => "라인을 따라 전진하는 미니언"
+        102 => "사망 시 주변 아군 최대 HP 10% 회복",
+        103 => "등에 진 화로로 주변 적 유닛을 계속 태우는 근접 전투원",
+        104 => "주변 아군 영웅·용병이 받는 피해 일부를 대신 받는 근접 전투원",
+        105 => "맞힌 화살의 전기가 주변 적에게 튕기는 원거리 전투원", _ => "라인을 따라 전진하는 미니언"
     };
+
+    // Effect numbers come from MINION_UPGRADE; the server applies the effect.
+    private static string Effect(MinionUpgradeSnapshot upgrade) => upgrade.UnitType switch
+    {
+        103 => $"주변 {upgrade.Radius:0.#}m의 적 유닛에게 1초마다 자기 최대 체력의 {upgrade.Percent:0.#}% 피해 (건물·일꾼·정글몹 제외)",
+        104 => $"주변 {upgrade.Radius:0.#}m 아군 영웅·용병이 받는 피해의 {upgrade.Percent:0.#}%를 대신 받음 (여러 기여도 가장 가까운 한 기만)",
+        105 => $"공격이 맞으면 {upgrade.Radius:0.#}m 안의 다른 적에게 공격력의 {upgrade.Percent:0.#}%, 다시 {upgrade.Percent * upgrade.Percent / 100:0.#}%로 튕김 (소수점 내림·최소 1, 이미 맞은 적 제외, 건물·정글몹 제외)",
+        _ => ""
+    };
+
+    // A picker entry: a minion a new slot starts as (paid in 마석), or the tier-two upgrade of
+    // the clicked slot's type.
+    private readonly record struct Choice(uint UnitType, MinionCost[] Costs, MinionUpgradeSnapshot? Upgrade);
+
+    private IEnumerable<Choice> Choices(uint? slotType)
+    {
+        if (slotType is not uint current)
+        {
+            MinionCost[] slot = AddCost is { } price ? new[] { new MinionCost(price.ResourceId, price.Amount) } : Array.Empty<MinionCost>();
+            foreach (MinionOptionSnapshot option in _options.Values) yield return new(option.UnitType, slot, null);
+            yield break;
+        }
+        foreach (MinionUpgradeSnapshot upgrade in _upgrades.Values)
+            if (upgrade.FromType == current) yield return new(upgrade.UnitType, upgrade.Costs, upgrade);
+    }
+
+    private bool Affordable(Choice choice) => choice.Costs.Length > 0 &&
+        choice.Costs.All(cost => (_stock.TryGetValue(cost.Resource, out long amount) ? amount : 0) >= cost.Amount);
+
+    private string SlotActions(uint slotType)
+    {
+        string drag = "드래그: 같은 라인에서 무료 순서 이동";
+        var names = Choices(slotType).Select(choice => MinionName(choice.UnitType)).ToList();
+        if (names.Count == 0) return drag;
+        int tier = Choices(slotType).Max(choice => choice.Upgrade?.Tier ?? 0);
+        return (tier > _teamTier ? $"HQ {tier}티어부터 " : "") + $"클릭: {string.Join("·", names)}으로 2티어 강화 · " + drag;
+    }
 
     private Texture2D Portrait(uint type)
     {
@@ -576,7 +645,8 @@ public partial class MinionPanel : Control
         string path = type switch
         {
             100 => "res://ui/portraits/minion-knight.png", 101 => "res://ui/portraits/minion-archer.png",
-            102 => "res://ui/icons/minion-healer.svg", _ => "res://ui/icons/resource.svg"
+            102 => "res://ui/icons/minion-healer.svg", 103 => "res://ui/portraits/minion-furnace.png",
+            104 => "res://ui/portraits/minion-warden.png", 105 => "res://ui/portraits/minion-arc.png", _ => "res://ui/icons/resource.svg"
         };
         texture = GD.Load<Texture2D>(path);
         _portraits[type] = texture;

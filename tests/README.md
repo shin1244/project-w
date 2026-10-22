@@ -22,7 +22,7 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | 선택 | 남긴 검증 | 실행할 변경 |
 | --- | --- | --- |
 | Smoke (기본) | MapSync, UnitScene, CommandPanel, Stock | 여러 핵심 흐름을 간단히 확인할 때 |
-| Units | UnitScene, Interpolation, MinionSync, RecoveryClient, SupportUpdate | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간, 사령관·상점·귀환, 치유사·마석 슬롯 추가 |
+| Units | UnitScene, Interpolation, MinionSync, RecoveryClient, SupportUpdate | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간, 사령관·상점·귀환, 마석 슬롯 추가 |
 | Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시 |
 | World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·마석 이벤트·공성추 |
 | UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator, Sound | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀·효과음 |
@@ -31,7 +31,7 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | 단일 검사 `-Check TributeChecks` | Tribute | 마석 스냅샷·대기/수집 시간·영웅 우클릭·역할 제한·재동기화/연결 종료 |
 | 단일 검사 `-Check SiegeRamChecks` | SiegeRam | 자동 공성추 소환·체력·실제 우클릭 공격·서버 충돌 연출·정리 |
 | 단일 검사 `-Check RecoveryClientChecks` | RecoveryClient | 사령관, 상점·장비, 아이템 상자 우클릭·일꾼 배달, 귀환·효과 타이머, 액티브·패시브 강화 및 포인트 동기화, 역할·맵·연결 초기화 |
-| 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 치유사 생산 조건·대기열·모델·회복 표시, 마석 가격·잔액과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
+| 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 인력 사무소에 치유사가 없음, 마석 가격·잔액과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
 | 단일 검사 `-Check SoundChecks` | Sound | 공격·사망·공사·생산·전개·오류 메시지와 효과음, 초기 스냅샷 무음, 최소 간격·동시 재생 수, 화면 밖 거리 |
 | All | 중복을 제거한 23개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
 

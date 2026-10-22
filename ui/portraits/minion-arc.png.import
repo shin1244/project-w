@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://e4v1ggw3gbtj"
-path="res://.godot/imported/medic-enemy.svg-0c8b83d2eef177aedec5edc9f0cdc79b.ctex"
+uid="uid://deb3wk5wwdnj1"
+path="res://.godot/imported/minion-arc.png-7a9105cba2a90e83cf02ff49b2d670c9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/icons/medic-enemy.svg"
-dest_files=["res://.godot/imported/medic-enemy.svg-0c8b83d2eef177aedec5edc9f0cdc79b.ctex"]
+source_file="res://ui/portraits/minion-arc.png"
+dest_files=["res://.godot/imported/minion-arc.png-7a9105cba2a90e83cf02ff49b2d670c9.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

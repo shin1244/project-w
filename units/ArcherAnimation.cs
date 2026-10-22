@@ -15,7 +15,7 @@ public partial class ArcherAnimation : Node
     public override void _Ready()
     {
         _unit = GetParent<Unit>();
-        bool minion = _unit.UnitType == UnitCatalog.MinionRanged;
+        bool minion = _unit.UnitType is UnitCatalog.MinionRanged or UnitCatalog.MinionArc;
         _root = _unit.GetNode<Node3D>(minion ? "Visual" : "Visual/Rig");
         _leftArm = _root.GetNode<Node3D>("LeftArm");
         _rightArm = _root.GetNode<Node3D>("RightArm");

@@ -49,6 +49,36 @@ public readonly record struct MinionOptionSnapshot(uint UnitType, uint ResourceI
     }
 }
 
+// MINION_UPGRADE type fromType tier radius percent resourceId amount [resourceId amount...]:
+// what a slot of fromType becomes, once, after the HQ reaches tier. Never a new slot.
+// Radius and percent only describe the effect; the server applies it.
+public readonly record struct MinionCost(uint Resource, long Amount);
+
+public readonly record struct MinionUpgradeSnapshot(uint UnitType, uint FromType, int Tier, double Radius, double Percent,
+    MinionCost[] Costs)
+{
+    public static bool TryParse(string[] parts, out MinionUpgradeSnapshot snapshot)
+    {
+        snapshot = default;
+        if (parts.Length < 8 || (parts.Length - 6) % 2 != 0 || parts[0] != "MINION_UPGRADE" ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint type) || type is < 100 or >= 200 ||
+            !uint.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out uint from) || from is < 100 or >= 200 || from == type ||
+            !int.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out int tier) || tier is < 1 or > 3 ||
+            !double.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out double radius) || !double.IsFinite(radius) || radius < 0 ||
+            !double.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) || !double.IsFinite(percent) || percent < 0) return false;
+        var costs = new MinionCost[(parts.Length - 6) / 2];
+        for (int i = 0; i < costs.Length; i++)
+        {
+            if (!uint.TryParse(parts[6 + 2 * i], NumberStyles.None, CultureInfo.InvariantCulture, out uint resource) ||
+                !long.TryParse(parts[7 + 2 * i], NumberStyles.None, CultureInfo.InvariantCulture, out long amount) ||
+                System.Array.Exists(costs[..i], cost => cost.Resource == resource)) return false;
+            costs[i] = new(resource, amount);
+        }
+        snapshot = new(type, from, tier, radius, percent, costs);
+        return true;
+    }
+}
+
 // MINION_ADD_COST resource amount: what one extra slot costs (마석 today). Commanders only.
 public readonly record struct MinionAddCostSnapshot(uint ResourceId, long Amount)
 {

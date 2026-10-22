@@ -25,7 +25,7 @@ python tools/synth_sfx.py --preview  # audio/sfx-preview.html에서 모두 들�
 
 | 상황 | 소리 | 연결 위치 |
 | --- | --- | --- |
-| 공격·작업 한 번 (`STATE`의 공격 번호가 바뀔 때) | 공압사수 `rifle`, 스팀돌격병·근접 미니언 `sword`, 사령관·치유사 `pistol`, 레인저·원거리 미니언 `bow`, 화염기계 `flame`, 늑대·멧돼지 `claw`, 골렘·고목 `stone`, 일꾼 벌목 `chop`·건설 `hammer` | `Unit.ApplyServerState`, `SoundBank.Swing` |
+| 공격·작업 한 번 (`STATE`의 공격 번호가 바뀔 때) | 공압사수 `rifle`, 스팀돌격병·근접 미니언 `sword`, 사령관 `pistol`, 레인저·원거리 미니언 `bow`, 화염기계 `flame`, 늑대·멧돼지 `claw`, 골렘·고목 `stone`, 일꾼 벌목 `chop`·건설 `hammer` | `Unit.ApplyServerState`, `SoundBank.Swing` |
 | 증기포격차 발사·착탄 | `artillery-fire`, `shell-impact` | `WorkshopMachineVisual`, `WorkshopShellFlight` |
 | 증기포격차 전개·해제 시작 | `artillery-deploy`, `artillery-pack` | `Unit.ApplySiege` |
 | 와이어 돌진 시작 | `knight-charge` | `Unit.ApplyKnightCharge` |
