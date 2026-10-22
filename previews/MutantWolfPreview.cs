@@ -21,11 +21,11 @@ public partial class MutantWolfPreview : Control
         AddChild(_layout);
         Text("BURN QUARTER   /   HERO 01", new Vector2(26, 18), 650, 17, "92a8b2");
         Text("돌연변이 늑대", new Vector2(24, 48), 950, 40, "e9e3d1");
-        Text("네 개의 다리 · 작은 팔 하나", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
+        Text("연금술 실험체 · 약품 실린더 · 황동 의족", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
         AddView(new Rect2(24, 125, 1050, 735), new Vector3(5.8f, 3.5f, -6.2f), 3.9f);
         AddView(new Rect2(1090, 125, 486, 345), new Vector3(7, 2.5f, .15f), 3.6f);
         AddView(new Rect2(1090, 515, 486, 345), new Vector3(5, 8, -7), 4.3f);
-        Text("오른쪽 작은 팔 · 굽힌 손목 · 세 갈래 발톱", new Vector2(38, 881), 1000, 23, "cbbda5");
+        Text("등의 약품 실린더 · 철 목줄 · 꿰맨 자국 · 피스톤 앞다리", new Vector2(38, 881), 1000, 23, "cbbda5");
         Text("측면", new Vector2(1104, 96), 458, 18, "a7b9be");
         Text("게임 시점", new Vector2(1104, 484), 458, 18, "a7b9be");
         Text("Space 걷기    A 물기    Q 돌진 자세    R 회전    T 진영색", new Vector2(26, 952), 1548, 19, "91a6ad");

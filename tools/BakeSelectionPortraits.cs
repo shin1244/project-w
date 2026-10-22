@@ -136,11 +136,11 @@ public partial class BakeSelectionPortraits : Node
         var camera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, Current = true,
-            Size = building ? buildingHeight * 1.5f : artillery ? 5.2f : beast ? 3.6f : golem ? 3.7f : unitHeight * .94f,
+            Size = building ? buildingHeight * 1.5f : artillery ? 5.2f : beast ? 4.0f : golem ? 3.7f : unitHeight * .94f,
             Position = building ? new Vector3(7, 6, -10) : artillery ? new Vector3(5, 4, -7) : beast ? new Vector3(4.8f, 3.1f, -5) : new Vector3(2.4f, 2.5f, -5)
         };
         viewport.AddChild(camera);
-        camera.LookAt(beast ? new Vector3(.15f, 1.2f, -.3f) : new Vector3(0, building ? buildingHeight * .42f : unitHeight * .48f, 0));
+        camera.LookAt(beast ? new Vector3(.15f, 1.38f, -.3f) : new Vector3(0, building ? buildingHeight * .42f : unitHeight * .48f, 0));
         _cache.Add(key, viewport);
         return viewport.GetTexture();
     }
