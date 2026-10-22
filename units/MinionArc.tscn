@@ -1,0 +1,292 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://units/models/ArcherBow.tscn" id="2_bow"]
+[ext_resource type="Script" path="res://units/ArcherAnimation.cs" id="3_animation"]
+
+[sub_resource type="StandardMaterial3D" id="Cloth"]
+resource_name = "team_cloth"
+albedo_color = Color(0.22, 0.42, 0.24, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Leather"]
+albedo_color = Color(0.29, 0.18, 0.1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Skin"]
+albedo_color = Color(0.74, 0.53, 0.34, 1)
+
+[sub_resource type="StandardMaterial3D" id="Brass"]
+albedo_color = Color(0.82, 0.6, 0.26, 1)
+metallic = 0.75
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="Copper"]
+albedo_color = Color(0.72, 0.38, 0.2, 1)
+metallic = 0.7
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="Iron"]
+albedo_color = Color(0.2, 0.21, 0.23, 1)
+metallic = 0.6
+roughness = 0.45
+
+[sub_resource type="StandardMaterial3D" id="Charge"]
+albedo_color = Color(0.55, 0.95, 1, 1)
+emission_enabled = true
+emission = Color(0.35, 0.85, 1, 1)
+emission_energy_multiplier = 2.4
+
+[sub_resource type="StandardMaterial3D" id="Lens"]
+albedo_color = Color(0.4, 0.85, 0.95, 1)
+emission_enabled = true
+emission = Color(0.3, 0.8, 0.95, 1)
+emission_energy_multiplier = 1.2
+
+[sub_resource type="StandardMaterial3D" id="Spark"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6, 0.95, 1, 1)
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="CylinderMesh" id="Tunic"]
+material = SubResource("Cloth")
+top_radius = 0.25
+bottom_radius = 0.37
+height = 0.75
+radial_segments = 8
+
+[sub_resource type="SphereMesh" id="Hood"]
+material = SubResource("Cloth")
+radius = 0.31
+height = 0.64
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereMesh" id="Face"]
+material = SubResource("Skin")
+radius = 0.2
+height = 0.42
+radial_segments = 12
+rings = 6
+
+[sub_resource type="BoxMesh" id="GoggleStrap"]
+material = SubResource("Leather")
+size = Vector3(0.46, 0.07, 0.06)
+
+[sub_resource type="CylinderMesh" id="GoggleLens"]
+material = SubResource("Lens")
+top_radius = 0.06
+bottom_radius = 0.06
+height = 0.05
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="Leg"]
+material = SubResource("Leather")
+size = Vector3(0.19, 0.6, 0.28)
+
+[sub_resource type="BoxMesh" id="Arm"]
+material = SubResource("Cloth")
+size = Vector3(0.18, 0.52, 0.22)
+
+[sub_resource type="BoxMesh" id="Hand"]
+material = SubResource("Skin")
+size = Vector3(0.15, 0.15, 0.17)
+
+[sub_resource type="BoxMesh" id="Battery"]
+material = SubResource("Iron")
+size = Vector3(0.42, 0.5, 0.22)
+
+[sub_resource type="BoxMesh" id="BatteryBand"]
+material = SubResource("Brass")
+size = Vector3(0.46, 0.05, 0.26)
+
+[sub_resource type="CylinderMesh" id="Cell"]
+material = SubResource("Charge")
+top_radius = 0.075
+bottom_radius = 0.075
+height = 0.36
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CellCap"]
+material = SubResource("Brass")
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.05
+radial_segments = 10
+
+[sub_resource type="TorusMesh" id="Coil"]
+material = SubResource("Copper")
+inner_radius = 0.06
+outer_radius = 0.1
+rings = 12
+ring_segments = 6
+
+[sub_resource type="CylinderMesh" id="Cable"]
+material = SubResource("Copper")
+top_radius = 0.025
+bottom_radius = 0.025
+height = 0.6
+radial_segments = 6
+
+[sub_resource type="CylinderMesh" id="Rod"]
+material = SubResource("Brass")
+top_radius = 0.02
+bottom_radius = 0.03
+height = 0.4
+radial_segments = 6
+
+[sub_resource type="SphereMesh" id="RodTip"]
+material = SubResource("Charge")
+radius = 0.05
+height = 0.1
+radial_segments = 8
+rings = 4
+
+[sub_resource type="QuadMesh" id="SparkQuad"]
+material = SubResource("Spark")
+size = Vector2(0.06, 0.06)
+
+[sub_resource type="Curve" id="Fade"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="SparkColor"]
+colors = PackedColorArray(0.85, 1, 1, 1, 0.3, 0.75, 1, 0)
+
+[node name="MinionArc" instance=ExtResource("1_base")]
+UnitType = 105
+BodyRadius = 0.4
+
+[node name="Tunic" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.98, 0)
+mesh = SubResource("Tunic")
+
+[node name="Hood" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.66, 0.035)
+mesh = SubResource("Hood")
+
+[node name="Face" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.64, -0.16)
+mesh = SubResource("Face")
+
+[node name="GoggleStrap" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.72, -0.2)
+mesh = SubResource("GoggleStrap")
+
+[node name="GoggleLeft" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.09, 1.72, -0.34)
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("GoggleLens")
+
+[node name="GoggleRight" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.09, 1.72, -0.34)
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("GoggleLens")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.16, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.16, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="LeftArm" type="Node3D" parent="Visual"]
+position = Vector3(-0.36, 1.28, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/LeftArm"]
+position = Vector3(-0.115, -0.23, -0.08)
+rotation = Vector3(0.25, 0, -0.46)
+mesh = SubResource("Arm")
+
+[node name="Hand" type="MeshInstance3D" parent="Visual/LeftArm"]
+position = Vector3(-0.23, -0.45, -0.16)
+mesh = SubResource("Hand")
+
+[node name="Bow" parent="Visual/LeftArm" instance=ExtResource("2_bow")]
+position = Vector3(-0.23, -0.45, -0.16)
+scale = Vector3(0.68, 0.68, 0.68)
+
+[node name="CoilUpper" type="MeshInstance3D" parent="Visual/LeftArm"]
+position = Vector3(-0.23, -0.2, -0.2)
+mesh = SubResource("Coil")
+
+[node name="CoilLower" type="MeshInstance3D" parent="Visual/LeftArm"]
+position = Vector3(-0.23, -0.7, -0.2)
+mesh = SubResource("Coil")
+
+[node name="RightArm" type="Node3D" parent="Visual"]
+position = Vector3(0.36, 1.28, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/RightArm"]
+position = Vector3(0, -0.26, 0)
+mesh = SubResource("Arm")
+
+[node name="Hand" type="MeshInstance3D" parent="Visual/RightArm"]
+position = Vector3(0, -0.50, 0)
+mesh = SubResource("Hand")
+
+[node name="Battery" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.15, 0.3)
+mesh = SubResource("Battery")
+
+[node name="BatteryBandTop" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.36, 0.3)
+mesh = SubResource("BatteryBand")
+
+[node name="BatteryBandBottom" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.94, 0.3)
+mesh = SubResource("BatteryBand")
+
+[node name="CellLeft" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.1, 1.15, 0.43)
+mesh = SubResource("Cell")
+
+[node name="CellRight" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.1, 1.15, 0.43)
+mesh = SubResource("Cell")
+
+[node name="CellCapLeft" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.1, 1.35, 0.43)
+mesh = SubResource("CellCap")
+
+[node name="CellCapRight" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.1, 1.35, 0.43)
+mesh = SubResource("CellCap")
+
+[node name="Cable" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.3, 1.25, 0.12)
+rotation = Vector3(0.7, 0, 0.9)
+mesh = SubResource("Cable")
+
+[node name="Rod" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.14, 1.58, 0.36)
+rotation = Vector3(0, 0, -0.15)
+mesh = SubResource("Rod")
+
+[node name="RodTip" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.17, 1.8, 0.36)
+mesh = SubResource("RodTip")
+
+[node name="Sparks" type="CPUParticles3D" parent="Visual"]
+position = Vector3(0.17, 1.8, 0.36)
+amount = 6
+lifetime = 0.35
+randomness = 0.8
+mesh = SubResource("SparkQuad")
+emission_shape = 1
+emission_sphere_radius = 0.08
+direction = Vector3(0, 1, 0)
+spread = 180.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 0.4
+initial_velocity_max = 1.0
+scale_amount_curve = SubResource("Fade")
+color_ramp = SubResource("SparkColor")
+
+[node name="ArcherAnimation" type="Node" parent="."]
+script = ExtResource("3_animation")

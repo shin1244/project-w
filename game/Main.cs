@@ -426,6 +426,7 @@ public partial class Main : Node3D
                 break;
             case "TEAM_TIER":
                 Buildings?.HandleTeamTier(parts);
+                if (LocalRole == PlayerRole.Commander && Buildings != null) Minions?.SetTeamTier(Buildings.TeamTier(Units.LocalTeam).Tier);
                 break;
             case "ARMY_UPGRADE":
                 Buildings?.HandleArmyUpgrade(parts);
@@ -673,6 +674,7 @@ public partial class Main : Node3D
             case "MINION_XP_RULE":
             case "MINION_ADD_COST":
             case "MINION_OPTION":
+            case "MINION_UPGRADE":
             case "MINION_LANE":
             case "MINION_WAVE":
                 if (LocalRole == PlayerRole.Commander) Minions?.HandleMessage(parts);
@@ -680,6 +682,9 @@ public partial class Main : Node3D
             case "MINION_HEAL":
             case "MEDIC_HEAL":
                 Units.HandleMinionHeal(parts);
+                break;
+            case "MINION_ARC":
+                Units.HandleMinionArc(parts);
                 break;
             case "DEATH":
                 if (DeathSnapshot.TryParse(parts, out var death)) Units.HandleDeath(death);
@@ -779,6 +784,7 @@ public partial class Main : Node3D
             Minions.Clear();
             Minions.ConfigureLanes(Map?.LaneNames ?? Array.Empty<string>());
             Minions.SetRole(role == PlayerRole.Commander);
+            if (Buildings != null) Minions.SetTeamTier(Buildings.TeamTier(team).Tier);
         }
         if (Stock != null) Stock.Visible = role == PlayerRole.Commander;
         _battleGuide?.SetRole(role, team);

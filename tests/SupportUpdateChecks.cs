@@ -75,7 +75,7 @@ public partial class SupportUpdateChecks : Main
             Check(laneLabel.Size.X>=80 && laneLabel.GetLineCount()==3 &&
                 Minions.GetGlobalRect().Encloses(laneLabel.GetGlobalRect()),"Lane experience label fits inside HUD");
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Slot0").EmitSignal(BaseButton.SignalName.Pressed);
-            Check(Minions.GetNode<Button>("Picker/Content/Options/Option102").Disabled,"Replacement still requires wood even with 마석");
+            Check(!Minions.IsPickerOpen,"Slots never change type, so 마석 cannot buy a replacement either");
             Receive("STOCK 3 99");
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").EmitSignal(BaseButton.SignalName.Pressed);
             Check(!Minions.CanAffordAdd && Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").Disabled,

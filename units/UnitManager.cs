@@ -16,6 +16,9 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene MinionHealerScene;
+    [Export] public PackedScene MinionFurnaceScene;
+    [Export] public PackedScene MinionWardenScene;
+    [Export] public PackedScene MinionArcScene;
     [Export] public PackedScene HeroTestScene;
     [Export] public PackedScene HeroGolemScene;
     [Export] public PackedScene HeroMarshalScene;
@@ -57,6 +60,9 @@ public partial class UnitManager : Node3D
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
+        UnitCatalog.MinionFurnace => MinionFurnaceScene ??= GD.Load<PackedScene>("res://units/MinionFurnace.tscn"),
+        UnitCatalog.MinionWarden => MinionWardenScene ??= GD.Load<PackedScene>("res://units/MinionWarden.tscn"),
+        UnitCatalog.MinionArc => MinionArcScene ??= GD.Load<PackedScene>("res://units/MinionArc.tscn"),
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
         UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
         UnitCatalog.HeroMarshal => HeroMarshalScene ??= GD.Load<PackedScene>("res://units/HeroMarshal.tscn"),
@@ -546,6 +552,23 @@ public partial class UnitManager : Node3D
         };
         AddChild(pulse);
         pulse.GlobalPosition = new Vector3(x, .08f, z);
+    }
+
+    // MINION_ARC sourceId fromX fromZ toX toZ: one bounce of an arc minion's attack, sent to
+    // teams that know the enemy it jumped to. The source may be out of sight.
+    public void HandleMinionArc(string[] parts)
+    {
+        if (parts.Length != 6 || parts[0] != "MINION_ARC" ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
+            !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float fromX) || !float.IsFinite(fromX) ||
+            !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float fromZ) || !float.IsFinite(fromZ) ||
+            !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float toX) || !float.IsFinite(toX) ||
+            !float.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out float toZ) || !float.IsFinite(toZ)) return;
+        Vector3 from = new(fromX, 0, fromZ), to = new(toX, 0, toZ);
+        // The chain starts when the arrow lands (ArrowFlight takes distance / 32 seconds).
+        float delay = _units.TryGetValue(id, out Unit source) ? Mathf.Clamp(source.GlobalPosition.DistanceTo(from) / 32, .10f, .30f) : 0;
+        AddChild(new MinionArcBolt { Name = $"MinionArc_{id}_{GetChildCount()}", From = from, To = to, Delay = delay,
+            VisibilityCheck = EffectVisibilityCheck });
     }
 
     public void HandlePosition(string[] parts)

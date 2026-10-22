@@ -1,0 +1,259 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+
+[sub_resource type="StandardMaterial3D" id="Plate"]
+albedo_color = Color(0.5, 0.56, 0.62, 1)
+metallic = 0.7
+roughness = 0.32
+
+[sub_resource type="StandardMaterial3D" id="Dark"]
+albedo_color = Color(0.085, 0.11, 0.15, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Cloth"]
+resource_name = "team_cloth"
+albedo_color = Color(0.16, 0.29, 0.52, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Gold"]
+albedo_color = Color(0.86, 0.62, 0.24, 1)
+metallic = 0.8
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="Glass"]
+albedo_color = Color(0.45, 0.95, 0.88, 1)
+emission_enabled = true
+emission = Color(0.3, 0.95, 0.85, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="BoxMesh" id="Body"]
+material = SubResource("Plate")
+size = Vector3(0.8, 0.74, 0.48)
+
+[sub_resource type="BoxMesh" id="Tabard"]
+material = SubResource("Cloth")
+size = Vector3(0.38, 0.8, 0.06)
+
+[sub_resource type="BoxMesh" id="Pauldron"]
+material = SubResource("Gold")
+size = Vector3(0.34, 0.16, 0.42)
+
+[sub_resource type="BoxMesh" id="Gorget"]
+material = SubResource("Plate")
+size = Vector3(0.5, 0.14, 0.4)
+
+[sub_resource type="CylinderMesh" id="Helmet"]
+material = SubResource("Plate")
+top_radius = 0.24
+bottom_radius = 0.28
+height = 0.5
+radial_segments = 12
+
+[sub_resource type="BoxMesh" id="VisorBar"]
+material = SubResource("Dark")
+size = Vector3(0.4, 0.07, 0.06)
+
+[sub_resource type="BoxMesh" id="VisorSlit"]
+material = SubResource("Dark")
+size = Vector3(0.07, 0.26, 0.06)
+
+[sub_resource type="BoxMesh" id="Crest"]
+material = SubResource("Cloth")
+size = Vector3(0.08, 0.22, 0.46)
+
+[sub_resource type="BoxMesh" id="Leg"]
+material = SubResource("Dark")
+size = Vector3(0.25, 0.6, 0.33)
+
+[sub_resource type="BoxMesh" id="Greave"]
+material = SubResource("Plate")
+size = Vector3(0.27, 0.26, 0.12)
+
+[sub_resource type="BoxMesh" id="Arm"]
+material = SubResource("Plate")
+size = Vector3(0.24, 0.58, 0.3)
+
+[sub_resource type="BoxMesh" id="Shield"]
+material = SubResource("Cloth")
+size = Vector3(0.66, 1.18, 0.14)
+
+[sub_resource type="BoxMesh" id="RimSide"]
+material = SubResource("Gold")
+size = Vector3(0.07, 1.22, 0.17)
+
+[sub_resource type="BoxMesh" id="RimEnd"]
+material = SubResource("Gold")
+size = Vector3(0.72, 0.07, 0.17)
+
+[sub_resource type="SphereMesh" id="Rivet"]
+material = SubResource("Gold")
+radius = 0.035
+height = 0.07
+radial_segments = 6
+rings = 3
+
+[sub_resource type="CylinderMesh" id="LanternCage"]
+material = SubResource("Gold")
+top_radius = 0.13
+bottom_radius = 0.13
+height = 0.07
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="LanternGlass"]
+material = SubResource("Glass")
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.22
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="LanternBar"]
+material = SubResource("Gold")
+size = Vector3(0.025, 0.26, 0.025)
+
+[sub_resource type="BoxMesh" id="Chain"]
+material = SubResource("Plate")
+size = Vector3(0.05, 0.05, 0.5)
+
+[sub_resource type="BoxMesh" id="Blade"]
+material = SubResource("Plate")
+size = Vector3(0.1, 0.78, 0.07)
+
+[sub_resource type="BoxMesh" id="Guard"]
+material = SubResource("Gold")
+size = Vector3(0.3, 0.07, 0.1)
+
+[node name="MinionWarden" instance=ExtResource("1_base")]
+UnitType = 104
+BodyRadius = 0.5
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.05, 0)
+mesh = SubResource("Body")
+
+[node name="Tabard" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.96, -0.27)
+mesh = SubResource("Tabard")
+
+[node name="Gorget" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.47, 0)
+mesh = SubResource("Gorget")
+
+[node name="LeftPauldron" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.5, 1.38, 0)
+rotation = Vector3(0, 0, 0.25)
+mesh = SubResource("Pauldron")
+
+[node name="RightPauldron" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.5, 1.38, 0)
+rotation = Vector3(0, 0, -0.25)
+mesh = SubResource("Pauldron")
+
+[node name="Helmet" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.78, 0)
+mesh = SubResource("Helmet")
+
+[node name="VisorBar" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.82, -0.26)
+mesh = SubResource("VisorBar")
+
+[node name="VisorSlit" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.74, -0.26)
+mesh = SubResource("VisorSlit")
+
+[node name="Crest" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 2.12, 0.02)
+mesh = SubResource("Crest")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.2, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="LeftGreave" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.2, 0.36, -0.17)
+mesh = SubResource("Greave")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.2, 0.3, 0)
+mesh = SubResource("Leg")
+
+[node name="RightGreave" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.2, 0.36, -0.17)
+mesh = SubResource("Greave")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.52, 1.03, 0)
+mesh = SubResource("Arm")
+
+[node name="RightArm" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.52, 1.03, 0)
+mesh = SubResource("Arm")
+
+[node name="Shield" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.6, 1.0, -0.34)
+mesh = SubResource("Shield")
+
+[node name="ShieldRimLeft" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.93, 1.0, -0.34)
+mesh = SubResource("RimSide")
+
+[node name="ShieldRimRight" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.27, 1.0, -0.34)
+mesh = SubResource("RimSide")
+
+[node name="ShieldRimTop" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.6, 1.6, -0.34)
+mesh = SubResource("RimEnd")
+
+[node name="ShieldRimBottom" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.6, 0.4, -0.34)
+mesh = SubResource("RimEnd")
+
+[node name="RivetA" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.82, 1.45, -0.42)
+mesh = SubResource("Rivet")
+
+[node name="RivetB" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.38, 1.45, -0.42)
+mesh = SubResource("Rivet")
+
+[node name="RivetC" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.82, 0.55, -0.42)
+mesh = SubResource("Rivet")
+
+[node name="RivetD" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.38, 0.55, -0.42)
+mesh = SubResource("Rivet")
+
+[node name="LanternTop" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.6, 1.17, -0.47)
+mesh = SubResource("LanternCage")
+
+[node name="LanternGlass" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.6, 1.02, -0.47)
+mesh = SubResource("LanternGlass")
+
+[node name="LanternBarA" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.69, 1.02, -0.52)
+mesh = SubResource("LanternBar")
+
+[node name="LanternBarB" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.51, 1.02, -0.52)
+mesh = SubResource("LanternBar")
+
+[node name="LanternBottom" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.6, 0.88, -0.47)
+mesh = SubResource("LanternCage")
+
+[node name="OathChain" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.42, 1.24, -0.12)
+rotation = Vector3(0.4, -0.6, 0)
+mesh = SubResource("Chain")
+
+[node name="Sword" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.62, 1.32, -0.22)
+mesh = SubResource("Blade")
+
+[node name="SwordGuard" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.62, 0.92, -0.22)
+mesh = SubResource("Guard")

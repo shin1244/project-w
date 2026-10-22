@@ -282,6 +282,9 @@ public partial class CommandPanel : PanelContainer
         UnitCatalog.MinionMelee => "근접",
         UnitCatalog.MinionRanged => "원거리",
         UnitCatalog.MinionHealer => "치유",
+        UnitCatalog.MinionFurnace => "화로",
+        UnitCatalog.MinionWarden => "호위",
+        UnitCatalog.MinionArc => "전격",
         _ => UnitCatalog.Name(type)
     };
 

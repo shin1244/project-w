@@ -33,6 +33,28 @@ public static class UnitBreakupEffect
             new[] { "Helmet", "Visor" }, new[] { "LeftArm", "Shield", "ShieldStripe" }, new[] { "RightArm", "Sword", "SwordGuard" },
             new[] { "LeftLeg" }, new[] { "RightLeg" }, new[] { "Body", "Tabard" }
         }),
+        [UnitCatalog.MinionFurnace] = new(false, 5, new[]
+        {
+            new[] { "Helmet", "Mask", "MaskSlit" }, new[] { "LeftArm", "LeftGauntlet", "HeatPlate", "HeatPlateRim" },
+            new[] { "RightArm", "RightGauntlet", "Poker", "PokerHead" }, new[] { "LeftLeg" }, new[] { "RightLeg" },
+            new[] { "Stove", "StoveBandTop", "StoveBandBottom", "Grate", "GrateBarA", "GrateBarB", "GrateBarC", "Chimney", "ChimneyCap", "FeedPipe" },
+            new[] { "Body", "Apron", "Sash" }
+        }),
+        [UnitCatalog.MinionWarden] = new(false, 5, new[]
+        {
+            new[] { "Helmet", "VisorBar", "VisorSlit", "Crest" },
+            new[] { "LeftArm", "LeftPauldron", "Shield", "ShieldRimLeft", "ShieldRimRight", "ShieldRimTop", "ShieldRimBottom",
+                "RivetA", "RivetB", "RivetC", "RivetD", "LanternTop", "LanternGlass", "LanternBarA", "LanternBarB", "LanternBottom", "OathChain" },
+            new[] { "RightArm", "RightPauldron", "Sword", "SwordGuard" }, new[] { "LeftLeg", "LeftGreave" }, new[] { "RightLeg", "RightGreave" },
+            new[] { "Body", "Tabard", "Gorget" }
+        }),
+        [UnitCatalog.MinionArc] = new(false, 5, new[]
+        {
+            new[] { "Hood", "Face", "GoggleStrap", "GoggleLeft", "GoggleRight" }, new[] { "LeftArm" }, new[] { "RightArm" },
+            new[] { "LeftLeg" }, new[] { "RightLeg" },
+            new[] { "Battery", "BatteryBandTop", "BatteryBandBottom", "CellLeft", "CellRight", "CellCapLeft", "CellCapRight", "Cable", "Rod", "RodTip", "Sparks" },
+            new[] { "Tunic" }
+        }),
         [UnitCatalog.MinionRanged] = new(false, 5, new[]
         {
             new[] { "Hood", "Face" }, new[] { "LeftArm" }, new[] { "RightArm" }, new[] { "LeftLeg" }, new[] { "RightLeg" },
