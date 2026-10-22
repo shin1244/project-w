@@ -8,7 +8,8 @@ const COLORS := {
 	"steel": Color("8f979c"), "brass": Color("a88349"), "gold": Color("d9ae45"),
 	"copper": Color("b0673e"), "dark": Color("161b1f"), "soot": Color("2a2622"),
 	"stone": Color("75827c"), "edge": Color("a9b2a4"), "gauge": Color("e8dfc4"),
-	"rune": Color("72f3d6"), "ember": Color("ff8a3d"), "team": Color.WHITE
+	"rune": Color("72f3d6"), "ember": Color("ff8a3d"), "team": Color.WHITE,
+	"glass": Color(1, .95, .82, .28), "lamp": Color("ffe6a8")
 }
 const METAL := ["iron", "plate", "burnt", "steel", "brass", "gold", "copper"]
 var materials: Dictionary = {}
@@ -18,7 +19,7 @@ var part: Node3D
 var origin := Vector3.ZERO
 
 func _initialize() -> void:
-	for category in ["stone", "metal", "rune", "ember", "team"]:
+	for category in ["stone", "metal", "rune", "ember", "team", "glass", "lamp"]:
 		var mat := StandardMaterial3D.new()
 		mat.resource_name = "team_cloth" if category == "team" else "golem_" + category
 		mat.vertex_color_use_as_albedo = true
@@ -29,10 +30,18 @@ func _initialize() -> void:
 			# Weapon finish: polished enough for highlights, still lit by the flat ambient.
 			mat.metallic = .3 if category == "metal" else .2
 			mat.roughness = .38 if category == "metal" else .5
-		if category in ["rune", "ember"]:
+		if category in ["rune", "ember", "lamp"]:
 			mat.emission_enabled = true
-			mat.emission = Color("4bcbb4") if category == "rune" else Color("e8742d")
-			mat.emission_energy_multiplier = .65 if category == "rune" else .8
+			mat.emission = {"rune": Color("4bcbb4"), "ember": Color("e8742d"), "lamp": Color("ffd37a")}[category]
+			mat.emission_energy_multiplier = {"rune": .65, "ember": .8, "lamp": 1.6}[category]
+		if category == "glass":
+			# Lit panes glow faintly so the lamp still reads from the high game camera.
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.roughness = .08
+			mat.metallic_specular = .9
+			mat.emission_enabled = true
+			mat.emission = Color("ffd37a")
+			mat.emission_energy_multiplier = .6
 		materials[category] = mat
 	rig = Node3D.new()
 	rig.name = "Rig"
@@ -126,20 +135,28 @@ func build_boiler() -> void:
 func build_head(body: Node3D) -> void:
 	begin_part("Head", Vector3(0, 2.19, -.03), body)
 	tube("burnt", Vector3(0, 2.04, -.02), Vector3(0, 2.24, -.05), .16, .15, 8)
-	# Riveted bucket helm with a single rune slit, like a furnace door.
-	hull("iron", Vector3(0, 2.37, -.09), Vector2(.22, .22), Vector2(.27, .27), .36)
-	rock("iron", Vector3(0, 2.55, -.09), Vector3(.22, .07, .22), 8, 2)
-	box("brass", Vector3(0, 2.60, -.09), Vector3(.06, .07, .46))
-	box("dark", Vector3(0, 2.38, -.335), Vector3(.36, .09, .05))
-	box("rune", Vector3(0, 2.38, -.355), Vector3(.28, .035, .02))
-	for y in [2.44, 2.32]:
-		box("brass", Vector3(0, y, -.34), Vector3(.42, .03, .04))
-	for x in [-.08, 0.0, .08]:
-		box("steel", Vector3(x, 2.245, -.345), Vector3(.035, .09, .03))
-	for side in [-1.0, 1.0]:
-		tube("brass", Vector3(side * .25, 2.38, -.09), Vector3(side * .31, 2.38, -.09), .075, .07, 8)
-		for i in range(3):
-			rivet(Vector3(side * .20, 2.24 + i * .1, -.335))
+	# The head is a gas lamp: flared glass panes in an iron cage, a glowing mantle over a
+	# brass burner with a reflector behind it. The vent cap stays small so the lit glass
+	# still shows from the high game camera.
+	var c := Vector3(0, 2.47, -.06)
+	hull("brass", Vector3(0, 2.25, -.06), Vector2(.20, .20), Vector2(.23, .23), .08)
+	hull("iron", Vector3(0, 2.305, -.06), Vector2(.21, .21), Vector2(.21, .21), .03)
+	tube("brass", Vector3(0, 2.32, -.06), Vector3(0, 2.37, -.06), .055, .04, 6)
+	rock("lamp", c, Vector3(.1, .14, .1), 6, 3)
+	tube("brass", c + Vector3(0, 0, .13), c + Vector3(0, 0, .15), .12, .12, 8)
+	hull("glass", c, Vector2(.27, .27), Vector2(.20, .20), .32)
+	var outline := [Vector2(-.7, -1), Vector2(.7, -1), Vector2(1, -.65), Vector2(1, .65),
+		Vector2(.7, 1), Vector2(-.7, 1), Vector2(-1, .65), Vector2(-1, -.65)]
+	for p: Vector2 in outline:
+		tube("iron", c + Vector3(p.x * .20, -.16, p.y * .20), c + Vector3(p.x * .27, .16, p.y * .27), .017, .017, 4)
+	hull("brass", c, Vector2(.24, .24), Vector2(.24, .24), .02)
+	hull("brass", c + Vector3(0, .175, 0), Vector2(.29, .29), Vector2(.29, .29), .03)
+	for p: Vector2 in outline:
+		tube("iron", c + Vector3(p.x * .27, .16, p.y * .27), c + Vector3(0, .26, 0), .014, .014, 4)
+	hull("iron", c + Vector3(0, .23, 0), Vector2(.06, .06), Vector2(.15, .15), .1)
+	tube("iron", c + Vector3(0, .27, 0), c + Vector3(0, .32, 0), .045, .045, 6)
+	hull("iron", c + Vector3(0, .335, 0), Vector2(.03, .03), Vector2(.09, .09), .035)
+	rock("gold", c + Vector3(0, .38, 0), Vector3(.022, .035, .022), 4, 2)
 	finish_part()
 
 func build_arm(body: Node3D, side: float) -> void:
@@ -219,7 +236,7 @@ func finish_part() -> void:
 func tri(key: String, a: Vector3, b: Vector3, c: Vector3) -> void:
 	var normal := (b-a).cross(c-a)
 	if normal.length_squared() < .00000001: return
-	var category: String = key if key in ["rune", "ember", "team"] else "metal" if key in METAL else "stone"
+	var category: String = key if key in ["rune", "ember", "team", "glass", "lamp"] else "metal" if key in METAL else "stone"
 	if not surfaces.has(category):
 		var surface := SurfaceTool.new()
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)

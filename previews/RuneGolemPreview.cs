@@ -21,9 +21,9 @@ public partial class RuneGolemPreview : Control
         AddChild(_layout);
         Text("BURN QUARTER   /   HERO 02", new Vector2(26, 18), 650, 17, "92a8b2");
         Text("룬 골렘", new Vector2(24, 48), 950, 40, "e9e3d1");
-        Text("리벳 철판 · 결정 노심 · 보일러와 굴뚝 · 철띠 두른 룬석 주먹", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
-        AddView(new Rect2(24, 125, 1050, 735), new Vector3(5.8f, 3.5f, -6.2f), 3.9f);
-        AddView(new Rect2(1090, 125, 486, 345), new Vector3(7, 2.5f, .15f), 3.6f);
+        Text("가스등 머리 · 리벳 철판 · 결정 노심 · 보일러와 굴뚝", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
+        AddView(new Rect2(24, 125, 1050, 735), new Vector3(5.8f, 3.5f, -6.2f), 4.2f);
+        AddView(new Rect2(1090, 125, 486, 345), new Vector3(7, 2.5f, .15f), 4.0f);
         AddView(new Rect2(1090, 515, 486, 345), new Vector3(5, 8, -7), 4.3f);
         Text("Q 내려찍기   ·   W 돌갑옷   ·   E 바위 돌진   ·   R 룬 각성", new Vector2(38, 881), 1000, 23, "cbbda5");
         Text("측면", new Vector2(1104, 96), 458, 18, "a7b9be");
@@ -89,7 +89,7 @@ public partial class RuneGolemPreview : Control
         var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = cameraSize,
             Position = cameraPosition, Current = true };
         viewport.AddChild(camera);
-        camera.LookAt(new Vector3(0, 1.35f, 0));
+        camera.LookAt(new Vector3(0, 1.5f, 0));
         _views.Add(new View(unit, camera, cameraPosition));
     }
 
