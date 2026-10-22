@@ -21,7 +21,7 @@ public partial class RuneGolemPreview : Control
         AddChild(_layout);
         Text("BURN QUARTER   /   HERO 02", new Vector2(26, 18), 650, 17, "92a8b2");
         Text("룬 골렘", new Vector2(24, 48), 950, 40, "e9e3d1");
-        Text("돌가죽 · 룬 심장 · 거대한 돌주먹", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
+        Text("리벳 철판 · 결정 노심 · 보일러와 굴뚝 · 철띠 두른 룬석 주먹", new Vector2(1000, 61), 576, 20, "b9a184", HorizontalAlignment.Right);
         AddView(new Rect2(24, 125, 1050, 735), new Vector3(5.8f, 3.5f, -6.2f), 3.9f);
         AddView(new Rect2(1090, 125, 486, 345), new Vector3(7, 2.5f, .15f), 3.6f);
         AddView(new Rect2(1090, 515, 486, 345), new Vector3(5, 8, -7), 4.3f);
