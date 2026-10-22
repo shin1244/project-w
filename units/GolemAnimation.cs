@@ -15,7 +15,8 @@ public partial class GolemAnimation : Node3D, ISkillPresentation
     private readonly MeshInstance3D[] _dust = new MeshInstance3D[4];
     private readonly MeshInstance3D[] _shieldPlates = new MeshInstance3D[6];
     private readonly MeshInstance3D[] _runeMarks = new MeshInstance3D[6];
-    private StandardMaterial3D _ringMaterial, _shieldMaterial, _runeMaterial, _stoneMaterial, _dustMaterial, _plateMaterial;
+    private readonly MeshInstance3D[] _smoke = new MeshInstance3D[6];
+    private StandardMaterial3D _ringMaterial, _shieldMaterial, _runeMaterial, _stoneMaterial, _dustMaterial, _plateMaterial, _smokeMaterial;
 
     public override void _Ready()
     {
@@ -76,6 +77,14 @@ public partial class GolemAnimation : Node3D, ISkillPresentation
             _dust[i] = EffectMesh("Dust" + i, dustMesh, _dustMaterial);
             _debrisRoot.AddChild(_dust[i]);
         }
+        // Murky smoke from the two chimneys shows the boiler on the back is running.
+        _smokeMaterial = new StandardMaterial3D { AlbedoColor = new Color("8a8580"), Roughness = 1 };
+        var smokeMesh = new SphereMesh { Radius = .5f, Height = 1, RadialSegments = 8, Rings = 4 };
+        for (int i = 0; i < _smoke.Length; i++) {
+            _smoke[i] = EffectMesh("ChimneySmoke" + i, smokeMesh, _smokeMaterial);
+            _smoke[i].TopLevel = true;
+            AddChild(_smoke[i]);
+        }
         _unit.StateChanged += OnStateChanged;
     }
 
@@ -96,6 +105,7 @@ public partial class GolemAnimation : Node3D, ISkillPresentation
             _ring.Hide(); _shield.Hide(); _rune.Hide(); _debrisRoot.Hide();
             foreach (var plate in _shieldPlates) plate.Hide();
             foreach (var mark in _runeMarks) mark.Hide();
+            foreach (var puff in _smoke) puff.Hide();
             SetProcess(false);
             return;
         }
@@ -171,6 +181,21 @@ public partial class GolemAnimation : Node3D, ISkillPresentation
             _ring.Visible = _pulse < 1;
         }
         UpdateDebris(dt);
+        UpdateSmoke();
+    }
+
+    private void UpdateSmoke()
+    {
+        for (int i = 0; i < _smoke.Length; i++) {
+            float side = i % 2 == 0 ? -1 : 1;
+            float age = Mathf.PosMod(_time * .45f + (float)i / _smoke.Length, 1);
+            // Chimney tops in Body space, matching tools/build_rune_golem.gd.
+            Vector3 top = _body.ToGlobal(new Vector3(side * .21f, 1.37f, .64f));
+            _smoke[i].GlobalPosition = top + new Vector3(age * .25f, age * 1.1f, age * .2f);
+            _smoke[i].Scale = Vector3.One * (.18f + age * .45f);
+            _smoke[i].Transparency = Mathf.Lerp(.35f, 1, age);
+            _smoke[i].Visible = true;
+        }
     }
 
     private static float Smooth(float value) { value = Mathf.Clamp(value, 0, 1); return value * value * (3 - 2 * value); }
@@ -244,5 +269,6 @@ public partial class GolemAnimation : Node3D, ISkillPresentation
         _stoneMaterial?.Dispose();
         _dustMaterial?.Dispose();
         _plateMaterial?.Dispose();
+        _smokeMaterial?.Dispose();
     }
 }

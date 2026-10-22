@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 // Shared geometry, articulated pivots, and team-marked cloth keep this native model inexpensive.
 // The rig is built before Unit._Ready so TeamMaterials discovers the banner and cuffs.
+// The pistol arm is a gilded brass prosthesis fed by a copper canister on the back.
 [Tool]
 public partial class MarshalRig : Node3D
 {
@@ -11,7 +12,10 @@ public partial class MarshalRig : Node3D
         NavyDark = Mat("172432"), Gold = Mat("c6a05e", .65f), GoldLight = Mat("efcf86", .55f),
         Steel = Mat("c9d4d7", .75f), SteelDark = Mat("38444b", .65f), Leather = Mat("322b29"),
         Skin = Mat("bd8c6c"), SkinLight = Mat("d5a783"), Hair = Mat("3f3935"),
-        Ivory = Mat("ebe1c4"), Team = Mat("7798b3", 0, "team_cloth"), Black = Mat("101820");
+        Ivory = Mat("ebe1c4"), Team = Mat("7798b3", 0, "team_cloth"), Black = Mat("101820"),
+        Brass = Mat("a88349", .6f), Copper = Mat("b0673e", .55f), Ash = Mat("7d7a74");
+    private static readonly StandardMaterial3D Lens = new() { AlbedoColor = new Color(.86f, .95f, 1, .35f),
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha, Roughness = .05f, MetallicSpecular = .9f };
 
     public override void _Ready()
     {
@@ -29,6 +33,8 @@ public partial class MarshalRig : Node3D
             Add(tail, "CoatTail", Slab("tail", new[] { new Vector2(-.21f, 0), new Vector2(.21f, 0),
                 new Vector2(.27f, -.78f), new Vector2(-.26f, -.68f) }, .12f, Navy), new Vector3(0, 0, .05f));
             Box(tail, "TailSeam", new Vector3(.034f, .69f, .015f), new Vector3(side * .2f, -.35f, -.017f), Gold);
+            // Ash only along the hem, where the coat drags through the streets.
+            Box(tail, "TailAsh", new Vector3(.52f, .07f, .125f), new Vector3(.005f, -.69f, .05f), Ash, new Vector3(0, 0, -.19f));
             Node3D leg = Pivot(this, suffix + "Leg", new Vector3(side * .235f, 1.14f, 0));
             Add(leg, "Trouser", Hull("trouser", .15f, .125f, .17f, .14f, .53f, NavyLight), new Vector3(0, -.22f, 0));
             Box(leg, "TrouserStripe", new Vector3(.035f, .48f, .045f), new Vector3(side * .151f, -.2f, -.075f), Gold);
@@ -36,18 +42,23 @@ public partial class MarshalRig : Node3D
             Add(leg, "BootCuff", Hull("bootcuff", .17f, .16f, .185f, .18f, .10f, SteelDark), new Vector3(0, -.485f, .012f));
             Add(leg, "BootToe", Hull("boottoe", .13f, .16f, .25f, .23f, .18f, Leather), new Vector3(0, -1.035f, -.08f));
             Box(leg, "BootSole", new Vector3(.33f, .055f, .51f), new Vector3(0, -1.112f, -.075f), NavyDark);
+            Box(leg, "BootAsh", new Vector3(.335f, .05f, .2f), new Vector3(0, -1.08f, -.24f), Ash);
             Box(leg, "BootBuckle", new Vector3(.065f, .09f, .036f), new Vector3(side * .12f, -.70f, -.156f), Gold);
 
             Node3D arm = Pivot(body, suffix + "Arm", new Vector3(side * .58f, .62f, 0));
-            Add(arm, "Sleeve", Hull("sleeve", .2f, .155f, .21f, .155f, .43f, Navy), new Vector3(side * .025f, -.17f, 0));
+            if (side > 0) Add(arm, "Sleeve", Hull("sleeve", .2f, .155f, .21f, .155f, .43f, Navy), new Vector3(side * .025f, -.17f, 0));
             Add(arm, "Epaulet", Hull("epaulet", .225f, .235f, .245f, .26f, .13f, Gold), new Vector3(0, .055f, 0));
             Add(arm, "ShoulderPlate", Hull("shoulderplate", .175f, .21f, .195f, .23f, .10f, GoldLight), new Vector3(0, .13f, 0));
             for (int j = 0; j < 5; j++)
                 Add(arm, "Fringe" + j, Rod("fringe", .022f, .022f, .17f, Gold), new Vector3(side * .22f, -.06f, (j - 2) * .085f));
-            Add(arm, "Forearm", Hull("forearm", .15f, .135f, .16f, .15f, .32f, NavyLight), new Vector3(0, -.48f, -.035f));
-            Add(arm, "Cuff", Hull("cuff", .16f, .16f, .175f, .175f, .13f, Team), new Vector3(0, -.62f, -.04f));
-            Add(arm, "CuffBraid", Hull("cuffbraid", .166f, .166f, .18f, .18f, .033f, Gold), new Vector3(0, -.685f, -.04f));
-            Add(arm, "Glove", Hull("glove", .125f, .13f, .14f, .135f, .20f, Leather), new Vector3(0, -.76f, -.04f));
+            if (side < 0) BuildProsthesis(arm);
+            else
+            {
+                Add(arm, "Forearm", Hull("forearm", .15f, .135f, .16f, .15f, .32f, NavyLight), new Vector3(0, -.48f, -.035f));
+                Add(arm, "Cuff", Hull("cuff", .16f, .16f, .175f, .175f, .13f, Team), new Vector3(0, -.62f, -.04f));
+                Add(arm, "CuffBraid", Hull("cuffbraid", .166f, .166f, .18f, .18f, .033f, Gold), new Vector3(0, -.685f, -.04f));
+                Add(arm, "Glove", Hull("glove", .125f, .13f, .14f, .135f, .20f, Leather), new Vector3(0, -.76f, -.04f));
+            }
 
             Box(body, suffix + "Lapel", new Vector3(.16f, .47f, .055f), new Vector3(side * .22f, .45f, -.29f), Gold,
                 new Vector3(0, 0, side * .36f));
@@ -58,6 +69,13 @@ public partial class MarshalRig : Node3D
         Box(body, "SashEdge", new Vector3(.025f, .82f, .02f), new Vector3(.096f, .35f, -.347f), Gold, new Vector3(0, 0, -.68f));
         Box(body, "MedalRibbon", new Vector3(.10f, .14f, .018f), new Vector3(-.32f, .44f, -.318f), Ivory);
         Add(body, "Medal", Ball("medal", .07f, GoldLight), new Vector3(-.32f, .345f, -.345f), scale: new Vector3(1, 1, .35f));
+        Box(body, "MedalRibbon2", new Vector3(.08f, .12f, .018f), new Vector3(-.20f, .45f, -.312f), Team);
+        Add(body, "Medal2", Ball("medal2", .055f, Gold), new Vector3(-.20f, .365f, -.335f), scale: new Vector3(1, 1, .35f));
+        // Gold aiguillette cords loop from the right epaulet to the chest buttons.
+        Cord(body, "Aiguillette", new[] { new Vector3(.47f, .70f, -.17f), new Vector3(.40f, .46f, -.31f), new Vector3(.18f, .40f, -.315f) });
+        Cord(body, "AiguilletteLow", new[] { new Vector3(.49f, .66f, -.13f), new Vector3(.42f, .34f, -.30f), new Vector3(.18f, .26f, -.31f) });
+        Box(body, "CollarBraid", new Vector3(.49f, .035f, .40f), new Vector3(0, .835f, 0), GoldLight);
+        BuildCanister(body);
         Add(body, "Neck", Rod("neck", .13f, .14f, .17f, Skin), new Vector3(0, .83f, 0));
         Box(body, "Collar", new Vector3(.47f, .16f, .38f), new Vector3(0, .76f, 0), NavyDark);
         Box(body, "Cravat", new Vector3(.12f, .21f, .035f), new Vector3(0, .73f, -.235f), Ivory);
@@ -76,6 +94,10 @@ public partial class MarshalRig : Node3D
             Box(head, "Moustache" + side, new Vector3(.112f, .046f, .046f), new Vector3(side * .066f, -.025f, -.248f), Hair, new Vector3(0, 0, side * -.16f));
         }
         Box(head, "Beard", new Vector3(.12f, .065f, .04f), new Vector3(0, -.105f, -.179f), Hair);
+        // Gold monocle over the right eye, chained to the ear.
+        Add(head, "Monocle", Rod("monocle", .062f, .062f, .022f, GoldLight), new Vector3(.103f, .105f, -.262f), new Vector3(Mathf.Pi / 2, 0, 0));
+        Add(head, "MonocleLens", Rod("monoclelens", .05f, .05f, .008f, Lens), new Vector3(.103f, .105f, -.276f), new Vector3(Mathf.Pi / 2, 0, 0));
+        Pipe(head, "MonocleChain", new Vector3(.155f, .07f, -.255f), new Vector3(.235f, -.04f, -.12f), .008f, Gold);
         Add(head, "Cap", Rod("cap", .29f, .265f, .26f, Navy), new Vector3(0, .41f, 0), scale: new Vector3(1.1f, 1, .92f));
         Add(head, "CapBand", Rod("capband", .283f, .277f, .077f, Gold), new Vector3(0, .295f, 0), scale: new Vector3(1.1f, 1, .94f));
         Add(head, "CapTop", Rod("captop", .315f, .31f, .065f, NavyLight), new Vector3(0, .556f, 0), scale: new Vector3(1.1f, 1, .92f));
@@ -116,6 +138,70 @@ public partial class MarshalRig : Node3D
         Box(pistol, "Hammer", new Vector3(.055f, .11f, .055f), new Vector3(.079f, .21f, .03f), Steel);
         Box(pistol, "TriggerGuard", new Vector3(.035f, .10f, .23f), new Vector3(.071f, -.015f, -.13f), Gold);
         Pivot(pistol, "Muzzle", new Vector3(0, .12f, -.71f));
+    }
+
+    private static void BuildProsthesis(Node3D arm)
+    {
+        // Whole brass arm under the epaulet: ball shoulder, open frames, pistons, geared elbow.
+        Add(arm, "ShoulderJoint", Ball("shoulderjoint", .135f, Brass), new Vector3(0, -.03f, 0));
+        Add(arm, "Armband", Hull("armband", .135f, .135f, .145f, .145f, .08f, Team), new Vector3(0, -.14f, 0));
+        foreach ((string part, float y, float length) in new[] { ("Upper", -.29f, .24f), ("Fore", -.63f, .2f) })
+        {
+            for (int side = -1; side <= 1; side += 2)
+                Add(arm, part + "Rail" + side, Rod(part + "rail", .034f, .034f, length, Brass), new Vector3(side * .085f, y, -.02f));
+            Add(arm, part + "Core", Rod(part + "core", .06f, .052f, length, SteelDark), new Vector3(0, y, -.02f));
+            Add(arm, part + "PistonSleeve", Rod("pistonsleeve", .04f, .04f, .1f, GoldLight), new Vector3(0, y + .05f, .07f));
+            Add(arm, part + "PistonRod", Rod("pistonrod", .02f, .02f, .12f, Steel), new Vector3(0, y - .06f, .065f));
+        }
+        Box(arm, "Vambrace", new Vector3(.035f, .2f, .17f), new Vector3(-.115f, -.63f, -.03f), GoldLight);
+        Box(arm, "Rerebrace", new Vector3(.035f, .17f, .15f), new Vector3(-.115f, -.29f, -.02f), Gold);
+        Add(arm, "ElbowGear", Rod("elbowgear", .105f, .105f, .07f, GoldLight), new Vector3(0, -.46f, -.02f), new Vector3(0, 0, Mathf.Pi / 2));
+        Add(arm, "ElbowAxle", Rod("elbowaxle", .04f, .04f, .2f, SteelDark), new Vector3(0, -.46f, -.02f), new Vector3(0, 0, Mathf.Pi / 2));
+        for (int i = 0; i < 8; i++)
+        {
+            float angle = Mathf.Tau * i / 8;
+            Box(arm, "GearTooth" + i, new Vector3(.072f, .04f, .04f),
+                new Vector3(0, -.46f + Mathf.Sin(angle) * .118f, -.02f + Mathf.Cos(angle) * .118f), Gold, new Vector3(angle, 0, 0));
+        }
+        Pipe(arm, "ArmHose", new Vector3(-.05f, .02f, .12f), new Vector3(-.06f, -.40f, .11f), .022f, Copper);
+        Add(arm, "WristRing", Rod("wristring", .085f, .085f, .05f, GoldLight), new Vector3(0, -.75f, -.04f));
+        // Brass palm and jointed steel fingers closed around the pistol grip.
+        Box(arm, "Palm", new Vector3(.14f, .11f, .15f), new Vector3(0, -.81f, -.04f), Brass);
+        for (int i = 0; i < 3; i++)
+        {
+            float x = (i - 1) * .045f;
+            Box(arm, "Finger" + i, new Vector3(.032f, .07f, .034f), new Vector3(x, -.875f, -.1f), Steel, new Vector3(.5f, 0, 0));
+            Box(arm, "FingerTip" + i, new Vector3(.03f, .05f, .032f), new Vector3(x, -.9f, -.05f), Brass, new Vector3(1.6f, 0, 0));
+        }
+        Box(arm, "Thumb", new Vector3(.032f, .08f, .034f), new Vector3(.08f, -.83f, -.09f), Steel, new Vector3(.3f, 0, -.4f));
+    }
+
+    private static void BuildCanister(Node3D body)
+    {
+        // Pressure canister on the back right; its hose crosses the shoulders to the prosthesis.
+        var at = new Vector3(.27f, .05f, .31f);
+        Add(body, "Canister", Rod("canister", .075f, .075f, .27f, Copper), at);
+        Add(body, "CanisterCap", Ball("canistercap", .075f, Brass), at + new Vector3(0, .135f, 0), scale: new Vector3(1, .5f, 1));
+        for (int i = 0; i < 2; i++)
+            Add(body, "CanisterBand" + i, Rod("canisterband", .081f, .081f, .025f, Gold), at + new Vector3(0, i * .18f - .09f, 0));
+        Add(body, "CanisterGauge", Rod("canistergauge", .045f, .045f, .02f, GoldLight), at + new Vector3(0, .02f, .08f), new Vector3(Mathf.Pi / 2, 0, 0));
+        Add(body, "GaugeFace", Rod("gaugeface", .036f, .036f, .006f, Ivory), at + new Vector3(0, .02f, .092f), new Vector3(Mathf.Pi / 2, 0, 0));
+        Box(body, "CanisterStrap", new Vector3(.2f, .04f, .03f), at + new Vector3(-.1f, 0, -.07f), Leather);
+        Vector3[] hose = { at + new Vector3(0, .16f, 0), new Vector3(.12f, .62f, .30f), new Vector3(-.30f, .66f, .24f), new Vector3(-.58f, .64f, .12f) };
+        for (int i = 0; i < hose.Length - 1; i++) Pipe(body, "Hose" + i, hose[i], hose[i + 1], .022f, Copper);
+    }
+
+    private static void Cord(Node3D parent, string name, Vector3[] points)
+    {
+        for (int i = 0; i < points.Length - 1; i++) Pipe(parent, name + i, points[i], points[i + 1], .016f, GoldLight);
+        Add(parent, name + "Tip", Ball("cordtip", .03f, Gold), points[^1]);
+    }
+
+    private static void Pipe(Node3D parent, string name, Vector3 from, Vector3 to, float radius, Material mat)
+    {
+        Vector3 along = to - from;
+        var node = Add(parent, name, Rod($"pipe:{radius}:{mat.GetInstanceId()}", radius, radius, 1, mat), (from + to) / 2);
+        node.Basis = new Basis(new Quaternion(Vector3.Up, along.Normalized())) * Basis.FromScale(new Vector3(1, along.Length(), 1));
     }
 
     private static void BuildBanner(Node3D body)
