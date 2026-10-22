@@ -267,13 +267,13 @@ public partial class CommandPanel : PanelContainer
         string reason = Units.ArmyUpgradeBlockReason(forge, attack);
         slot.Disabled = reason != null;
         slot.Text = research.Researching ? $"{name} {research.TargetLevel}단계\n{research.Remaining}초" :
-            level >= ArmyUpgradeSnapshot.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
-        string terms = research.NextWood > 0 ? $"나무 {research.NextWood:N0} · {research.NextSeconds}초\n" : "";
+            state.MaxLevel > 0 && level >= state.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
+        string terms = research.NextSeconds > 0 ? $"나무 {research.NextWood:N0} · 기름 {research.NextOil:N0} · {research.NextSeconds}초\n" : "";
         var minionGains = new List<string>();
         foreach (var step in Buildings.MinionUpgradeSteps)
             minionGains.Add($"{MinionShortName(step.UnitType)} +{(attack ? step.Attack : step.Hp):0.##}");
         string minions = minionGains.Count > 0 ? $"미니언 {name} 단계당 {string.Join(" · ", minionGains)}\n" : "";
-        slot.TooltipText = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{ArmyUpgradeSnapshot.MaxLevel}단계" +
+        slot.TooltipText = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{state.MaxLevel}단계" +
             (reason == null ? "" : "\n" + reason);
     }
 

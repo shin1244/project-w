@@ -440,38 +440,49 @@ public partial class CommandPanelChecks : Main
         SelectBuilding(206);
         Check(_slots[7].Text == "공격력 1단계\n(Q)" && _slots[8].Text == "체력 1단계\n(W)" && _slots[7].Disabled && _slots[8].Disabled,
             "A forge shows both researches, locked until the server sends terms");
-        Receive("ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 300 45");
+        Receive("ARMY_UPGRADE 1 0 0 15 5 0 0 0 0 300 120 45 0 0 0 0 300 120 45");
         foreach (string line in new[] { "MINION_UPGRADE_STEP 100 40 4", "MINION_UPGRADE_STEP 102 20 1.5",
                      "MINION_UPGRADE_STEP 1 99 99", "MINION_UPGRADE_STEP 101 -1 2", "MINION_UPGRADE_STEP 101 nan 2", "MINION_UPGRADE_STEP 101 30" })
             Receive(line);
         Receive("STOCK 0 299");
+        Receive("STOCK 2 120");
         int sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
         Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("나무 300") &&
-            _slots[7].TooltipText.Contains("+15%"), "Research cost and step come from the server and gate the button");
+            _slots[7].TooltipText.Contains("기름 120") && _slots[7].TooltipText.Contains("+15%") && _slots[7].TooltipText.Contains("0/5단계"),
+            "Research cost, step and maximum level come from the server and gate the button");
         Check(_slots[7].TooltipText.Contains("근접 +4 · 치유 +1.5") && _slots[8].TooltipText.Contains("근접 +40 · 치유 +20") &&
             !_slots[7].TooltipText.Contains("원거리") && !_slots[7].TooltipText.Contains("+99"),
             "Minion per-level gains come from valid MINION_UPGRADE_STEP lines only");
         Receive("STOCK 0 300");
+        Receive("STOCK 2 119");
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
+        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("기름 부족"), "Research needs its oil too");
+        Receive("STOCK 2 120");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_ARMY 206 ATTACK" && Buildings.ArmyUpgrade(1).AttackLevel == 0,
             "Q sends attack research for the selected forge without predicting the result");
-        Receive("ARMY_UPGRADE 1 0 0 15 206 1 30 45 300 45 0 0 0 0 300 45");
+        Receive("ARMY_UPGRADE 1 0 0 15 5 206 1 30 45 300 120 45 0 0 0 0 300 120 45");
         sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
         Check(_slots[7].Disabled && _slots[8].Disabled && _slots[7].Text == "공격력 1단계\n30초" && _commands.Count == sent,
             "A researching forge blocks a second research and shows server progress");
-        foreach (string invalid in new[] { "ARMY_UPGRADE 1 4 0 15 0 0 0 0 0 0 0 0 0 0 300 45", "ARMY_UPGRADE 1 0 0 15 206 2 30 45 300 45 0 0 0 0 300 45",
-                     "ARMY_UPGRADE 1 0 0 15 206 1 50 45 300 45 0 0 0 0 300 45", "ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 0 0", "ARMY_UPGRADE 1 0 0 15" })
+        foreach (string invalid in new[] { "ARMY_UPGRADE 1 6 0 15 5 0 0 0 0 0 0 0 0 0 0 0 300 120 45",
+                     "ARMY_UPGRADE 1 0 0 15 5 206 2 30 45 300 120 45 0 0 0 0 300 120 45",
+                     "ARMY_UPGRADE 1 0 0 15 5 206 1 50 45 300 120 45 0 0 0 0 300 120 45",
+                     "ARMY_UPGRADE 1 0 0 15 5 0 0 0 0 300 120 45 0 0 0 0 0 0 0", "ARMY_UPGRADE 1 0 0 15",
+                     "ARMY_UPGRADE 1 0 0 15 0 0 0 0 300 45 0 0 0 0 300 45" }) // The old format without oil or the maximum.
             Receive(invalid);
         Check(Buildings.ArmyUpgrade(1).Attack.Remaining == 30, "Malformed research snapshots preserve valid progress");
-        Receive("ARMY_UPGRADE 1 3 0 15 0 0 0 0 0 0 0 0 0 0 300 45");
+        Receive("ARMY_UPGRADE 1 4 0 15 5 0 0 0 0 350 350 70 0 0 0 0 300 120 45");
+        Check(_slots[7].Text == "공격력 5단계\n(Q)", "Levels past the old third come from the server's maximum");
+        Receive("ARMY_UPGRADE 1 5 0 15 5 0 0 0 0 0 0 0 0 0 0 0 300 120 45");
         Receive("STOCK 0 1000");
         Check(_slots[7].Disabled && _slots[7].Text == "공격력\n최고 단계" && !_slots[8].Disabled, "Max attack level leaves HP research available");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
         Check(_commands[^1] == "UPGRADE_ARMY 206 HP", "W sends HP research");
-        Receive("ARMY_UPGRADE 2 1 0 15 0 0 0 0 500 60 0 0 0 0 300 45");
-        Check(Buildings.ArmyUpgrade(2).AttackLevel == 1 && Buildings.ArmyUpgrade(1).AttackLevel == 3, "Enemy research is stored independently");
+        Receive("ARMY_UPGRADE 2 1 0 15 5 0 0 0 0 500 200 60 0 0 0 0 300 120 45");
+        Check(Buildings.ArmyUpgrade(2).AttackLevel == 1 && Buildings.ArmyUpgrade(1).AttackLevel == 5, "Enemy research is stored independently");
         Receive("REMOVE 206");
         Receive("STOCK 0 100");
     }

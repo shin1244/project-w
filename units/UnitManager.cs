@@ -169,11 +169,12 @@ public partial class UnitManager : Node3D
             forge.BuildingType != BuildingCatalog.Forge) return "아군 조병창을 선택하세요";
         if (forge.IsUnderConstruction) return "조병창 건설 중";
         var state = Buildings.ArmyUpgrade(forge.SideId);
+        if (state.MaxLevel == 0) return "연구 정보 수신 대기";
         if (state.Research(attack).Researching) return "연구 중";
-        if (state.Level(attack) >= ArmyUpgradeSnapshot.MaxLevel) return "최고 단계";
+        if (state.Level(attack) >= state.MaxLevel) return "최고 단계";
         if (state.ForgeBusy(forge.BuildingId)) return "이 조병창은 다른 연구 중";
-        int wood = state.Research(attack).NextWood;
-        return wood <= 0 ? "연구 정보 수신 대기" : Buildings.CommanderWood < wood ? "나무 부족" : null;
+        var next = state.Research(attack);
+        return Buildings.CommanderWood < next.NextWood ? "나무 부족" : Buildings.CommanderOil < next.NextOil ? "기름 부족" : null;
     }
 
     public void RequestUpgradeArmy(bool attack)
