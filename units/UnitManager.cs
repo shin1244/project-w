@@ -10,12 +10,14 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene WorkerScene;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
-    [Export] public PackedScene MedicScene;
     [Export] public PackedScene FlameAutomatonScene;
     [Export] public PackedScene SteamArtilleryScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene MinionHealerScene;
+    [Export] public PackedScene MinionFurnaceScene;
+    [Export] public PackedScene MinionWardenScene;
+    [Export] public PackedScene MinionArcScene;
     [Export] public PackedScene HeroTestScene;
     [Export] public PackedScene HeroGolemScene;
     [Export] public PackedScene HeroMarshalScene;
@@ -51,12 +53,14 @@ public partial class UnitManager : Node3D
         UnitCatalog.Worker => WorkerScene,
         UnitCatalog.Knight => KnightScene,
         UnitCatalog.Archer => ArcherScene,
-        UnitCatalog.Medic => MedicScene ??= GD.Load<PackedScene>("res://units/Medic.tscn"),
         UnitCatalog.FlameAutomaton => FlameAutomatonScene ??= GD.Load<PackedScene>("res://units/FlameAutomaton.tscn"),
         UnitCatalog.SteamArtillery => SteamArtilleryScene ??= GD.Load<PackedScene>("res://units/SteamArtillery.tscn"),
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
+        UnitCatalog.MinionFurnace => MinionFurnaceScene ??= GD.Load<PackedScene>("res://units/MinionFurnace.tscn"),
+        UnitCatalog.MinionWarden => MinionWardenScene ??= GD.Load<PackedScene>("res://units/MinionWarden.tscn"),
+        UnitCatalog.MinionArc => MinionArcScene ??= GD.Load<PackedScene>("res://units/MinionArc.tscn"),
         UnitCatalog.HeroTest => HeroTestScene ??= GD.Load<PackedScene>("res://units/HeroTest.tscn"),
         UnitCatalog.HeroGolem => HeroGolemScene ??= GD.Load<PackedScene>("res://units/HeroGolem.tscn"),
         UnitCatalog.HeroMarshal => HeroMarshalScene ??= GD.Load<PackedScene>("res://units/HeroMarshal.tscn"),
@@ -169,11 +173,12 @@ public partial class UnitManager : Node3D
             forge.BuildingType != BuildingCatalog.Forge) return "아군 조병창을 선택하세요";
         if (forge.IsUnderConstruction) return "조병창 건설 중";
         var state = Buildings.ArmyUpgrade(forge.SideId);
+        if (state.MaxLevel == 0) return "연구 정보 수신 대기";
         if (state.Research(attack).Researching) return "연구 중";
-        if (state.Level(attack) >= ArmyUpgradeSnapshot.MaxLevel) return "최고 단계";
+        if (state.Level(attack) >= state.MaxLevel) return "최고 단계";
         if (state.ForgeBusy(forge.BuildingId)) return "이 조병창은 다른 연구 중";
-        int wood = state.Research(attack).NextWood;
-        return wood <= 0 ? "연구 정보 수신 대기" : Buildings.CommanderWood < wood ? "나무 부족" : null;
+        var next = state.Research(attack);
+        return Buildings.CommanderWood < next.NextWood ? "나무 부족" : Buildings.CommanderOil < next.NextOil ? "기름 부족" : null;
     }
 
     public void RequestUpgradeArmy(bool attack)
@@ -530,14 +535,14 @@ public partial class UnitManager : Node3D
     // Only explicit server healing events create effects. Neither changes local HP.
     public void HandleMinionHeal(string[] parts)
     {
-        if (parts.Length != 5 || parts[0] is not ("MINION_HEAL" or "MEDIC_HEAL") ||
+        if (parts.Length != 5 || parts[0] != "MINION_HEAL" ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
             !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) ||
             !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) ||
             !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float radius) ||
             !float.IsFinite(x) || !float.IsFinite(z) || !float.IsFinite(radius) || radius <= 0 ||
             !_units.TryGetValue(id, out Unit source) ||
-            source.UnitType != (parts[0] == "MEDIC_HEAL" ? UnitCatalog.Medic : UnitCatalog.MinionHealer) ||
+            source.UnitType != UnitCatalog.MinionHealer ||
             !CanInspect(source) || HasNode($"MinionHeal_{id}")) return;
 
         var pulse = new MinionHealPulse {
@@ -546,6 +551,23 @@ public partial class UnitManager : Node3D
         };
         AddChild(pulse);
         pulse.GlobalPosition = new Vector3(x, .08f, z);
+    }
+
+    // MINION_ARC sourceId fromX fromZ toX toZ: one bounce of an arc minion's attack, sent to
+    // teams that know the enemy it jumped to. The source may be out of sight.
+    public void HandleMinionArc(string[] parts)
+    {
+        if (parts.Length != 6 || parts[0] != "MINION_ARC" ||
+            !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
+            !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float fromX) || !float.IsFinite(fromX) ||
+            !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float fromZ) || !float.IsFinite(fromZ) ||
+            !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float toX) || !float.IsFinite(toX) ||
+            !float.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out float toZ) || !float.IsFinite(toZ)) return;
+        Vector3 from = new(fromX, 0, fromZ), to = new(toX, 0, toZ);
+        // The chain starts when the arrow lands (ArrowFlight takes distance / 32 seconds).
+        float delay = _units.TryGetValue(id, out Unit source) ? Mathf.Clamp(source.GlobalPosition.DistanceTo(from) / 32, .10f, .30f) : 0;
+        AddChild(new MinionArcBolt { Name = $"MinionArc_{id}_{GetChildCount()}", From = from, To = to, Delay = delay,
+            VisibilityCheck = EffectVisibilityCheck });
     }
 
     public void HandlePosition(string[] parts)

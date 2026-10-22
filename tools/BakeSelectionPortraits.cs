@@ -49,7 +49,7 @@ public partial class BakeSelectionPortraits : Node
             {
                 foreach (string unit in new[] { "Worker", "Knight", "Archer" })
                     portraits.Add(unit.ToLowerInvariant() + "-enemy", GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: true));
-                foreach (string unit in new[] { "Knight", "Archer" })
+                foreach (string unit in new[] { "Knight", "Archer", "Furnace", "Warden", "Arc" })
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add($"minion-{unit.ToLowerInvariant()}{(enemy ? "-enemy" : "")}", GetPortrait(GD.Load<PackedScene>($"res://units/Minion{unit}.tscn"), enemy: enemy));
             }

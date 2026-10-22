@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://i5hw0eglppjv"
-path="res://.godot/imported/medic.svg-87156bd66b5f919d03020d428c715e5f.ctex"
+uid="uid://bl275ont2uh43"
+path="res://.godot/imported/minion-furnace.png-ecdc6cea6ffa35b0c27d611938a7aa84.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/icons/medic.svg"
-dest_files=["res://.godot/imported/medic.svg-87156bd66b5f919d03020d428c715e5f.ctex"]
+source_file="res://ui/portraits/minion-furnace.png"
+dest_files=["res://.godot/imported/minion-furnace.png-ecdc6cea6ffa35b0c27d611938a7aa84.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

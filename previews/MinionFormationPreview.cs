@@ -9,7 +9,7 @@ public partial class MinionFormationPreview : Main
 {
     private static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     private readonly uint[][] _lanes = {
-        new uint[] { 100, 100, 102, 101, 101, 101 },
+        new uint[] { 100, 103, 104, 102, 101, 101, 101 },
         new uint[] { 100, 100, 100, 101, 101, 101, 102 }
     };
     private readonly int[] _revisions = new int[2];
@@ -29,8 +29,12 @@ public partial class MinionFormationPreview : Main
             Receive("MINION_OPTION 100 0 60 460");
             Receive("MINION_OPTION 101 0 80 480");
             Receive("MINION_OPTION 102 0 140 540");
+            Receive("MINION_UPGRADE 103 100 2 3 1 0 200 2 200");
+            Receive("MINION_UPGRADE 104 100 2 5 9 0 200 2 200");
+            Receive("TEAM_TIER 1 2 0 0 0 0");
             for (int lane = 0; lane < _lanes.Length; lane++) SendLane(lane);
             Receive($"STOCK 0 {_wood}");
+            Receive("STOCK 2 600");
             Receive("SUPPLY 8 20");
             Receive("TICK 390");
             Receive("MINION_WAVE 900");
@@ -39,6 +43,8 @@ public partial class MinionFormationPreview : Main
             Receive("UNIT 101 1802 0 -48 4 1");
             Receive("UNIT 102 1803 0 -46 3 1");
             Receive("HP 1803 50 50");
+            Receive("UNIT 103 1804 0 -50 3 1");
+            Receive("UNIT 104 1805 0 -52 1 1");
             Receive("BUILDING 0 1900 1 -65 0 0");
             Units.Camera.Size = 38;
             CameraNavigation.FocusGround(Units.Camera, new Vector3(-50, 0, 0));
@@ -82,7 +88,7 @@ public partial class MinionFormationPreview : Main
             return;
         }
         uint type = uint.Parse(parts[^1]);
-        int price = type switch { 100 => 60, 101 => 80, _ => 140 };
+        int price = type switch { 100 => 60, 101 => 80, 103 or 104 => 200, _ => 140 };
         if (parts[0] == "MINION_ADD") price += 400;
         _wood -= price;
         if (parts[0] == "MINION_ADD") _lanes[lane] = _lanes[lane].Append(type).ToArray();

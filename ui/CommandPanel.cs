@@ -137,7 +137,6 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
                 (DisplayMode.Barracks, 7) => UnitCatalog.Name(UnitCatalog.Knight),
                 (DisplayMode.Barracks, 8) => UnitCatalog.Name(UnitCatalog.Archer),
-                (DisplayMode.Barracks, 9) => "치유사",
                 (DisplayMode.Workshop, 7) => "화염기계\n(Q)",
                 (DisplayMode.Workshop, 8) => "증기포격차\n(W)",
                 (DisplayMode.Forge, 7) => "공격력 연구\n(Q)",
@@ -232,15 +231,9 @@ public partial class CommandPanel : PanelContainer
         {
             _slots[1].Disabled = count >= ProductionSnapshot.MaxQueue;
             _slots[1].TooltipText = "나무 200 · 인구 2 · 생산 12초" + rallyHint;
-            _slots[2].Disabled = count >= ProductionSnapshot.MaxQueue;
-            _slots[2].TooltipText = "나무 200 · 인구 2 · 생산 15초\n" + UnitCatalog.Description(UnitCatalog.Medic) + rallyHint;
         }
         ApplyUnitRequirement(_slots[0], _display == DisplayMode.TownHall ? UnitCatalog.Worker : UnitCatalog.Knight);
-        if (_display == DisplayMode.Barracks)
-        {
-            ApplyUnitRequirement(_slots[1], UnitCatalog.Archer);
-            ApplyUnitRequirement(_slots[2], UnitCatalog.Medic);
-        }
+        if (_display == DisplayMode.Barracks) ApplyUnitRequirement(_slots[1], UnitCatalog.Archer);
     }
 
     private void RefreshWorkshopTraining(Button slot, Building producer, uint type, string rallyHint)
@@ -267,13 +260,13 @@ public partial class CommandPanel : PanelContainer
         string reason = Units.ArmyUpgradeBlockReason(forge, attack);
         slot.Disabled = reason != null;
         slot.Text = research.Researching ? $"{name} {research.TargetLevel}단계\n{research.Remaining}초" :
-            level >= ArmyUpgradeSnapshot.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
-        string terms = research.NextWood > 0 ? $"나무 {research.NextWood:N0} · {research.NextSeconds}초\n" : "";
+            state.MaxLevel > 0 && level >= state.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
+        string terms = research.NextSeconds > 0 ? $"나무 {research.NextWood:N0} · 기름 {research.NextOil:N0} · {research.NextSeconds}초\n" : "";
         var minionGains = new List<string>();
         foreach (var step in Buildings.MinionUpgradeSteps)
             minionGains.Add($"{MinionShortName(step.UnitType)} +{(attack ? step.Attack : step.Hp):0.##}");
         string minions = minionGains.Count > 0 ? $"미니언 {name} 단계당 {string.Join(" · ", minionGains)}\n" : "";
-        slot.TooltipText = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{ArmyUpgradeSnapshot.MaxLevel}단계" +
+        slot.TooltipText = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{state.MaxLevel}단계" +
             (reason == null ? "" : "\n" + reason);
     }
 
@@ -282,6 +275,9 @@ public partial class CommandPanel : PanelContainer
         UnitCatalog.MinionMelee => "근접",
         UnitCatalog.MinionRanged => "원거리",
         UnitCatalog.MinionHealer => "치유",
+        UnitCatalog.MinionFurnace => "화로",
+        UnitCatalog.MinionWarden => "호위",
+        UnitCatalog.MinionArc => "전격",
         _ => UnitCatalog.Name(type)
     };
 
@@ -343,8 +339,8 @@ public partial class CommandPanel : PanelContainer
         else if (_display == DisplayMode.TownHall && number == 1) Units.RequestUpgradeTownHall();
         else if (_display == DisplayMode.Forge && number is 7 or 8) Units.RequestUpgradeArmy(number == 7);
         else if (_display == DisplayMode.ResearchLab && number == 7) Units.RequestKnightResearch();
-        else if (_display == DisplayMode.Barracks && number is 7 or 8 or 9)
-            Units.RequestTrain(number == 7 ? UnitCatalog.Knight : number == 8 ? UnitCatalog.Archer : UnitCatalog.Medic);
+        else if (_display == DisplayMode.Barracks && number is 7 or 8)
+            Units.RequestTrain(number == 7 ? UnitCatalog.Knight : UnitCatalog.Archer);
         else if (_display == DisplayMode.Workshop && number is 7 or 8)
             Units.RequestTrain(number == 7 ? UnitCatalog.FlameAutomaton : UnitCatalog.SteamArtillery);
         else if (_display == DisplayMode.Workers && number == 1)

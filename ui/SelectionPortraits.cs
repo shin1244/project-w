@@ -18,12 +18,14 @@ public partial class SelectionPortraits : Node
             "res://units/HeroMarshal.tscn" => "marshal",
             "res://units/HeroRanger.tscn" => enemy ? "archer-enemy" : "archer", // Same model as the archer, scaled up.
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
-            "res://units/Medic.tscn" => enemy ? "medic-enemy" : "medic",
             "res://units/FlameAutomaton.tscn" => enemy ? "flame-automaton-enemy" : "flame-automaton",
             "res://units/SteamArtillery.tscn" => enemy ? "steam-artillery-enemy" : "steam-artillery",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
             "res://units/MinionArcher.tscn" => enemy ? "minion-archer-enemy" : "minion-archer",
             "res://units/MinionHealer.tscn" => enemy ? "minion-healer-enemy" : "minion-healer",
+            "res://units/MinionFurnace.tscn" => enemy ? "minion-furnace-enemy" : "minion-furnace",
+            "res://units/MinionWarden.tscn" => enemy ? "minion-warden-enemy" : "minion-warden",
+            "res://units/MinionArc.tscn" => enemy ? "minion-arc-enemy" : "minion-arc",
             "res://units/SiegeRam.tscn" => enemy ? "siege-ram-enemy" : "siege-ram",
             "res://buildings/TownHall.tscn" => enemy ? "townhall-enemy" : "townhall-ally",
             "res://buildings/Fortress.tscn" => enemy ? "fortress-enemy" : "fortress-ally",
@@ -40,7 +42,7 @@ public partial class SelectionPortraits : Node
         if (name == null) return null;
         if (!_cache.TryGetValue(name, out Texture2D texture))
         {
-            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy" or "marshal" or "marshal-enemy" or "medic" or "medic-enemy"
+            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy" or "marshal" or "marshal-enemy"
                 ? $"res://ui/icons/{name}.svg" : $"res://ui/portraits/{name}.png";
             texture = GD.Load<Texture2D>(path);
             _cache.Add(name, texture);
