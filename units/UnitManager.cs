@@ -10,7 +10,6 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene WorkerScene;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
-    [Export] public PackedScene MedicScene;
     [Export] public PackedScene FlameAutomatonScene;
     [Export] public PackedScene SteamArtilleryScene;
     [Export] public PackedScene MinionKnightScene;
@@ -54,7 +53,6 @@ public partial class UnitManager : Node3D
         UnitCatalog.Worker => WorkerScene,
         UnitCatalog.Knight => KnightScene,
         UnitCatalog.Archer => ArcherScene,
-        UnitCatalog.Medic => MedicScene ??= GD.Load<PackedScene>("res://units/Medic.tscn"),
         UnitCatalog.FlameAutomaton => FlameAutomatonScene ??= GD.Load<PackedScene>("res://units/FlameAutomaton.tscn"),
         UnitCatalog.SteamArtillery => SteamArtilleryScene ??= GD.Load<PackedScene>("res://units/SteamArtillery.tscn"),
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
@@ -537,14 +535,14 @@ public partial class UnitManager : Node3D
     // Only explicit server healing events create effects. Neither changes local HP.
     public void HandleMinionHeal(string[] parts)
     {
-        if (parts.Length != 5 || parts[0] is not ("MINION_HEAL" or "MEDIC_HEAL") ||
+        if (parts.Length != 5 || parts[0] != "MINION_HEAL" ||
             !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id == 0 ||
             !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) ||
             !float.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float z) ||
             !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float radius) ||
             !float.IsFinite(x) || !float.IsFinite(z) || !float.IsFinite(radius) || radius <= 0 ||
             !_units.TryGetValue(id, out Unit source) ||
-            source.UnitType != (parts[0] == "MEDIC_HEAL" ? UnitCatalog.Medic : UnitCatalog.MinionHealer) ||
+            source.UnitType != UnitCatalog.MinionHealer ||
             !CanInspect(source) || HasNode($"MinionHeal_{id}")) return;
 
         var pulse = new MinionHealPulse {

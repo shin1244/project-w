@@ -323,7 +323,7 @@ public partial class BattleStage : Main
             for (int i = 0; i < wave.Length; i++)
                 army.Add(Spawn(wave[i], team, at + forward * (wave[i] == 100 ? 2.5f : wave[i] == 102 ? 0.5f : -1f) + side * ((i % 3) - 1) * 2f + Jitter()));
         }
-        uint[] roster = { UnitCatalog.Knight, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Medic };
+        uint[] roster = { UnitCatalog.Knight, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Archer };
         for (int i = 0; i < mercs; i++)
             army.Add(Spawn(roster[i % roster.Length], team, at - forward * (1.5f + (i / 3) * 1.6f) + side * ((i % 3) - 1) * 2.2f + Jitter()));
         for (int i = 0; i < heroes.Length; i++)
@@ -354,7 +354,6 @@ public partial class BattleStage : Main
             102 => (420f, 5f, 3f, 1.1f, 6f, .5f),
             UnitCatalog.Knight => (1100f, 5.5f, 1f, 1.1f, 16f, .7f),
             UnitCatalog.Archer => (600f, 5.5f, 5.5f, 1.4f, 19f, .6f),
-            UnitCatalog.Medic => (600f, 6f, 5f, 1.5f, 5f, .55f),
             UnitCatalog.FlameAutomaton => (1800f, 4.5f, 3f, .8f, 14f, .9f),
             UnitCatalog.SteamArtillery => (2000f, 4f, 6f, 3f, 60f, 1.3f),
             UnitCatalog.Worker => (300f, 5f, 1f, 1f, 5f, .45f),

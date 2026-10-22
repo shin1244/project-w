@@ -680,7 +680,6 @@ public partial class Main : Node3D
                 if (LocalRole == PlayerRole.Commander) Minions?.HandleMessage(parts);
                 break;
             case "MINION_HEAL":
-            case "MEDIC_HEAL":
                 Units.HandleMinionHeal(parts);
                 break;
             case "MINION_ARC":

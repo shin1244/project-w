@@ -57,7 +57,7 @@ public static class SoundBank
         (_, not UnitActivity.Attack) => null,
         (UnitCatalog.Knight or UnitCatalog.MinionMelee or UnitCatalog.MinionFurnace or UnitCatalog.MinionWarden, _) => "sword",
         (UnitCatalog.Archer, _) => "rifle",
-        (UnitCatalog.Medic or UnitCatalog.MinionHealer or UnitCatalog.HeroMarshal, _) => "pistol",
+        (UnitCatalog.MinionHealer or UnitCatalog.HeroMarshal, _) => "pistol",
         (UnitCatalog.MinionRanged or UnitCatalog.MinionArc or UnitCatalog.HeroRanger, _) => "bow",
         (UnitCatalog.FlameAutomaton, _) => "flame",
         (UnitCatalog.HeroTest or UnitCatalog.JungleBoar, _) => "claw",

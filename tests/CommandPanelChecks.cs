@@ -704,7 +704,7 @@ public partial class CommandPanelChecks : Main
         Receive("HP 601 800 800");
         Receive("STATS 601 0 0 0 0 6");
         SelectBuilding(601);
-        Expect("A completed friendly barracks trains both soldiers", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, "치유사"));
+        Expect("A completed friendly barracks trains both soldiers and no medic", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"));
         Check(_slots[7].TooltipText.Contains("200") && _slots[8].TooltipText.Contains("인구 2"), "Both soldiers display their initial cost and supply");
         int unitCount = Units.LiveUnits.Count;
         string stock = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
@@ -727,7 +727,7 @@ public partial class CommandPanelChecks : Main
         var progress = details.FindChildren("ProductionProgress", "ProgressBar", true, false).OfType<ProgressBar>().Single();
         Check(progress.IsVisibleInTree() && progress.Value == 25 && !progress.ShowPercentage,
             "Server production fills a bar in the information panel without a percent button");
-        Expect("Command slots contain only production actions", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, "치유사"));
+        Expect("Command slots contain only production actions", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"));
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
         Check(queue.GetChildCount() == 5 && queue.GetChild(0).GetChild<TextureRect>(0).Texture != null &&
             queue.GetChild(1).GetChild<TextureRect>(0).Texture != null && queue.GetChild(2).GetChild<TextureRect>(0).Texture == null,
@@ -737,7 +737,7 @@ public partial class CommandPanelChecks : Main
         Check(details.GetGlobalRect().Encloses(queue.GetGlobalRect()), "Production queue fits inside the information panel");
         SelectBuilding(602);
         Check(!progress.IsVisibleInTree(), "Another empty producer hides the previous progress");
-        Expect("Another barracks starts with its own empty queue", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, "치유사"));
+        Expect("Another barracks starts with its own empty queue", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"));
         _slots[8].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "TRAIN 602 2", "Changing selection changes the producer ID");
         Receive("QUEUE 602 75 2");
@@ -759,7 +759,7 @@ public partial class CommandPanelChecks : Main
             "A completed unit with no exit keeps its full progress bar and waiting status");
         Receive("QUEUE 601 0");
         Check(!progress.IsVisibleInTree(), "Completing production hides the production area");
-        Expect("Completing all work clears progress and unlocks both buttons", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, "치유사"));
+        Expect("Completing all work clears progress and unlocks both buttons", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"));
 
         foreach (uint id in new uint[] { 603, 604 })
         {
@@ -774,7 +774,7 @@ public partial class CommandPanelChecks : Main
         Check(Buildings.SelectedBuilding.ProductionQueue.Count == 0, "Enemy production snapshots are ignored");
         SelectBuilding(603);
         Receive("CONSTRUCTION 603 100");
-        Expect("Finishing construction enables production immediately", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, "치유사"));
+        Expect("Finishing construction enables production immediately", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"));
         Receive("REMOVE 603");
         Expect("Destroying the selected barracks clears its commands and progress");
         count = _commands.Count;
@@ -794,7 +794,7 @@ public partial class CommandPanelChecks : Main
         SelectBuilding(601);
         Receive("QUEUE 601 40 9001:1:7 9002:2:7 9003:1:9");
         Building producer = Buildings.SelectedBuilding;
-        Expect("Owned active production shows cancel", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, "치유사"), (3, "생산 취소\n(Esc)"));
+        Expect("Owned active production shows cancel", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (3, "생산 취소\n(Esc)"));
         Check(_slots[3].TooltipText.Contains("75%"), "Cancellation explains the refund rate");
         var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
