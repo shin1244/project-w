@@ -4,7 +4,7 @@ public readonly record struct HeroSkillProgressSnapshot(uint HeroType, int Level
     bool UltimateLearned, int Q, int W, int E, int R, int Passive)
 {
     public int Rank(int slot) => slot switch { 0 => Q, 1 => W, 2 => E, 3 => R, 4 => Passive, _ => 0 };
-    public const int MaxHeroLevel = 12; // Server maxHeroLevel.
+    public const int MaxHeroLevel = 14; // Server maxHeroLevel.
 
     public static bool TryParse(string[] parts, out HeroSkillProgressSnapshot snapshot)
     {
