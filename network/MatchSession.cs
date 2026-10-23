@@ -21,7 +21,7 @@ public partial class MatchSession : Node
     public event Action Changed;
     // The demo's lobby (project-w-server/docs/deploy-gcp.md). Exported builds always use it;
     // editor runs may type and remember another address, and --lobby-url= overrides both.
-    public const string OfficialLobbyUrl = "http://34.50.13.50:8080";
+    public const string OfficialLobbyUrl = "https://burn-quarter.duckdns.org";
     public static bool AddressEditable => OS.IsDebugBuild();
     public string LobbyUrl { get; private set; } = OfficialLobbyUrl;
     public bool RememberAddress { get; set; } = true;
@@ -137,7 +137,7 @@ public partial class MatchSession : Node
         if (Connecting || Lobby != null) return;
         if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != "http" && uri.Scheme != "https") || uri.AbsolutePath != "/" || uri.Query != "" || uri.Fragment != "" || uri.UserInfo != "")
-        { SetNotice("서버 주소를 http://주소:8080 형식으로 입력해 주세요."); return; }
+        { SetNotice("서버 주소를 https://주소 또는 http://주소:8080 형식으로 입력해 주세요."); return; }
         name = name.Trim();
         if (name.Length is 0 or > NameMaxLength) { SetNotice($"이름은 1~{NameMaxLength}자로 정해 주세요."); return; }
         LobbyUrl = uri.GetLeftPart(UriPartial.Authority);
