@@ -5,6 +5,7 @@
 
 ## 2026-10-23
 
+- 공식 로비 주소를 `http://34.50.13.50:8080`에서 `https://burn-quarter.duckdns.org`로 바꿨습니다(사용자 요청, `MatchSession.OfficialLobbyUrl`). 서버 VM의 Caddy가 Let's Encrypt 인증서로 로비를 HTTPS로 넘깁니다(project-w-server `docs/deploy-gcp.md`의 HTTPS). 로그인·방 요청이 암호화되고, 경기 연결(TCP)은 그대로입니다. 이 주소로 저장된 세션이 없으므로 처음 한 번은 새로 입장합니다.
 - 티어마다 회복 유닛을 하나씩 더했습니다(사용자 요청, 서버와 같은 날 병합). 규칙은 서버(project-w-server `docs/world.md`의 돌팔이 의사와 급유 기계)가 정하고 클라이언트는 표시만 합니다.
   - 인력 사무소 9번 칸에 **돌팔이 의사**(타입 3), 공장 E(9번 칸)에 **급유 기계**(타입 6)를 더했습니다. 비용·인구·시간은 서버 `TRAIN_DEF`, 선행 건물은 `REQUIRES`를 따릅니다. 인력 사무소 버튼도 이제 하드코딩한 비용 대신 `TRAIN_DEF`를 보여 줍니다.
   - 새 모델: 높은 모자·이마 반사경·고글·마스크에 청록 약물 주사기를 든 돌팔이 의사, 호스 크레인과 굴뚝을 단 세 바퀴 급유 수레([미리보기](docs/images/healer-units-preview.png), [아트 디렉션](docs/art-direction.md)). 선택·대기열 아이콘을 더했습니다.
