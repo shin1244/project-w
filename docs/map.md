@@ -138,7 +138,7 @@ Godot --headless --path . --script tools/build_arena.gd
 
 지도 변경 후에는 클라이언트의 MapSyncChecks·MapZonesChecks·FogSyncChecks와 `check_arena`를 확인합니다. 서버에서는 맵 동기화·경로·건설 검사를 통해 네 유전 옆의 실제 브랜치 배치, 중앙 유전의 본진 방향 직선 차단과 중앙 도로 쪽 우회 통행, 유전 지면 건설 제한과 기존 라인·활동 구역 보존을 확인합니다. 실행기와 검증 범위는 [테스트 안내](../tests/README.md)를 참고하세요.
 
-서버 `TestArenaTownHallSideConstructionBays`는 본진 네 부지마다 실제 건설 명령으로 인력 사무소·조병창·공장을 완공하고, 일꾼이 HQ 입구로 돌아갈 경로를 확인합니다. 건물 면적·비용·공사 시간은 현재 서버 정의를 사용합니다.
+서버 `TestArenaTownHallSideConstructionBays`는 본진 네 부지마다 실제 건설 명령으로 인력 사무소·비허가 실험실·공장을 완공하고, 일꾼이 HQ 입구로 돌아갈 경로를 확인합니다. 건물 면적·비용·공사 시간은 현재 서버 정의를 사용합니다.
 
 클라이언트 검사는 모의 메시지와 로컬 지도 기반이며 실제 서버 대전 검사는 아닙니다. 실제 이동 경로와 브랜치 완공은 서버의 별도 검사로 확인합니다.
 

@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/RefuelerRig.cs" id="2_rig"]
+[ext_resource type="Script" path="res://units/RefuelerVisual.cs" id="3_visual"]
+[ext_resource type="Script" path="res://units/HealingBeam.cs" id="4_beam"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 0.7
+height = 1.9
+
+[node name="Refueler" instance=ExtResource("1_base")]
+UnitType = 6
+HealthBarHeight = 2.15
+BodyRadius = 0.5
+
+[node name="Rig" type="Node3D" parent="Visual"]
+script = ExtResource("2_rig")
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 0.95, 0)
+shape = SubResource("Selection")
+
+[node name="SelectionRing" parent="." index="2"]
+scale = Vector3(1.1, 1, 1.1)
+
+[node name="RefuelerVisual" type="Node3D" parent="."]
+script = ExtResource("3_visual")
+
+[node name="HealingBeam" type="Node3D" parent="."]
+script = ExtResource("4_beam")
+Oil = true

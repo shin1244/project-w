@@ -10,8 +10,10 @@ public partial class UnitManager : Node3D
     [Export] public PackedScene WorkerScene;
     [Export] public PackedScene KnightScene;
     [Export] public PackedScene ArcherScene;
+    [Export] public PackedScene MedicScene;
     [Export] public PackedScene FlameAutomatonScene;
     [Export] public PackedScene SteamArtilleryScene;
+    [Export] public PackedScene RefuelerScene;
     [Export] public PackedScene MinionKnightScene;
     [Export] public PackedScene MinionArcherScene;
     [Export] public PackedScene MinionHealerScene;
@@ -55,6 +57,8 @@ public partial class UnitManager : Node3D
         UnitCatalog.Archer => ArcherScene,
         UnitCatalog.FlameAutomaton => FlameAutomatonScene ??= GD.Load<PackedScene>("res://units/FlameAutomaton.tscn"),
         UnitCatalog.SteamArtillery => SteamArtilleryScene ??= GD.Load<PackedScene>("res://units/SteamArtillery.tscn"),
+        UnitCatalog.Medic => MedicScene ??= GD.Load<PackedScene>("res://units/Medic.tscn"),
+        UnitCatalog.Refueler => RefuelerScene ??= GD.Load<PackedScene>("res://units/Refueler.tscn"),
         UnitCatalog.MinionMelee => MinionKnightScene ??= GD.Load<PackedScene>("res://units/MinionKnight.tscn"),
         UnitCatalog.MinionRanged => MinionArcherScene ??= GD.Load<PackedScene>("res://units/MinionArcher.tscn"),
         UnitCatalog.MinionHealer => MinionHealerScene ??= GD.Load<PackedScene>("res://units/MinionHealer.tscn"),
