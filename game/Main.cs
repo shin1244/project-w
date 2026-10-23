@@ -562,11 +562,14 @@ public partial class Main : Node3D
                 break;
             case "MANA":
                 if (ManaSnapshot.TryParse(parts, out var mana) && Units.TryGetUnit(mana.Id, out Unit manaUnit) &&
-                    UnitCatalog.IsHero(manaUnit.UnitType) && Units.CanInspect(manaUnit))
+                    UnitCatalog.HasMana(manaUnit.UnitType) && Units.CanInspect(manaUnit))
                 {
                     manaUnit.Mana = mana;
-                    Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
-                    Teammates?.HandleMana(mana);
+                    if (UnitCatalog.IsHero(manaUnit.UnitType))
+                    {
+                        Skills?.ApplyMana(mana.Id, mana.Current, mana.Maximum);
+                        Teammates?.HandleMana(mana);
+                    }
                 }
                 break;
             case "MANA_COST":
@@ -704,6 +707,9 @@ public partial class Main : Node3D
                 break;
             case "KNIGHT_CHARGE":
                 if (KnightChargeSnapshot.TryParse(parts, out var charge)) Units.HandleKnightCharge(charge, _serverTick);
+                break;
+            case "HEALING":
+                if (HealingSnapshot.TryParse(parts, out var healing)) Units.HandleHealing(healing);
                 break;
             case "STOCK":
                 Stock?.HandleStock(parts);

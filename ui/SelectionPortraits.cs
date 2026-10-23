@@ -18,6 +18,8 @@ public partial class SelectionPortraits : Node
             "res://units/HeroMarshal.tscn" => "marshal",
             "res://units/HeroRanger.tscn" => enemy ? "archer-enemy" : "archer", // Same model as the archer, scaled up.
             "res://units/Archer.tscn" => enemy ? "archer-enemy" : "archer",
+            "res://units/Medic.tscn" => enemy ? "medic-enemy" : "medic",
+            "res://units/Refueler.tscn" => enemy ? "refueler-enemy" : "refueler",
             "res://units/FlameAutomaton.tscn" => enemy ? "flame-automaton-enemy" : "flame-automaton",
             "res://units/SteamArtillery.tscn" => enemy ? "steam-artillery-enemy" : "steam-artillery",
             "res://units/MinionKnight.tscn" => enemy ? "minion-knight-enemy" : "minion-knight",
@@ -42,7 +44,8 @@ public partial class SelectionPortraits : Node
         if (name == null) return null;
         if (!_cache.TryGetValue(name, out Texture2D texture))
         {
-            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy" or "marshal" or "marshal-enemy"
+            string path = name is "minion-healer" or "minion-healer-enemy" or "siege-ram" or "siege-ram-enemy" or "marshal" or "marshal-enemy" or
+                "medic" or "medic-enemy" or "refueler" or "refueler-enemy"
                 ? $"res://ui/icons/{name}.svg" : $"res://ui/portraits/{name}.png";
             texture = GD.Load<Texture2D>(path);
             _cache.Add(name, texture);

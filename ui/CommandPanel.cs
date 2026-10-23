@@ -128,7 +128,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.BuildMenu, 8) => "숙소\n(W)",
                 (DisplayMode.BuildMenu, 9) => "시추탑\n(E)",
                 (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",
-                (DisplayMode.BuildMenu, 5) => "조병창\n(S)",
+                (DisplayMode.BuildMenu, 5) => "비허가\n실험실\n(S)",
                 (DisplayMode.BuildMenu, 6) => "감시탑\n(D)",
                 (DisplayMode.BuildMenu, 1) => "공장\n(Z)",
                 (DisplayMode.BuildMenu, 2) => "기술연구소\n(X)",
@@ -137,8 +137,10 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
                 (DisplayMode.Barracks, 7) => UnitCatalog.Name(UnitCatalog.Knight),
                 (DisplayMode.Barracks, 8) => UnitCatalog.Name(UnitCatalog.Archer),
+                (DisplayMode.Barracks, 9) => UnitCatalog.Name(UnitCatalog.Medic),
                 (DisplayMode.Workshop, 7) => "화염기계\n(Q)",
                 (DisplayMode.Workshop, 8) => "증기포격차\n(W)",
+                (DisplayMode.Workshop, 9) => "급유 기계\n(E)",
                 (DisplayMode.Forge, 7) => "공격력 연구\n(Q)",
                 (DisplayMode.Forge, 8) => "체력 연구\n(W)",
                 (DisplayMode.ResearchLab, 7) => "와이어 돌진\n(Q)",
@@ -210,11 +212,19 @@ public partial class CommandPanel : PanelContainer
         const string rallyHint = "\n지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제";
         if (_display == DisplayMode.Workshop)
         {
-            RefreshWorkshopTraining(_slots[0], producer, UnitCatalog.FlameAutomaton, rallyHint);
-            RefreshWorkshopTraining(_slots[1], producer, UnitCatalog.SteamArtillery, rallyHint);
+            RefreshUnitTraining(_slots[0], producer, UnitCatalog.FlameAutomaton, rallyHint);
+            RefreshUnitTraining(_slots[1], producer, UnitCatalog.SteamArtillery, rallyHint);
+            RefreshUnitTraining(_slots[2], producer, UnitCatalog.Refueler, rallyHint);
             return;
         }
-        _slots[0].TooltipText = (_display == DisplayMode.TownHall ? "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" : "나무 200 · 인구 2 · 생산 12초") + rallyHint;
+        if (_display == DisplayMode.Barracks)
+        {
+            RefreshUnitTraining(_slots[0], producer, UnitCatalog.Knight, rallyHint);
+            RefreshUnitTraining(_slots[1], producer, UnitCatalog.Archer, rallyHint);
+            RefreshUnitTraining(_slots[2], producer, UnitCatalog.Medic, rallyHint);
+            return;
+        }
+        _slots[0].TooltipText = "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" + rallyHint;
         if (_display == DisplayMode.TownHall)
         {
             var state = Buildings.TeamTier(producer.SideId);
@@ -227,16 +237,11 @@ public partial class CommandPanel : PanelContainer
                 "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
             if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
-        if (_display == DisplayMode.Barracks)
-        {
-            _slots[1].Disabled = count >= ProductionSnapshot.MaxQueue;
-            _slots[1].TooltipText = "나무 200 · 인구 2 · 생산 12초" + rallyHint;
-        }
-        ApplyUnitRequirement(_slots[0], _display == DisplayMode.TownHall ? UnitCatalog.Worker : UnitCatalog.Knight);
-        if (_display == DisplayMode.Barracks) ApplyUnitRequirement(_slots[1], UnitCatalog.Archer);
+        ApplyUnitRequirement(_slots[0], UnitCatalog.Worker);
     }
 
-    private void RefreshWorkshopTraining(Button slot, Building producer, uint type, string rallyHint)
+    // Barracks and workshop buttons: costs and supply come from the server's TRAIN_DEF.
+    private void RefreshUnitTraining(Button slot, Building producer, uint type, string rallyHint)
     {
         string reason = !Units.CommanderControl || Units.Spectating ? "지휘관만 생산할 수 있습니다" :
             producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ? "생산 대기열 가득 참" :
@@ -339,10 +344,10 @@ public partial class CommandPanel : PanelContainer
         else if (_display == DisplayMode.TownHall && number == 1) Units.RequestUpgradeTownHall();
         else if (_display == DisplayMode.Forge && number is 7 or 8) Units.RequestUpgradeArmy(number == 7);
         else if (_display == DisplayMode.ResearchLab && number == 7) Units.RequestKnightResearch();
-        else if (_display == DisplayMode.Barracks && number is 7 or 8)
-            Units.RequestTrain(number == 7 ? UnitCatalog.Knight : UnitCatalog.Archer);
-        else if (_display == DisplayMode.Workshop && number is 7 or 8)
-            Units.RequestTrain(number == 7 ? UnitCatalog.FlameAutomaton : UnitCatalog.SteamArtillery);
+        else if (_display == DisplayMode.Barracks && number is 7 or 8 or 9)
+            Units.RequestTrain(number == 7 ? UnitCatalog.Knight : number == 8 ? UnitCatalog.Archer : UnitCatalog.Medic);
+        else if (_display == DisplayMode.Workshop && number is 7 or 8 or 9)
+            Units.RequestTrain(number == 7 ? UnitCatalog.FlameAutomaton : number == 8 ? UnitCatalog.SteamArtillery : UnitCatalog.Refueler);
         else if (_display == DisplayMode.Workers && number == 1)
         {
             SetMenuOpen(true);
@@ -375,6 +380,7 @@ public partial class CommandPanel : PanelContainer
             Key.Z when _display == DisplayMode.Units && Units.HasSelectedArtillery => 1,
             Key.Q when _display == DisplayMode.Workshop => 7,
             Key.W when _display == DisplayMode.Workshop => 8,
+            Key.E when _display == DisplayMode.Workshop => 9,
             Key.Q when _display == DisplayMode.Forge => 7,
             Key.Q when _display == DisplayMode.ResearchLab => 7,
             Key.W when _display == DisplayMode.Forge => 8,

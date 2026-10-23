@@ -25,14 +25,14 @@ python tools/synth_sfx.py --preview  # audio/sfx-preview.html에서 모두 들�
 
 | 상황 | 소리 | 연결 위치 |
 | --- | --- | --- |
-| 공격·작업 한 번 (`STATE`의 공격 번호가 바뀔 때) | 공압사수 `rifle`, 스팀돌격병·근접 미니언 `sword`, 사령관 `pistol`, 레인저·원거리 미니언 `bow`, 화염기계 `flame`, 늑대·멧돼지 `claw`, 골렘·고목 `stone`, 일꾼 벌목 `chop`·건설 `hammer` | `Unit.ApplyServerState`, `SoundBank.Swing` |
+| 공격·작업 한 번 (`STATE`의 공격 번호가 바뀔 때) | 공압사수 `rifle`, 스팀돌격병·근접 미니언 `sword`, 사령관·돌팔이 의사 `pistol`, 급유 기계 `hammer`, 레인저·원거리 미니언 `bow`, 화염기계 `flame`, 늑대·멧돼지 `claw`, 골렘·고목 `stone`, 일꾼 벌목 `chop`·건설 `hammer` | `Unit.ApplyServerState`, `SoundBank.Swing` |
 | 증기포격차 발사·착탄 | `artillery-fire`, `shell-impact` | `WorkshopMachineVisual`, `WorkshopShellFlight` |
 | 증기포격차 전개·해제 시작 | `artillery-deploy`, `artillery-pack` | `Unit.ApplySiege` |
 | 와이어 돌진 시작 | `knight-charge` | `Unit.ApplyKnightCharge` |
 | 영웅 스킬 (`SKILL`) | `skill-cast`, 궁극기 `skill-ultimate`, 사령관 첫 스킬 `tower-shot` | `Main` |
 | HQ·요새·감시탑 사격 | `tower-shot` | `Building.ApplyServerState` |
 | 공성추 충돌 | `ram-impact` | `UnitManager.HandleRamImpact` |
-| 사망 (`REMOVE`) | 사람 `death-soldier`, 기계 `death-machine`, 늑대·멧돼지 `death-beast`, 골렘·고목 `death-heavy` | `UnitManager.HandleRemove`, `SoundBank.Death` |
+| 사망 (`REMOVE`) | 사람 `death-soldier`, 기계(급유 기계 포함) `death-machine`, 늑대·멧돼지 `death-beast`, 골렘·고목 `death-heavy` | `UnitManager.HandleRemove`, `SoundBank.Death` |
 | 완성된 건물 제거 | `building-collapse` (공사 취소는 소리 없음) | `BuildingManager.HandleRemove` |
 | 내 건물 공사 시작·완성 | `build-start`, `build-complete` | `BuildingManager.HandleConstruction` |
 | 내 유닛 생산 완료 | `unit-ready` | `UnitManager.HandleSpawn` |

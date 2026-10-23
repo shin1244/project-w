@@ -24,11 +24,29 @@ public partial class SupportUpdateChecks : Main
             Begin();
             Receive("BUILDING 4 901 1 -6 -4 0");Receive("BUILDING 5 902 1 6 -4 0");
             Invoke("SelectBuilding",Buildings.GetChildren().OfType<Building>().Single(b=>b.BuildingId==901));
-            var removedSlot=Commands.GetNode<Button>("Slots/Slot9");
+            var doctorSlot=Commands.GetNode<Button>("Slots/Slot9");
             long before=wire.Length;
-            removedSlot.EmitSignal(BaseButton.SignalName.Pressed);Units.RequestTrain(3);
-            Check(removedSlot.Disabled && removedSlot.Text.Length==0 && wire.Length==before && !Buildings.SelectedBuilding.CanTrain(3),
-                "The barracks no longer offers the removed medic, even with a forge");
+            doctorSlot.EmitSignal(BaseButton.SignalName.Pressed);Units.RequestTrain(UnitCatalog.Medic);
+            Check(doctorSlot.Text==UnitCatalog.Name(UnitCatalog.Medic) && doctorSlot.Disabled && wire.Length==before &&
+                Buildings.SelectedBuilding.CanTrain(UnitCatalog.Medic),"The barracks offers the quack doctor but waits for its server terms");
+            // Arbitrary terms: the button follows the wire, not balance constants.
+            Receive("REQUIRES UNIT 3 4 5");Receive("TRAIN_DEF 3 4 12 5 1 7");Receive("STOCK 0 12");Receive("STOCK 2 5");Receive("SUPPLY 0 10");
+            Check(!doctorSlot.Disabled && doctorSlot.TooltipText.Contains("기름 5") && doctorSlot.TooltipText.Contains("7초"),
+                "A standing unlicensed lab and the server's terms open the quack doctor");
+            doctorSlot.EmitSignal(BaseButton.SignalName.Pressed);
+            Check(After(wire,before)=="TRAIN 901 3\n","The quack doctor trains at the selected barracks");
+
+            Receive("UNIT 3 951 7 -2 2 1");Receive("UNIT 1 952 7 -1 2 1");Receive("UNIT 1 953 7 0 2 1");
+            Units.TryGetUnit(951,out Unit doctor);Units.TryGetUnit(952,out Unit knight);
+            Receive("HEALING 951 952");
+            Check(doctor.HealingTargetId==952 && doctor.HealingTarget==knight,"HEALING names the doctor's patient");
+            foreach (string malformed in new[]{"HEALING 951","HEALING 951 953 1","HEALING 951 -1","HEALING 951 951","HEALING x 953"}) Receive(malformed);
+            Receive("HEALING 952 953");
+            Check(doctor.HealingTargetId==952 && knight.HealingTargetId==0,"Malformed lines and non-healers never move a beam");
+            Receive("MANA 951 37 200");
+            Check(doctor.Mana is { Current: 37, Maximum: 200 },"The quack doctor keeps its mana for the information panel");
+            Receive("HEALING 951 0");
+            Check(doctor.HealingTargetId==0 && doctor.HealingTarget==null,"HEALING 0 stops the beam");
 
             ConfigureMinions();
             CheckLaneExperience(0,100);CheckLaneExperience(1,100);
@@ -72,7 +90,7 @@ public partial class SupportUpdateChecks : Main
             if (OS.GetCmdlineUserArgs().Contains("--capture-xp")) await Capture();
             Receive("WELCOME 7 1 HERO 202");
             Check(Minions.AddCost==null && Minions.MagicStones==0 && !Minions.Visible,"Hero role cannot keep commander 마석 UI");
-            GD.Print("PASS: no medic at the barracks; 마석 + choice; lane XP 100/95/90/70%, rule validation, HUD fit and lifecycle reset");
+            GD.Print("PASS: quack doctor at the barracks with its lab, HEALING and mana; 마석 + choice; lane XP 100/95/90/70%, rule validation, HUD fit and lifecycle reset");
             GetTree().Quit();
         }
         catch(Exception error) { GD.PushError(error.ToString());GetTree().Quit(1); }

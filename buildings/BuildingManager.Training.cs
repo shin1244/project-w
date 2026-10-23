@@ -30,7 +30,7 @@ public partial class BuildingManager
     public string TrainingTermsBlockReason(Building producer, uint type)
     {
         if (TrainingTerms(type) is not TrainingDefinition terms)
-            return UnitCatalog.IsWorkshopUnit(type) ? "생산 정보 수신 대기" : null;
+            return UnitCatalog.IsWorkshopUnit(type) || type == UnitCatalog.Medic ? "생산 정보 수신 대기" : null;
         if (producer == null || producer.BuildingType != terms.BuildingType) return "생산 건물 불일치";
         if (CommanderWood < terms.Wood) return "목재 부족";
         if (CommanderOil < terms.Oil) return "기름 부족";

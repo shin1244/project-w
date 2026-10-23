@@ -11,6 +11,7 @@ public partial class CommandPanelChecks
         Receive("BUILDING_VISION 9301 1");
         Receive("REQUIRES UNIT 4 8");
         Receive("REQUIRES UNIT 5 8");
+        Receive("REQUIRES UNIT 6 8 9");
         SelectBuilding(9300);
         int before = _commands.Count;
         KeyStroke(input, Key.Q);
@@ -54,6 +55,15 @@ public partial class CommandPanelChecks
         Receive("SUPPLY 1 5");
         KeyStroke(input, Key.W);
         Check(_commands[^1] == "TRAIN 9300 5", "Workshop W produces the second server-defined unit");
+        Receive("TRAIN_DEF 6 8 29 7 1 8.5");
+        before = _commands.Count;
+        KeyStroke(input, Key.E);
+        Check(_slots[9].Text.StartsWith(UnitCatalog.Name(UnitCatalog.Refueler)) && _slots[9].Disabled && _commands.Count == before,
+            "The refueler waits for a standing research lab");
+        Receive("BUILDING 9 9302 1 -25 14 0");
+        Check(!_slots[9].Disabled && _slots[9].TooltipText.Contains("기름 7"), "A research lab and the server's terms open the refueler");
+        KeyStroke(input, Key.E);
+        Check(_commands[^1] == "TRAIN 9300 6", "Workshop E produces the refueler");
         Receive("QUEUE 9300 25 9401:4:7 9402:5:7");
         Check(Buildings.SelectedBuilding.ProductionQueue.Count == 2 && !_slots[3].Disabled,
             "Workshop queues accept both machine types and expose cancellation");

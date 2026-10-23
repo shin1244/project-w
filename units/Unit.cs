@@ -28,6 +28,16 @@ public partial class Unit : Node3D
     public event Action<Unit> SiegeChanged;
     public KnightChargeSnapshot? KnightCharge { get; private set; }
     public event Action<Unit> KnightChargeChanged;
+    // HEALING: the ally a quack doctor or refueler mends now (0: nobody).
+    public uint HealingTargetId { get; private set; }
+    public Node3D HealingTarget
+    {
+        get
+        {
+            Node3D target = HealingTargetId != 0 ? ResolveFocus?.Invoke(HealingTargetId) : null;
+            return IsAvailable(target) && target.IsVisibleInTree() ? target : null;
+        }
+    }
     public Node3D KnightChargeTarget
     {
         get
@@ -101,6 +111,7 @@ public partial class Unit : Node3D
             SiegeChanged?.Invoke(this);
             KnightCharge = null;
             KnightChargeChanged?.Invoke(this);
+            HealingTargetId = 0;
             DeathCause = DeathCause.None;
         }
         UnitId = unitId;
@@ -178,7 +189,7 @@ public partial class Unit : Node3D
         HasServerState = true;
         // A worker inside a derrick leaves the world until it comes back out.
         if ((state.Activity == UnitActivity.Inside) != wasInside) Visible = state.Activity != UnitActivity.Inside;
-        SetProcess(state.Activity != UnitActivity.Idle && state.FocusId != 0);
+        SetProcess(state.Activity != UnitActivity.Idle && state.FocusId != 0 || HealingTargetId != 0);
         FaceActionTarget();
         if (swung && IsVisibleInTree() && SoundBank.Swing(UnitType, state.Activity) is string sound) Sfx.At(sound, GlobalPosition);
         StateChanged?.Invoke(state, swung);
@@ -203,6 +214,12 @@ public partial class Unit : Node3D
         KnightChargeChanged?.Invoke(this);
     }
 
+    public void ApplyHealing(uint targetId)
+    {
+        HealingTargetId = IsDying ? 0 : targetId;
+        SetProcess(State.Activity != UnitActivity.Idle && State.FocusId != 0 || HealingTargetId != 0);
+    }
+
     private void FaceActionTarget()
     {
         if (!IsDying && KnightCharge is { } charge && charge.ActiveAt(EffectTick))
@@ -211,6 +228,15 @@ public partial class Unit : Node3D
             Vector3 anchor = new(charge.Anchor.X, GlobalPosition.Y, charge.Anchor.Y);
             Node3D visual = GetNode<Node3D>(AimNodePath);
             if (anchor.DistanceSquaredTo(GlobalPosition) > .000001f) visual.LookAt(anchor, Vector3.Up);
+            return;
+        }
+        if (!IsDying && (State.Activity == UnitActivity.Idle || State.FocusId == 0) && HealingTarget is Node3D patient)
+        {
+            // A healer that is not fighting turns to its patient; attacking keeps the attack target.
+            Vector3 toward = patient.GlobalPosition - GlobalPosition;
+            toward.Y = 0;
+            Node3D visual = GetNode<Node3D>(AimNodePath);
+            if (toward.LengthSquared() > .000001f) visual.LookAt(visual.GlobalPosition + toward, Vector3.Up);
             return;
         }
         if (IsDying || State.Activity == UnitActivity.Idle || State.FocusId == 0) return;

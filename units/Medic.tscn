@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://units/Unit.tscn" id="1_base"]
+[ext_resource type="Script" path="res://units/QuackDoctorRig.cs" id="2_rig"]
+[ext_resource type="Script" path="res://units/QuackDoctorAnimation.cs" id="3_walk"]
+[ext_resource type="Script" path="res://units/HealingBeam.cs" id="4_beam"]
+
+[sub_resource type="CapsuleShape3D" id="Selection"]
+radius = 0.55
+height = 2.45
+
+[node name="Medic" instance=ExtResource("1_base")]
+UnitType = 3
+HealthBarHeight = 2.85
+BodyRadius = 0.4
+
+[node name="Rig" type="Node3D" parent="Visual"]
+transform = Transform3D(1.08, 0, 0, 0, 1.08, 0, 0, 0, 1.08, 0, 0, 0)
+script = ExtResource("2_rig")
+
+[node name="CollisionShape3D" parent="SelectionArea" index="0"]
+position = Vector3(0, 1.225, 0)
+shape = SubResource("Selection")
+
+[node name="QuackDoctorAnimation" type="Node" parent="."]
+script = ExtResource("3_walk")
+
+[node name="HealingBeam" type="Node3D" parent="."]
+script = ExtResource("4_beam")

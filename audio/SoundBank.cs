@@ -57,7 +57,8 @@ public static class SoundBank
         (_, not UnitActivity.Attack) => null,
         (UnitCatalog.Knight or UnitCatalog.MinionMelee or UnitCatalog.MinionFurnace or UnitCatalog.MinionWarden, _) => "sword",
         (UnitCatalog.Archer, _) => "rifle",
-        (UnitCatalog.MinionHealer or UnitCatalog.HeroMarshal, _) => "pistol",
+        (UnitCatalog.MinionHealer or UnitCatalog.HeroMarshal or UnitCatalog.Medic, _) => "pistol",
+        (UnitCatalog.Refueler, _) => "hammer",
         (UnitCatalog.MinionRanged or UnitCatalog.MinionArc or UnitCatalog.HeroRanger, _) => "bow",
         (UnitCatalog.FlameAutomaton, _) => "flame",
         (UnitCatalog.HeroTest or UnitCatalog.JungleBoar, _) => "claw",
@@ -67,7 +68,7 @@ public static class SoundBank
 
     public static string Death(uint type) => type switch
     {
-        UnitCatalog.FlameAutomaton or UnitCatalog.SteamArtillery or UnitCatalog.SiegeRam => "death-machine",
+        UnitCatalog.FlameAutomaton or UnitCatalog.SteamArtillery or UnitCatalog.Refueler or UnitCatalog.SiegeRam => "death-machine",
         UnitCatalog.HeroTest or UnitCatalog.JungleBoar => "death-beast",
         UnitCatalog.HeroGolem or UnitCatalog.JungleTreant => "death-heavy",
         _ => "death-soldier"

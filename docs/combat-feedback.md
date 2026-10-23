@@ -30,6 +30,10 @@
 
 연출 선택과 넘어짐은 `units/UnitDeathEffect.cs`, 부위 절단·산산조각은 `units/UnitBreakupEffect.cs`, 재는 `units/UnitBurnEffect.cs`, 메시지 해석은 `network/DeathSnapshot.cs`, 게임 오브젝트 제외는 `UnitManager.HandleRemove`, 클릭 차단은 `Unit.BeginDeath`에서 처리합니다. 타격과 사망 시점을 정밀하게 맞추는 서버 선딜 기능은 추가하지 않았습니다.
 
+## 회복 줄기
+
+서버 `HEALING 유닛 대상`을 받으면 돌팔이 의사의 주사기 끝(또는 급유 기계의 노즐, `BeamOrigin`)에서 대상의 가슴 높이까지 줄기를 그리고 방울이 대상 쪽으로 흐릅니다(`units/HealingBeam.cs`). 의사는 청록 약물, 급유 기계는 호박색 기름입니다. 대상 0이나 이 클라이언트에 보이지 않는 대상이면 그리지 않습니다. 싸우지 않는 의사는 환자 쪽으로 몸을 돌리고 주사기를 든 팔을 올리며, 급유 기계는 호스 크레인을 환자 쪽으로 돌리고 작업원이 펌프를 젓습니다.
+
 ## 대상 원
 
 `input/CommandTargetIndicator.cs`는 마지막으로 요청한 명령의 대상 한 곳을 표시합니다.

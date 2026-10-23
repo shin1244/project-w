@@ -5,9 +5,10 @@ public static class UnitCatalog
     public const uint Worker = 0;
     public const uint Knight = 1;
     public const uint Archer = 2;
-    // 3: 삭제한 치유사. 번호를 다시 쓰지 않는다.
+    public const uint Medic = 3; // 돌팔이 의사. 지운 치유사의 번호를 서버와 함께 이어 쓴다.
     public const uint FlameAutomaton = 4;
     public const uint SteamArtillery = 5;
+    public const uint Refueler = 6;
     public const uint MinionMelee = 100;
     public const uint MinionRanged = 101;
     public const uint MinionHealer = 102;
@@ -24,8 +25,12 @@ public static class UnitCatalog
 
     public static bool IsMinion(uint type) => type is MinionMelee or MinionRanged or MinionHealer or MinionFurnace or MinionWarden or MinionArc;
     public static bool IsHero(uint type) => type is HeroTest or HeroGolem or HeroMarshal or HeroRanger;
-    public static bool IsTrainable(uint type) => type is Worker or Knight or Archer or FlameAutomaton or SteamArtillery;
-    public static bool IsWorkshopUnit(uint type) => type is FlameAutomaton or SteamArtillery;
+    public static bool IsTrainable(uint type) => type is Worker or Knight or Archer or Medic or FlameAutomaton or SteamArtillery or Refueler;
+    public static bool IsWorkshopUnit(uint type) => type is FlameAutomaton or SteamArtillery or Refueler;
+    public static bool IsBarracksUnit(uint type) => type is Knight or Archer or Medic;
+    // 서버 TraitMechanical과 같다. 돌팔이 의사는 기계가 아닌 쪽을, 급유 기계는 기계를 고친다.
+    public static bool IsMechanical(uint type) => type is FlameAutomaton or SteamArtillery or Refueler or SiegeRam;
+    public static bool HasMana(uint type) => type == Medic || IsHero(type);
     public static bool IsObjective(uint type) => type == SiegeRam;
     // 정글몹: 팀 0. 먼저 맞기 전에는 공격하지 않는다.
     public static bool IsNeutral(uint type) => type is JungleBoar or JungleTreant;
@@ -33,6 +38,8 @@ public static class UnitCatalog
     public static string Description(uint type) => type switch
     {
         Knight => "검과 방패를 갖춘 근접 보병\n기술연구소의 와이어 돌진 연구로 자동 돌진 해금",
+        Medic => "면허 없는 의사 · 마나를 써서 사거리 안 아군 한 명을 고치며 공격도 함\n영웅 > 용병 > 미니언 순 · 영웅은 모두, 용병·미니언은 생체만 · 비허가 실험실 필요",
+        Refueler => "기계 전용 수리기 · 마나 없이 사거리 안 기계 하나를 고치며 공격도 함\n용병 > 미니언 순 · 영웅·생체는 못 고침 · 기술연구소 필요",
         FlameAutomaton => "전방 부채꼴 화염 공격 · 공장 생산",
         SteamArtillery => "일반 모드 단일 공격 · 전개 시 장거리 범위 포격\n전개 중 이동·근접 표적 공격 불가 · 전환 중 이동·공격 불가",
         MinionFurnace => "2티어 근접 미니언 · 등에 진 화로로 주변 적 유닛을 계속 태움",
@@ -45,7 +52,7 @@ public static class UnitCatalog
     };
     public static string Name(uint type) => type switch
     {
-        Worker => "일꾼", Knight => "스팀돌격병", Archer => "공압사수", FlameAutomaton => "화염기계", SteamArtillery => "증기포격차",
+        Worker => "일꾼", Knight => "스팀돌격병", Archer => "공압사수", Medic => "돌팔이 의사", FlameAutomaton => "화염기계", SteamArtillery => "증기포격차", Refueler => "급유 기계",
         MinionMelee => "근접 미니언", MinionRanged => "원거리 미니언", MinionHealer => "생명의 미니언",
         MinionFurnace => "화로 미니언", MinionWarden => "호위 미니언", MinionArc => "전격 미니언",
         HeroTest => "돌연변이 늑대", HeroGolem => "룬 골렘", HeroMarshal => "사령관", HeroRanger => "레인저", SiegeRam => "공성추",
