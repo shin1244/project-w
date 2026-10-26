@@ -2,7 +2,7 @@ extends RefCounted
 ## Geometry and the visible road mask both follow the authoritative JSON cells.
 
 const SUBDIVISIONS := 2
-const BASE_X := 65.0
+const BASE_X := 66.0
 const LANE_WIDTH := 12.0
 const OUTER_BUILD_WIDTH := 3.0
 const WALL_THICKNESS := 2
@@ -10,23 +10,23 @@ const WALL_THICKNESS := 2
 # each town hall. The lanes remain reserved, so these bays cannot block traffic.
 const BASE_MEADOW_RADII := Vector2(18.0, 24.0)
 const TOP_LANE := [
-	Vector2(-65, 0), Vector2(-58, -14), Vector2(-47, -24),
-	Vector2(-20, -29), Vector2(0, -30), Vector2(20, -29),
-	Vector2(47, -24), Vector2(58, -14), Vector2(65, 0),
+	Vector2(-66, 0), Vector2(-59, -15), Vector2(-48, -25),
+	Vector2(-21, -30), Vector2(0, -31), Vector2(21, -30),
+	Vector2(48, -25), Vector2(59, -15), Vector2(66, 0),
 ]
 
 const TRAIL_SEGMENTS := [
-	Vector4(0, 0, 15, 0), Vector4(15, 0, 28, 0),
-	Vector4(28, 0, 28, 14), Vector4(28, 14, 32, 28), Vector4(0, 0, 0, 30),
+	Vector4(0, 0, 16, 0), Vector4(16, 0, 29, 0),
+	Vector4(29, 0, 29, 15), Vector4(29, 15, 33, 29), Vector4(0, 0, 0, 31),
 ]
 const TRAIL_WIDTH := 6.0
 const EVENT_RADIUS := 9.0
-const JUNGLE_CENTER := Vector2(15, 13)
+const JUNGLE_CENTER := Vector2(16, 14)
 const JUNGLE_RADII := Vector2(7, 6)
 const JUNGLE_ENTRANCE_WIDTH := 4.0
-const MAP_ORIGIN := Vector2(-84, -64)
-const MAP_SIZE := Vector2i(168, 128)
-const EXPANSION_PAD_X := -34.0
+const MAP_ORIGIN := Vector2(-85, -65)
+const MAP_SIZE := Vector2i(170, 130)
+const EXPANSION_PAD_X := -35.0
 # The perimeter swells gently toward each expansion instead of adding a separate bastion.
 # Raised-cosine profile: zero slope where it meets the original rim; 428 extra cells per side.
 const EXPANSION_SWELL_HEIGHT := 10.0
@@ -37,12 +37,12 @@ const EXPANSION_BAY_SHIFT := 0.5 # Along the lane, toward the map center.
 const EXPANSION_BAY_HALF_WIDTH := 9.5
 const EXPANSION_BAY_HEIGHT := 7.5
 const EXPANSION_BAY_ROUNDNESS := 2.5 # 2 is a half-ellipse; larger values square the shoulders.
-const EXPANSION_BAY_Z := 37.0 # Site marker inside the bay; a store fits around it.
+const EXPANSION_BAY_Z := 38.0 # Site marker inside the bay; a store fits around it.
 const EXPANSION_BUILD_SIZE := 4.0
-const OIL_CLEARING_CENTER := Vector2(36.0, 0.0)
+const OIL_CLEARING_CENTER := Vector2(37.0, 0.0)
 const OIL_CLEARING_RADII := Vector2(6.0, 10.0)
-const OIL_ENTRANCE_X := 28.0
-const OIL_ENTRANCE_Z := 8.0
+const OIL_ENTRANCE_X := 29.0
+const OIL_ENTRANCE_Z := 9.0
 const OIL_CONNECTION_WIDTH := 5.0
 # Older, soot-blackened brick stretches held with iron straps break up the rim. Chosen per
 # arc around the map centre and repeated by the 180-degree rotation.
@@ -112,7 +112,7 @@ func activity_areas() -> Array:
 		var label := ("n" if side.y < 0 else "s") + ("w" if side.x < 0 else "e")
 		areas.append({"id": "jungle_" + label, "kind": "jungle", "center": [center.x, center.y],
 			"radii": [JUNGLE_RADII.x, JUNGLE_RADII.y],
-			"entrances": [[6.0 * side.x, 5.0 * side.y], [28.0 * side.x, 13.0 * side.y]],
+			"entrances": [[7.0 * side.x, 6.0 * side.y], [29.0 * side.x, 14.0 * side.y]],
 			"entranceWidth": JUNGLE_ENTRANCE_WIDTH})
 	return areas
 
@@ -135,20 +135,20 @@ func expansion_sites() -> Array:
 # Terrain metadata only: these seeps have no resource stock, commands, or pickable nodes.
 func oil_fields() -> Array:
 	return [
-		{"id": "west_oilfield", "center": [-39.0, 0.0], "radii": [2.6, 3.6],
+		{"id": "west_oilfield", "center": [-40.0, 0.0], "radii": [2.6, 3.6],
 			"clearingCenter": [-OIL_CLEARING_CENTER.x, OIL_CLEARING_CENTER.y],
-			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [-34.0, 5.0],
+			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [-35.0, 6.0],
 			"entrances": [[-OIL_ENTRANCE_X, -OIL_ENTRANCE_Z], [-OIL_ENTRANCE_X, OIL_ENTRANCE_Z]],
 			"entranceWidth": OIL_CONNECTION_WIDTH},
-		{"id": "east_oilfield", "center": [39.0, 0.0], "radii": [2.6, 3.6],
+		{"id": "east_oilfield", "center": [40.0, 0.0], "radii": [2.6, 3.6],
 			"clearingCenter": [OIL_CLEARING_CENTER.x, OIL_CLEARING_CENTER.y],
-			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [34.0, -5.0],
+			"clearingRadii": [OIL_CLEARING_RADII.x, OIL_CLEARING_RADII.y], "supplySite": [35.0, -6.0],
 			"entrances": [[OIL_ENTRANCE_X, OIL_ENTRANCE_Z], [OIL_ENTRANCE_X, -OIL_ENTRANCE_Z]],
 			"entranceWidth": OIL_CONNECTION_WIDTH},
-		{"id": "northwest_oilfield", "center": [-34.0, -42.0], "radii": [3.6, 2.2],
-			"clearingCenter": [-34.0, -42.0], "clearingRadii": [4.6, 3.0], "supplySite": [-34.0, -37.0]},
-		{"id": "southeast_oilfield", "center": [34.0, 42.0], "radii": [3.6, 2.2],
-			"clearingCenter": [34.0, 42.0], "clearingRadii": [4.6, 3.0], "supplySite": [34.0, 37.0]},
+		{"id": "northwest_oilfield", "center": [-35.0, -43.0], "radii": [3.6, 2.2],
+			"clearingCenter": [-35.0, -43.0], "clearingRadii": [4.6, 3.0], "supplySite": [-35.0, -38.0]},
+		{"id": "southeast_oilfield", "center": [35.0, 43.0], "radii": [3.6, 2.2],
+			"clearingCenter": [35.0, 43.0], "clearingRadii": [4.6, 3.0], "supplySite": [35.0, 38.0]},
 	]
 
 func is_oilfield_clearing(p: Vector2) -> bool:
@@ -549,7 +549,7 @@ func build_guides() -> void:
 		marker.position = Vector3(site["center"][0], 0, site["center"][1])
 		marker.set_meta("kind", "expansion")
 		attach(marker, guides)
-	for entry in [["BlueSpawn", Vector3(-BASE_X, 0, 0)], ["RedSpawn", Vector3(BASE_X, 0, 0)], ["Center", Vector3.ZERO], ["BlueResourceArea", Vector3(-39, 0, 13)], ["RedResourceArea", Vector3(39, 0, 13)]]:
+	for entry in [["BlueSpawn", Vector3(-BASE_X, 0, 0)], ["RedSpawn", Vector3(BASE_X, 0, 0)], ["Center", Vector3.ZERO], ["BlueResourceArea", Vector3(-40, 0, 14)], ["RedResourceArea", Vector3(40, 0, 14)]]:
 		var marker := Marker3D.new()
 		marker.name = entry[0]
 		marker.position = entry[1]

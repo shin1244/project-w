@@ -52,20 +52,20 @@ public partial class ForestPreview : Main
         {
             var camera = GetNode<Camera3D>("Camera3D");
             camera.Size = 36;
-            CameraNavigation.FocusGround(camera, new Vector3(-34, 0, -38));
+            CameraNavigation.FocusGround(camera, new Vector3(-35, 0, -39));
         }
         if (wall)
         {
             // The north rim beside team 1's meadow shows the wall face without trees in front.
             var camera = GetNode<Camera3D>("Camera3D");
             camera.Size = 14;
-            CameraNavigation.FocusGround(camera, new Vector3(-62, 0, -15));
+            CameraNavigation.FocusGround(camera, new Vector3(-63, 0, -16));
         }
         if (baseMeadow)
         {
             var camera = GetNode<Camera3D>("Camera3D");
             camera.Size = 44;
-            CameraNavigation.FocusGround(camera, new Vector3(-65, 0, 0));
+            CameraNavigation.FocusGround(camera, new Vector3(-66, 0, 0));
         }
         for (int i = 0; i < 4; i++)
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);

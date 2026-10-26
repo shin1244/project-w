@@ -851,7 +851,8 @@ public partial class RtsControlChecks : Main
             Check(camera.Position.IsEqualApprox(stopped), "Unfocused window cannot edge pan");
             GetWindow().EmitSignal(Window.SignalName.FocusEntered);
             camera.Call("_process", 100);
-            Check(camera.Position.X <= 80 && camera.Position.X > stopped.X, "Edge pan resumes on focus and respects map bounds");
+            Rect2 bounds = camera.Get("ground_bounds").AsRect2(); // Set from the loaded map's size.
+            Check(camera.Position.X <= bounds.End.X && camera.Position.X > stopped.X, "Edge pan resumes on focus and respects map bounds");
         }
         finally
         {
@@ -870,7 +871,7 @@ public partial class RtsControlChecks : Main
             CameraNavigation.FocusGround(camera, Vector3.Zero);
             KeyPress(Key.Space);
             await Flush();
-            Check(GroundCenter().DistanceTo(new Vector3(team == 1 ? -65 : 65, 0, 0)) < .02f,
+            Check(Map.TryGetBasePosition(team, out Vector3 home) && GroundCenter().DistanceTo(home) < .02f,
                 "Commander Space focuses its own base even before building snapshots arrive");
             Expect(1000);
             Check(Mathf.IsEqualApprox(camera.Size, 60), "Space preserves camera zoom");
@@ -928,7 +929,7 @@ public partial class RtsControlChecks : Main
         BeginSession();
         Check(Stock.Visible, "Commanders see the economy HUD");
         InvokeMain("FrameStartingView");
-        Check(Units.Camera.Size == 52 && GroundCenter().DistanceTo(new Vector3(-65, 0, 0)) < .02f,
+        Check(Units.Camera.Size == 52 && Map.TryGetBasePosition(1, out Vector3 home) && GroundCenter().DistanceTo(home) < .02f,
             "Commander begins with a readable view of its own base");
         Receive("WELCOME 7 1 HERO 201");
         Check(!Stock.Visible && GetNode<BattleGuide>("SelectionUI/BattleGuide").Visible,
