@@ -96,29 +96,18 @@ public partial class CommandPanel : PanelContainer
     private Texture2D UnitIcon(uint type) => _portraits.GetPortrait(Units.SceneFor(type));
     private Texture2D BuildingIcon(uint type) => _portraits.GetPortrait(Buildings.SceneFor(type));
 
-    // Each mode's commands, read left to right from the top row. Cancel and back keep the bottom-right cell.
-    private static int[] CommandsOf(DisplayMode mode) => mode switch
-    {
-        DisplayMode.Units or DisplayMode.Workers => new[] { 4, 5, 6, 1 },
-        DisplayMode.BuildMenu => new[] { 7, 8, 9, 4, 5, 6, 1, 2 },
-        DisplayMode.TownHall => new[] { 7, 1 },
-        DisplayMode.Barracks or DisplayMode.Workshop => new[] { 7, 8, 9 },
-        DisplayMode.Forge => new[] { 7, 8 },
-        DisplayMode.ResearchLab => new[] { 7 },
-        _ => Array.Empty<int>()
-    };
-
-    private static bool HasBack(DisplayMode mode) =>
-        mode is DisplayMode.BuildMenu or DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop or DisplayMode.Construction;
-
+    // Each command sits on its hotkey's cell (Q W E R / A S D F / Z X C V), which the slot numbers already follow.
+    // Production without a grid key takes the top row; cancel (Esc) has no cell of its own and takes the free
+    // bottom-right one.
     private void ArrangeSlots(DisplayMode mode)
     {
-        var order = new List<int>(CommandsOf(mode));
-        bool back = HasBack(mode);
-        foreach (int number in SlotNumbers)
-            if (!order.Contains(number) && !(back && number == 3)) order.Add(number);
-        if (back) order.Add(3);
-        for (int i = 0; i < order.Count; i++) _grid.MoveChild(Slot(order[i]), i);
+        bool cancel = mode is DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop or DisplayMode.Construction;
+        for (int i = 0; i < SlotNumbers.Length; i++)
+        {
+            int number = SlotNumbers[i];
+            if (cancel && number is 3 or 12) number = number == 3 ? 12 : 3;
+            _grid.MoveChild(Slot(number), i);
+        }
     }
 
     private void RefreshSelection()

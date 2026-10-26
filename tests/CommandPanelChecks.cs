@@ -58,7 +58,7 @@ public partial class CommandPanelChecks : Main
             Receive("BUILDING_VISION 203 1");
 
             SelectUnit(101);
-            ExpectUnit("An owned worker shows attack, stop, hold and build along the top row");
+            ExpectUnit("An owned worker shows attack, stop, hold and build on their key cells");
             CheckTierMenu();
             CheckRequirements();
             CheckTierConstructionRequirements();
@@ -79,8 +79,8 @@ public partial class CommandPanelChecks : Main
 
             SelectBuilding(201);
             Expect("The friendly town hall shows worker", (7, "일꾼"));
-            ExpectOrder("The town hall starts the top row with worker and upgrade", 7, 1);
-            Check(Commands.GetNode("Slots").GetChildren().Last().Name == "Slot3", "Production cancel keeps the bottom-right cell");
+            Check(Cell(7) == 0 && Cell(1) == 8 && Cell(3) == 11,
+                "The town hall's worker takes the top row, Z upgrade its Z cell and Esc cancel the free bottom-right cell");
             Check(Units.SelectedUnitIds.Count == 0, "Building selection clears selected units");
             Receive("STOCK 0 100");
             Receive("SUPPLY 4 10");
@@ -202,7 +202,6 @@ public partial class CommandPanelChecks : Main
         if (Units.TryGetSelectedWorker(out _))
             Expect(message, (1, "건설(Z)"), (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
         else Expect(message, (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
-        ExpectOrder(message, 4, 5, 6, 1);
     }
 
     private void CheckRequirements()
@@ -276,6 +275,7 @@ public partial class CommandPanelChecks : Main
             Check(Caption(number) == text && button.Disabled == disabled && ((CommandSlot)button).CommandName.Length == 0 == (text.Length == 0),
                 $"{message}: slot {number} expected '{text}', got '{Caption(number)}' (disabled={button.Disabled})");
         }
+        ExpectKeyCells(message);
     }
 
     private void CheckTierConstructionRequirements()
@@ -670,7 +670,6 @@ public partial class CommandPanelChecks : Main
     {
         Expect(message, (7, "브랜치(Q)"), (8, "숙소(W)"), (9, "시추탑(E)"), (4, "인력 사무소(A)"), (5, "비허가 실험실(S)"),
             (6, "감시탑(D)"), (1, "공장(Z)"), (2, "기술연구소(X)"), (3, "뒤로(C)"));
-        ExpectOrder(message, 7, 8, 9, 4, 5, 6, 1, 2);
     }
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>
@@ -911,12 +910,16 @@ public partial class CommandPanelChecks : Main
 
     private string Caption(int number) => ((CommandSlot)_slots[number]).Caption;
 
-    // The grid shows these slots first, in this order; cancel and back sit in the last cell.
-    private void ExpectOrder(string message, params int[] numbers)
+    private int Cell(int number) => _slots[number].GetIndex();
+
+    // Every button sits on the cell of its hotkey, read Q W E R / A S D F / Z X C V; Esc takes the bottom-right cell.
+    private void ExpectKeyCells(string message)
     {
-        var order = Commands.GetNode("Slots").GetChildren().Select(slot => slot.Name.ToString()).ToList();
-        Check(order.Take(numbers.Length).SequenceEqual(numbers.Select(number => $"Slot{number}")),
-            $"{message}: grid starts with [{string.Join(',', numbers)}], got [{string.Join(',', order)}]");
+        foreach (CommandSlot slot in Commands.GetNode("Slots").GetChildren().OfType<CommandSlot>())
+        {
+            int cell = slot.Hotkey == "Esc" ? 11 : slot.Hotkey.Length == 1 ? "QWERASDFZXCV".IndexOf(slot.Hotkey) : slot.GetIndex();
+            Check(cell == slot.GetIndex(), $"{message}: {slot.Caption} sits in cell {slot.GetIndex()}, not its key's cell {cell}");
+        }
     }
 
     private void BeginSession(uint player, uint team)
