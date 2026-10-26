@@ -57,7 +57,8 @@ public partial class ConstructionSyncChecks : Main
             Receive("UNIT 0 102 7 -12 4 1");
             Receive("UNIT 1 201 7 -14 2 1");
             Receive("UNIT 0 301 8 -14 4 1");
-            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" };
+            string[] sceneNames = { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab",
+                "CoalDrill", "Tunnel" };
             for (uint type = 0; type < sceneNames.Length; type++)
             {
                 Check(Buildings.SceneFor(type)?.ResourcePath == $"res://buildings/{sceneNames[type]}.tscn",
@@ -66,6 +67,8 @@ public partial class ConstructionSyncChecks : Main
                 Check(Building(500 + type).BuildingType == type, $"Main BUILDING branch creates type {type}");
             }
             await CheckOilGathering();
+            CheckCoalDrill();
+            CheckTunnels();
             Building site = Building(502);
             Receive("CONSTRUCTION 502 0");
             Check(site.IsUnderConstruction && site.ConstructionPercent == 0 && site.GetNode<ConstructionSite>("ConstructionSite").Visible,
@@ -271,34 +274,34 @@ public partial class ConstructionSyncChecks : Main
 
         Invoke("SelectUnit", Worker(201));
         before = _commands.Count;
-        Check(!Units.RequestGatherOil(derrick) && !Units.RequestReturnResources(Building(500)) && _commands.Count == before,
+        Check(!Units.RequestGatherAt(derrick) && !Units.RequestReturnResources(Building(500)) && _commands.Count == before,
             "Combat-only selections cannot issue extraction or return commands");
         Units.RequestContextOrder(derrick, derrick.GlobalPosition);
         Check(_commands.Last() == "MOVE -8 0 201", "Combat-only right-click preserves ordinary movement");
         Invoke("SelectUnit", Worker(301));
         before = _commands.Count;
-        Check(!Units.RequestGatherOil(derrick) && _commands.Count == before,
+        Check(!Units.RequestGatherAt(derrick) && _commands.Count == before,
             "Another player's allied worker cannot be ordered to extract oil");
         Invoke("SelectUnit", Worker(101));
         Receive("CONSTRUCTION 750 40 7");
         before = _commands.Count;
         Units.RequestContextOrder(derrick, derrick.GlobalPosition);
         Check(_commands.Count == before + 1 && _commands.Last() == "CONSTRUCT 750 101" &&
-            !Units.RequestGatherOil(derrick), "An unfinished derrick continues construction and cannot extract oil");
+            !Units.RequestGatherAt(derrick), "An unfinished derrick continues construction and cannot extract oil");
         Receive("CONSTRUCTION 750 100 7");
         Receive("BUILDING 7 751 2 8 5 0");
         Receive("BUILDING_VISION 751 1");
         Building enemy = Building(751);
         before = _commands.Count;
         Units.RequestContextOrder(enemy, enemy.GlobalPosition);
-        Check(_commands.Count == before + 1 && _commands.Last() == "ATTACK 751 101" && !Units.RequestGatherOil(enemy),
+        Check(_commands.Count == before + 1 && _commands.Last() == "ATTACK 751 101" && !Units.RequestGatherAt(enemy),
             "Enemy derricks retain attack context and cannot be harvested");
-        Check(!Units.RequestReturnResources(enemy) && !Units.RequestGatherOil(Building(502)),
+        Check(!Units.RequestReturnResources(enemy) && !Units.RequestGatherAt(Building(502)),
             "Extraction and dropoff reject unrelated building kinds");
 
         Units.SetSpectator(true);
         before = _commands.Count;
-        Check(!Units.RequestGatherOil(derrick) && !Units.RequestReturnResources(Building(500)) && _commands.Count == before,
+        Check(!Units.RequestGatherAt(derrick) && !Units.RequestReturnResources(Building(500)) && _commands.Count == before,
             "Spectators cannot send worker economy orders");
         Units.SetSpectator(false);
         Invoke("SelectUnit", Worker(101));
@@ -307,7 +310,7 @@ public partial class ConstructionSyncChecks : Main
         Check(_commands.Last() == "MOVE -4 -7 101", "Empty workers keep ordinary movement on completed dropoffs");
         Receive("REMOVE 750");
         before = _commands.Count;
-        Check(!Units.RequestGatherOil(derrick) && _commands.Count == before,
+        Check(!Units.RequestGatherAt(derrick) && _commands.Count == before,
             "Removed derricks cannot receive a stale gather request");
         Receive("REMOVE 751");
     }

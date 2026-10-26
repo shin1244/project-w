@@ -58,9 +58,9 @@ public partial class BakeSelectionPortraits : Node
                     foreach (bool enemy in new[] { false, true })
                         portraits.Add((unit == "FlameAutomaton" ? "flame-automaton" : "steam-artillery") + (enemy ? "-enemy" : ""),
                             GetPortrait(GD.Load<PackedScene>($"res://units/{unit}.tscn"), enemy: enemy));
-            foreach (string building in compactProductionOnly ? new[] { "Barracks", "Forge", "Workshop" } : workshopUnitsOnly ? System.Array.Empty<string>() : tierTwoOnly ? new[] { "Workshop", "ResearchLab" } : oilDerrickOnly ? new[] { "OilDerrick" } : storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" })
+            foreach (string building in compactProductionOnly ? new[] { "Barracks", "Forge", "Workshop" } : workshopUnitsOnly ? System.Array.Empty<string>() : tierTwoOnly ? new[] { "Workshop", "ResearchLab", "CoalDrill", "Tunnel" } : oilDerrickOnly ? new[] { "OilDerrick" } : storeOnly ? new[] { "Store" } : rangedOnly || heroOnly || soldiersOnly || inspectionOnly ? System.Array.Empty<string>() : defensesOnly ? new[] { "Fortress", "Tower" } : new[] { "TownHall", "Fortress", "Store", "Supply", "Barracks", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab", "CoalDrill", "Tunnel" })
                 foreach (bool enemy in new[] { false, true })
-                    portraits.Add($"{(building == "OilDerrick" ? "oil_derrick" : building == "ResearchLab" ? "research_lab" : building.ToLowerInvariant())}-{(enemy ? "enemy" : "ally")}",
+                    portraits.Add($"{building switch { "OilDerrick" => "oil_derrick", "ResearchLab" => "research_lab", "CoalDrill" => "coal_drill", _ => building.ToLowerInvariant() }}-{(enemy ? "enemy" : "ally")}",
                         GetPortrait(GD.Load<PackedScene>($"res://buildings/{building}.tscn"), true, enemy));
 
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
@@ -136,7 +136,7 @@ public partial class BakeSelectionPortraits : Node
         var camera = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal, Current = true,
-            Size = building ? buildingHeight * 1.5f : artillery ? 5.2f : beast ? 4.0f : golem ? 3.7f : unitHeight * .94f,
+            Size = building ? Mathf.Max(buildingHeight * 1.5f, 3f) : artillery ? 5.2f : beast ? 4.0f : golem ? 3.7f : unitHeight * .94f,
             Position = building ? new Vector3(7, 6, -10) : artillery ? new Vector3(5, 4, -7) : beast ? new Vector3(4.8f, 3.1f, -5) : new Vector3(2.4f, 2.5f, -5)
         };
         viewport.AddChild(camera);

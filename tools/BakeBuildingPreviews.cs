@@ -14,6 +14,7 @@ public partial class BakeBuildingPreviews : Node
             bool oilDerrickOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--oil-derrick-only") >= 0;
             bool tierTwoOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--tier-two-only") >= 0;
             bool compactProductionOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--compact-production-only") >= 0;
+            bool coalTunnelOnly = Array.IndexOf(OS.GetCmdlineUserArgs(), "--coal-drill-tunnel-only") >= 0;
             const string directory = "res://ui/build-previews";
             const int pixels = 512;
             DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath(directory));
@@ -22,7 +23,7 @@ public partial class BakeBuildingPreviews : Node
             main.Free();
             var catalog = new List<object>();
             var views = new List<(SubViewport Viewport, string Path)>();
-            foreach (string name in new[] { "Supply", "Barracks", "Store", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab" })
+            foreach (string name in new[] { "Supply", "Barracks", "Store", "Forge", "Tower", "OilDerrick", "Workshop", "ResearchLab", "CoalDrill", "Tunnel" })
             {
                 var viewport = new SubViewport
                 {
@@ -70,6 +71,7 @@ public partial class BakeBuildingPreviews : Node
                 {
                     BuildingCatalog.OilDerrick => "oil_derrick",
                     BuildingCatalog.ResearchLab => "research_lab",
+                    BuildingCatalog.CoalDrill => "coal_drill",
                     _ => name.ToLowerInvariant()
                 };
                 string path = $"{directory}/{key}.png";
@@ -85,6 +87,8 @@ public partial class BakeBuildingPreviews : Node
                     !item.Path.EndsWith("/forge.png", StringComparison.Ordinal) &&
                     !item.Path.EndsWith("/workshop.png", StringComparison.Ordinal)) continue;
                 if (storeOnly && !item.Path.EndsWith("/store.png", StringComparison.Ordinal)) continue;
+                if (coalTunnelOnly && !item.Path.EndsWith("/coal_drill.png", StringComparison.Ordinal) &&
+                    !item.Path.EndsWith("/tunnel.png", StringComparison.Ordinal)) continue;
                 if (oilDerrickOnly && !item.Path.EndsWith("/oil_derrick.png", StringComparison.Ordinal)) continue;
                 if (tierTwoOnly && !item.Path.EndsWith("/workshop.png", StringComparison.Ordinal) &&
                     !item.Path.EndsWith("/research_lab.png", StringComparison.Ordinal)) continue;

@@ -36,6 +36,8 @@
 [ext_resource type="PackedScene" path="res://ui/UnitInfoPanel.tscn" id="30_info"]
 [ext_resource type="Script" path="res://ui/MinionPanel.cs" id="31_minions"]
 [ext_resource type="PackedScene" path="res://resources/trees/Linden.tscn" id="35_linden"]
+[ext_resource type="PackedScene" path="res://buildings/CoalDrill.tscn" id="36_coal_drill"]
+[ext_resource type="PackedScene" path="res://buildings/Tunnel.tscn" id="37_tunnel"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -86,6 +88,8 @@ ForgeScene = ExtResource("27_forge")
 OilDerrickScene = ExtResource("32_oil_derrick")
 WorkshopScene = ExtResource("33_workshop")
 ResearchLabScene = ExtResource("34_research_lab")
+CoalDrillScene = ExtResource("36_coal_drill")
+TunnelScene = ExtResource("37_tunnel")
 
 [node name="Resources" type="Node3D" parent="."]
 script = ExtResource("13_resources")
@@ -199,19 +203,20 @@ Map = NodePath("../../Ground")
 Units = NodePath("../../Units")
 Buildings = NodePath("../../Buildings")
 
-[node name="SelectionDetails" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings")]
+[node name="SelectionDetails" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings", "Resources")]
 layout_mode = 3
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 300.0
 offset_top = -186.0
-offset_right = -216.0
+offset_right = -286.0
 grow_vertical = 0
 mouse_filter = 0
 script = ExtResource("21_details")
 Units = NodePath("../../Units")
 Buildings = NodePath("../../Buildings")
+Resources = NodePath("../../Resources")
 
 [node name="CommandPanel" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings")]
 layout_mode = 3
@@ -220,7 +225,7 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -216.0
+offset_left = -286.0
 offset_top = -216.0
 offset_right = 0.0
 offset_bottom = 0.0
@@ -242,7 +247,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 300.0
 offset_top = -186.0
-offset_right = -216.0
+offset_right = -286.0
 grow_vertical = 0
 mouse_filter = 2
 script = ExtResource("31_minions")

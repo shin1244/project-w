@@ -8,6 +8,7 @@ public partial class SelectionDetails : PanelContainer
 {
     [Export] public UnitManager Units;
     [Export] public BuildingManager Buildings;
+    [Export] public ResourceManager Resources;
     private readonly List<StyleBoxFlat> _styles = new();
     private readonly List<Unit> _selection = new();
     private readonly List<SelectionUnitCard> _cards = new();
@@ -28,6 +29,8 @@ public partial class SelectionDetails : PanelContainer
     private StyleBoxFlat _healthFill, _cardNormal, _cardHover, _cardPressed;
     private Button _previous, _next;
     private Building _building;
+    private ResourceNode _tree;
+    private PanelContainer _portraitFrame;
     private int _page, _columns = 1;
     private bool _ready;
 
@@ -79,6 +82,7 @@ public partial class SelectionDetails : PanelContainer
         portraitStyle.ContentMarginLeft = portraitStyle.ContentMarginTop = portraitStyle.ContentMarginRight = portraitStyle.ContentMarginBottom = 3;
         portraitFrame.AddThemeStyleboxOverride("panel", portraitStyle);
         _single.AddChild(portraitFrame);
+        _portraitFrame = portraitFrame;
         _portrait = new TextureRect
         {
             Name = "Portrait", ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -174,6 +178,7 @@ public partial class SelectionDetails : PanelContainer
             Buildings.SelectionChanged += RefreshSelection;
             Buildings.ProductionChanged += RefreshValues;
         }
+        if (GodotObject.IsInstanceValid(Resources)) Resources.SelectionChanged += RefreshSelection;
         Resized += RefreshColumns;
         _ready = true;
         RefreshColumns();
@@ -192,9 +197,12 @@ public partial class SelectionDetails : PanelContainer
             ? left.UnitId.CompareTo(right.UnitId) : left.UnitType.CompareTo(right.UnitType));
         _building = GodotObject.IsInstanceValid(Buildings) && Available(Buildings.SelectedBuilding)
             ? Buildings.SelectedBuilding : null;
+        _tree = _selection.Count == 0 && _building == null && GodotObject.IsInstanceValid(Resources) &&
+            Available(Resources.SelectedResource) ? Resources.SelectedResource : null;
         _page = Mathf.Clamp(_page, 0, PageCount - 1);
         bool multiple = _selection.Count > 1;
-        _empty.Visible = _selection.Count == 0 && _building == null;
+        _empty.Visible = _selection.Count == 0 && _building == null && _tree == null;
+        _portraitFrame.Visible = _tree == null;
         _single.Visible = !multiple && !_empty.Visible;
         _title.Visible = _single.Visible;
         _grid.Visible = multiple;
@@ -217,6 +225,11 @@ public partial class SelectionDetails : PanelContainer
                 bool enemy = GodotObject.IsInstanceValid(Units) && Units.DisplayTeam != 0 && _building.SideId != Units.DisplayTeam;
                 _title.Text = BuildingCatalog.Name(_building.BuildingType);
                 _portrait.Texture = _portraits.GetPortrait(Buildings.SceneFor(_building.BuildingType), enemy);
+            }
+            else if (_tree != null)
+            {
+                _title.Text = "나무";
+                _portrait.Texture = null;
             }
             else
             {
@@ -263,7 +276,10 @@ public partial class SelectionDetails : PanelContainer
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
             SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam
                 ? "일꾼을 선택하고 우클릭하여 이어 짓기" :
-                _building.BuildingType == BuildingCatalog.ResearchLab ? KnightResearchText(_building.SideId) : "");
+                _building.BuildingType == BuildingCatalog.ResearchLab ? KnightResearchText(_building.SideId) :
+                _building.SideId != Units.LocalTeam ? "" :
+                _building.BuildingType == BuildingCatalog.Tunnel ? TunnelText(_building) :
+                _building.BuildingType == BuildingCatalog.CoalDrill ? "일꾼 우클릭: 목재 채집 (줄지 않음)" : "");
             _extra.TooltipText = _building.BuildingType == BuildingCatalog.ResearchLab && Buildings.KnightResearch(_building.SideId) is KnightResearchSnapshot research
                 ? CommandPanel.KnightResearchDescription(research) : "";
             string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
@@ -273,7 +289,15 @@ public partial class SelectionDetails : PanelContainer
             SetText(_stats, StatsText(_building.Stats, false));
             RefreshProduction();
         }
+        else if (Available(_tree))
+        {
+            // A tree shows only what is left to gather; the server's TREE line keeps it current.
+            SetText(_healthText, $"남은 채집량   {_tree.Amount}");
+            _health.Visible = _activity.Visible = _extra.Visible = _stats.Visible = false;
+            return;
+        }
         else return;
+        _health.Visible = _stats.Visible = true;
         _activity.Visible = _activity.Text.Length > 0;
         _extra.Visible = _extra.Text.Length > 0;
         SetText(_healthText, $"체력   {HealthText(health)}");
@@ -281,6 +305,11 @@ public partial class SelectionDetails : PanelContainer
         Color color = HealthColor(health.Ratio);
         if (_healthFill.BgColor != color) _healthFill.BgColor = _healthFill.BorderColor = color;
     }
+
+    // The server's TUNNEL_LINK decides the pair; this only reads it.
+    private string TunnelText(Building tunnel) => Buildings.TunnelPartner(tunnel) == null
+        ? Units.CommanderControl ? "출구 없음 · Q: 출구 설치" : "출구 없음"
+        : "짝 땅굴 연결됨 · 유닛 우클릭: 짝 옆으로 이동 · 한쪽이 무너지면 함께 무너짐";
 
     private void RefreshProduction()
     {
@@ -473,6 +502,7 @@ public partial class SelectionDetails : PanelContainer
             Buildings.SelectionChanged -= RefreshSelection;
             Buildings.ProductionChanged -= RefreshValues;
         }
+        if (GodotObject.IsInstanceValid(Resources)) Resources.SelectionChanged -= RefreshSelection;
         Resized -= RefreshColumns;
         foreach (StyleBoxFlat style in _styles) style.Dispose();
         _styles.Clear();

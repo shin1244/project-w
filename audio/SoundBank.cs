@@ -81,7 +81,7 @@ public static class SoundBank
         return (space < 0 ? command : command[..space]) switch
         {
             "ATTACK" or "ATTACK_MOVE" => "order-attack",
-            "MOVE" or "GATHER" or "RETURN" or "BUILD" or "CONSTRUCT" or "STOP" or "HOLD" or "RALLY" or
+            "MOVE" or "GATHER" or "RETURN" or "BUILD" or "CONSTRUCT" or "STOP" or "HOLD" or "RALLY" or "TUNNEL" or
                 "PICKUP_CRATE" or "DELIVER_ITEM" or "NUGGET" or "TRIBUTE" => "order-move",
             _ => null
         };

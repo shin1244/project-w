@@ -39,7 +39,7 @@ public partial class BuildingManager
         {
             if (_localTeam == 0 || TeamTier(_localTeam).Tier < tier) return $"HQ {tier}티어 완료 필요";
         }
-        else if (type is BuildingCatalog.Workshop or BuildingCatalog.ResearchLab)
+        else if (BuildingCatalog.IsTierTwo(type))
             return "건설 조건 수신 대기";
         return RequirementBlockReason(_buildingRequirements, type);
     }

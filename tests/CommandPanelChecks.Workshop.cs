@@ -58,7 +58,7 @@ public partial class CommandPanelChecks
         Receive("TRAIN_DEF 6 8 29 7 1 8.5");
         before = _commands.Count;
         KeyStroke(input, Key.E);
-        Check(_slots[9].Text.StartsWith(UnitCatalog.Name(UnitCatalog.Refueler)) && _slots[9].Disabled && _commands.Count == before,
+        Check(Caption(9).StartsWith(UnitCatalog.Name(UnitCatalog.Refueler)) && _slots[9].Disabled && _commands.Count == before,
             "The refueler waits for a standing research lab");
         Receive("BUILDING 9 9302 1 -25 14 0");
         Check(!_slots[9].Disabled && _slots[9].TooltipText.Contains("기름 7"), "A research lab and the server's terms open the refueler");
@@ -88,7 +88,7 @@ public partial class CommandPanelChecks
         SelectBuilding(9301);
         before = _commands.Count;
         Units.RequestTrain(UnitCatalog.FlameAutomaton);
-        Check(_commands.Count == before && _slots[7].Text == "", "Enemy workshops expose no production controls");
+        Check(_commands.Count == before && Caption(7) == "", "Enemy workshops expose no production controls");
         SelectBuilding(9300);
         Units.CommanderControl = false;
         Units.RequestTrain(UnitCatalog.FlameAutomaton);
@@ -157,12 +157,12 @@ public partial class CommandPanelChecks
         before = _commands.Count;
         KeyStroke(input, Key.Z);
         Check(Commands.IsBuildMenuOpen && _commands.Count == before,
-            "Worker and artillery selection gives Z to construction without also sending SIEGE");
+            "Worker and artillery selection gives Z to the tier-one menu without also sending SIEGE");
         Commands.CancelMenu();
         SelectUnit(9203);
         Check(!Units.RequestSiege(true), "Another player's allied artillery cannot be toggled");
         SelectUnit(9204);
-        Check(!Units.RequestSiege(false) && _slots[1].Text == "", "Enemy mode remains inspectable without controls");
+        Check(!Units.RequestSiege(false) && Caption(1) == "", "Enemy mode remains inspectable without controls");
         SelectUnit(9201);
         Units.CommanderControl = false;
         Check(!Units.RequestSiege(true), "A non-commander cannot toggle owned artillery");

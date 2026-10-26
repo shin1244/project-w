@@ -111,6 +111,7 @@ public partial class Main : Node3D
         _playerInput = GetNode<PlayerInput>("PlayerInput");
         _playerInput.UnitClicked += SelectUnit;
         _playerInput.BuildingClicked += SelectBuilding;
+        _playerInput.ResourceClicked += SelectResource;
         _playerInput.SelectionCleared += ClearSelection;
         _playerInput.BoxSelectionRequested += SelectBox;
         _playerInput.ContextClicked += Units.RequestContextOrder;
@@ -123,11 +124,17 @@ public partial class Main : Node3D
         _playerInput.SkillTargetingChanged += ShowSkillRange;
         _playerInput.AttackTargetingChanged += OnAttackTargetingChanged;
         Units.SelectionChanged += RefreshAttackRanges;
+        Units.SelectionChanged += DropResourceSelection;
+        if (Buildings != null) Buildings.SelectionChanged += DropResourceSelection;
         _playerInput.ModifiedUnitSelectionRequested += ModifyUnitSelection;
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
         _playerInput.ControlGroupRequested += HandleControlGroup;
         _playerInput.CameraHomeRequested += FocusHome;
-        if (Commands != null) Commands.BuildRequested += BeginPlacement;
+        if (Commands != null)
+        {
+            Commands.BuildRequested += BeginPlacement;
+            Commands.TunnelExitRequested += BeginTunnelExit;
+        }
         if (Minions != null)
         {
             Minions.CommandRequested += SendMinionCommand;
@@ -144,6 +151,12 @@ public partial class Main : Node3D
     {
         _playerInput?.ResetInteraction();
         Placement?.Begin(type);
+    }
+
+    private void BeginTunnelExit(Building tunnel)
+    {
+        _playerInput?.ResetInteraction();
+        Placement?.BeginTunnelExit(tunnel);
     }
 
     private void SendMinionCommand(string command)
@@ -288,6 +301,22 @@ public partial class Main : Node3D
         Buildings?.SelectSingle(building);
     }
 
+    // A tree is only inspected: it takes no commands and joins no group.
+    private void SelectResource(ResourceNode tree)
+    {
+        if (LocalRole == PlayerRole.Hero) { UnitInfo?.Clear(); return; }
+        Units.ClearSelection();
+        Buildings?.ClearSelection();
+        Resources?.SelectSingle(tree);
+    }
+
+    // Any unit or building selection, however it was made, replaces an inspected tree.
+    private void DropResourceSelection()
+    {
+        if (Units.SelectedUnitIds.Count > 0 || Units.InspectedUnit != null || Buildings?.SelectedBuilding != null)
+            Resources?.ClearSelection();
+    }
+
     private void OnAttackTargetingChanged(bool active) => RefreshAttackRanges();
 
     private void ClearAttackRanges()
@@ -316,12 +345,14 @@ public partial class Main : Node3D
         UnitInfo?.Clear();
         Units.ClearSelection();
         Buildings?.ClearSelection();
+        Resources?.ClearSelection();
     }
 
     private void SelectBox(Rect2 rect)
     {
         if (LocalRole == PlayerRole.Hero) { UnitInfo?.Clear(); return; }
         Buildings?.ClearSelection();
+        Resources?.ClearSelection();
         Units.SelectBox(rect);
         if (Units.SelectedUnitIds.Count > 0) Sfx.Interface("select");
     }
@@ -537,6 +568,9 @@ public partial class Main : Node3D
                 break;
             case "RALLY":
                 Buildings?.HandleRally(parts);
+                break;
+            case "TUNNEL_LINK":
+                Buildings?.HandleTunnelLink(parts);
                 break;
             case "POS":
                 Units.HandlePosition(parts);
@@ -776,6 +810,7 @@ public partial class Main : Node3D
         if (role == PlayerRole.Hero)
         {
             Buildings?.ClearSelection();
+            Resources?.ClearSelection();
             Placement?.Cancel();
         }
         Units?.SetHeroControl(LocalHeroType);
@@ -892,7 +927,11 @@ public partial class Main : Node3D
         if (GodotObject.IsInstanceValid(Shop)) { Shop.CommandRequested-=SendCommand;Shop.RecallRequested-=RequestRecall; }
         _skillRange.Clear();
         ClearAttackRanges();
-        if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
+        if (GodotObject.IsInstanceValid(Commands))
+        {
+            Commands.BuildRequested -= BeginPlacement;
+            Commands.TunnelExitRequested -= BeginTunnelExit;
+        }
         if (GodotObject.IsInstanceValid(Minions))
         {
             Minions.CommandRequested -= SendMinionCommand;
@@ -902,6 +941,7 @@ public partial class Main : Node3D
         {
             _playerInput.UnitClicked -= SelectUnit;
             _playerInput.BuildingClicked -= SelectBuilding;
+            _playerInput.ResourceClicked -= SelectResource;
             _playerInput.SelectionCleared -= ClearSelection;
             _playerInput.BoxSelectionRequested -= SelectBox;
             _playerInput.ContextClicked -= Units.RequestContextOrder;
@@ -927,9 +967,11 @@ public partial class Main : Node3D
         if (GodotObject.IsInstanceValid(Units))
         {
             Units.SelectionChanged -= RefreshAttackRanges;
+            Units.SelectionChanged -= DropResourceSelection;
             Units.CommandRequested -= SendCommand;
             Units.PositionsRendered -= OnPositionsRendered;
         }
+        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged -= DropResourceSelection;
         if (_net != null)
         {
             _net.MessageReceived -= OnMessage;

@@ -7,6 +7,10 @@
 radius = 1.25
 height = 4.0
 
+[sub_resource type="StandardMaterial3D" id="NeutralSelection"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.06, 1)
+
 [node name="JungleTreant" instance=ExtResource("1_base")]
 UnitType = 401
 HealthBarHeight = 4.4
@@ -20,4 +24,5 @@ position = Vector3(0, 2.0, 0)
 shape = SubResource("Selection")
 
 [node name="SelectionRing" parent="." index="2"]
+material_override = SubResource("NeutralSelection")
 scale = Vector3(2.0, 1, 2.0)

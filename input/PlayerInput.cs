@@ -20,6 +20,7 @@ public partial class PlayerInput : Node
 	public event Action<int, bool, bool> ControlGroupRequested;
 	public event Action CameraHomeRequested;
 	public event Action<Building> BuildingClicked;
+	public event Action<ResourceNode> ResourceClicked;
 	public event Action SelectionCleared;
 	// target: Unit / Building / ResourceNode / TributeEventView / null(땅).
 	public event Action<Node3D, Vector3> ContextClicked;
@@ -445,7 +446,8 @@ public partial class PlayerInput : Node
 
 	private void HandleSelection(Vector3 origin, Vector3 direction, bool shift, bool sameType)
 	{
-		Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask);
+		// Trees are tall, so they are picked only when no unit or building is under the cursor.
+		Node3D target = FindTarget(origin, direction, SelectionMask | BuildingMask) ?? FindTarget(origin, direction, ResourceMask);
 		if (target is Unit unit)
 		{
 			if (shift || sameType) ModifiedUnitSelectionRequested?.Invoke(unit, shift, sameType);
@@ -453,6 +455,8 @@ public partial class PlayerInput : Node
 		}
 		else if (target is Building building && !shift)
 			BuildingClicked?.Invoke(building);
+		else if (target is ResourceNode tree && !shift)
+			ResourceClicked?.Invoke(tree);
 		else if (!shift)
 			SelectionCleared?.Invoke();
 	}

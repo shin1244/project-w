@@ -69,8 +69,9 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectUnit", Unit());
             Units.ToggleSelection(Unit(102));
             Units.ToggleSelection(Unit(201));
-            Check(Slot(1).Text == "건설(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
-                "Mixed selection with own workers exposes the tier-one menu instead of direct build buttons");
+            Check(((CommandSlot)Slot(1)).Caption == "1티어 건설(Z)" && ((CommandSlot)Slot(2)).Caption == "2티어 건설(X)" &&
+                !Slot(1).Disabled && !Slot(2).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
+                "Mixed selection with own workers exposes the two tier menus instead of direct build buttons");
             ChooseBuilding();
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
             Check(Placement.Active && Placement.CanPlace && Placement.PlacementPosition == new Vector3(-10.5f, 0, -3.5f),
@@ -184,12 +185,12 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", forge);
             Check(title.Text == "비허가 실험실", "Forge selection displays its synchronized name");
             Invoke("SelectUnit", Unit());
-            ChooseBuilding(6);
+            ChooseBuilding(10);
             before = _wire.Length;
             Click(-5.1f, 3.1f); // An even 2x2 footprint centres on a cell corner.
             Check(_commands.Count == 5 && _commands[4] == "BUILD 6 -5 3 101" && !Placement.Active &&
                 Encoding.UTF8.GetString(_wire.ToArray().AsSpan((int)before)) == "BUILD 6 -5 3 101" + System.Environment.NewLine,
-                "Tower uses D menu entry and sends its 2x2 grid-aligned footprint");
+                "Tower uses the R menu entry and sends its 2x2 grid-aligned footprint");
             Receive("BUILDING 6 506 1 6 -8 0");
             Check(Buildings.TryGetBuilding(506, out Building tower) && tower.BuildingType == BuildingCatalog.Tower &&
                 tower.GetMeta("footprint").AsVector2I() == new Vector2I(2, 2) && tower.IsDefense,

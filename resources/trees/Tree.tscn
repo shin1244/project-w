@@ -8,7 +8,7 @@ height = 3.8
 
 [sub_resource type="StandardMaterial3D" id="SelectionMaterial"]
 shading_mode = 0
-albedo_color = Color(0.25, 0.95, 0.75, 1)
+albedo_color = Color(1, 0.8, 0.06, 1)
 
 [sub_resource type="TorusMesh" id="SelectionMesh"]
 material = SubResource("SelectionMaterial")

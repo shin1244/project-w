@@ -12,26 +12,43 @@
 | `OilDerrick.tscn` | 7 | 4×4 | 약 6.64 | 목조 시추탑·X자 버팀대·도르래와 시추줄·증기기관 작업실 |
 | `Workshop.tscn` | 8 | 4×4 | 약 2.92 | 공장: 철골 유리 기계 조립동. 벽돌 아랫벽과 그을린 유리 띠·철골 유리 박공지붕과 진영색 채광탑·열린 정문 안에서 조립 중인 보행 차체·앞마당의 진영색 문형 크레인과 보일러·옆벽에서 도는 플라이휠·지붕 배관의 하얀 증기 |
 | `ResearchLab.tscn` | 9 | 4×4 | 약 4.77 | 기술연구소: 빛바랜 아카데미 천문대. 회백색 석회암 팔각 몸체·대리석 기둥 현관과 진영색 칠 문·청록빛이 희미한 아치 창·녹청이 흘러내린 구리 돔과 황동 망원경·금박 갈퀴에 물린 마력 결정 첨탑·창턱과 계단에 쌓인 먼지와 그 아래 때 자국·불꽃 튀는 테슬라 코일·천천히 도는 금박 혼천의 |
+| `CoalDrill.tscn` | 10 | 3×3 | 약 1.97 | 석탄 시추기: 무한궤도를 나무 쐐기로 고정한 증기 로드헤더. 경첩 붐이 들렸다가 징 박힌 절삭 드럼을 석탄층에 쿵쿵 내리치고(드럼은 돌며 불꽃), 등의 구리 띠 보일러 굴뚝에서 연기가 나며, 진영색 옆판·금박 명판, 옆에 쌓인 석탄 더미와 레일 위 석탄 수레 |
+| `Tunnel.tscn` | 11 | 2×2 | 약 1.34 | 땅굴: 리벳 철판 아치 후드 아래 어두운 갱도 입구, 진영색 칠을 한 후드 등판과 금박 쐐기돌·회사 명판, 어둠 속으로 들어가는 광차 레일, 입구 양옆 가스등, 뒤쪽 환기관의 흰 증기 |
 
 모두 루트 스케일은 1, 바닥은 Y=0, 모델 원본의 정면은 -Z입니다. 메시 원본을 다시 모델링하지 않고 Visual과 Turret의 스케일로 서버 크기에 맞춥니다. 인력 사무소·비허가 실험실은 높이와 깊이를 유지하면서 가로폭을 줄였으며, 공장은 기존 모델이 새 점유 영역 안에 들어옵니다. 선택용 Area3D는 물리 레이어 4(값 8), `footprint` 메타데이터는 표의 가로(X)·깊이(Z)입니다. 선택 원은 직사각형 대각선 길이에 맞춰 계산합니다.
 
 서버에 등록된 건물의 Visual은 플레이어 카메라의 수평 시선 방향을 향합니다. 같은 직교 카메라의 화면을 이동해도 건물마다 제각각 회전하지 않습니다. 서버 yaw는 Entrance 방향에 적용하며 루트와 점유 영역은 회전하지 않아 서버의 축 정렬 충돌 영역과 일치합니다. 대기 중인 Turret은 건물 정면을 따르고 공격 중에는 서버 대상에 맞춰 별도로 조준합니다. 서버에 연결하지 않는 모델 미리보기는 원래 정면과 회전 관찰 기능을 유지합니다.
 
-`BuildingCatalog`와 서버 `building_defs.go`는 HQ 0, 요새 1, 브랜치 2, 숙소 3, 인력 사무소 4, 비허가 실험실 5, 감시탑 6, 시추탑 7, 공장 8, 기술연구소 9 순서를 공유합니다. 건설 가능한 건물은 내 일꾼의 건설 메뉴에서 BUILD를 요청하고, 서버의 BUILDING/CONSTRUCTION 응답으로 부지와 진행률을 반영합니다.
+`BuildingCatalog`와 서버 `building_defs.go`는 HQ 0, 요새 1, 브랜치 2, 숙소 3, 인력 사무소 4, 비허가 실험실 5, 감시탑 6, 시추탑 7, 공장 8, 기술연구소 9, 석탄 시추기 10, 땅굴 11 순서를 공유합니다. 건설 가능한 건물은 내 일꾼의 건설 메뉴에서 BUILD를 요청하고, 서버의 BUILDING/CONSTRUCTION 응답으로 부지와 진행률을 반영합니다.
 
 표시 이름 `숙소`는 기존 `Supply.tscn`을 사용합니다. 브랜치의 기본 경로는 `buildings/Store.tscn`, `previews/Store.tscn`, `tools/build_store.gd`이며 이름 키는 `store`입니다. 비허가 실험실은 `buildings/Forge.tscn`, `previews/Forge.tscn`, `tools/build_forge.gd`와 `forge`를 사용합니다. 비허가 실험실은 인력 사무소와 같은 4×3이고 화덕의 불은 정적인 발광 메시입니다. 비용·공사·완공 외에 숙소 인구수와 HQ·인력 사무소 생산·취소·랠리도 연결되어 있습니다. 브랜치는 완공되면 같은 팀 일꾼의 목재·기름 반납 거점으로 사용됩니다. 모은 기름은 HQ 업그레이드에 사용합니다.
 
 건물은 장식을 포함해 하나의 ArrayMesh로 묶습니다. 재질의 `banner` 영역은 기존 건물과 동일하게 인스턴스별 진영색을 지원합니다. 브랜치는 HQ보다 가로·세로 한 칸 작은 4×4이며, 기본 Entrance는 (0,0,-2)에 있습니다. 완성된 건물의 체력바 위치는 전체 모델 높이 위에 있습니다.
 
-HQ는 [아트 디렉션](../docs/art-direction.md)의 첫 적용 대상입니다. `tools/build_town_hall.gd`가 본체를 한 메시로 묶고, 시계탑 양옆 톱니는 별도 `MeshInstance3D`(`visuals/SpinningPart.cs`)로 두어 계속 돌게 합니다. 굴뚝 연기는 `CPUParticles3D`입니다. 둘 다 `Visual` 아래에 있어 공사 중에는 숨고 진영색·안개 표시를 함께 따릅니다. 발사 위치 `Muzzle`은 시계탑 꼭대기입니다.
+HQ는 [아트 디렉션](../docs/art-direction.md)의 첫 적용 대상입니다. `tools/build_town_hall.gd`가 본체를 한 메시로 묶고, 시계탑 양옆 톱니는 별도 `MeshInstance3D`(`visuals/SpinningPart.cs`)로 두어 돌게 합니다. 굴뚝 연기는 `CPUParticles3D`입니다. 둘 다 `Visual` 아래에 있어 공사 중에는 숨고 진영색·안개 표시를 함께 따릅니다. 발사 위치 `Muzzle`은 시계탑 꼭대기입니다.
 
 ![HQ: 도는 톱니와 굴뚝 연기](../docs/images/town-hall-steampunk.gif)
 
-비허가 실험실의 증기 해머는 `visuals/ReciprocatingPart.cs`로 천천히 들렸다가 빠르게 떨어지고, 용광로 연기는 HQ와 같은 파티클입니다. 브랜치 굴뚝에도 같은 연기가 납니다. 움직이는 부품은 모두 `Visual` 아래에 있어 공사 중에는 숨습니다.
+비허가 실험실의 증기 해머는 `visuals/ReciprocatingPart.cs`로 천천히 들렸다가 빠르게 떨어지고(석탄 시추기의 붐은 같은 부품의 `Swing`으로 경첩을 중심으로 들렸다 내리칩니다), 용광로 연기는 HQ와 같은 파티클입니다. 브랜치 굴뚝에도 같은 연기가 납니다. 움직이는 부품은 모두 `Visual` 아래에 있어 공사 중에는 숨습니다.
 
 ![비허가 실험실: 내리치는 증기 해머](../docs/images/arsenal-steam-hammer.gif)
 
-HQ 기본 Entrance는 (0,0,-2.5)에 있습니다. 중심이 현재 본진 좌표 (-65,0), (65,0)이므로 서버 충돌도 중심 ±2.5의 5×5입니다. 서버의 일꾼 생성 위치와 자원 반납 위치는 이 크기로 계산합니다.
+생산·연구하는 건물(HQ, 인력 사무소, 공장, 비허가 실험실, 기술연구소)의 `Visual` 아래 톱니·해머·`CPUParticles3D`(연기·증기·불꽃)는 그 건물이 일할 때만 움직입니다(`Building.SetWorking`, `BuildingManager.Work.cs`). 일하는 상태는 서버 메시지로만 정합니다. 인력 사무소에는 아직 움직이는 부품이 없습니다.
+
+| 건물 | 일하는 상태 |
+| --- | --- |
+| HQ | `QUEUE`에 일꾼이 있거나, `TEAM_TIER`의 HQ ID가 이 건물이고 업그레이드 중 |
+| 인력 사무소·공장 | `QUEUE`에 생산할 유닛이 있음 |
+| 비허가 실험실 | `ARMY_UPGRADE`의 공격력·체력 연구 중 하나가 이 건물에서 진행 중 |
+| 기술연구소 | `KNIGHT_RESEARCH`의 연구소 ID가 이 건물 |
+
+- `QUEUE`는 우리 팀 건물만 받습니다. 적 건물과 관전 화면은 연구·HQ 업그레이드(양 팀 공개)에만 움직이고, 생산 중인지는 드러나지 않습니다.
+- 멈출 때 톱니는 `RampSeconds` 동안 서서히 서고, 해머는 내리치던 한 번을 마친 뒤 바닥에 멈추며, 연기는 새로 나오지 않고 남은 것만 흩어집니다. 다시 켜면 톱니는 같은 시간 동안 빨라지고, 해머는 바닥에서 다시 들리고, 연기는 굴뚝에서 새로 피어오릅니다(`Preprocess`를 끄므로 한꺼번에 나타나지 않음). 건물이 처음 나타날 때는 바로 그 상태로 맞춥니다.
+- 역할·맵이 바뀌어 팀 상태를 지우면 모두 멈추고, 다음 스냅샷으로 다시 맞춥니다.
+- 요새·브랜치·숙소·땅굴의 연기와 감시탑 탐조등, 석탄 시추기의 붐·드럼·불꽃·연기, 서버에 연결하지 않는 미리보기는 지금처럼 계속 움직입니다.
+- 상태 동기화는 `./tests/run.ps1 -Check CommandPanelChecks`가 서버 메시지를 주입해 확인합니다.
+
+HQ 기본 Entrance는 (0,0,-2.5)에 있습니다. 중심이 현재 본진 좌표 (-66,0), (66,0)이므로 서버 충돌도 중심 ±2.5의 5×5입니다. 서버의 일꾼 생성 위치와 자원 반납 위치는 이 크기로 계산합니다.
 
 기존 석조 망루는 `Fortress.tscn`으로 분리하고 선택창에서 `요새`로 표시하며 현재 크기는 4×4입니다. 기존 서버 타입 1과 배치·전투 방식은 유지합니다. `Tower.tscn`은 유저 건설용인 타입 6의 2×2 철골 감시탑입니다. 요새는 시작 전용 건물로 건설 메뉴에 넣지 않습니다.
 
@@ -40,6 +57,8 @@ HQ 기본 Entrance는 (0,0,-2.5)에 있습니다. 중심이 현재 본진 좌표
 서버는 `maps/test.json`의 `towers` 위치에 양 팀의 시작 요새를 생성합니다. 서버와 클라이언트에는 같은 맵 JSON을 바이트 그대로 배포하며, 접속 시 SHA-256을 비교합니다. 클라이언트는 `towers`로 건물을 자체 생성하지 않고 서버 스냅샷을 기다립니다.
 
 ![4×4 브랜치 모델 미리보기](../docs/images/store-preview.png)
+
+![땅굴(왼쪽)과 석탄 시추기(오른쪽)](../docs/images/coal-drill-tunnel-preview.png)
 
 ## 영어 이름 추천
 
@@ -158,11 +177,15 @@ Godot --headless --path . --script tools/build_store.gd
 Godot --headless --path . --script tools/build_barracks.gd
 Godot --headless --path . --script tools/build_forge.gd
 Godot --headless --path . --script tools/build_oil_derrick.gd
+Godot --headless --path . --script tools/build_coal_drill.gd
+Godot --headless --path . --script tools/build_tunnel.gd
 Godot --path . res://tools/BakeBuildingPreviews.tscn
 Godot --path . res://tools/BakeSelectionPortraits.tscn -- --defenses-only
 ```
 
 시추탑 이미지만 갱신하려면 두 베이크 도구에 `-- --oil-derrick-only`를 전달합니다. 배치 PNG와 `catalog.json`, 아군·적군 선택 초상화를 함께 저장합니다.
+
+석탄 시추기·땅굴의 배치 이미지만 갱신하려면 `BakeBuildingPreviews.tscn -- --coal-drill-tunnel-only`를, 초상화는 `BakeSelectionPortraits.tscn -- --tier-two-only`(공장·기술연구소도 함께 다시 저장)를 씁니다.
 
 인력 사무소·비허가 실험실·공장만 갱신하려면 두 베이크 도구에 `-- --compact-production-only`를 전달합니다. 다른 건물·유닛의 PNG는 다시 저장하지 않습니다.
 

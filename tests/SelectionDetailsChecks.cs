@@ -141,6 +141,7 @@ public partial class SelectionDetailsChecks : Main
             Check(portrait.Texture != enemyPortrait, "Team changes still update the selected building's portrait colors");
             Receive("REMOVE 202");
             Check(!Single.Visible, "Building destruction clears details");
+            await CheckTreeInspection();
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single());
             Receive("WELCOME 7 2 HERO 200");
             Receive("EXP 3 40 200");
@@ -166,7 +167,7 @@ public partial class SelectionDetailsChecks : Main
             Check(_details.FindChildren("*", "SubViewport", true, false).Count == 0 &&
                 _details.FindChildren("*", "Node3D", true, false).Count == 0,
                 "Unit and building selections never create portrait viewports, models, lights or cameras");
-            GD.Print("PASS: selection details, live HP/STATE, 64-unit paging, real GUI click/Shift/Ctrl, input isolation, building details, ownership/team/removal/HIDE/reset/disconnect");
+            GD.Print("PASS: selection details, live HP/STATE, 64-unit paging, real GUI click/Shift/Ctrl, input isolation, building details, ownership/team/removal/HIDE/reset/disconnect, tree inspection");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }

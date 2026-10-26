@@ -9,118 +9,118 @@
 
 [sub_resource type="Curve3D" id="Curve3D_mce3o"]
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -65, 0.06, 0, 0, 0, 0, 0, 0, 0, -58, 0.06, -14, 0, 0, 0, 0, 0, 0, -47, 0.06, -24, 0, 0, 0, 0, 0, 0, -20, 0.06, -29, 0, 0, 0, 0, 0, 0, 0, 0.06, -30, 0, 0, 0, 0, 0, 0, 20, 0.06, -29, 0, 0, 0, 0, 0, 0, 47, 0.06, -24, 0, 0, 0, 0, 0, 0, 58, 0.06, -14, 0, 0, 0, 0, 0, 0, 65, 0.06, 0),
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -66, 0.06, 0, 0, 0, 0, 0, 0, 0, -59, 0.06, -15, 0, 0, 0, 0, 0, 0, -48, 0.06, -25, 0, 0, 0, 0, 0, 0, -21, 0.06, -30, 0, 0, 0, 0, 0, 0, 0, 0.06, -31, 0, 0, 0, 0, 0, 0, 21, 0.06, -30, 0, 0, 0, 0, 0, 0, 48, 0.06, -25, 0, 0, 0, 0, 0, 0, 59, 0.06, -15, 0, 0, 0, 0, 0, 0, 66, 0.06, 0),
 "tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
 }
 point_count = 9
 
 [sub_resource type="Curve3D" id="Curve3D_52sae"]
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -65, 0.06, 0, 0, 0, 0, 0, 0, 0, -58, 0.06, 14, 0, 0, 0, 0, 0, 0, -47, 0.06, 24, 0, 0, 0, 0, 0, 0, -20, 0.06, 29, 0, 0, 0, 0, 0, 0, 0, 0.06, 30, 0, 0, 0, 0, 0, 0, 20, 0.06, 29, 0, 0, 0, 0, 0, 0, 47, 0.06, 24, 0, 0, 0, 0, 0, 0, 58, 0.06, 14, 0, 0, 0, 0, 0, 0, 65, 0.06, 0),
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -66, 0.06, 0, 0, 0, 0, 0, 0, 0, -59, 0.06, 15, 0, 0, 0, 0, 0, 0, -48, 0.06, 25, 0, 0, 0, 0, 0, 0, -21, 0.06, 30, 0, 0, 0, 0, 0, 0, 0, 0.06, 31, 0, 0, 0, 0, 0, 0, 21, 0.06, 30, 0, 0, 0, 0, 0, 0, 48, 0.06, 25, 0, 0, 0, 0, 0, 0, 59, 0.06, 15, 0, 0, 0, 0, 0, 0, 66, 0.06, 0),
 "tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0)
 }
 point_count = 9
 
-[node name="SymmetricArena" type="Node3D" unique_id=1476435882]
-metadata/dimensions = Vector2(168, 128)
-metadata/origin = Vector2(-84, -64)
+[node name="SymmetricArena" type="Node3D" unique_id=318056290]
+metadata/dimensions = Vector2(170, 130)
+metadata/origin = Vector2(-85, -65)
 metadata/symmetry = "180-degree rotation around the map center"
 metadata/lane_width = 12.0
 metadata/note = "R: walkable stone road, no construction. .: buildable grass. T: harvestable forest."
 
-[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=247845299]
+[node name="TerrainSurface" type="MeshInstance3D" parent="." unique_id=430770220]
 mesh = ExtResource("1_4tr71")
 
-[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=1703890255]
+[node name="TerrainCollision" type="StaticBody3D" parent="." unique_id=1647826954]
 
-[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=1449772415]
+[node name="SurfaceShape" type="CollisionShape3D" parent="TerrainCollision" unique_id=1241542166]
 shape = ExtResource("2_bl1xj")
 
-[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=479901513]
+[node name="OuterCliffs" type="MeshInstance3D" parent="." unique_id=1510783349]
 mesh = ExtResource("3_c2cab")
 
-[node name="OuterWalls" type="MeshInstance3D" parent="." unique_id=1242817816]
+[node name="OuterWalls" type="MeshInstance3D" parent="." unique_id=1622661264]
 mesh = ExtResource("4_tfbba")
 
-[node name="WallCollision" type="StaticBody3D" parent="." unique_id=1507050043]
+[node name="WallCollision" type="StaticBody3D" parent="." unique_id=137889816]
 
-[node name="WallShape" type="CollisionShape3D" parent="WallCollision" unique_id=1016020335]
+[node name="WallShape" type="CollisionShape3D" parent="WallCollision" unique_id=1914002262]
 shape = ExtResource("5_68mwa")
 
-[node name="OilfieldTerrain" type="Node3D" parent="." unique_id=2129796560]
+[node name="OilfieldTerrain" type="Node3D" parent="." unique_id=1862174915]
 
 [node name="west_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1478115429 instance=ExtResource("6_75wv2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, 0)
 
-[node name="east_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1648690167 instance=ExtResource("6_75wv2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 0, 0)
+[node name="east_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=511571255 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 0)
 
-[node name="northwest_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=1760396778 instance=ExtResource("6_75wv2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0, -42)
+[node name="northwest_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=531195172 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 0, -43)
 
-[node name="southeast_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=571383170 instance=ExtResource("6_75wv2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, 42)
+[node name="southeast_oilfield" type="Node3D" parent="OilfieldTerrain" unique_id=765092343 instance=ExtResource("6_75wv2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, 43)
 
-[node name="LayoutGuides" type="Node3D" parent="." unique_id=519218748]
+[node name="LayoutGuides" type="Node3D" parent="." unique_id=1180020290]
 
-[node name="center_event" type="Marker3D" parent="LayoutGuides" unique_id=1473977141]
+[node name="center_event" type="Marker3D" parent="LayoutGuides" unique_id=182281923]
 metadata/kind = "event"
 metadata/radii = Vector2(9, 9)
 
-[node name="jungle_nw" type="Marker3D" parent="LayoutGuides" unique_id=1282797487]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, -13)
+[node name="jungle_nw" type="Marker3D" parent="LayoutGuides" unique_id=833458530]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -14)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="jungle_ne" type="Marker3D" parent="LayoutGuides" unique_id=386560325]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, -13)
+[node name="jungle_ne" type="Marker3D" parent="LayoutGuides" unique_id=668731939]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -14)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="jungle_sw" type="Marker3D" parent="LayoutGuides" unique_id=906816447]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0, 13)
+[node name="jungle_sw" type="Marker3D" parent="LayoutGuides" unique_id=816858248]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 14)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="jungle_se" type="Marker3D" parent="LayoutGuides" unique_id=1841372452]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0, 13)
+[node name="jungle_se" type="Marker3D" parent="LayoutGuides" unique_id=201964670]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 14)
 metadata/kind = "jungle"
 metadata/radii = Vector2(7, 6)
 
-[node name="team1_spawn" type="Marker3D" parent="LayoutGuides" unique_id=1357992375]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76, 0, 0)
+[node name="team1_spawn" type="Marker3D" parent="LayoutGuides" unique_id=1680773897]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77, 0, 0)
 metadata/kind = "spawn"
 metadata/radii = Vector2(5, 5)
 
-[node name="team2_spawn" type="Marker3D" parent="LayoutGuides" unique_id=675544683]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76, 0, 0)
+[node name="team2_spawn" type="Marker3D" parent="LayoutGuides" unique_id=1860185421]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77, 0, 0)
 metadata/kind = "spawn"
 metadata/radii = Vector2(5, 5)
 
-[node name="team1_expansion" type="Marker3D" parent="LayoutGuides" unique_id=853882516]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0, -37)
+[node name="team1_expansion" type="Marker3D" parent="LayoutGuides" unique_id=1693064143]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 0, -38)
 metadata/kind = "expansion"
 
-[node name="team2_expansion" type="Marker3D" parent="LayoutGuides" unique_id=1759772768]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, 37)
+[node name="team2_expansion" type="Marker3D" parent="LayoutGuides" unique_id=1982811890]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, 38)
 metadata/kind = "expansion"
 
-[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=1042211406]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 0, 0)
+[node name="BlueSpawn" type="Marker3D" parent="LayoutGuides" unique_id=561478209]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0, 0)
 
-[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=863146199]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, 0)
+[node name="RedSpawn" type="Marker3D" parent="LayoutGuides" unique_id=180641253]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 0, 0)
 
-[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=2054310223]
+[node name="Center" type="Marker3D" parent="LayoutGuides" unique_id=2066018942]
 
-[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=2058122626]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, 13)
+[node name="BlueResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=2062545605]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, 14)
 
-[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=165616746]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 0, 13)
+[node name="RedResourceArea" type="Marker3D" parent="LayoutGuides" unique_id=1697440975]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 14)
 
-[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=905228626]
+[node name="TopLane" type="Path3D" parent="LayoutGuides" unique_id=870779171]
 curve = SubResource("Curve3D_mce3o")
 
-[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=2132518403]
+[node name="BottomLane" type="Path3D" parent="LayoutGuides" unique_id=826871883]
 curve = SubResource("Curve3D_52sae")
