@@ -199,7 +199,7 @@ Map = NodePath("../../Ground")
 Units = NodePath("../../Units")
 Buildings = NodePath("../../Buildings")
 
-[node name="SelectionDetails" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings")]
+[node name="SelectionDetails" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings", "Resources")]
 layout_mode = 3
 anchor_top = 1.0
 anchor_right = 1.0
@@ -212,6 +212,7 @@ mouse_filter = 0
 script = ExtResource("21_details")
 Units = NodePath("../../Units")
 Buildings = NodePath("../../Buildings")
+Resources = NodePath("../../Resources")
 
 [node name="CommandPanel" type="PanelContainer" parent="SelectionUI" node_paths=PackedStringArray("Units", "Buildings")]
 layout_mode = 3

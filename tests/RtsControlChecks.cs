@@ -236,6 +236,7 @@ public partial class RtsControlChecks : Main
             Check(_commands.Count == 1, "Disconnect disables stale group recalls and minimap commands");
 
             typeof(NetClient).GetField("_writer", Private).SetValue(net, writer);
+            await CheckTreeClicks();
             await CheckAosControls();
             await CheckGolemSkills();
             await CheckCameraNavigation();
@@ -244,7 +245,7 @@ public partial class RtsControlChecks : Main
             await CheckWolfWE();
             await CheckMinionFormation(wire);
 
-            GD.Print("PASS: RTS selection/groups/minimap; edge pan and Space hero/base focus; AOS control/inspection, ownership/death/respawn/resync and role changes");
+            GD.Print("PASS: RTS selection/groups/minimap/tree inspection; edge pan and Space hero/base focus; AOS control/inspection, ownership/death/respawn/resync and role changes");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }

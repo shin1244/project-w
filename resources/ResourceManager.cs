@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 // 서버 자원 ID로 나무를 관리합니다. 채집과 통행 판정은 서버에서 처리합니다.
@@ -10,6 +11,8 @@ public partial class ResourceManager : Node3D
     [Export] public PackedScene LindenScene;
 
     private readonly Dictionary<uint, ResourceNode> _resources = new();
+    public ResourceNode SelectedResource { get; private set; }
+    public event Action SelectionChanged;
 
     public void Clear()
     {
@@ -19,6 +22,21 @@ public partial class ResourceManager : Node3D
 
     public bool TryGetResource(uint id, out ResourceNode resource)
         => _resources.TryGetValue(id, out resource);
+
+    // 나무는 정보 확인만 하는 선택입니다. 다 베여 사라지면(Remove) 선택도 풀립니다.
+    public void SelectSingle(ResourceNode resource)
+    {
+        if (resource != null && (!_resources.TryGetValue(resource.ResourceId, out ResourceNode known) ||
+            known != resource || resource.Amount <= 0))
+            resource = null;
+        if (resource == SelectedResource) return;
+        SelectedResource?.SetSelected(false);
+        SelectedResource = resource;
+        resource?.SetSelected(true);
+        SelectionChanged?.Invoke();
+    }
+
+    public void ClearSelection() => SelectSingle(null);
 
     // 서버 메시지 형식과 독립적인 생성/갱신 진입점입니다. Y도 서버/맵 좌표를 그대로 씁니다.
     public ResourceNode SpawnOrUpdate(uint id, uint visualVariant, Vector3 position)
@@ -80,5 +98,8 @@ public partial class ResourceManager : Node3D
         resource.SetSelected(false);
         RemoveChild(resource);
         resource.QueueFree();
+        if (resource != SelectedResource) return;
+        SelectedResource = null;
+        SelectionChanged?.Invoke();
     }
 }
