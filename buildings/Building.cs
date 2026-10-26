@@ -26,6 +26,9 @@ public partial class Building : Node3D
     public IReadOnlyList<ProductionJob> ProductionJobs { get; private set; } = Array.Empty<ProductionJob>();
     public int ProductionPercent { get; private set; }
     public bool IsProducer => BuildingType is BuildingCatalog.TownHall or BuildingCatalog.Barracks or BuildingCatalog.Workshop;
+    // 생산·연구하는 건물입니다. 이 건물의 톱니·해머·연기·불꽃은 일할 때만 움직입니다(SetWorking).
+    public bool IsWorkplace => IsProducer || BuildingType is BuildingCatalog.Forge or BuildingCatalog.ResearchLab;
+    public bool IsWorking { get; private set; } = true;
     public RallySnapshot? Rally { get; internal set; }
     public bool CanTrain(uint type) => BuildingType == BuildingCatalog.TownHall ? type == 0 :
         BuildingType == BuildingCatalog.Barracks && UnitCatalog.IsBarracksUnit(type) ||
@@ -61,6 +64,8 @@ public partial class Building : Node3D
     private Marker3D _entrance;
     private Vector3 _entranceOffset;
     private readonly HashSet<MeshInstance3D> _shotEffects = new();
+    private readonly List<Node> _workParts = new();
+    private bool _workApplied;
 
     public override void _Ready()
     {
@@ -69,6 +74,8 @@ public partial class Building : Node3D
         _completedVisualVisible = _visual.Visible;
         _teamMaterials = new TeamMaterials((MeshInstance3D)_visual);
         _teamMaterials.Apply(SideId, _localTeam);
+        foreach (Node part in _visual.FindChildren("*", "", true, false))
+            if (part is SpinningPart or ReciprocatingPart or CpuParticles3D) _workParts.Add(part);
         _turret = GetNodeOrNull<Node3D>("Turret");
         _completedTurretVisible = _turret?.Visible ?? false;
         _ballista = GetNodeOrNull<Node3D>("Turret/Ballista");
@@ -85,6 +92,27 @@ public partial class Building : Node3D
         }
         SetProcess(BuildingId != 0);
         if (IsUnderConstruction) UpdateConstructionVisuals();
+    }
+
+    // 서버 건물만 BuildingManager가 부릅니다. 미리보기처럼 부르지 않은 건물은 계속 움직입니다.
+    // 처음에는 바로 맞추고, 그 뒤로는 톱니가 서서히 서고 해머는 내리치던 것을 마치며 연기는 남은 것이 흩어집니다.
+    public void SetWorking(bool working)
+    {
+        if (_workApplied && IsWorking == working) return;
+        bool instant = !_workApplied;
+        _workApplied = true;
+        IsWorking = working;
+        foreach (Node part in _workParts)
+            switch (part)
+            {
+                case SpinningPart gear: gear.SetRunning(working, instant); break;
+                case ReciprocatingPart hammer: hammer.SetRunning(working, instant); break;
+                case CpuParticles3D smoke:
+                    // 다시 켤 때 미리 채운 연기가 한꺼번에 나타나지 않고 굴뚝에서 피어오르게 합니다.
+                    if (!instant) smoke.Preprocess = 0;
+                    smoke.Emitting = working;
+                    break;
+            }
     }
 
     public void SetSelected(bool selected)

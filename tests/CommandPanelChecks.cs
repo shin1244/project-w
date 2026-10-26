@@ -186,8 +186,9 @@ public partial class CommandPanelChecks : Main
             Check(Buildings.CommanderWood == 0 && Buildings.CommanderOil == 0 && !Buildings.TeamTier(2).HasUpgradeTerms,
                 "Disconnect clears upgrade terms and balances");
             CheckNoWorkerTrain("Disconnect prevents requests using stale identity or hall selection");
+            CheckBuildingWork();
 
-            GD.Print("PASS: production/construction commands, cancellation ownership, server-defined town hall wood/oil terms, insufficient-resource gates, legacy snapshots, progress, removal and reconnect");
+            GD.Print("PASS: production/construction commands, cancellation ownership, server-defined town hall wood/oil terms, insufficient-resource gates, legacy snapshots, progress, removal, reconnect and production/research building motion");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PushError(error.ToString()); GetTree().Quit(1); }

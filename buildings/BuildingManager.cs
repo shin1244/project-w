@@ -59,6 +59,7 @@ public partial class BuildingManager : Node3D
                 building.Rally = null;
             }
         }
+        RefreshWork();
         RefreshRally();
         RequirementsChanged?.Invoke();
     }
@@ -114,6 +115,7 @@ public partial class BuildingManager : Node3D
                     existing.Rally = null;
                 }
                 existing.ApplySnapshot(id, sideId, x, z, yaw);
+                UpdateWork(existing);
                 LayoutVersion++;
                 if (_selected == existing) RefreshRally();
                 if (selectedSideChanged) SelectionChanged?.Invoke();
@@ -137,6 +139,7 @@ public partial class BuildingManager : Node3D
         // Prevent even one frame of an unconfirmed enemy model/health bar.
         building.Visible = sideId == _localTeam || VisibilityCheck == null || VisibilityCheck(building);
         _buildings.Add(id, building);
+        UpdateWork(building);
         LayoutVersion++;
         RequirementsChanged?.Invoke();
     }
@@ -186,6 +189,7 @@ public partial class BuildingManager : Node3D
         foreach (uint type in snapshot.UnitTypes)
             if (!building.CanTrain(type)) return;
         if (building.ApplyProduction(snapshot) && _selected == building) ProductionChanged?.Invoke();
+        UpdateWork(building);
     }
 
     public void HandleRemove(string[] parts)

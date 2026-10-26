@@ -16,6 +16,7 @@ public partial class BuildingManager
     {
         if (!TeamTierSnapshot.TryParse(parts, out var state)) return;
         _teamTiers[state.Team] = state;
+        RefreshWork();
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }
@@ -26,6 +27,7 @@ public partial class BuildingManager
     {
         if (!ArmyUpgradeSnapshot.TryParse(parts, out var state)) return;
         _armyUpgrades[state.Team] = state;
+        RefreshWork();
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }
@@ -59,6 +61,7 @@ public partial class BuildingManager
         CommanderOil = 0;
         CommanderSupplyUsed = CommanderSupplyLimit = 0;
         HasCommanderSupply = false;
+        RefreshWork();
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }

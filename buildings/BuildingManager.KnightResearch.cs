@@ -9,6 +9,7 @@ public partial class BuildingManager
     {
         if (!KnightResearchSnapshot.TryParse(parts, out var state)) return;
         _knightResearch[state.Team] = state;
+        RefreshWork();
         RequirementsChanged?.Invoke();
         ProductionChanged?.Invoke();
     }

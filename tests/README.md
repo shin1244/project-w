@@ -23,7 +23,7 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | --- | --- | --- |
 | Smoke (기본) | MapSync, UnitScene, CommandPanel, Stock | 여러 핵심 흐름을 간단히 확인할 때 |
 | Units | UnitScene, Interpolation, MinionSync, RecoveryClient, SupportUpdate | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간, 사령관·상점·귀환, 마석 슬롯 추가 |
-| Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시 |
+| Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시, 생산·연구 중 톱니·연기 |
 | World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·마석 이벤트·공성추 |
 | UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator, Sound | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀·효과음 |
 | Network | NetClient, Reconnect | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달·마지막 `LEAVE` 전송, 경기 중 끊김의 제자리 재접속·무응답 감지·AI 대행 팀원 표시·방의 경기 복귀 제안 |
