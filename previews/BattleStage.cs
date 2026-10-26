@@ -12,7 +12,10 @@ using System.Text.Json;
 // march in formation, melee units split the ring around their target into attack slots, wait one
 // ring further out or switch to an enemy with room, allies push apart and enemies block.
 // Scenes 1-3 are battles; 4-6 add a short script each (an item crate carried to a hero, a magic stone
-// channel broken by fire, a siege on an HQ) on top of the same simulation.
+// channel broken by fire, a siege on an HQ) on top of the same simulation. Armies stay small so melee
+// rings do not knot. Steam artillery stands behind its army, deploys into siege mode and shells the
+// thickest knot of enemies; the shell lands after its flight and hits everyone within the server's
+// blast radius (workshop_units.go). Kills send the server's DEATH cause (death_cause.go).
 // F6 plays the six scenes in a loop. `-- --capture=DIR` records each scene's frames as JPGs, and
 // `--scenes=4,5,6` limits either to those scenes.
 public partial class BattleStage : Main
@@ -24,6 +27,9 @@ public partial class BattleStage : Main
     private const float AvoidanceMargin = .3f, SeparationWeight = 2, SidestepWeight = .6f, SlowRadius = .5f;
     private const float SlotJitter = .5f, StuckTime = 1, SlotStall = 2;
     private const int SlotSweep = 48;
+    // Deployed artillery as the server has it (workshop_units.go): blast radius, minimum range, transition.
+    private const float BlastRadius = 2, GunMinRange = 4;
+    private const uint DeployTicks = TickRate * 2;
     private static readonly MethodInfo Receive = typeof(Main).GetMethod("OnMessage", BindingFlags.Instance | BindingFlags.NonPublic);
 
     private enum SlotKind { None, Fixed, Ring, Wait, Hold }
@@ -45,7 +51,8 @@ public partial class BattleStage : Main
         public float Hp, MaxHp, Speed, MarchSpeed, Range, Radius, Interval, Damage, Cooldown, Stride, SlotStill;
         public Fighter Target;
         public Slot Slot;
-        public uint StalledUntil;
+        public uint StalledUntil, DeployAt;
+        public string Cause; // DEATH cause of the killing hit
         public string Activity = "IDLE", SentActivity = "";
         public uint SentFocus, SentSwing;
         public float SentHp;
@@ -62,6 +69,8 @@ public partial class BattleStage : Main
     }
 
     private readonly record struct Body(Vector2 Pos, float Radius, uint Team, bool Blocks);
+    // A siege shell in flight: it lands on the target (or where it stood) when the client's shell does.
+    private readonly record struct Shell(Fighter Gun, Fighter Target, Vector2 At, float Damage, uint Due);
 
     // Bodies around one target this tick: units that took a spot, and everyone else close by.
     private sealed class Ring
@@ -71,6 +80,7 @@ public partial class BattleStage : Main
     }
 
     private readonly List<Fighter> _fighters = new();
+    private readonly List<Shell> _shells = new();
     private readonly Dictionary<uint, (Vector2 Pos, uint Team)> _towers = new();
     private readonly Dictionary<uint, Ring> _rings = new();
     private readonly Dictionary<uint, (uint Id, Vector2 Pos)> _bases = new();
@@ -151,29 +161,32 @@ public partial class BattleStage : Main
         float length;
         switch (scene)
         {
-            case 1: // Top lane: two full waves with mercenaries and heroes meet head on.
-                Army(1, new Vector2(-11, -31), Vector2.Right, minions: true, mercs: 6, heroes: new uint[] { 200, 202 }, machines: 0);
-                Army(2, new Vector2(11, -31), Vector2.Left, minions: true, mercs: 6, heroes: new uint[] { 201, 200 }, machines: 0);
-                shots = new[] { new Shot(0, new Vector2(0, -30), 34), new Shot(2.2f, new Vector2(0, -31), 24), new Shot(6.5f, new Vector2(-1, -31), 15) };
+            case 1: // Top lane: minions and mercenaries meet head on mid-lane while the two heroes duel on its north edge.
+                Army(1, new Vector2(-11, -29.5f), Vector2.Right, new uint[] { 100, 100, 101, 101 }, new[] { UnitCatalog.Knight, UnitCatalog.Archer },
+                    new uint[] { 200 }, heroShift: new Vector2(0, -5.5f));
+                Army(2, new Vector2(11, -29.5f), Vector2.Left, new uint[] { 100, 100, 101, 101 }, new[] { UnitCatalog.Knight, UnitCatalog.Archer },
+                    new uint[] { 201 }, heroShift: new Vector2(0, -5.5f));
+                shots = new[] { new Shot(0, new Vector2(0, -30), 30), new Shot(2.2f, new Vector2(0, -31), 22), new Shot(6.5f, new Vector2(-1, -31), 17) };
                 length = 6.5f;
                 break;
-            case 2: // Centre plaza: three heroes a side and the workshop machines, skills flying.
-                Army(1, new Vector2(-9, 1), Vector2.Right, minions: false, mercs: 5, heroes: new uint[] { 200, 201, 202 }, machines: 2);
-                Army(2, new Vector2(9, -1), Vector2.Left, minions: false, mercs: 5, heroes: new uint[] { 201, 202, 200 }, machines: 2);
-                shots = new[] { new Shot(0, new Vector2(-2, 0), 13), new Shot(2.5f, new Vector2(0, 0), 16), new Shot(6.5f, new Vector2(1, 0), 30) };
-                length = 6.5f;
+            case 2: // Centre plaza: the blue gun unfolds at the plaza's west mouth, then both guns shell the clash;
+                // the heroes fight on the plaza's north half, mercenaries and machines on the south.
+                Army(1, new Vector2(-4, 1), Vector2.Right, Array.Empty<uint>(), new[] { UnitCatalog.Knight, UnitCatalog.Archer },
+                    new uint[] { 202 }, flames: 1, heroShift: new Vector2(0, -5.5f));
+                Army(2, new Vector2(7, 1), Vector2.Left, Array.Empty<uint>(), new[] { UnitCatalog.Knight, UnitCatalog.Archer },
+                    new uint[] { 200 }, flames: 1, heroShift: new Vector2(0, -5.5f));
+                Gun(1, new Vector2(-14, -.5f));
+                Gun(2, new Vector2(15, .5f));
+                shots = new[] { new Shot(0, new Vector2(-14, -.5f), 10), new Shot(2.4f, new Vector2(-6, 0), 19), new Shot(6.8f, new Vector2(-4, 0), 21) };
+                length = 6.8f;
                 break;
-            case 3: // Bottom lane siege: steam artillery digs in and shells the fortress line.
-                Army(1, new Vector2(-17, 31), Vector2.Right, minions: true, mercs: 5, heroes: new uint[] { 202, 200 }, machines: 0);
-                Army(2, new Vector2(-1, 32), Vector2.Left, minions: true, mercs: 5, heroes: new uint[] { 201 }, machines: 2);
-                foreach (Vector2 at in new[] { new Vector2(6, 30), new Vector2(7, 34) })
-                {
-                    Fighter gun = Spawn(UnitCatalog.SteamArtillery, 2, at);
-                    gun.Anchored = gun.Blocks = true;
-                    gun.Range = 14;
-                    Send($"SIEGE_STATE {gun.Id} DEPLOYING {_tick + 1} {_tick + 1 + TickRate * 2}");
-                }
-                shots = new[] { new Shot(0, new Vector2(5, 31), 12), new Shot(2.6f, new Vector2(1, 31), 18), new Shot(6.8f, new Vector2(-8, 31), 34) };
+            case 3: // Bottom lane siege: two red guns dig in and shell the blue wave pushing into their defenders.
+                Army(1, new Vector2(-14, 32), Vector2.Right, new uint[] { 100, 100, 101, 101 }, new[] { UnitCatalog.Knight, UnitCatalog.Archer },
+                    new uint[] { 202 });
+                Army(2, new Vector2(-1, 32), Vector2.Left, new uint[] { 100, 100, 101 }, new[] { UnitCatalog.Knight }, Array.Empty<uint>());
+                Gun(2, new Vector2(6, 29.5f));
+                Gun(2, new Vector2(7, 34));
+                shots = new[] { new Shot(0, new Vector2(6.5f, 32), 10), new Shot(2.4f, new Vector2(-1, 32), 18), new Shot(6.8f, new Vector2(-3, 32), 21) };
                 length = 6.8f;
                 break;
             case 4:
@@ -195,18 +208,18 @@ public partial class BattleStage : Main
     // across the base to the hero, and the hero, armed with it, finishes the red minions.
     private (Shot[], float) ItemDelivery()
     {
-        Fighter hero = Spawn(UnitCatalog.HeroTest, 1, new Vector2(-65f, -9.5f));
+        Fighter hero = Spawn(UnitCatalog.HeroTest, 1, new Vector2(-66f, -10.5f));
         hero.Damage = 15;
-        foreach ((uint type, Vector2 at) in new[] { (100u, new Vector2(-63.5f, -12.3f)), (100u, new Vector2(-66.6f, -12.1f)) })
+        foreach ((uint type, Vector2 at) in new[] { (100u, new Vector2(-64.5f, -13.3f)), (100u, new Vector2(-67.6f, -13.1f)) })
             Spawn(type, 2, at).Hp = 520;
-        foreach ((Vector2 at, uint tree) in new[] { (new Vector2(-55.1f, -3f), 10111u), (new Vector2(-55.1f, -.9f), 10447u) })
+        foreach ((Vector2 at, uint tree) in new[] { (new Vector2(-56.1f, -4f), 10231u), (new Vector2(-56.1f, -1.9f), 10571u) })
         {
             Fighter chopper = Spawn(UnitCatalog.Worker, 1, at);
             (chopper.Passive, chopper.Pose, chopper.PoseFocus) = (true, "GATHER", tree);
         }
-        Fighter porter = Spawn(UnitCatalog.Worker, 1, new Vector2(-72.5f, -5f));
+        Fighter porter = Spawn(UnitCatalog.Worker, 1, new Vector2(-73.5f, -6f));
         porter.Passive = true;
-        Vector2 drop = new(-76, -2); // 2m from the hero spawn point, one of the server's eight drop spots
+        Vector2 drop = new(-77, -3); // 2m from the hero spawn point, one of the server's eight drop spots
         float pickedUp = -1;
         _script = time =>
         {
@@ -227,11 +240,11 @@ public partial class BattleStage : Main
                     Send($"ITEM_CRATE_REMOVE {_crate}");
                     hero.Damage = 600;
                     hero.SkillTimer = 0;
-                    porter.March = new Vector2(-72.5f, -5f);
+                    porter.March = new Vector2(-73.5f, -6f);
                 }
             }
         };
-        return (new[] { new Shot(0, new Vector2(-68f, -6.5f), 18) }, 6f);
+        return (new[] { new Shot(0, new Vector2(-69f, -7.5f), 18) }, 6f);
     }
 
     // A red golem channels on the magic stone; blue pneumatic gunners walk up and fire, the first
@@ -270,16 +283,17 @@ public partial class BattleStage : Main
     }
 
     // Blue waves come down both lane entrances of the red base (a forest closes its front) and close on
-    // the HQ: the melee units wrap its walls, the gunners and machines fire over them, the HQ shoots back.
+    // the HQ: the melee units wrap its walls, the gunners fire over them, a deployed gun behind each
+    // entrance shells the walls, and the HQ shoots back.
     private (Shot[], float) HeadquartersSiege()
     {
         Headquarters(2, 3200, 4500);
         const uint K = UnitCatalog.Knight, A = UnitCatalog.Archer;
-        Column(new Vector2(65, -7.5f), Vector2.Down, new uint[] { 100, K, 100, K, 100 }, new uint[] { K, 200, 202, K },
-            new uint[] { 101, A, UnitCatalog.FlameAutomaton, A, 101 });
-        Column(new Vector2(65, 7.5f), Vector2.Up, new uint[] { 100, K, 100, K, 100 }, new uint[] { K, 201, K, K },
-            new uint[] { 101, A, UnitCatalog.SteamArtillery, A, 101 });
-        return (new[] { new Shot(0, new Vector2(65, 0), 21) }, 6.5f);
+        Column(new Vector2(66, -8.5f), Vector2.Down, new uint[] { 100, K, 100 }, new uint[] { 200, 202 }, new uint[] { A, UnitCatalog.FlameAutomaton, A });
+        Column(new Vector2(66, 8.5f), Vector2.Up, new uint[] { 100, K, 100 }, new uint[] { K, 201 }, new uint[] { A, 101, A });
+        Gun(1, new Vector2(60, -12));
+        Gun(1, new Vector2(60, 12));
+        return (new[] { new Shot(0, new Vector2(64, 0), 26) }, 6.5f);
     }
 
     // A blue wave in rows, front row first, walking in formation like Army.
@@ -289,7 +303,7 @@ public partial class BattleStage : Main
         var wave = new List<Fighter>();
         for (int row = 0; row < rows.Length; row++)
             for (int i = 0; i < rows[row].Length; i++)
-                wave.Add(Spawn(rows[row][i], 1, at - forward * row * 2f + side * (i - (rows[row].Length - 1) / 2f) * 2.1f + Jitter()));
+                wave.Add(Spawn(rows[row][i], 1, at - forward * row * 2.4f + side * (i - (rows[row].Length - 1) / 2f) * 2.6f + Jitter()));
         float pace = wave.Min(f => f.Speed);
         foreach (Fighter f in wave)
             (f.March, f.MarchSpeed) = (f.Pos + forward * 30, pace);
@@ -312,30 +326,44 @@ public partial class BattleStage : Main
     }
 
     // One army as an attack-move in formation: every unit heads for its own spot of the same block,
-    // shifted toward the enemy, at the pace of the slowest so the block keeps its shape.
-    private void Army(uint team, Vector2 at, Vector2 forward, bool minions, int mercs, uint[] heroes, int machines)
+    // shifted toward the enemy, at the pace of the slowest so the block keeps its shape. Rows from the
+    // front: melee minions, ranged minions, mercenaries, heroes; flame machines on the flanks.
+    // heroShift moves the hero row across the field (world units), so heroes can duel off to one side.
+    private void Army(uint team, Vector2 at, Vector2 forward, uint[] minions, uint[] mercs, uint[] heroes, int flames = 0, Vector2 heroShift = default)
     {
         Vector2 side = new(-forward.Y, forward.X);
         var army = new List<Fighter>();
-        if (minions)
+        void Row(IEnumerable<uint> types, float ahead, float spacing, Vector2 shift = default)
         {
-            uint[] wave = { 100, 100, 100, 102, 101, 101, 101 };
-            for (int i = 0; i < wave.Length; i++)
-                army.Add(Spawn(wave[i], team, at + forward * (wave[i] == 100 ? 2.5f : wave[i] == 102 ? 0.5f : -1f) + side * ((i % 3) - 1) * 2f + Jitter()));
+            uint[] row = types.ToArray();
+            for (int i = 0; i < row.Length; i++)
+                army.Add(Spawn(row[i], team, at + shift + forward * ahead + side * (i - (row.Length - 1) / 2f) * spacing + Jitter()));
         }
-        uint[] roster = { UnitCatalog.Knight, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Knight, UnitCatalog.Archer, UnitCatalog.Archer };
-        for (int i = 0; i < mercs; i++)
-            army.Add(Spawn(roster[i % roster.Length], team, at - forward * (1.5f + (i / 3) * 1.6f) + side * ((i % 3) - 1) * 2.2f + Jitter()));
-        for (int i = 0; i < heroes.Length; i++)
-            army.Add(Spawn(heroes[i], team, at - forward * 3.5f + side * (i - (heroes.Length - 1) / 2f) * 3f + Jitter()));
-        for (int i = 0; i < machines; i++)
-            army.Add(Spawn(i % 2 == 0 ? UnitCatalog.FlameAutomaton : UnitCatalog.SteamArtillery, team, at + forward * 0.5f + side * (i == 0 ? 3.5f : -3.5f) + Jitter()));
+        // Wide rows: each unit meets the enemy across from it instead of the whole front closing on one knot.
+        Row(minions.Where(type => type == 100), 2.5f, 3.4f);
+        Row(minions.Where(type => type != 100), 0, 3.4f);
+        Row(mercs, -2.8f, 3.8f);
+        Row(heroes, -5.6f, 5f, heroShift);
+        for (int i = 0; i < flames; i++)
+            army.Add(Spawn(UnitCatalog.FlameAutomaton, team, at + forward * 1f + side * (i % 2 == 0 ? 4.5f : -4.5f) + Jitter()));
         float pace = army.Min(f => f.Speed);
         foreach (Fighter f in army)
         {
             f.March = f.Pos + forward * 30;
             f.MarchSpeed = pace;
         }
+    }
+
+    // A steam artillery that stays put, unfolds into siege mode and then shells from long range.
+    private Fighter Gun(uint team, Vector2 at)
+    {
+        Fighter gun = Spawn(UnitCatalog.SteamArtillery, team, at);
+        gun.Anchored = gun.Blocks = true;
+        // A little more reach than the server's 12 m so the shot can hold the gun and its blasts in one frame.
+        (gun.Range, gun.Interval, gun.Damage, gun.Cooldown) = (15, 2, 900, .3f);
+        gun.DeployAt = _tick + DeployTicks;
+        Send($"SIEGE_STATE {gun.Id} DEPLOYING {_tick + 1} {gun.DeployAt}");
+        return gun;
     }
 
     private Vector2 Jitter() => new(_rng.RandfRange(-.5f, .5f), _rng.RandfRange(-.5f, .5f));
@@ -376,6 +404,7 @@ public partial class BattleStage : Main
         foreach (Fighter f in _fighters) Send(f.Building ? $"STATE {f.Id} IDLE 0 0 {f.Swing}" : $"REMOVE {f.Id}");
         _fighters.Clear();
         _rings.Clear();
+        _shells.Clear();
         if (_crate != 0) Send($"ITEM_CRATE_REMOVE {_crate}");
         _crate = 0;
         Send("TRIBUTE 0 WAITING 0 0 1 0 0 0 0 0 0");
@@ -440,7 +469,7 @@ public partial class BattleStage : Main
         var alive = _fighters.Where(f => f.Alive).ToList();
         if (_script != null && _sceneTick != 0) _script((_tick - _sceneTick) / (float)TickRate);
         foreach (Fighter f in alive)
-            if (f.Type == UnitCatalog.SteamArtillery && f.Anchored && !f.Deployed && _tick > TickRate * 2)
+            if (f.Type == UnitCatalog.SteamArtillery && f.Anchored && !f.Deployed && _tick >= f.DeployAt)
             {
                 f.Deployed = true;
                 Send($"SIEGE_STATE {f.Id} DEPLOYED 0 0");
@@ -457,13 +486,14 @@ public partial class BattleStage : Main
             f.Stride = f.Pos.DistanceTo(old);
         }
         foreach (Fighter f in alive) Fight(f, dt);
+        LandShells();
         // Towers on the fortress line shoot whoever comes close.
         foreach (var (id, tower) in _towers)
         {
             Fighter target = alive.Where(o => o.Team != tower.Team && o.Alive && o.Pos.DistanceTo(tower.Pos) < 9).OrderBy(o => o.Pos.DistanceTo(tower.Pos)).FirstOrDefault();
             if (target != null && _tick % (TickRate * 3 / 2) == 0)
             {
-                target.Hp -= 40;
+                Hit(target, 40, "SHOT");
                 Send($"STATE {id} ATTACK 0 {target.Id} {_tick}");
             }
         }
@@ -480,7 +510,11 @@ public partial class BattleStage : Main
                 Send($"HP {f.Id} {Num(Math.Max(0, f.Hp))} {Num(f.MaxHp)}");
                 f.SentHp = f.Hp;
             }
-            if (!f.Alive && !f.Building) Send($"REMOVE {f.Id}");
+            if (!f.Alive && !f.Building)
+            {
+                if (f.Cause != null) Send($"DEATH {f.Id} {f.Cause}");
+                Send($"REMOVE {f.Id}");
+            }
         }
         Send($"TICK_END {_tick}");
     }
@@ -491,11 +525,20 @@ public partial class BattleStage : Main
     {
         foreach (Fighter u in alive)
         {
+            if (u.Type == UnitCatalog.SteamArtillery && u.Anchored)
+            {
+                if (u.Target == null || !u.Target.Alive || !InRange(u, u.Target) || Gap(u, u.Target) < GunMinRange)
+                    u.Target = Knot(u, alive);
+                continue;
+            }
             if (u.Target != null && (u.Passive || !u.Target.Alive || Gap(u, u.Target) > Math.Max(ChaseRadius, u.Range)))
                 u.Target = null;
             if (u.Passive) continue;
+            // Like meets like first (hero to hero, minion to minion), so a front breaks into separate fights
+            // instead of every melee unit closing on the first big body it sees.
             if (u.Target == null)
-                u.Target = NearestEnemy(u, alive, u.Melee ? t => HasRoom(u, t, false) : null) ?? NearestEnemy(u, alive, null);
+                u.Target = NearestEnemy(u, alive, t => Kind(t) == Kind(u) && (!u.Melee || HasRoom(u, t, false)))
+                    ?? NearestEnemy(u, alive, u.Melee ? t => HasRoom(u, t, false) : null) ?? NearestEnemy(u, alive, null);
             else if (u.Melee && u.Slot.Target == u.Target.Id && u.Slot.Kind is SlotKind.Wait or SlotKind.Hold)
             {
                 Fighter current = u.Target;
@@ -504,6 +547,14 @@ public partial class BattleStage : Main
             }
         }
     }
+
+    // The enemy in a gun's reach (past its minimum range) with the most enemies around it to catch in the blast.
+    private static Fighter Knot(Fighter gun, List<Fighter> alive) =>
+        alive.Where(o => o.Team != gun.Team && o.Alive && InRange(gun, o) && Gap(gun, o) >= GunMinRange)
+            .OrderByDescending(o => alive.Count(n => n.Team == o.Team && n.Alive && n.Pos.DistanceTo(o.Pos) <= BlastRadius + n.Radius))
+            .ThenBy(o => Gap(gun, o)).ThenBy(o => o.Id).FirstOrDefault();
+
+    private static int Kind(Fighter f) => f.Building ? 0 : UnitCatalog.IsHero(f.Type) ? 1 : f.Type >= UnitCatalog.MinionMelee ? 2 : 3;
 
     private static Fighter NearestEnemy(Fighter u, List<Fighter> alive, Func<Fighter, bool> accept)
     {
@@ -810,7 +861,13 @@ public partial class BattleStage : Main
         {
             f.Cooldown += f.Interval;
             f.Swing++;
-            target.Hp -= f.Damage;
+            if (f.Type == UnitCatalog.SteamArtillery && f.Deployed)
+            {
+                // The client's shell flies distance / 28 seconds (WorkshopShellFlight); land with it.
+                float flight = Mathf.Clamp(f.Pos.DistanceTo(target.Pos) / 28, .16f, .48f);
+                _shells.Add(new Shell(f, target, target.Pos, f.Damage, _tick + (uint)Mathf.CeilToInt(flight * TickRate)));
+            }
+            else Hit(target, f.Damage, CauseOf(f));
         }
         if (UnitCatalog.IsHero(f.Type) && (f.SkillTimer -= dt) <= 0)
         {
@@ -818,6 +875,37 @@ public partial class BattleStage : Main
             Send($"SKILL {f.Id} {_rng.RandiRange(0, 2)} {target.Id}");
         }
     }
+
+    // A shell hits every enemy of its gun within the blast radius of where it lands.
+    private void LandShells()
+    {
+        for (int i = _shells.Count - 1; i >= 0; i--)
+        {
+            Shell shell = _shells[i];
+            if (shell.Due > _tick) continue;
+            _shells.RemoveAt(i);
+            Vector2 at = shell.Target.Alive ? shell.Target.Pos : shell.At;
+            foreach (Fighter victim in _fighters.Where(o => o.Alive && o.Team != shell.Gun.Team && o.Pos.DistanceTo(at) <= BlastRadius + o.Radius))
+                Hit(victim, shell.Damage, "BLAST");
+        }
+    }
+
+    private static void Hit(Fighter victim, float damage, string cause)
+    {
+        bool alive = victim.Alive;
+        victim.Hp -= damage;
+        if (alive && !victim.Alive) victim.Cause = cause;
+    }
+
+    // The weapon that names a death, as the server's deathCause has it.
+    private static string CauseOf(Fighter f) => f.Building ? "SHOT" : f.Type switch
+    {
+        UnitCatalog.FlameAutomaton => "FIRE",
+        UnitCatalog.SteamArtillery => f.Deployed ? "BLAST" : "SHOT",
+        UnitCatalog.HeroGolem => "BLAST",
+        UnitCatalog.Archer or UnitCatalog.Medic or UnitCatalog.MinionRanged or UnitCatalog.MinionHealer or UnitCatalog.MinionArc or UnitCatalog.HeroRanger => "SHOT",
+        _ => "BLADE"
+    };
 
     // ── Geometry ──
 
