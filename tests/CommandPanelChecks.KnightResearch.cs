@@ -98,7 +98,7 @@ public partial class CommandPanelChecks
         Receive("CONSTRUCTION 9601 100 7");
         SelectBuilding(9602);
         Units.RequestKnightResearch();
-        Check(_commands.Count == before && _slots[7].Text == "", "Enemy laboratories expose no research controls");
+        Check(_commands.Count == before && Caption(7) == "", "Enemy laboratories expose no research controls");
         SelectBuilding(201);
         Units.RequestKnightResearch();
         Check(_commands.Count == before, "Research cannot be started from another building type");
@@ -118,7 +118,7 @@ public partial class CommandPanelChecks
             "Enemy completion cannot unlock or lock the local research");
         Receive(complete);
         KeyStroke(input, Key.Q);
-        Check(_slots[7].Disabled && _slots[7].Text == "와이어\n돌진 완료" && _commands.Count == before,
+        Check(_slots[7].Disabled && Caption(7) == "와이어 돌진(Q) 완료" && _commands.Count == before,
             "Completed research remains permanently unavailable without hiding its server-defined effects");
 
         Receive("KNIGHT_CHARGE 102 1 0 0 0 0 0 0");

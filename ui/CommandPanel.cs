@@ -16,12 +16,14 @@ public partial class CommandPanel : PanelContainer
     public event Action SiegeRequested;
     public bool IsBuildMenuOpen => _buildMenu;
     private enum DisplayMode { Unset, Empty, Units, Workers, BuildMenu, TownHall, Barracks, Workshop, Forge, ResearchLab, Construction }
-    // Rows read QWER / ASDF / ZXCV. The first three columns keep their numpad numbers (7 8 9 / 4 5 6 /
-    // 1 2 3); the R, F and V column is 10, 11 and 12.
-    private static readonly int[] GridOrder = { 7, 8, 9, 10, 4, 5, 6, 11, 1, 2, 3, 12 };
-    private readonly Button[] _slots = new Button[12];
+    // Slots keep their old numpad numbers (7 8 9 / 4 5 6 / 1 2 3, plus 10 11 12) as identities for commands and
+    // hotkeys; ArrangeSlots decides where each one sits in the 4x3 grid.
+    private static readonly int[] SlotNumbers = { 7, 8, 9, 10, 4, 5, 6, 11, 1, 2, 3, 12 };
+    private readonly CommandSlot[] _slots = new CommandSlot[12];
     private readonly List<StyleBoxFlat> _styles = new();
     private readonly HashSet<Key> _heldMenuKeys = new();
+    private GridContainer _grid;
+    private SelectionPortraits _portraits;
     private DisplayMode _display;
     private bool _buildMenu;
 
@@ -33,22 +35,22 @@ public partial class CommandPanel : PanelContainer
         frame.CornerRadiusTopLeft = 6;
         frame.ContentMarginLeft = frame.ContentMarginTop = frame.ContentMarginRight = frame.ContentMarginBottom = 6;
         AddThemeStyleboxOverride("panel", frame);
+        _portraits = new SelectionPortraits { Name = "Portraits" };
+        AddChild(_portraits);
 
         var empty = Style("101a23", "2a3940");
         var normal = Style("22332d", "728a77");
         var hover = Style("2d463a", "a1b897");
         var pressed = Style("365543", "b6d3aa");
-        var grid = new GridContainer { Name = "Slots", Columns = 4 };
-        grid.AddThemeConstantOverride("h_separation", 6);
-        grid.AddThemeConstantOverride("v_separation", 6);
-        AddChild(grid);
-        for (int i = 0; i < GridOrder.Length; i++)
+        _grid = new GridContainer { Name = "Slots", Columns = 4 };
+        _grid.AddThemeConstantOverride("h_separation", 6);
+        _grid.AddThemeConstantOverride("v_separation", 6);
+        AddChild(_grid);
+        for (int i = 0; i < SlotNumbers.Length; i++)
         {
-            var slot = new Button
+            var slot = new CommandSlot
             {
-                Name = $"Slot{GridOrder[i]}", Text = "", Disabled = true,
-                // Five-syllable names fit on one line; longer labels wrap at spaces so the panel keeps its width.
-                CustomMinimumSize = new Vector2(72, 64), AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                Name = $"Slot{SlotNumbers[i]}", Disabled = true, CustomMinimumSize = new Vector2(64, 64),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill,
                 FocusMode = FocusModeEnum.None, MouseFilter = MouseFilterEnum.Stop,
                 MouseForcePassScrollEvents = false
@@ -57,14 +59,9 @@ public partial class CommandPanel : PanelContainer
             slot.AddThemeStyleboxOverride("hover", hover);
             slot.AddThemeStyleboxOverride("pressed", pressed);
             slot.AddThemeStyleboxOverride("disabled", empty);
-            slot.AddThemeFontSizeOverride("font_size", 14);
-            slot.AddThemeColorOverride("font_color", new Color("f2e8cb"));
-            slot.AddThemeColorOverride("font_hover_color", new Color("fff4d6"));
-            slot.AddThemeColorOverride("font_pressed_color", new Color("fff4d6"));
-            slot.AddThemeColorOverride("font_disabled_color", new Color("a8b8bd"));
-            int number = GridOrder[i];
+            int number = SlotNumbers[i];
             slot.Pressed += () => RequestSlot(number);
-            grid.AddChild(slot);
+            _grid.AddChild(slot);
             _slots[i] = slot;
         }
         if (GodotObject.IsInstanceValid(Units))
@@ -82,10 +79,7 @@ public partial class CommandPanel : PanelContainer
         RefreshSelection();
     }
 
-    private Button Slot(int number) => _slots[Array.IndexOf(GridOrder, number)];
-
-    // A slot fits about five syllables per line, so names break at their spaces.
-    public static string ButtonName(uint type) => UnitCatalog.Name(type).Replace(' ', '\n');
+    private CommandSlot Slot(int number) => _slots[Array.IndexOf(SlotNumbers, number)];
 
     private StyleBoxFlat Style(string background, string border)
     {
@@ -96,6 +90,35 @@ public partial class CommandPanel : PanelContainer
         };
         _styles.Add(style);
         return style;
+    }
+
+    private static Texture2D Icon(string name) => GD.Load<Texture2D>($"res://ui/icons/{name}.svg");
+    private Texture2D UnitIcon(uint type) => _portraits.GetPortrait(Units.SceneFor(type));
+    private Texture2D BuildingIcon(uint type) => _portraits.GetPortrait(Buildings.SceneFor(type));
+
+    // Each mode's commands, read left to right from the top row. Cancel and back keep the bottom-right cell.
+    private static int[] CommandsOf(DisplayMode mode) => mode switch
+    {
+        DisplayMode.Units or DisplayMode.Workers => new[] { 4, 5, 6, 1 },
+        DisplayMode.BuildMenu => new[] { 7, 8, 9, 4, 5, 6, 1, 2 },
+        DisplayMode.TownHall => new[] { 7, 1 },
+        DisplayMode.Barracks or DisplayMode.Workshop => new[] { 7, 8, 9 },
+        DisplayMode.Forge => new[] { 7, 8 },
+        DisplayMode.ResearchLab => new[] { 7 },
+        _ => Array.Empty<int>()
+    };
+
+    private static bool HasBack(DisplayMode mode) =>
+        mode is DisplayMode.BuildMenu or DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop or DisplayMode.Construction;
+
+    private void ArrangeSlots(DisplayMode mode)
+    {
+        var order = new List<int>(CommandsOf(mode));
+        bool back = HasBack(mode);
+        foreach (int number in SlotNumbers)
+            if (!order.Contains(number) && !(back && number == 3)) order.Add(number);
+        if (back) order.Add(3);
+        for (int i = 0; i < order.Count; i++) _grid.MoveChild(Slot(order[i]), i);
     }
 
     private void RefreshSelection()
@@ -124,77 +147,83 @@ public partial class CommandPanel : PanelContainer
         else if (_buildMenu) next = DisplayMode.BuildMenu;
         if (next == _display) { RefreshProduction(); return; }
         _display = next;
+        ArrangeSlots(next);
         for (int i = 0; i < _slots.Length; i++)
         {
-            string text = (next, GridOrder[i]) switch
+            (string name, string key, Texture2D icon) = (next, SlotNumbers[i]) switch
             {
-                (DisplayMode.Units or DisplayMode.Workers, 4) => "공격(A)",
-                (DisplayMode.Units or DisplayMode.Workers, 5) => "정지(S)",
-                (DisplayMode.Units or DisplayMode.Workers, 6) => "홀드(D)",
-                (DisplayMode.Workers, 1) => "건설(Z)",
-                (DisplayMode.BuildMenu, 7) => "브랜치\n(Q)",
-                (DisplayMode.BuildMenu, 8) => "숙소\n(W)",
-                (DisplayMode.BuildMenu, 9) => "시추탑\n(E)",
-                (DisplayMode.BuildMenu, 4) => "인력\n사무소\n(A)",
-                (DisplayMode.BuildMenu, 5) => "비허가\n실험실\n(S)",
-                (DisplayMode.BuildMenu, 6) => "감시탑\n(D)",
-                (DisplayMode.BuildMenu, 1) => "공장\n(Z)",
-                (DisplayMode.BuildMenu, 2) => "기술연구소\n(X)",
-                (DisplayMode.BuildMenu, 3) => "뒤로(C)",
-                (DisplayMode.TownHall, 7) => "일꾼",
-                (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
-                (DisplayMode.Barracks, 7) => ButtonName(UnitCatalog.Knight),
-                (DisplayMode.Barracks, 8) => ButtonName(UnitCatalog.Archer),
-                (DisplayMode.Barracks, 9) => ButtonName(UnitCatalog.Medic),
-                (DisplayMode.Workshop, 7) => "화염기계\n(Q)",
-                (DisplayMode.Workshop, 8) => "증기포격차\n(W)",
-                (DisplayMode.Workshop, 9) => "급유 기계\n(E)",
-                (DisplayMode.Forge, 7) => "공격력\n연구\n(Q)",
-                (DisplayMode.Forge, 8) => "체력 연구\n(W)",
-                (DisplayMode.ResearchLab, 7) => "와이어\n돌진\n(Q)",
-                (DisplayMode.Construction, 3) => "건설 취소\n(Esc)",
-                _ => ""
+                (DisplayMode.Units or DisplayMode.Workers, 4) => ("공격", "A", Icon("command-attack")),
+                (DisplayMode.Units or DisplayMode.Workers, 5) => ("정지", "S", Icon("command-stop")),
+                (DisplayMode.Units or DisplayMode.Workers, 6) => ("홀드", "D", Icon("command-hold")),
+                (DisplayMode.Workers, 1) => ("건설", "Z", Icon("command-build")),
+                (DisplayMode.BuildMenu, 3) => ("뒤로", "C", Icon("command-back")),
+                (DisplayMode.BuildMenu, int number) when BuildingCatalog.IsPlayerBuildable(BuildingTypeForSlot(number)) =>
+                    (BuildingCatalog.Name(BuildingTypeForSlot(number)), BuildKey(number), BuildingIcon(BuildingTypeForSlot(number))),
+                (DisplayMode.TownHall, 7) => (UnitCatalog.Name(UnitCatalog.Worker), "", UnitIcon(UnitCatalog.Worker)),
+                (DisplayMode.TownHall, 1) => ("업그레이드", "Z", Icon("command-upgrade")),
+                (DisplayMode.Barracks, 7) => (UnitCatalog.Name(UnitCatalog.Knight), "", UnitIcon(UnitCatalog.Knight)),
+                (DisplayMode.Barracks, 8) => (UnitCatalog.Name(UnitCatalog.Archer), "", UnitIcon(UnitCatalog.Archer)),
+                (DisplayMode.Barracks, 9) => (UnitCatalog.Name(UnitCatalog.Medic), "", UnitIcon(UnitCatalog.Medic)),
+                (DisplayMode.Workshop, 7) => (UnitCatalog.Name(UnitCatalog.FlameAutomaton), "Q", UnitIcon(UnitCatalog.FlameAutomaton)),
+                (DisplayMode.Workshop, 8) => (UnitCatalog.Name(UnitCatalog.SteamArtillery), "W", UnitIcon(UnitCatalog.SteamArtillery)),
+                (DisplayMode.Workshop, 9) => (UnitCatalog.Name(UnitCatalog.Refueler), "E", UnitIcon(UnitCatalog.Refueler)),
+                (DisplayMode.Forge, 7) => ("공격력 연구", "Q", Icon("research-attack")),
+                (DisplayMode.Forge, 8) => ("체력 연구", "W", Icon("research-armor")),
+                (DisplayMode.ResearchLab, 7) => ("와이어 돌진", "Q", Icon("research-wire")),
+                (DisplayMode.Construction, 3) => ("건설 취소", "Esc", Icon("command-cancel")),
+                _ => ("", "", null)
             };
-            _slots[i].Text = text;
-            _slots[i].Disabled = text.Length == 0;
-            _slots[i].TooltipText = "";
+            _slots[i].Set(name, key, icon);
         }
-        RefreshProduction();
         if (next is DisplayMode.Units or DisplayMode.Workers)
         {
-            Slot(4).TooltipText = "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소";
-            Slot(5).TooltipText = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
-            Slot(6).TooltipText = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
+            Slot(4).Detail = "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소";
+            Slot(5).Detail = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
+            Slot(6).Detail = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
         }
+        RefreshProduction();
     }
 
+    private static string BuildKey(int number) => number switch
+    {
+        7 => "Q", 8 => "W", 9 => "E", 4 => "A", 5 => "S", 6 => "D", 1 => "Z", 2 => "X", _ => ""
+    };
+
     private void RefreshProduction()
+    {
+        UpdateProduction();
+        foreach (CommandSlot slot in _slots) slot.Paint();
+    }
+
+    private void UpdateProduction()
     {
         if (_display == DisplayMode.Units)
         {
             bool available = Units.HasSelectedArtillery;
             bool allowed = Units.TryGetSiegeToggle(out bool deploy, out string reason);
-            Slot(1).Text = available ? allowed ? (deploy ? "공성 전개\n(Z)" : "전개 해제\n(Z)") : "공성 전환\n(Z)" : "";
+            if (!available) Slot(1).Set("");
+            else Slot(1).Set(allowed ? deploy ? "공성 전개" : "전개 해제" : "공성 전환", "Z",
+                Icon(allowed && !deploy ? "siege-pack" : "siege-deploy"));
             Slot(1).Disabled = !allowed;
-            Slot(1).TooltipText = available ? reason ?? "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가" : "";
+            Slot(1).Detail = available ? reason ?? "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가" : "";
             return;
         }
         if (_display == DisplayMode.BuildMenu)
         {
             for (int i = 0; i < _slots.Length; i++)
             {
-                uint type = BuildingTypeForSlot(GridOrder[i]);
+                uint type = BuildingTypeForSlot(SlotNumbers[i]);
                 if (!BuildingCatalog.IsPlayerBuildable(type)) continue;
                 string reason = Buildings.BuildingRequirementBlockReason(type);
                 _slots[i].Disabled = reason != null;
-                _slots[i].TooltipText = reason ?? (type == BuildingCatalog.OilDerrick ? "유전 지대에만 건설 · 유전마다 1개" : "");
+                _slots[i].Detail = reason ?? (type == BuildingCatalog.OilDerrick ? "유전 지대에만 건설 · 유전마다 1개" : "");
             }
             return;
         }
         if (_display == DisplayMode.Construction)
         {
             Slot(3).Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
-            Slot(3).TooltipText = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
+            Slot(3).Detail = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
             return;
         }
         if (_display == DisplayMode.Forge)
@@ -213,9 +242,9 @@ public partial class CommandPanel : PanelContainer
         if (!GodotObject.IsInstanceValid(producer)) return;
         int count = producer.ProductionQueue.Count;
         bool canCancel = producer.ProductionJobs.Count > 0 && Units.CanCancelTraining(producer, producer.ProductionJobs[0].Id);
-        Slot(3).Text = canCancel ? "생산 취소\n(Esc)" : "";
-        Slot(3).Disabled = !canCancel;
-        Slot(3).TooltipText = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
+        if (canCancel) Slot(3).Set("생산 취소", "Esc", Icon("command-cancel"));
+        else Slot(3).Set("");
+        Slot(3).Detail = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
         Slot(7).Disabled = count >= ProductionSnapshot.MaxQueue || Buildings.IsTownHallUpgrading(producer);
         const string rallyHint = "\n지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제";
         if (_display == DisplayMode.Workshop)
@@ -232,24 +261,26 @@ public partial class CommandPanel : PanelContainer
             RefreshUnitTraining(Slot(9), producer, UnitCatalog.Medic, rallyHint);
             return;
         }
-        Slot(7).TooltipText = "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" + rallyHint;
+        Slot(7).Detail = "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" + rallyHint;
         if (_display == DisplayMode.TownHall)
         {
             var state = Buildings.TeamTier(producer.SideId);
             string reason = Units.TownHallUpgradeBlockReason(producer);
-            Slot(1).Disabled = reason != null;
-            Slot(1).Text = state.Upgrading ? $"{state.TargetTier}티어 강화\n{state.Remaining:0}초" :
-                state.TopTier ? $"{state.Tier}티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드\n(Z)";
+            CommandSlot upgrade = Slot(1);
+            if (state.TopTier) upgrade.Set($"{state.Tier}티어", "", Icon("command-upgrade"));
+            else upgrade.Set($"{(state.Upgrading ? state.TargetTier : state.Tier + 1)}티어 업그레이드", "Z", Icon("command-upgrade"));
+            upgrade.Status = state.Upgrading ? $"{state.Remaining:0}초" : state.TopTier ? "최고 단계" : "";
+            upgrade.Disabled = reason != null;
             string terms = state.HasUpgradeTerms ? $"나무 {state.NextWood:N0} · 기름 {state.NextOil:N0} · {state.NextSeconds:0.##}초\n" : "";
-            Slot(1).TooltipText = state.TopTier ? "최고 단계" : terms +
+            upgrade.Detail = state.TopTier ? "최고 단계" : terms +
                 "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
-            if (Buildings.IsTownHallUpgrading(producer)) Slot(7).TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
+            if (Buildings.IsTownHallUpgrading(producer)) Slot(7).Detail = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
         ApplyUnitRequirement(Slot(7), UnitCatalog.Worker);
     }
 
     // Barracks and workshop buttons: costs and supply come from the server's TRAIN_DEF.
-    private void RefreshUnitTraining(Button slot, Building producer, uint type, string rallyHint)
+    private void RefreshUnitTraining(CommandSlot slot, Building producer, uint type, string rallyHint)
     {
         string reason = !Units.CommanderControl || Units.Spectating ? "지휘관만 생산할 수 있습니다" :
             producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ? "생산 대기열 가득 참" :
@@ -257,11 +288,11 @@ public partial class CommandPanel : PanelContainer
         slot.Disabled = reason != null;
         string terms = Buildings.TrainingTerms(type) is TrainingDefinition definition
             ? $"목재 {definition.Wood:N0} · 기름 {definition.Oil:N0} · 인구 {definition.Supply} · {definition.Seconds:0.##}초\n" : "";
-        slot.TooltipText = terms + UnitCatalog.Description(type) + (reason == null ? "" : "\n" + reason) + rallyHint;
+        slot.Detail = terms + UnitCatalog.Description(type) + (reason == null ? "" : "\n" + reason) + rallyHint;
     }
 
     // Terms and progress come from ARMY_UPGRADE; the client copies no research numbers.
-    private void RefreshResearch(Button slot, bool attack)
+    private void RefreshResearch(CommandSlot slot, bool attack)
     {
         Building forge = Buildings.SelectedBuilding;
         if (!GodotObject.IsInstanceValid(forge)) return;
@@ -269,17 +300,16 @@ public partial class CommandPanel : PanelContainer
         var research = state.Research(attack);
         int level = state.Level(attack);
         string name = attack ? "공격력" : "체력";
-        string key = attack ? "Q" : "W";
         string reason = Units.ArmyUpgradeBlockReason(forge, attack);
         slot.Disabled = reason != null;
-        slot.Text = research.Researching ? $"{name}\n{research.TargetLevel}단계\n{research.Remaining}초" :
-            state.MaxLevel > 0 && level >= state.MaxLevel ? $"{name}\n최고 단계" : $"{name}\n{level + 1}단계\n({key})";
+        slot.Status = research.Researching ? $"{research.TargetLevel}단계 {research.Remaining}초" :
+            state.MaxLevel > 0 && level >= state.MaxLevel ? "최고 단계" : $"{level + 1}단계";
         string terms = research.NextSeconds > 0 ? $"나무 {research.NextWood:N0} · 기름 {research.NextOil:N0} · {research.NextSeconds}초\n" : "";
         var minionGains = new List<string>();
         foreach (var step in Buildings.MinionUpgradeSteps)
             minionGains.Add($"{MinionShortName(step.UnitType)} +{(attack ? step.Attack : step.Hp):0.##}");
         string minions = minionGains.Count > 0 ? $"미니언 {name} 단계당 {string.Join(" · ", minionGains)}\n" : "";
-        slot.TooltipText = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{state.MaxLevel}단계" +
+        slot.Detail = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{state.MaxLevel}단계" +
             (reason == null ? "" : "\n" + reason);
     }
 
@@ -294,25 +324,24 @@ public partial class CommandPanel : PanelContainer
         _ => UnitCatalog.Name(type)
     };
 
-    private void ApplyUnitRequirement(Button slot, uint type)
+    private void ApplyUnitRequirement(CommandSlot slot, uint type)
     {
         if (Buildings.UnitRequirementBlockReason(type) is not string reason) return;
         slot.Disabled = true;
-        slot.TooltipText = reason + "\n" + slot.TooltipText;
+        slot.Detail = reason + "\n" + slot.Detail;
     }
 
-    private void RefreshKnightResearch(Button slot)
+    private void RefreshKnightResearch(CommandSlot slot)
     {
         Building lab = Buildings.SelectedBuilding;
         if (!GodotObject.IsInstanceValid(lab)) return;
         string reason = Units.KnightResearchBlockReason(lab);
         slot.Disabled = reason != null;
         var state = Buildings.KnightResearch(lab.SideId);
-        slot.Text = state is { Unlocked: true } ? "와이어\n돌진 완료" :
-            state is { Researching: true } research ? $"와이어\n돌진\n{research.Remaining:0}초" : "와이어\n돌진\n(Q)";
+        slot.Status = state is { Unlocked: true } ? "완료" : state is { Researching: true } research ? $"{research.Remaining:0}초" : "";
         string terms = state is KnightResearchSnapshot s
             ? $"목재 {s.Wood:N0} · 기름 {s.Oil:N0} · {s.ResearchSeconds:0.##}초\n" + KnightResearchDescription(s) : "";
-        slot.TooltipText = terms + (reason == null ? "" : "\n" + reason);
+        slot.Detail = terms + (reason == null ? "" : "\n" + reason);
     }
 
     public static string KnightResearchDescription(KnightResearchSnapshot state) =>
@@ -329,7 +358,7 @@ public partial class CommandPanel : PanelContainer
     private void RequestSlot(int number)
     {
         RefreshSelection();
-        int index = Array.IndexOf(GridOrder, number);
+        int index = Array.IndexOf(SlotNumbers, number);
         if (index < 0 || _slots[index].Disabled) return;
         if (_display is DisplayMode.Units or DisplayMode.Workers && number is 4 or 5 or 6)
         {

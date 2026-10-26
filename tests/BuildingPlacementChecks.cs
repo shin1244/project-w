@@ -69,7 +69,7 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectUnit", Unit());
             Units.ToggleSelection(Unit(102));
             Units.ToggleSelection(Unit(201));
-            Check(Slot(1).Text == "건설(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
+            Check(((CommandSlot)Slot(1)).Caption == "건설(Z)" && !Slot(1).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
                 "Mixed selection with own workers exposes the tier-one menu instead of direct build buttons");
             ChooseBuilding();
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
