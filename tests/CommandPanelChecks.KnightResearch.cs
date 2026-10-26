@@ -118,7 +118,7 @@ public partial class CommandPanelChecks
             "Enemy completion cannot unlock or lock the local research");
         Receive(complete);
         KeyStroke(input, Key.Q);
-        Check(_slots[7].Disabled && _slots[7].Text == "와이어 돌진\n완료" && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].Text == "와이어\n돌진 완료" && _commands.Count == before,
             "Completed research remains permanently unavailable without hiding its server-defined effects");
 
         Receive("KNIGHT_CHARGE 102 1 0 0 0 0 0 0");

@@ -27,7 +27,7 @@ public partial class SupportUpdateChecks : Main
             var doctorSlot=Commands.GetNode<Button>("Slots/Slot9");
             long before=wire.Length;
             doctorSlot.EmitSignal(BaseButton.SignalName.Pressed);Units.RequestTrain(UnitCatalog.Medic);
-            Check(doctorSlot.Text==UnitCatalog.Name(UnitCatalog.Medic) && doctorSlot.Disabled && wire.Length==before &&
+            Check(doctorSlot.Text==CommandPanel.ButtonName(UnitCatalog.Medic) && doctorSlot.Disabled && wire.Length==before &&
                 Buildings.SelectedBuilding.CanTrain(UnitCatalog.Medic),"The barracks offers the quack doctor but waits for its server terms");
             // Arbitrary terms: the button follows the wire, not balance constants.
             Receive("REQUIRES UNIT 3 4 5");Receive("TRAIN_DEF 3 4 12 5 1 7");Receive("STOCK 0 12");Receive("STOCK 2 5");Receive("SUPPLY 0 10");

@@ -16,8 +16,10 @@ public partial class CommandPanel : PanelContainer
     public event Action SiegeRequested;
     public bool IsBuildMenuOpen => _buildMenu;
     private enum DisplayMode { Unset, Empty, Units, Workers, BuildMenu, TownHall, Barracks, Workshop, Forge, ResearchLab, Construction }
-    private static readonly int[] NumpadOrder = { 7, 8, 9, 4, 5, 6, 1, 2, 3 };
-    private readonly Button[] _slots = new Button[9];
+    // Rows read QWER / ASDF / ZXCV. The first three columns keep their numpad numbers (7 8 9 / 4 5 6 /
+    // 1 2 3); the R, F and V column is 10, 11 and 12.
+    private static readonly int[] GridOrder = { 7, 8, 9, 10, 4, 5, 6, 11, 1, 2, 3, 12 };
+    private readonly Button[] _slots = new Button[12];
     private readonly List<StyleBoxFlat> _styles = new();
     private readonly HashSet<Key> _heldMenuKeys = new();
     private DisplayMode _display;
@@ -36,16 +38,17 @@ public partial class CommandPanel : PanelContainer
         var normal = Style("22332d", "728a77");
         var hover = Style("2d463a", "a1b897");
         var pressed = Style("365543", "b6d3aa");
-        var grid = new GridContainer { Name = "Slots", Columns = 3 };
+        var grid = new GridContainer { Name = "Slots", Columns = 4 };
         grid.AddThemeConstantOverride("h_separation", 6);
         grid.AddThemeConstantOverride("v_separation", 6);
         AddChild(grid);
-        for (int i = 0; i < NumpadOrder.Length; i++)
+        for (int i = 0; i < GridOrder.Length; i++)
         {
             var slot = new Button
             {
-                Name = $"Slot{NumpadOrder[i]}", Text = "", Disabled = true,
-                CustomMinimumSize = new Vector2(64, 64),
+                Name = $"Slot{GridOrder[i]}", Text = "", Disabled = true,
+                // Five-syllable names fit on one line; longer labels wrap at spaces so the panel keeps its width.
+                CustomMinimumSize = new Vector2(72, 64), AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill,
                 FocusMode = FocusModeEnum.None, MouseFilter = MouseFilterEnum.Stop,
                 MouseForcePassScrollEvents = false
@@ -59,7 +62,7 @@ public partial class CommandPanel : PanelContainer
             slot.AddThemeColorOverride("font_hover_color", new Color("fff4d6"));
             slot.AddThemeColorOverride("font_pressed_color", new Color("fff4d6"));
             slot.AddThemeColorOverride("font_disabled_color", new Color("a8b8bd"));
-            int number = NumpadOrder[i];
+            int number = GridOrder[i];
             slot.Pressed += () => RequestSlot(number);
             grid.AddChild(slot);
             _slots[i] = slot;
@@ -78,6 +81,11 @@ public partial class CommandPanel : PanelContainer
         GetWindow().FocusExited += OnFocusExited;
         RefreshSelection();
     }
+
+    private Button Slot(int number) => _slots[Array.IndexOf(GridOrder, number)];
+
+    // A slot fits about five syllables per line, so names break at their spaces.
+    public static string ButtonName(uint type) => UnitCatalog.Name(type).Replace(' ', '\n');
 
     private StyleBoxFlat Style(string background, string border)
     {
@@ -118,7 +126,7 @@ public partial class CommandPanel : PanelContainer
         _display = next;
         for (int i = 0; i < _slots.Length; i++)
         {
-            string text = (next, NumpadOrder[i]) switch
+            string text = (next, GridOrder[i]) switch
             {
                 (DisplayMode.Units or DisplayMode.Workers, 4) => "공격(A)",
                 (DisplayMode.Units or DisplayMode.Workers, 5) => "정지(S)",
@@ -135,15 +143,15 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.BuildMenu, 3) => "뒤로(C)",
                 (DisplayMode.TownHall, 7) => "일꾼",
                 (DisplayMode.TownHall, 1) => "업그레이드\n(Z)",
-                (DisplayMode.Barracks, 7) => UnitCatalog.Name(UnitCatalog.Knight),
-                (DisplayMode.Barracks, 8) => UnitCatalog.Name(UnitCatalog.Archer),
-                (DisplayMode.Barracks, 9) => UnitCatalog.Name(UnitCatalog.Medic),
+                (DisplayMode.Barracks, 7) => ButtonName(UnitCatalog.Knight),
+                (DisplayMode.Barracks, 8) => ButtonName(UnitCatalog.Archer),
+                (DisplayMode.Barracks, 9) => ButtonName(UnitCatalog.Medic),
                 (DisplayMode.Workshop, 7) => "화염기계\n(Q)",
                 (DisplayMode.Workshop, 8) => "증기포격차\n(W)",
                 (DisplayMode.Workshop, 9) => "급유 기계\n(E)",
-                (DisplayMode.Forge, 7) => "공격력 연구\n(Q)",
+                (DisplayMode.Forge, 7) => "공격력\n연구\n(Q)",
                 (DisplayMode.Forge, 8) => "체력 연구\n(W)",
-                (DisplayMode.ResearchLab, 7) => "와이어 돌진\n(Q)",
+                (DisplayMode.ResearchLab, 7) => "와이어\n돌진\n(Q)",
                 (DisplayMode.Construction, 3) => "건설 취소\n(Esc)",
                 _ => ""
             };
@@ -154,9 +162,9 @@ public partial class CommandPanel : PanelContainer
         RefreshProduction();
         if (next is DisplayMode.Units or DisplayMode.Workers)
         {
-            _slots[3].TooltipText = "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소";
-            _slots[4].TooltipText = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
-            _slots[5].TooltipText = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
+            Slot(4).TooltipText = "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소";
+            Slot(5).TooltipText = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
+            Slot(6).TooltipText = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
         }
     }
 
@@ -166,16 +174,16 @@ public partial class CommandPanel : PanelContainer
         {
             bool available = Units.HasSelectedArtillery;
             bool allowed = Units.TryGetSiegeToggle(out bool deploy, out string reason);
-            _slots[6].Text = available ? allowed ? (deploy ? "공성 전개\n(Z)" : "전개 해제\n(Z)") : "공성 전환\n(Z)" : "";
-            _slots[6].Disabled = !allowed;
-            _slots[6].TooltipText = available ? reason ?? "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가" : "";
+            Slot(1).Text = available ? allowed ? (deploy ? "공성 전개\n(Z)" : "전개 해제\n(Z)") : "공성 전환\n(Z)" : "";
+            Slot(1).Disabled = !allowed;
+            Slot(1).TooltipText = available ? reason ?? "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가" : "";
             return;
         }
         if (_display == DisplayMode.BuildMenu)
         {
             for (int i = 0; i < _slots.Length; i++)
             {
-                uint type = BuildingTypeForSlot(NumpadOrder[i]);
+                uint type = BuildingTypeForSlot(GridOrder[i]);
                 if (!BuildingCatalog.IsPlayerBuildable(type)) continue;
                 string reason = Buildings.BuildingRequirementBlockReason(type);
                 _slots[i].Disabled = reason != null;
@@ -185,19 +193,19 @@ public partial class CommandPanel : PanelContainer
         }
         if (_display == DisplayMode.Construction)
         {
-            _slots[8].Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
-            _slots[8].TooltipText = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
+            Slot(3).Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
+            Slot(3).TooltipText = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
             return;
         }
         if (_display == DisplayMode.Forge)
         {
-            RefreshResearch(_slots[0], true);
-            RefreshResearch(_slots[1], false);
+            RefreshResearch(Slot(7), true);
+            RefreshResearch(Slot(8), false);
             return;
         }
         if (_display == DisplayMode.ResearchLab)
         {
-            RefreshKnightResearch(_slots[0]);
+            RefreshKnightResearch(Slot(7));
             return;
         }
         if (_display is not (DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop)) return;
@@ -205,39 +213,39 @@ public partial class CommandPanel : PanelContainer
         if (!GodotObject.IsInstanceValid(producer)) return;
         int count = producer.ProductionQueue.Count;
         bool canCancel = producer.ProductionJobs.Count > 0 && Units.CanCancelTraining(producer, producer.ProductionJobs[0].Id);
-        _slots[8].Text = canCancel ? "생산 취소\n(Esc)" : "";
-        _slots[8].Disabled = !canCancel;
-        _slots[8].TooltipText = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
-        _slots[0].Disabled = count >= ProductionSnapshot.MaxQueue || Buildings.IsTownHallUpgrading(producer);
+        Slot(3).Text = canCancel ? "생산 취소\n(Esc)" : "";
+        Slot(3).Disabled = !canCancel;
+        Slot(3).TooltipText = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
+        Slot(7).Disabled = count >= ProductionSnapshot.MaxQueue || Buildings.IsTownHallUpgrading(producer);
         const string rallyHint = "\n지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제";
         if (_display == DisplayMode.Workshop)
         {
-            RefreshUnitTraining(_slots[0], producer, UnitCatalog.FlameAutomaton, rallyHint);
-            RefreshUnitTraining(_slots[1], producer, UnitCatalog.SteamArtillery, rallyHint);
-            RefreshUnitTraining(_slots[2], producer, UnitCatalog.Refueler, rallyHint);
+            RefreshUnitTraining(Slot(7), producer, UnitCatalog.FlameAutomaton, rallyHint);
+            RefreshUnitTraining(Slot(8), producer, UnitCatalog.SteamArtillery, rallyHint);
+            RefreshUnitTraining(Slot(9), producer, UnitCatalog.Refueler, rallyHint);
             return;
         }
         if (_display == DisplayMode.Barracks)
         {
-            RefreshUnitTraining(_slots[0], producer, UnitCatalog.Knight, rallyHint);
-            RefreshUnitTraining(_slots[1], producer, UnitCatalog.Archer, rallyHint);
-            RefreshUnitTraining(_slots[2], producer, UnitCatalog.Medic, rallyHint);
+            RefreshUnitTraining(Slot(7), producer, UnitCatalog.Knight, rallyHint);
+            RefreshUnitTraining(Slot(8), producer, UnitCatalog.Archer, rallyHint);
+            RefreshUnitTraining(Slot(9), producer, UnitCatalog.Medic, rallyHint);
             return;
         }
-        _slots[0].TooltipText = "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" + rallyHint;
+        Slot(7).TooltipText = "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" + rallyHint;
         if (_display == DisplayMode.TownHall)
         {
             var state = Buildings.TeamTier(producer.SideId);
             string reason = Units.TownHallUpgradeBlockReason(producer);
-            _slots[6].Disabled = reason != null;
-            _slots[6].Text = state.Upgrading ? $"{state.TargetTier}티어 강화\n{state.Remaining:0}초" :
-                state.TopTier ? $"{state.Tier}티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드(Z)";
+            Slot(1).Disabled = reason != null;
+            Slot(1).Text = state.Upgrading ? $"{state.TargetTier}티어 강화\n{state.Remaining:0}초" :
+                state.TopTier ? $"{state.Tier}티어\n최고 단계" : $"{state.Tier + 1}티어\n업그레이드\n(Z)";
             string terms = state.HasUpgradeTerms ? $"나무 {state.NextWood:N0} · 기름 {state.NextOil:N0} · {state.NextSeconds:0.##}초\n" : "";
-            _slots[6].TooltipText = state.TopTier ? "최고 단계" : terms +
+            Slot(1).TooltipText = state.TopTier ? "최고 단계" : terms +
                 "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
-            if (Buildings.IsTownHallUpgrading(producer)) _slots[0].TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
+            if (Buildings.IsTownHallUpgrading(producer)) Slot(7).TooltipText = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
         }
-        ApplyUnitRequirement(_slots[0], UnitCatalog.Worker);
+        ApplyUnitRequirement(Slot(7), UnitCatalog.Worker);
     }
 
     // Barracks and workshop buttons: costs and supply come from the server's TRAIN_DEF.
@@ -264,8 +272,8 @@ public partial class CommandPanel : PanelContainer
         string key = attack ? "Q" : "W";
         string reason = Units.ArmyUpgradeBlockReason(forge, attack);
         slot.Disabled = reason != null;
-        slot.Text = research.Researching ? $"{name} {research.TargetLevel}단계\n{research.Remaining}초" :
-            state.MaxLevel > 0 && level >= state.MaxLevel ? $"{name}\n최고 단계" : $"{name} {level + 1}단계\n({key})";
+        slot.Text = research.Researching ? $"{name}\n{research.TargetLevel}단계\n{research.Remaining}초" :
+            state.MaxLevel > 0 && level >= state.MaxLevel ? $"{name}\n최고 단계" : $"{name}\n{level + 1}단계\n({key})";
         string terms = research.NextSeconds > 0 ? $"나무 {research.NextWood:N0} · 기름 {research.NextOil:N0} · {research.NextSeconds}초\n" : "";
         var minionGains = new List<string>();
         foreach (var step in Buildings.MinionUpgradeSteps)
@@ -300,8 +308,8 @@ public partial class CommandPanel : PanelContainer
         string reason = Units.KnightResearchBlockReason(lab);
         slot.Disabled = reason != null;
         var state = Buildings.KnightResearch(lab.SideId);
-        slot.Text = state is { Unlocked: true } ? "와이어 돌진\n완료" :
-            state is { Researching: true } research ? $"와이어 돌진\n{research.Remaining:0}초" : "와이어 돌진\n(Q)";
+        slot.Text = state is { Unlocked: true } ? "와이어\n돌진 완료" :
+            state is { Researching: true } research ? $"와이어\n돌진\n{research.Remaining:0}초" : "와이어\n돌진\n(Q)";
         string terms = state is KnightResearchSnapshot s
             ? $"목재 {s.Wood:N0} · 기름 {s.Oil:N0} · {s.ResearchSeconds:0.##}초\n" + KnightResearchDescription(s) : "";
         slot.TooltipText = terms + (reason == null ? "" : "\n" + reason);
@@ -321,7 +329,7 @@ public partial class CommandPanel : PanelContainer
     private void RequestSlot(int number)
     {
         RefreshSelection();
-        int index = Array.IndexOf(NumpadOrder, number);
+        int index = Array.IndexOf(GridOrder, number);
         if (index < 0 || _slots[index].Disabled) return;
         if (_display is DisplayMode.Units or DisplayMode.Workers && number is 4 or 5 or 6)
         {
@@ -396,7 +404,7 @@ public partial class CommandPanel : PanelContainer
             Key.S when _display is DisplayMode.Units or DisplayMode.Workers => 5,
             Key.D when _display is DisplayMode.Units or DisplayMode.Workers => 6,
             Key.Escape when _buildMenu => 3,
-            Key.Escape when _display is DisplayMode.Construction or DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop && !_slots[8].Disabled => 3,
+            Key.Escape when _display is DisplayMode.Construction or DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop && !Slot(3).Disabled => 3,
             _ => 0
         };
         if (slot == 0) return false;
