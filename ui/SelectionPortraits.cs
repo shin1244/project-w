@@ -39,6 +39,8 @@ public partial class SelectionPortraits : Node
             "res://buildings/OilDerrick.tscn" => enemy ? "oil_derrick-enemy" : "oil_derrick-ally",
             "res://buildings/Workshop.tscn" => enemy ? "workshop-enemy" : "workshop-ally",
             "res://buildings/ResearchLab.tscn" => enemy ? "research_lab-enemy" : "research_lab-ally",
+            "res://buildings/CoalDrill.tscn" => enemy ? "coal_drill-enemy" : "coal_drill-ally",
+            "res://buildings/Tunnel.tscn" => enemy ? "tunnel-enemy" : "tunnel-ally",
             _ => null
         };
         if (name == null) return null;

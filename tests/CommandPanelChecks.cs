@@ -176,16 +176,16 @@ public partial class CommandPanelChecks : Main
                 "The server UNIT response creates the worker");
             SelectUnit(301);
             ExpectUnit("Selection works after reconnecting as a different player");
-            _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
-            Check(Commands.IsBuildMenuOpen, "A reconnected worker can reopen the tier-one menu");
+            _slots[2].EmitSignal(BaseButton.SignalName.Pressed);
+            Check(Commands.IsBuildMenuOpen, "A reconnected worker can reopen the tier-two menu");
             Receive("REQUIRES_TIER BUILDING 8 2");
             Receive("REQUIRES_TIER BUILDING 9 2");
-            Check(_slots[1].Disabled && _slots[2].Disabled, "Fresh definitions cannot reuse the previous session's unlocked tier");
+            Check(_slots[4].Disabled && _slots[5].Disabled, "Fresh definitions cannot reuse the previous session's unlocked tier");
             Receive("TEAM_TIER 2 2 204 0 0 0");
-            Check(!_slots[1].Disabled && !_slots[2].Disabled, "Reconnect unlocks construction after fresh definitions and team state");
+            Check(!_slots[4].Disabled && !_slots[5].Disabled, "Reconnect unlocks construction after fresh definitions and team state");
             InvokeMain("OnConnectionClosed", "Command panel test disconnect");
             Expect("Disconnect clears the visible commands");
-            Check(!Commands.IsBuildMenuOpen, "Disconnect exits the tier-one menu");
+            Check(!Commands.IsBuildMenuOpen, "Disconnect exits the tier-two menu");
             Check(Buildings.CommanderWood == 0 && Buildings.CommanderOil == 0 && !Buildings.TeamTier(2).HasUpgradeTerms,
                 "Disconnect clears upgrade terms and balances");
             CheckNoWorkerTrain("Disconnect prevents requests using stale identity or hall selection");
@@ -200,7 +200,7 @@ public partial class CommandPanelChecks : Main
     private void ExpectUnit(string message)
     {
         if (Units.TryGetSelectedWorker(out _))
-            Expect(message, (1, "건설(Z)"), (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
+            Expect(message, (1, "1티어 건설(Z)"), (2, "2티어 건설(X)"), (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
         else Expect(message, (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
     }
 
@@ -238,7 +238,7 @@ public partial class CommandPanelChecks : Main
         SelectUnit(101);
         Placement.Cancel();
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
-        Check(_slots[5].Disabled && _slots[6].Disabled && !_slots[7].Disabled,
+        Check(_slots[5].Disabled && _slots[10].Disabled && !_slots[7].Disabled,
             "The build menu derives each lock from its own server requirements");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.S);
         _slots[5].EmitSignal(BaseButton.SignalName.Pressed);
@@ -270,12 +270,21 @@ public partial class CommandPanelChecks : Main
         {
             string text = expected.GetValueOrDefault(number, "");
             bool disabled = text.Length == 0 || (townHall && number == 1) ||
-                (Commands.IsBuildMenuOpen && number is 1 or 2 &&
-                    Buildings.BuildingRequirementBlockReason(number == 1 ? BuildingCatalog.Workshop : BuildingCatalog.ResearchLab) != null);
+                (Commands.IsBuildMenuOpen && MenuBuilding(text) is uint type && Buildings.BuildingRequirementBlockReason(type) != null);
             Check(Caption(number) == text && button.Disabled == disabled && ((CommandSlot)button).CommandName.Length == 0 == (text.Length == 0),
                 $"{message}: slot {number} expected '{text}', got '{Caption(number)}' (disabled={button.Disabled})");
         }
         ExpectKeyCells(message);
+    }
+
+    // The building a menu caption names, e.g. "공장(A)"; null for other captions.
+    private static uint? MenuBuilding(string caption)
+    {
+        int key = caption.IndexOf('(');
+        string name = key < 0 ? caption : caption[..key];
+        for (uint type = BuildingCatalog.Store; type <= BuildingCatalog.Last; type++)
+            if (BuildingCatalog.Name(type) == name) return type;
+        return null;
     }
 
     private void CheckTierConstructionRequirements()
@@ -283,50 +292,57 @@ public partial class CommandPanelChecks : Main
         PlayerInput input = GetNode<PlayerInput>("PlayerInput");
         SelectUnit(101);
         Placement.Cancel();
-        KeyStroke(input, Key.Z);
+        KeyStroke(input, Key.X);
+        ExpectTierTwoMenu("X opens the tier-two construction menu");
         Receive("TEAM_TIER 1 3 201 0 0 0");
         int before = _commands.Count;
-        Check(_slots[1].Disabled && _slots[2].Disabled &&
+        Check(_slots[4].Disabled && _slots[5].Disabled && _slots[7].Disabled && _slots[8].Disabled &&
             !Units.RequestBuild(BuildingCatalog.Workshop, Vector3.Zero, 101) &&
-            !Placement.Begin(BuildingCatalog.ResearchLab),
+            !Units.RequestBuild(BuildingCatalog.CoalDrill, Vector3.Zero, 101) &&
+            !Placement.Begin(BuildingCatalog.ResearchLab) && !Placement.Begin(BuildingCatalog.Tunnel),
             "New construction stays locked without server definitions even at the highest team tier");
 
         // 임의의 조건을 주입해 클라이언트가 '항상 2티어'를 복제하지 않는지 확인합니다.
         Receive("REQUIRES_TIER BUILDING 8 3");
         Receive("REQUIRES_TIER BUILDING 9 2");
+        Receive("REQUIRES_TIER BUILDING 10 2");
+        Receive("REQUIRES_TIER BUILDING 11 3");
         Buildings.ResetTeamTiers();
-        Check(_slots[1].Disabled && _slots[2].Disabled, "Missing team state counts as tier one");
+        Check(_slots[4].Disabled && _slots[5].Disabled && _slots[7].Disabled && _slots[8].Disabled, "Missing team state counts as tier one");
         Receive("TEAM_TIER 1 1 201 2 4 9");
         Receive("TEAM_TIER 2 3 203 0 0 0");
-        Check(_slots[1].Disabled && _slots[2].Disabled,
+        Check(_slots[4].Disabled && _slots[5].Disabled && _slots[7].Disabled && _slots[8].Disabled,
             "An ongoing upgrade and the enemy team's completed tier cannot unlock local construction");
         foreach (string invalid in new[] { "REQUIRES_TIER BUILDING 8 0", "REQUIRES_TIER BUILDING 8 4",
             "REQUIRES_TIER BUILDING 8 -1", "REQUIRES_TIER BUILDING 8 bad", "REQUIRES_TIER BUILDING 8 1 extra",
             "REQUIRES_TIER UNIT 8 1", "REQUIRES_TIER BUILDING bad 1" }) Receive(invalid);
-        _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
-        KeyStroke(input, Key.Z);
+        _slots[4].EmitSignal(BaseButton.SignalName.Pressed);
+        KeyStroke(input, Key.A);
         Check(Commands.IsBuildMenuOpen && !Placement.Active && _commands.Count == before,
             "Malformed definitions, locked buttons and shortcuts cannot request a building");
 
         Receive("TEAM_TIER 1 2 201 3 7 11");
-        Check(_slots[1].Disabled && !_slots[2].Disabled && _slots[1].TooltipText.Contains("3티어"),
+        Check(_slots[4].Disabled && !_slots[5].Disabled && !_slots[7].Disabled && _slots[8].Disabled &&
+            _slots[4].TooltipText.Contains("3티어") && _slots[8].TooltipText.Contains("3티어"),
             "Each button follows its own server-defined completed tier while the next upgrade runs");
         Receive("TEAM_TIER 1 3 201 0 0 0");
-        Check(!_slots[1].Disabled && !_slots[2].Disabled, "Completion immediately unlocks an already-open construction menu");
+        Check(!_slots[4].Disabled && !_slots[5].Disabled && !_slots[7].Disabled && !_slots[8].Disabled,
+            "Completion immediately unlocks an already-open construction menu");
 
         var requested = new List<uint>();
         Commands.BuildRequested += requested.Add;
         try
         {
             Commands.CancelMenu();
-            input._UnhandledInput(KeyEvent(Key.Z, true));
-            input._UnhandledInput(KeyEvent(Key.Z, true, echo: true));
+            input._UnhandledInput(KeyEvent(Key.X, true));
+            input._UnhandledInput(KeyEvent(Key.X, true, echo: true));
             Check(Commands.IsBuildMenuOpen && requested.Count == 0,
-                "Holding the key that opens construction does not also choose the workshop");
-            input._Input(KeyEvent(Key.Z, false));
-            foreach ((Key key, uint type) in new[] { (Key.Z, BuildingCatalog.Workshop), (Key.X, BuildingCatalog.ResearchLab) })
+                "Holding the key that opens construction does not also choose a building");
+            input._Input(KeyEvent(Key.X, false));
+            foreach ((Key key, uint type) in new[] { (Key.A, BuildingCatalog.Workshop), (Key.S, BuildingCatalog.ResearchLab),
+                (Key.Q, BuildingCatalog.CoalDrill), (Key.W, BuildingCatalog.Tunnel) })
             {
-                if (!Commands.IsBuildMenuOpen) KeyStroke(input, Key.Z);
+                if (!Commands.IsBuildMenuOpen) KeyStroke(input, Key.X);
                 int count = requested.Count;
                 KeyStroke(input, key);
                 Check(requested.Count == count + 1 && requested[^1] == type && Placement.Active && !Commands.IsBuildMenuOpen,
@@ -573,7 +589,17 @@ public partial class CommandPanelChecks : Main
         {
             _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
-            Check(!_slots[6].Disabled, "Tower construction is available with the updated server definition");
+            Check(!_slots[10].Disabled, "Tower construction is available with the updated server definition");
+            KeyStroke(input, Key.X);
+            ExpectTierMenu("X inside the tier-one menu is an empty cell and keeps the menu");
+            KeyStroke(input, Key.C);
+            _slots[2].EmitSignal(BaseButton.SignalName.Pressed);
+            ExpectTierTwoMenu("The X worker button opens the tier-two construction menu");
+            Check(_slots[7].TooltipText.Contains("목재") && _slots[8].TooltipText.Contains("출구"),
+                "The tier-two menu explains the coal drill's wood and the tunnel's exit");
+            KeyStroke(input, Key.C);
+            ExpectUnit("C leaves the tier-two menu");
+            KeyStroke(input, Key.Z);
             Check(_slots[9].TooltipText.Contains("유전"), "The derrick menu explains its oilfield-only restriction");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
@@ -586,8 +612,8 @@ public partial class CommandPanelChecks : Main
             foreach ((int slot, Key key, uint type) in new[]
             {
                 (7, Key.Q, BuildingCatalog.Store), (8, Key.W, BuildingCatalog.Supply),
-                (9, Key.E, BuildingCatalog.OilDerrick), (4, Key.A, BuildingCatalog.Barracks),
-                (5, Key.S, BuildingCatalog.Forge), (6, Key.D, BuildingCatalog.Tower)
+                (9, Key.E, BuildingCatalog.OilDerrick), (10, Key.R, BuildingCatalog.Tower),
+                (4, Key.A, BuildingCatalog.Barracks), (5, Key.S, BuildingCatalog.Forge)
             })
             {
                 _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
@@ -668,8 +694,13 @@ public partial class CommandPanelChecks : Main
 
     private void ExpectTierMenu(string message)
     {
-        Expect(message, (7, "브랜치(Q)"), (8, "숙소(W)"), (9, "시추탑(E)"), (4, "인력 사무소(A)"), (5, "비허가 실험실(S)"),
-            (6, "감시탑(D)"), (1, "공장(Z)"), (2, "기술연구소(X)"), (3, "뒤로(C)"));
+        Expect(message, (7, "브랜치(Q)"), (8, "숙소(W)"), (9, "시추탑(E)"), (10, "감시탑(R)"), (4, "인력 사무소(A)"),
+            (5, "비허가 실험실(S)"), (3, "뒤로(C)"));
+    }
+
+    private void ExpectTierTwoMenu(string message)
+    {
+        Expect(message, (7, "석탄 시추기(Q)"), (8, "땅굴(W)"), (4, "공장(A)"), (5, "기술연구소(S)"), (3, "뒤로(C)"));
     }
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>

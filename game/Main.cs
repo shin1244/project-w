@@ -130,7 +130,11 @@ public partial class Main : Node3D
         _playerInput.ModifiedBoxSelectionRequested += ModifyBoxSelection;
         _playerInput.ControlGroupRequested += HandleControlGroup;
         _playerInput.CameraHomeRequested += FocusHome;
-        if (Commands != null) Commands.BuildRequested += BeginPlacement;
+        if (Commands != null)
+        {
+            Commands.BuildRequested += BeginPlacement;
+            Commands.TunnelExitRequested += BeginTunnelExit;
+        }
         if (Minions != null)
         {
             Minions.CommandRequested += SendMinionCommand;
@@ -147,6 +151,12 @@ public partial class Main : Node3D
     {
         _playerInput?.ResetInteraction();
         Placement?.Begin(type);
+    }
+
+    private void BeginTunnelExit(Building tunnel)
+    {
+        _playerInput?.ResetInteraction();
+        Placement?.BeginTunnelExit(tunnel);
     }
 
     private void SendMinionCommand(string command)
@@ -559,6 +569,9 @@ public partial class Main : Node3D
             case "RALLY":
                 Buildings?.HandleRally(parts);
                 break;
+            case "TUNNEL_LINK":
+                Buildings?.HandleTunnelLink(parts);
+                break;
             case "POS":
                 Units.HandlePosition(parts);
                 Fog?.Invalidate();
@@ -914,7 +927,11 @@ public partial class Main : Node3D
         if (GodotObject.IsInstanceValid(Shop)) { Shop.CommandRequested-=SendCommand;Shop.RecallRequested-=RequestRecall; }
         _skillRange.Clear();
         ClearAttackRanges();
-        if (GodotObject.IsInstanceValid(Commands)) Commands.BuildRequested -= BeginPlacement;
+        if (GodotObject.IsInstanceValid(Commands))
+        {
+            Commands.BuildRequested -= BeginPlacement;
+            Commands.TunnelExitRequested -= BeginTunnelExit;
+        }
         if (GodotObject.IsInstanceValid(Minions))
         {
             Minions.CommandRequested -= SendMinionCommand;

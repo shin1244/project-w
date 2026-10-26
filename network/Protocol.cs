@@ -85,6 +85,12 @@ public static class Protocol
         return FormattableString.Invariant($"GATHER {targetId} {string.Join(" ", unitIds)}");
     }
 
+    public static string BuildTunnelExit(uint tunnelId, float x, float z)
+        => FormattableString.Invariant($"TUNNEL_EXIT {tunnelId} {x} {z}");
+
+    public static string BuildTunnel(uint tunnelId, IEnumerable<uint> unitIds)
+        => FormattableString.Invariant($"TUNNEL {tunnelId} {string.Join(" ", unitIds)}");
+
     public static string BuildReturn(uint dropoffId, IEnumerable<uint> unitIds)
         => FormattableString.Invariant($"RETURN {dropoffId} {string.Join(" ", unitIds)}");
 

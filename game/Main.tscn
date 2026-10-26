@@ -36,6 +36,8 @@
 [ext_resource type="PackedScene" path="res://ui/UnitInfoPanel.tscn" id="30_info"]
 [ext_resource type="Script" path="res://ui/MinionPanel.cs" id="31_minions"]
 [ext_resource type="PackedScene" path="res://resources/trees/Linden.tscn" id="35_linden"]
+[ext_resource type="PackedScene" path="res://buildings/CoalDrill.tscn" id="36_coal_drill"]
+[ext_resource type="PackedScene" path="res://buildings/Tunnel.tscn" id="37_tunnel"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -86,6 +88,8 @@ ForgeScene = ExtResource("27_forge")
 OilDerrickScene = ExtResource("32_oil_derrick")
 WorkshopScene = ExtResource("33_workshop")
 ResearchLabScene = ExtResource("34_research_lab")
+CoalDrillScene = ExtResource("36_coal_drill")
+TunnelScene = ExtResource("37_tunnel")
 
 [node name="Resources" type="Node3D" parent="."]
 script = ExtResource("13_resources")

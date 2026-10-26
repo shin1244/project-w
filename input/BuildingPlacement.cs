@@ -14,13 +14,14 @@ public partial class BuildingPlacement : Node3D
     public Vector3 PlacementPosition { get; private set; }
     private PlacementPreviewImage _preview;
     private Vector2 _footprint;
-    private uint _type, _worker;
+    private uint _type, _worker, _tunnel; // _tunnel: the tunnel whose exit is being placed, or 0 for a worker's BUILD.
     private double _noticeTime;
     private static readonly Plane Ground = new(Vector3.Up, 0);
 
     public override void _Ready()
     {
         Units.SelectionChanged += ValidateWorker;
+        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged += ValidateWorker;
         var canvas = new CanvasLayer { Name = "PreviewCanvas", Layer = 0 };
         AddChild(canvas);
         _preview = new PlacementPreviewImage { Name = "BuildPreview" };
@@ -51,6 +52,21 @@ public partial class BuildingPlacement : Node3D
         Active = true;
         _type = type;
         _worker = worker.UnitId;
+        _tunnel = 0;
+        UpdatePreview(GetViewport().GetMousePosition());
+        return true;
+    }
+
+    // A tunnel's exit uses the same footprint preview, but no worker: the selected tunnel opens it (TUNNEL_EXIT).
+    public bool BeginTunnelExit(Building tunnel)
+    {
+        Cancel();
+        if (!Map.IsSynchronized || !Units.CanOpenTunnelExit(tunnel) || !_preview.Select(BuildingCatalog.Tunnel, out _footprint))
+            return false;
+        Active = true;
+        _type = BuildingCatalog.Tunnel;
+        _worker = 0;
+        _tunnel = tunnel.BuildingId;
         UpdatePreview(GetViewport().GetMousePosition());
         return true;
     }
@@ -59,7 +75,7 @@ public partial class BuildingPlacement : Node3D
     {
         if (Active)
         {
-            if (!Map.IsSynchronized || !WorkerAvailable()) { Cancel(); return; }
+            if (!Map.IsSynchronized || !SourceAvailable()) { Cancel(); return; }
             UpdatePreview(GetViewport().GetMousePosition()); // 카메라 이동/줌·새 장애물도 반영합니다.
         }
         else if (_noticeTime > 0)
@@ -83,27 +99,35 @@ public partial class BuildingPlacement : Node3D
             return;
         }
         PlacementPosition = PlacementRules.Snap(Map, point, _footprint, _type);
-        BlockReason = Buildings.BuildingRequirementBlockReason(_type) ??
+        BlockReason = (_tunnel == 0 ? Buildings.BuildingRequirementBlockReason(_type) : null) ??
             PlacementRules.Check(Map, Buildings, Units, PlacementPosition, _footprint, _type);
         CanPlace = BlockReason == null;
         _preview.Update(Camera, PlacementPosition, CanPlace);
-        SetStatus(CanPlace ? $"{BuildingName} 배치 · 좌클릭: 건설 · 우클릭/Esc: 취소" : $"건설 불가: {BlockReason}", !CanPlace);
+        string action = _tunnel == 0 ? $"{BuildingName} 배치 · 좌클릭: 건설" : $"{BuildingName} 출구 배치 · 좌클릭: 설치";
+        SetStatus(CanPlace ? $"{action} · 우클릭/Esc: 취소" : $"건설 불가: {BlockReason}", !CanPlace);
     }
 
     public bool TryPlace(Vector2 screenPosition)
     {
         if (!Active) return false;
-        if (!Map.IsSynchronized || !WorkerAvailable()) { Cancel(); return false; }
+        if (!Map.IsSynchronized || !SourceAvailable()) { Cancel(); return false; }
         UpdatePreview(screenPosition); // 클릭 순간의 장애물/위치로 다시 검사합니다.
         if (!CanPlace) return false;
-        if (!Units.RequestBuild(_type, PlacementPosition, _worker)) { Cancel(); return false; }
+        bool exit = _tunnel != 0;
+        bool sent = exit ? Units.RequestTunnelExit(Buildings.SelectedBuilding, PlacementPosition) :
+            Units.RequestBuild(_type, PlacementPosition, _worker);
+        if (!sent) { Cancel(); return false; }
         string name = BuildingName;
         Cancel();
-        Notice($"{name} 건설을 요청했습니다.", false);
+        Notice(exit ? $"{name} 출구 설치를 요청했습니다." : $"{name} 건설을 요청했습니다.", false);
         return true;
     }
 
     private string BuildingName => BuildingCatalog.Name(_type);
+    private bool SourceAvailable() => _tunnel != 0
+        ? Buildings.SelectedBuilding is Building tunnel && tunnel.BuildingId == _tunnel && Units.CanOpenTunnelExit(tunnel)
+        : WorkerAvailable();
+
     private bool WorkerAvailable()
     {
         if (!Units.TryGetUnit(_worker, out Unit worker) || worker.UnitType != 0 || !Units.CanControl(worker)) return false;
@@ -111,7 +135,7 @@ public partial class BuildingPlacement : Node3D
         return false;
     }
 
-    private void ValidateWorker() { if (Active && !WorkerAvailable()) Cancel(); }
+    private void ValidateWorker() { if (Active && !SourceAvailable()) Cancel(); }
 
     public void Cancel()
     {
@@ -140,5 +164,6 @@ public partial class BuildingPlacement : Node3D
     public override void _ExitTree()
     {
         if (GodotObject.IsInstanceValid(Units)) Units.SelectionChanged -= ValidateWorker;
+        if (GodotObject.IsInstanceValid(Buildings)) Buildings.SelectionChanged -= ValidateWorker;
     }
 }

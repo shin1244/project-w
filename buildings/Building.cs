@@ -30,6 +30,7 @@ public partial class Building : Node3D
     public bool IsWorkplace => IsProducer || BuildingType is BuildingCatalog.Forge or BuildingCatalog.ResearchLab;
     public bool IsWorking { get; private set; } = true;
     public RallySnapshot? Rally { get; internal set; }
+    public uint TunnelPartner { get; internal set; } // 땅굴만: 서버 TUNNEL_LINK의 짝 ID, 없으면 0.
     public bool CanTrain(uint type) => BuildingType == BuildingCatalog.TownHall ? type == 0 :
         BuildingType == BuildingCatalog.Barracks && UnitCatalog.IsBarracksUnit(type) ||
         BuildingType == BuildingCatalog.Workshop && UnitCatalog.IsWorkshopUnit(type);

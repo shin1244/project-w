@@ -276,7 +276,10 @@ public partial class SelectionDetails : PanelContainer
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
             SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam
                 ? "일꾼을 선택하고 우클릭하여 이어 짓기" :
-                _building.BuildingType == BuildingCatalog.ResearchLab ? KnightResearchText(_building.SideId) : "");
+                _building.BuildingType == BuildingCatalog.ResearchLab ? KnightResearchText(_building.SideId) :
+                _building.SideId != Units.LocalTeam ? "" :
+                _building.BuildingType == BuildingCatalog.Tunnel ? TunnelText(_building) :
+                _building.BuildingType == BuildingCatalog.CoalDrill ? "일꾼 우클릭: 목재 채집 (줄지 않음)" : "");
             _extra.TooltipText = _building.BuildingType == BuildingCatalog.ResearchLab && Buildings.KnightResearch(_building.SideId) is KnightResearchSnapshot research
                 ? CommandPanel.KnightResearchDescription(research) : "";
             string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
@@ -302,6 +305,11 @@ public partial class SelectionDetails : PanelContainer
         Color color = HealthColor(health.Ratio);
         if (_healthFill.BgColor != color) _healthFill.BgColor = _healthFill.BorderColor = color;
     }
+
+    // The server's TUNNEL_LINK decides the pair; this only reads it.
+    private string TunnelText(Building tunnel) => Buildings.TunnelPartner(tunnel) == null
+        ? Units.CommanderControl ? "출구 없음 · Q: 출구 설치" : "출구 없음"
+        : "짝 땅굴 연결됨 · 유닛 우클릭: 짝 옆으로 이동 · 한쪽이 무너지면 함께 무너짐";
 
     private void RefreshProduction()
     {

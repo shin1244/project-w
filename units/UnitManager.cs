@@ -281,6 +281,17 @@ public partial class UnitManager : Node3D
         return true;
     }
 
+    // 선택한 아군 땅굴이 완성됐고 아직 출구가 없을 때만 출구를 냅니다. 자리·시야는 서버가 다시 검사합니다.
+    public bool CanOpenTunnelExit(Building tunnel) => CommanderControl && !Spectating && CanUseSelectedBuilding(tunnel) &&
+        tunnel.BuildingType == BuildingCatalog.Tunnel && !tunnel.IsUnderConstruction && Buildings.TunnelPartner(tunnel) == null;
+
+    public bool RequestTunnelExit(Building tunnel, Vector3 position)
+    {
+        if (!position.IsFinite() || !CanOpenTunnelExit(tunnel)) return false;
+        CommandRequested?.Invoke(Protocol.BuildTunnelExit(tunnel.BuildingId, position.X, position.Z));
+        return true;
+    }
+
     public bool RequestConstruct(Building building, uint workerId)
     {
         if (!GodotObject.IsInstanceValid(building) || building.IsQueuedForDeletion() || !building.IsInsideTree() ||
@@ -422,7 +433,7 @@ public partial class UnitManager : Node3D
                     return;
                 if (IsEnemy(building)) RequestAttack(building);
                 else if (building.IsUnderConstruction && TryGetSelectedWorker(out Unit builder)) RequestConstruct(building, builder.UnitId);
-                else if (!RequestGatherOil(building) && !RequestReturnResources(building)) RequestMove(point);
+                else if (!RequestTunnel(building) && !RequestGatherAt(building) && !RequestReturnResources(building)) RequestMove(point);
                 break;
             case null:
                 RequestMove(point);
@@ -466,13 +477,29 @@ public partial class UnitManager : Node3D
         CommandRequested?.Invoke(Protocol.BuildGather(target.ResourceId, _selectedUnitIds));
     }
 
-    public bool RequestGatherOil(Building target)
+    // 완성된 아군 시추탑(기름)이나 석탄 시추기(목재)에서 캡니다.
+    public bool RequestGatherAt(Building target)
     {
-        if (!CanUseResourceBuilding(target) || target.BuildingType != BuildingCatalog.OilDerrick) return false;
+        if (!CanUseResourceBuilding(target) || target.BuildingType is not (BuildingCatalog.OilDerrick or BuildingCatalog.CoalDrill)) return false;
         uint[] workers = SelectedWorkers(carryingOnly: false);
         if (workers.Length == 0) return false;
         _targetIndicator.Show(target);
         CommandRequested?.Invoke(Protocol.BuildGather(target.BuildingId, workers));
+        return true;
+    }
+
+    // 짝 땅굴이 완성된 아군 땅굴: 선택한 내 유닛(지휘관 병력 또는 내 영웅)이 들어가 짝 옆으로 나옵니다.
+    // 짝이 없거나 아직 공사 중이면 일반 이동으로 다가갑니다. 이동 가능 여부는 서버가 다시 검사합니다.
+    public bool RequestTunnel(Building target)
+    {
+        ValidateSelection();
+        if (Spectating || _localTeam == 0 || !GodotObject.IsInstanceValid(Buildings) ||
+            target.BuildingType != BuildingCatalog.Tunnel || Buildings.TunnelExit(target) == null) return false;
+        uint[] units = _selectedUnitIds.Where(id => _units.TryGetValue(id, out Unit unit) && CanControl(unit))
+            .OrderBy(id => id).ToArray();
+        if (units.Length == 0) return false;
+        _targetIndicator.Show(target);
+        CommandRequested?.Invoke(Protocol.BuildTunnel(target.BuildingId, units));
         return true;
     }
 

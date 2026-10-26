@@ -157,7 +157,7 @@ public partial class CommandPanelChecks
         before = _commands.Count;
         KeyStroke(input, Key.Z);
         Check(Commands.IsBuildMenuOpen && _commands.Count == before,
-            "Worker and artillery selection gives Z to construction without also sending SIEGE");
+            "Worker and artillery selection gives Z to the tier-one menu without also sending SIEGE");
         Commands.CancelMenu();
         SelectUnit(9203);
         Check(!Units.RequestSiege(true), "Another player's allied artillery cannot be toggled");

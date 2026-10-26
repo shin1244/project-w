@@ -16,6 +16,8 @@ public partial class BuildingManager : Node3D
     [Export] public PackedScene OilDerrickScene;
     [Export] public PackedScene WorkshopScene;
     [Export] public PackedScene ResearchLabScene;
+    [Export] public PackedScene CoalDrillScene;
+    [Export] public PackedScene TunnelScene;
     [Export] public UnitManager Units;
     private readonly Dictionary<uint, Building> _buildings = new();
     private Building _selected;
@@ -43,7 +45,7 @@ public partial class BuildingManager : Node3D
     {
         0 => TownHallScene, 1 => FortressScene, 2 => StoreScene, 3 => SupplyScene,
         4 => BarracksScene, 5 => ForgeScene, 6 => TowerScene, 7 => OilDerrickScene,
-        8 => WorkshopScene, 9 => ResearchLabScene, _ => null
+        8 => WorkshopScene, 9 => ResearchLabScene, 10 => CoalDrillScene, 11 => TunnelScene, _ => null
     };
 
     public void SetLocalTeam(uint team)
@@ -57,6 +59,7 @@ public partial class BuildingManager : Node3D
             {
                 building.ApplyProduction(new ProductionSnapshot(building.BuildingId, 0, Array.Empty<uint>()));
                 building.Rally = null;
+                building.TunnelPartner = 0;
             }
         }
         RefreshWork();
@@ -97,7 +100,7 @@ public partial class BuildingManager : Node3D
     {
         // BUILDING type id sideId x z yaw (yaw: radians)
         if (parts.Length != 7 ||
-            !uint.TryParse(parts[1], out uint type) || type > BuildingCatalog.ResearchLab ||
+            !uint.TryParse(parts[1], out uint type) || type > BuildingCatalog.Last ||
             !uint.TryParse(parts[2], out uint id) || id == 0 ||
             !uint.TryParse(parts[3], out uint sideId) || sideId == 0 ||
             !TryCoordinate(parts[4], out float x) ||

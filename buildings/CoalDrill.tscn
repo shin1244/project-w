@@ -1,0 +1,174 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://buildings/Building.cs" id="1_4biyr"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/CoalDrill.res" id="2_wmb60"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/CoalDrillBoom.res" id="3_1usij"]
+[ext_resource type="Script" path="res://visuals/ReciprocatingPart.cs" id="4_110hc"]
+[ext_resource type="ArrayMesh" path="res://buildings/meshes/CoalDrillCutter.res" id="5_6uis6"]
+[ext_resource type="Script" path="res://visuals/SpinningPart.cs" id="6_mdgso"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j27gl"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_e3ifw"]
+material = SubResource("StandardMaterial3D_j27gl")
+size = Vector2(0.035, 0.035)
+
+[sub_resource type="Gradient" id="Gradient_yo6il"]
+colors = PackedColorArray(1, 0.85, 0.45, 1, 1, 0.35, 0.1, 0)
+
+[sub_resource type="Gradient" id="Gradient_4ix42"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_giq44"]
+gradient = SubResource("Gradient_4ix42")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1t416"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_giq44")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_4gf7e"]
+material = SubResource("StandardMaterial3D_1t416")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_sk42f"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_577tp"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
+
+[sub_resource type="Gradient" id="Gradient_57f1a"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_mmkw0"]
+gradient = SubResource("Gradient_57f1a")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5ut70"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_mmkw0")
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_q5kwv"]
+material = SubResource("StandardMaterial3D_5ut70")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="Curve" id="Curve_ey5ni"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_m7j6i"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.27, 0.25, 0.24, 0.85, 0.36, 0.34, 0.32, 0.6, 0.48, 0.46, 0.44, 0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_63vdm"]
+size = Vector3(3, 1.965, 3)
+
+[node name="CoalDrill" type="Node3D" unique_id=3361098]
+script = ExtResource("1_4biyr")
+BuildingType = 10
+HealthBarHeight = 2.265
+metadata/role = "coal_drill"
+metadata/footprint = Vector2i(3, 3)
+metadata/front = "-Z"
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=707551323]
+mesh = ExtResource("2_wmb60")
+
+[node name="Boom" type="MeshInstance3D" parent="Visual" unique_id=1929871349]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0)
+mesh = ExtResource("3_1usij")
+script = ExtResource("4_110hc")
+Period = 1.4
+Swing = 0.5
+
+[node name="Cutter" type="MeshInstance3D" parent="Visual/Boom" unique_id=912174425]
+transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 0, -0.78000003, -0.92)
+mesh = ExtResource("5_6uis6")
+script = ExtResource("6_mdgso")
+Speed = 4.0
+
+[node name="ImpactSparks" type="CPUParticles3D" parent="Visual" unique_id=1858193423]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.080000006, -0.97)
+cast_shadow = 0
+lifetime = 0.9
+preprocess = 0.9
+mesh = SubResource("QuadMesh_e3ifw")
+direction = Vector3(0, 1, 0)
+spread = 60.0
+gravity = Vector3(0, -2.5, 0)
+initial_velocity_min = 0.66
+initial_velocity_max = 1.1
+scale_amount_min = 0.6
+color_ramp = SubResource("Gradient_yo6il")
+
+[node name="Dust" type="CPUParticles3D" parent="Visual" unique_id=687051343]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -0.92)
+cast_shadow = 0
+amount = 6
+lifetime = 3.6
+preprocess = 3.6
+mesh = SubResource("QuadMesh_4gf7e")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.15
+initial_velocity_max = 0.3
+scale_amount_min = 0.25
+scale_amount_max = 0.4
+scale_amount_curve = SubResource("Curve_sk42f")
+color_ramp = SubResource("Gradient_577tp")
+
+[node name="Smoke" type="CPUParticles3D" parent="Visual" unique_id=1272043691]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, 2, 0.95)
+cast_shadow = 0
+amount = 10
+lifetime = 3.6
+preprocess = 3.6
+mesh = SubResource("QuadMesh_q5kwv")
+direction = Vector3(0, 1, 0)
+spread = 10.0
+gravity = Vector3(0.18, 0.22, 0.05)
+initial_velocity_min = 0.45
+initial_velocity_max = 0.7
+scale_amount_min = 0.3
+scale_amount_max = 0.45
+scale_amount_curve = SubResource("Curve_ey5ni")
+color_ramp = SubResource("Gradient_m7j6i")
+
+[node name="SelectionArea" type="Area3D" parent="." unique_id=409342511]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SelectionArea" unique_id=685839935]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9825, 0)
+shape = SubResource("BoxShape3D_63vdm")
+
+[node name="Entrance" type="Marker3D" parent="." unique_id=569883936]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)

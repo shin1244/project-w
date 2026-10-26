@@ -14,8 +14,9 @@ public partial class CommandPanel : PanelContainer
     public event Action StopRequested;
     public event Action HoldRequested;
     public event Action SiegeRequested;
-    public bool IsBuildMenuOpen => _buildMenu;
-    private enum DisplayMode { Unset, Empty, Units, Workers, BuildMenu, TownHall, Barracks, Workshop, Forge, ResearchLab, Construction }
+    public event Action<Building> TunnelExitRequested;
+    public bool IsBuildMenuOpen => _buildTier != 0;
+    private enum DisplayMode { Unset, Empty, Units, Workers, BuildTierOne, BuildTierTwo, TownHall, Barracks, Workshop, Forge, ResearchLab, Tunnel, Construction }
     // Slots keep their old numpad numbers (7 8 9 / 4 5 6 / 1 2 3, plus 10 11 12) as identities for commands and
     // hotkeys; ArrangeSlots decides where each one sits in the 4x3 grid.
     private static readonly int[] SlotNumbers = { 7, 8, 9, 10, 4, 5, 6, 11, 1, 2, 3, 12 };
@@ -25,7 +26,8 @@ public partial class CommandPanel : PanelContainer
     private GridContainer _grid;
     private SelectionPortraits _portraits;
     private DisplayMode _display;
-    private bool _buildMenu;
+    private int _buildTier; // The worker's open construction menu: 0 none, 1 (Z) or 2 (X).
+    private bool BuildMenu => _display is DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo;
 
     public override void _Ready()
     {
@@ -74,6 +76,7 @@ public partial class CommandPanel : PanelContainer
             Buildings.SelectionChanged += OnSelectionChanged;
             Buildings.ProductionChanged += RefreshProduction;
             Buildings.RequirementsChanged += RefreshProduction;
+            Buildings.TunnelLinkChanged += RefreshProduction;
         }
         GetWindow().FocusExited += OnFocusExited;
         RefreshSelection();
@@ -128,12 +131,13 @@ public partial class CommandPanel : PanelContainer
                         BuildingCatalog.Workshop => DisplayMode.Workshop,
                         BuildingCatalog.Forge => DisplayMode.Forge,
                         BuildingCatalog.ResearchLab => DisplayMode.ResearchLab,
+                        BuildingCatalog.Tunnel => DisplayMode.Tunnel,
                         _ => DisplayMode.Empty
                     };
             }
         }
-        if (next != DisplayMode.Workers) SetMenuOpen(false);
-        else if (_buildMenu) next = DisplayMode.BuildMenu;
+        if (next != DisplayMode.Workers) SetMenuOpen(0);
+        else if (_buildTier != 0) next = _buildTier == 1 ? DisplayMode.BuildTierOne : DisplayMode.BuildTierTwo;
         if (next == _display) { RefreshProduction(); return; }
         _display = next;
         ArrangeSlots(next);
@@ -144,10 +148,11 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Units or DisplayMode.Workers, 4) => ("공격", "A", Icon("command-attack")),
                 (DisplayMode.Units or DisplayMode.Workers, 5) => ("정지", "S", Icon("command-stop")),
                 (DisplayMode.Units or DisplayMode.Workers, 6) => ("홀드", "D", Icon("command-hold")),
-                (DisplayMode.Workers, 1) => ("건설", "Z", Icon("command-build")),
-                (DisplayMode.BuildMenu, 3) => ("뒤로", "C", Icon("command-back")),
-                (DisplayMode.BuildMenu, int number) when BuildingCatalog.IsPlayerBuildable(BuildingTypeForSlot(number)) =>
-                    (BuildingCatalog.Name(BuildingTypeForSlot(number)), BuildKey(number), BuildingIcon(BuildingTypeForSlot(number))),
+                (DisplayMode.Workers, 1) => ("1티어 건설", "Z", Icon("command-build")),
+                (DisplayMode.Workers, 2) => ("2티어 건설", "X", Icon("command-build-advanced")),
+                (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, 3) => ("뒤로", "C", Icon("command-back")),
+                (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, int number) when BuildingCatalog.IsPlayerBuildable(BuildingTypeForSlot(next, number)) =>
+                    (BuildingCatalog.Name(BuildingTypeForSlot(next, number)), CellKey(number), BuildingIcon(BuildingTypeForSlot(next, number))),
                 (DisplayMode.TownHall, 7) => (UnitCatalog.Name(UnitCatalog.Worker), "", UnitIcon(UnitCatalog.Worker)),
                 (DisplayMode.TownHall, 1) => ("업그레이드", "Z", Icon("command-upgrade")),
                 (DisplayMode.Barracks, 7) => (UnitCatalog.Name(UnitCatalog.Knight), "", UnitIcon(UnitCatalog.Knight)),
@@ -159,6 +164,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.Forge, 7) => ("공격력 연구", "Q", Icon("research-attack")),
                 (DisplayMode.Forge, 8) => ("체력 연구", "W", Icon("research-armor")),
                 (DisplayMode.ResearchLab, 7) => ("와이어 돌진", "Q", Icon("research-wire")),
+                (DisplayMode.Tunnel, 7) => ("출구 설치", "Q", BuildingIcon(BuildingCatalog.Tunnel)),
                 (DisplayMode.Construction, 3) => ("건설 취소", "Esc", Icon("command-cancel")),
                 _ => ("", "", null)
             };
@@ -170,12 +176,24 @@ public partial class CommandPanel : PanelContainer
             Slot(5).Detail = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
             Slot(6).Detail = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
         }
+        if (next == DisplayMode.Workers)
+        {
+            Slot(1).Detail = "브랜치 · 숙소 · 시추탑 · 감시탑 · 인력 사무소 · 비허가 실험실";
+            Slot(2).Detail = "석탄 시추기 · 땅굴 · 공장 · 기술연구소";
+        }
         RefreshProduction();
     }
 
-    private static string BuildKey(int number) => number switch
+    // The key printed on each cell of the 4x3 grid, by slot number.
+    private static string CellKey(int number) => number switch
     {
-        7 => "Q", 8 => "W", 9 => "E", 4 => "A", 5 => "S", 6 => "D", 1 => "Z", 2 => "X", _ => ""
+        7 => "Q", 8 => "W", 9 => "E", 10 => "R", 4 => "A", 5 => "S", 6 => "D", 11 => "F", 1 => "Z", 2 => "X", 3 => "C", 12 => "V", _ => ""
+    };
+
+    private static int CellOfKey(Key key) => key switch
+    {
+        Key.Q => 7, Key.W => 8, Key.E => 9, Key.R => 10, Key.A => 4, Key.S => 5, Key.D => 6, Key.F => 11,
+        Key.Z => 1, Key.X => 2, Key.C => 3, Key.V => 12, _ => 0
     };
 
     private void RefreshProduction()
@@ -197,15 +215,22 @@ public partial class CommandPanel : PanelContainer
             Slot(1).Detail = available ? reason ?? "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가" : "";
             return;
         }
-        if (_display == DisplayMode.BuildMenu)
+        if (BuildMenu)
         {
             for (int i = 0; i < _slots.Length; i++)
             {
-                uint type = BuildingTypeForSlot(SlotNumbers[i]);
+                uint type = BuildingTypeForSlot(_display, SlotNumbers[i]);
                 if (!BuildingCatalog.IsPlayerBuildable(type)) continue;
                 string reason = Buildings.BuildingRequirementBlockReason(type);
                 _slots[i].Disabled = reason != null;
-                _slots[i].Detail = reason ?? (type == BuildingCatalog.OilDerrick ? "유전 지대에만 건설 · 유전마다 1개" : "");
+                string about = type switch
+                {
+                    BuildingCatalog.OilDerrick => "유전 지대에만 건설 · 유전마다 1개",
+                    BuildingCatalog.CoalDrill => "일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용",
+                    BuildingCatalog.Tunnel => "완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동",
+                    _ => ""
+                };
+                _slots[i].Detail = reason == null ? about : about.Length == 0 ? reason : reason + "\n" + about;
             }
             return;
         }
@@ -224,6 +249,16 @@ public partial class CommandPanel : PanelContainer
         if (_display == DisplayMode.ResearchLab)
         {
             RefreshKnightResearch(Slot(7));
+            return;
+        }
+        if (_display == DisplayMode.Tunnel)
+        {
+            Building tunnel = Buildings.SelectedBuilding;
+            bool linked = Buildings.TunnelPartner(tunnel) != null;
+            Slot(7).Disabled = !Units.CanOpenTunnelExit(tunnel);
+            Slot(7).Status = linked ? "연결됨" : "";
+            Slot(7).Detail = (linked ? "이미 출구가 있습니다\n" : !Units.CommanderControl ? "지휘관만 출구를 낼 수 있습니다\n" : "") +
+                "보이는 빈 땅에 출구를 바로 설치 (추가 비용 없음)\n한쪽이 무너지면 다른 쪽도 함께 무너짐";
             return;
         }
         if (_display is not (DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop)) return;
@@ -337,11 +372,19 @@ public partial class CommandPanel : PanelContainer
         $"아군 {UnitCatalog.Name(UnitCatalog.Knight)} 전체에 자동 돌진 해금 · 이후 생산한 병력에도 적용\n" +
         $"적 유닛 추격 중 {state.TriggerRange:0.##}m 이내에서 자동 발동 · 이동 속도 +{(state.SpeedMultiplier - 1) * 100:0.##}% · 재사용 {state.CooldownSeconds:0.##}초";
 
-    private static uint BuildingTypeForSlot(int number) => number switch
+    private static uint BuildingTypeForSlot(DisplayMode menu, int number) => (menu, number) switch
     {
-        7 => BuildingCatalog.Store, 8 => BuildingCatalog.Supply, 9 => BuildingCatalog.OilDerrick,
-        4 => BuildingCatalog.Barracks, 5 => BuildingCatalog.Forge, 6 => BuildingCatalog.Tower,
-        1 => BuildingCatalog.Workshop, 2 => BuildingCatalog.ResearchLab, _ => uint.MaxValue
+        (DisplayMode.BuildTierOne, 7) => BuildingCatalog.Store,
+        (DisplayMode.BuildTierOne, 8) => BuildingCatalog.Supply,
+        (DisplayMode.BuildTierOne, 9) => BuildingCatalog.OilDerrick,
+        (DisplayMode.BuildTierOne, 10) => BuildingCatalog.Tower,
+        (DisplayMode.BuildTierOne, 4) => BuildingCatalog.Barracks,
+        (DisplayMode.BuildTierOne, 5) => BuildingCatalog.Forge,
+        (DisplayMode.BuildTierTwo, 7) => BuildingCatalog.CoalDrill,
+        (DisplayMode.BuildTierTwo, 8) => BuildingCatalog.Tunnel,
+        (DisplayMode.BuildTierTwo, 4) => BuildingCatalog.Workshop,
+        (DisplayMode.BuildTierTwo, 5) => BuildingCatalog.ResearchLab,
+        _ => uint.MaxValue
     };
 
     private void RequestSlot(int number)
@@ -370,20 +413,21 @@ public partial class CommandPanel : PanelContainer
         else if (_display == DisplayMode.TownHall && number == 1) Units.RequestUpgradeTownHall();
         else if (_display == DisplayMode.Forge && number is 7 or 8) Units.RequestUpgradeArmy(number == 7);
         else if (_display == DisplayMode.ResearchLab && number == 7) Units.RequestKnightResearch();
+        else if (_display == DisplayMode.Tunnel && number == 7) TunnelExitRequested?.Invoke(Buildings.SelectedBuilding);
         else if (_display == DisplayMode.Barracks && number is 7 or 8 or 9)
             Units.RequestTrain(number == 7 ? UnitCatalog.Knight : number == 8 ? UnitCatalog.Archer : UnitCatalog.Medic);
         else if (_display == DisplayMode.Workshop && number is 7 or 8 or 9)
             Units.RequestTrain(number == 7 ? UnitCatalog.FlameAutomaton : number == 8 ? UnitCatalog.SteamArtillery : UnitCatalog.Refueler);
-        else if (_display == DisplayMode.Workers && number == 1)
+        else if (_display == DisplayMode.Workers && number is 1 or 2)
         {
-            SetMenuOpen(true);
+            SetMenuOpen(number);
             RefreshSelection();
             BuildMenuOpened?.Invoke();
         }
-        else if (_display == DisplayMode.BuildMenu)
+        else if (BuildMenu)
         {
             if (number == 3) { CancelMenu(); return; }
-            uint type = BuildingTypeForSlot(number);
+            uint type = BuildingTypeForSlot(_display, number);
             if (!BuildingCatalog.IsPlayerBuildable(type)) return;
             // 배치 모드로 들어가기 전에 기본 패널로 돌아갑니다.
             CancelMenu();
@@ -400,28 +444,24 @@ public partial class CommandPanel : PanelContainer
         if (_heldMenuKeys.Contains(code)) return true;
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.ShiftPressed) return false;
         RefreshSelection();
+        int menuCell = BuildMenu ? CellOfKey(code) : 0; // A build menu takes the key of any cell it fills.
         int slot = code switch
         {
-            Key.Z when _display is DisplayMode.Workers or DisplayMode.BuildMenu or DisplayMode.TownHall => 1,
+            Key.Escape when BuildMenu => 3,
+            _ when menuCell > 0 && Slot(menuCell).CommandName.Length > 0 => menuCell,
+            Key.Z when _display is DisplayMode.Workers or DisplayMode.TownHall => 1,
+            Key.X when _display == DisplayMode.Workers => 2,
             Key.Z when _display == DisplayMode.Units && Units.HasSelectedArtillery => 1,
             Key.Q when _display == DisplayMode.Workshop => 7,
             Key.W when _display == DisplayMode.Workshop => 8,
             Key.E when _display == DisplayMode.Workshop => 9,
             Key.Q when _display == DisplayMode.Forge => 7,
             Key.Q when _display == DisplayMode.ResearchLab => 7,
+            Key.Q when _display == DisplayMode.Tunnel => 7,
             Key.W when _display == DisplayMode.Forge => 8,
-            Key.Q when _buildMenu => 7,
-            Key.W when _buildMenu => 8,
-            Key.E when _buildMenu => 9,
-            Key.A when _buildMenu => 4,
-            Key.S when _buildMenu => 5,
-            Key.D when _buildMenu => 6,
-            Key.X when _buildMenu => 2,
-            Key.C when _buildMenu => 3,
             Key.A when _display is DisplayMode.Units or DisplayMode.Workers => 4,
             Key.S when _display is DisplayMode.Units or DisplayMode.Workers => 5,
             Key.D when _display is DisplayMode.Units or DisplayMode.Workers => 6,
-            Key.Escape when _buildMenu => 3,
             Key.Escape when _display is DisplayMode.Construction or DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop && !Slot(3).Disabled => 3,
             _ => 0
         };
@@ -443,21 +483,17 @@ public partial class CommandPanel : PanelContainer
 
     public bool CancelMenu()
     {
-        if (!_buildMenu) return false;
-        SetMenuOpen(false);
+        if (_buildTier == 0) return false;
+        SetMenuOpen(0);
         RefreshSelection();
         return true;
     }
 
-    private void SetMenuOpen(bool open)
-    {
-        if (_buildMenu == open) return;
-        _buildMenu = open;
-    }
+    private void SetMenuOpen(int tier) => _buildTier = tier;
 
     private void OnSelectionChanged()
     {
-        SetMenuOpen(false);
+        SetMenuOpen(0);
         RefreshSelection();
     }
 
@@ -484,9 +520,10 @@ public partial class CommandPanel : PanelContainer
             Buildings.SelectionChanged -= OnSelectionChanged;
             Buildings.ProductionChanged -= RefreshProduction;
             Buildings.RequirementsChanged -= RefreshProduction;
+            Buildings.TunnelLinkChanged -= RefreshProduction;
         }
         GetWindow().FocusExited -= OnFocusExited;
-        SetMenuOpen(false);
+        SetMenuOpen(0);
         foreach (StyleBoxFlat style in _styles) style.Dispose();
         _styles.Clear();
     }

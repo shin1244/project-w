@@ -44,10 +44,10 @@ public partial class WorkerAnimation : Node
         bool gathering = _unit.State.Activity == UnitActivity.Gather;
         SetProcess(gathering);
         _gatherTarget = gathering ? _unit.ActionTarget : null;
-        if (gathering && IsOilGather)
+        if (gathering && IsPumpGather)
         {
-            // 전환 직전의 목재는 실제로 반납할 때까지 그대로 보여 줍니다.
-            Play(_unit.State.Carrying > 0 && _unit.State.CarryType != ResourceType.Oil ? "Carry" : "OilWork");
+            // 전환 직전의 다른 자원은 실제로 반납할 때까지 그대로 보여 줍니다.
+            Play(_unit.State.Carrying > 0 && _unit.State.CarryType != PumpResource ? "Carry" : "OilWork");
         }
         else if (gathering && _unit.State.FocusId != 0 && _gatherTarget == null)
             Play(_unit.State.Carrying > 0 ? "Carry" : "Idle");
@@ -57,8 +57,11 @@ public partial class WorkerAnimation : Node
             Play(_unit.State.Carrying > 0 ? "Carry" : "Idle");
     }
 
-    private bool IsOilGather => _unit.ActionTarget is Building { BuildingType: BuildingCatalog.OilDerrick }
+    // 시추탑(기름)과 석탄 시추기(목재)에서는 도끼 대신 펌프를 밟습니다.
+    private bool IsPumpGather => _unit.ActionTarget is Building { BuildingType: BuildingCatalog.OilDerrick or BuildingCatalog.CoalDrill }
         || _unit.ActionTarget == null && _unit.State.CarryType == ResourceType.Oil;
+    private ResourceType PumpResource =>
+        _unit.ActionTarget is Building { BuildingType: BuildingCatalog.CoalDrill } ? ResourceType.Wood : ResourceType.Oil;
 
     // STATE가 먼저 온 재접속에서도 건물이 나타나는 즉시 채집 자세를 갱신합니다.
     public override void _Process(double delta)
