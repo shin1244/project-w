@@ -57,7 +57,14 @@ public sealed class BuildingFogReveal : IDisposable
     public void Dispose()
     {
         foreach (MeshInstance3D mesh in _meshes.Values)
-            if (GodotObject.IsInstanceValid(mesh)) { mesh.Hide(); mesh.QueueFree(); }
+        {
+            if (!GodotObject.IsInstanceValid(mesh)) continue;
+            mesh.Hide();
+            // 오버레이가 복제 재질의 마지막 참조를 쥔 채 삭제되면 재질이 렌더 인스턴스보다 먼저 해제되어
+            // 헤드리스(더미) 렌더러가 해제된 재질을 읽습니다. 재질을 먼저 놓고 삭제합니다.
+            for (int i = 0; i < mesh.GetSurfaceOverrideMaterialCount(); i++) mesh.SetSurfaceOverrideMaterial(i, null);
+            mesh.QueueFree();
+        }
         foreach (StandardMaterial3D material in _materials.Values) material.Dispose();
         _meshes.Clear();
         _materials.Clear();
