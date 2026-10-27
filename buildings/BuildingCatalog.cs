@@ -10,8 +10,8 @@ public static class BuildingCatalog
     public static bool IsTierTwo(uint type) => type is Workshop or ResearchLab or CoalDrill or Tunnel;
     public static string Name(uint type) => type switch
     {
-        TownHall => "HQ", Fortress => "요새", Store => "브랜치", Supply => "숙소",
-        Barracks => "인력 사무소", Forge => "비허가 실험실", Tower => "감시탑", OilDerrick => "시추탑",
-        Workshop => "공장", ResearchLab => "기술연구소", CoalDrill => "석탄 시추기", Tunnel => "땅굴", _ => "건물"
+        TownHall => "HQ", Fortress => Lang.T("요새"), Store => Lang.T("브랜치"), Supply => Lang.T("숙소"),
+        Barracks => Lang.T("인력 사무소"), Forge => Lang.T("비허가 실험실"), Tower => Lang.T("감시탑"), OilDerrick => Lang.T("시추탑"),
+        Workshop => Lang.T("공장"), ResearchLab => Lang.T("기술연구소"), CoalDrill => Lang.T("석탄 시추기"), Tunnel => Lang.T("땅굴"), _ => Lang.T("건물")
     };
 }

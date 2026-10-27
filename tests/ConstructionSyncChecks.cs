@@ -75,8 +75,8 @@ public partial class ConstructionSyncChecks : Main
                 "Main CONSTRUCTION branch activates the zero-percent common site");
             Receive("HP 502 60 400");
             Invoke("SelectBuilding", site);
-            Check(Detail("_title").Text == "브랜치" && Detail("_activity").Text.Contains("공사 중") &&
-                Detail("_activity").Text.Contains("0%") && Detail("_extra").Text.Contains("이어 짓기"),
+            Check(Detail("_title").Text == Lang.T("브랜치") && Detail("_activity").Text == Lang.F("공사 중   {0}%", 0) &&
+                Detail("_extra").Text == Lang.T("일꾼을 선택하고 우클릭하여 이어 짓기"),
                 "Selected store shows its construction percentage and continuation hint");
             Receive("CONSTRUCTION 502 37");
             Check(Detail("_activity").Text.Contains("37%") && site.GetNode<ConstructionSite>("ConstructionSite").Percent == 37,
@@ -110,7 +110,7 @@ public partial class ConstructionSyncChecks : Main
             Check(swings == 2 && Worker().State.SwingSequence == 12, "Repeated BUILD sequence does not replay a swing; the next sequence is accepted");
             Invoke("SelectUnit", Worker());
             _details._Process(0);
-            Check(Detail("_activity").Text.Contains("건설 중") && Detail("_extra").Text.Contains("17"),
+            Check(Detail("_activity").Text.Contains(Lang.T("건설 중")) && Detail("_extra").Text.Contains("17"),
                 "Selected worker displays construction activity and retains its carried resource display");
 
             beforeCount = _commands.Count;
@@ -138,7 +138,7 @@ public partial class ConstructionSyncChecks : Main
             Receive("CONSTRUCTION 502 100");
             Invoke("SelectBuilding", site);
             Check(!site.IsUnderConstruction && site.GetNode<MeshInstance3D>("Visual").Visible &&
-                !Detail("_activity").Text.Contains("공사 중") && Detail("_extra").Text == "",
+                Detail("_activity").Text == "" && Detail("_extra").Text == "",
                 "Completion restores the real building and removes construction-only selection text");
             Invoke("SelectUnit", Worker());
             beforeWire = _wire.Length;
@@ -157,7 +157,7 @@ public partial class ConstructionSyncChecks : Main
             Invoke("SelectUnit", Worker());
             _details._Process(0);
             Check(Worker().State.Activity == UnitActivity.Idle && Worker().State.FocusId == 0 && Worker().State.Carrying == 17 &&
-                !Worker().IsProcessing() && !Detail("_activity").Text.Contains("건설 중"),
+                !Worker().IsProcessing() && !Detail("_activity").Text.Contains(Lang.T("건설 중")),
                 "Server IDLE after destruction releases the worker while preserving its carried resources");
             beforeCount = _commands.Count;
             Units.RequestContextOrder(site, Vector3.Zero);

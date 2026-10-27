@@ -22,18 +22,18 @@ public partial class MapZonesChecks : Node3D
             string Issue(float x, float z, float width, float depth) =>
                 PlacementRules.Check(map, null, null, new Vector3(x, 0, z), new Vector2(width, depth));
             Check(map.IsRoad(5, 4) && !map.IsTerrainBlocked(5, 4), "Road is not a vision obstacle");
-            Check(map.IsTerrainBlocked(8, 4) && Issue(8.5f, 4.5f, 1, 1)?.Contains("벽") == true &&
+            Check(map.IsTerrainBlocked(8, 4) && Issue(8.5f, 4.5f, 1, 1)?.Contains(Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.")) == true &&
                 resources.GetChildCount() == 1, "Stone wall blocks vision/building without spawning a tree");
-            Check(Issue(6, 4, 2, 2)?.Contains("도로") == true, "Road rejects construction");
-            Check(Issue(4.5f, 6.5f, 3, 3)?.Contains("도로") == true, "Footprint partly crossing the road is rejected");
+            Check(Issue(6, 4, 2, 2)?.Contains(Lang.T("도로에는 건물을 지을 수 없습니다.")) == true, "Road rejects construction");
+            Check(Issue(4.5f, 6.5f, 3, 3)?.Contains(Lang.T("도로에는 건물을 지을 수 없습니다.")) == true, "Footprint partly crossing the road is rejected");
             Check(Issue(3.5f, 6.5f, 3, 3) == null, "A grass building touching the road edge is allowed");
-            Check(Issue(3, 4, 2, 2)?.Contains("나무") == true, "The complete initial tree footprint blocks building");
+            Check(Issue(3, 4, 2, 2)?.Contains(Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.")) == true, "The complete initial tree footprint blocks building");
             Check(map.ApplyTree(new[] { "TREE", "39", "0" }), "Tree can be harvested");
             Check(Issue(3, 4, 2, 2) == null, "Cleared forest permits construction");
             Check(map.IsTerrainBlocked(8, 4), "Harvest preserves permanent walls");
-            Check(Issue(6, 4, 2, 2)?.Contains("도로") == true, "Harvest never unlocks the road");
+            Check(Issue(6, 4, 2, 2)?.Contains(Lang.T("도로에는 건물을 지을 수 없습니다.")) == true, "Harvest never unlocks the road");
             Check(map.AcceptMap(new[] { "MAP", "2", map.MapHash }) && map.CompleteSync() &&
-                Issue(3, 4, 2, 2)?.Contains("나무") == true && Issue(6, 4, 2, 2)?.Contains("도로") == true,
+                Issue(3, 4, 2, 2)?.Contains(Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.")) == true && Issue(6, 4, 2, 2)?.Contains(Lang.T("도로에는 건물을 지을 수 없습니다.")) == true,
                 "Reconnect restores trees and retains road restrictions");
             GD.Print("PASS: road/wall construction restrictions and tree harvest/reconnect");
             GetTree().Quit();

@@ -274,7 +274,7 @@ public partial class Room : Control
         }
         row.RoleBox.AddThemeColorOverride("font_color", mine ? Accent : LobbyPalette.Text);
 
-        row.Hero.Text = hero && member != null ? Lang.T(UnitCatalog.Name(seat.Hero)) : "";
+        row.Hero.Text = hero && member != null ? UnitCatalog.Name(seat.Hero) : "";
         row.Hero.Visible = !(hero && open);
         row.HeroBox.Visible = hero && open;
         if (hero && open && !row.HeroBox.GetPopup().Visible)
@@ -282,7 +282,7 @@ public partial class Room : Control
             row.HeroBox.Clear();
             for (int i = 0; i < Heroes.Length; i++)
             {
-                row.HeroBox.AddItem(Lang.T(UnitCatalog.Name(Heroes[i])), (int)Heroes[i]);
+                row.HeroBox.AddItem(UnitCatalog.Name(Heroes[i]), (int)Heroes[i]);
                 row.HeroBox.SetItemDisabled(i, TakenByOther(room, seat.Team, Heroes[i]));
             }
             row.HeroBox.Select(mine ? System.Array.IndexOf(Heroes, seat.Hero) : -1);

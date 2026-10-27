@@ -58,7 +58,7 @@ public partial class TributeEventPanel : Control
         if (_snapshot != null && (snapshot.Team1Count > _snapshot.Team1Count || snapshot.Team2Count > _snapshot.Team2Count))
         {
             uint team = snapshot.Team1Count > _snapshot.Team1Count ? 1u : 2u;
-            _notice = $"{team}팀 마석 획득";
+            _notice = Lang.F("{0}팀 마석 획득", team);
             _noticeUntil = unchecked(currentTick + 3 * (uint)InterpolationClock.TickRate);
         }
         _snapshot = snapshot;
@@ -92,20 +92,20 @@ public partial class TributeEventPanel : Control
         }
         else if (_snapshot.Channeling)
         {
-            _status.Text = $"{_snapshot.CapturerTeam}팀 수집 · {_snapshot.RemainingSeconds(_tick):0.0}초";
+            _status.Text = Lang.F("{0}팀 수집 · {1:0.0}초", _snapshot.CapturerTeam, _snapshot.RemainingSeconds(_tick));
             color = TeamColor(_snapshot.CapturerTeam);
         }
         else if (_snapshot.Active)
         {
-            _status.Text = "마석 등장";
+            _status.Text = Lang.T("마석 등장");
         }
         else if (_snapshot.RamsMarching)
         {
-            _status.Text = "공성추 진군 중";
+            _status.Text = Lang.T("공성추 진군 중");
         }
         else
         {
-            _status.Text = $"마석 · {Countdown(_snapshot.NextSpawnTick)}";
+            _status.Text = Lang.F("마석 · {0}", Countdown(_snapshot.NextSpawnTick));
             color = new Color("c4c1b0");
         }
         _status.AddThemeColorOverride("font_color", color);

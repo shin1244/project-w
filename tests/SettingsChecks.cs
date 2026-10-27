@@ -14,7 +14,7 @@ public partial class SettingsChecks : Node
     // Korean reaching Lang.T other than as a literal at the call.
     private static readonly string[] Indirect =
     {
-        "전체 음량", "효과음", "인터페이스", "돌연변이 늑대", "룬 골렘", "사령관", "한국", "미국", "독일", "호주",
+        "전체 음량", "효과음", "인터페이스", "한국", "미국", "독일", "호주", "목재", "기름", "마석",
         "연결 실패: {0}", "서버 연결이 종료되었습니다.", "서버 연결 종료: {0}", "전송 대기열이 가득 찼습니다. 서버 연결을 확인해 주세요.",
         "전송 시간이 초과되었습니다. 서버 연결을 확인해 주세요.", "전송 실패: {0}",
     };

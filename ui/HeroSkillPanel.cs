@@ -117,7 +117,7 @@ public partial class HeroSkillPanel : PanelContainer
         _status.AddThemeColorOverride("font_color", new Color("bfcec5"));
         vitals.AddChild(_status);
         _points = new Label { Name="SkillPoints", HorizontalAlignment=HorizontalAlignment.Center, MouseFilter=MouseFilterEnum.Stop,
-            TooltipText="스킬 강화 포인트 · Ctrl + P/Q/W/E/R" };
+            TooltipText=Lang.T("스킬 강화 포인트 · Ctrl + P/Q/W/E/R") };
         _points.AddThemeFontSizeOverride("font_size",13);
         _points.AddThemeColorOverride("font_color",new Color("efd28c"));
         content.AddChild(_points);
@@ -353,33 +353,33 @@ public partial class HeroSkillPanel : PanelContainer
         if (_respawnTick is uint ready)
         {
             int remaining = Math.Max(0, unchecked((int)(ready - _tick)));
-            _status.Text = !_hasTick ? "부활 대기 중" : remaining > 0
-                ? $"부활 · {Math.Ceiling(remaining / (double)InterpolationClock.TickRate):0}초"
-                : "부활 위치 확보 중";
+            _status.Text = !_hasTick ? Lang.T("부활 대기 중") : remaining > 0
+                ? Lang.F("부활 · {0:0}초", Math.Ceiling(remaining / (double)InterpolationClock.TickRate))
+                : Lang.T("부활 위치 확보 중");
         }
-        else if (!HeroUnitId.HasValue) _status.Text = _dead ? "부활 대기 중" : "영웅 대기 중";
+        else if (!HeroUnitId.HasValue) _status.Text = _dead ? Lang.T("부활 대기 중") : Lang.T("영웅 대기 중");
         else if (_targeting is int slot)
-            _status.Text = $"{(Definition(slot)?.Target == SkillTargetMode.Ally ? "아군" : "적")} 대상 지정";
-        else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = "기절";
-        else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = "침묵";
-        else if (_golemEffects.EmpowerReady) _status.Text = "R · 강화 대기";
+            _status.Text = Definition(slot)?.Target == SkillTargetMode.Ally ? Lang.T("아군 대상 지정") : Lang.T("적 대상 지정");
+        else if ((_restrictions & ControlRestrictions.Stun) != 0) _status.Text = Lang.T("기절");
+        else if ((_restrictions & ControlRestrictions.Silence) != 0) _status.Text = Lang.T("침묵");
+        else if (_golemEffects.EmpowerReady) _status.Text = Lang.T("R · 강화 대기");
         else if (_marshalEffects.Marching(_tick) || _marshalEffects.Rallying(_tick))
         {
-            string march=_marshalEffects.Marching(_tick) ? $"E · 진군 {Math.Ceiling((_marshalEffects.MarchUntil-_tick)/30.0)}초" : "";
-            string rally=_marshalEffects.Rallying(_tick) ? $"R · 부대 소집 {Math.Ceiling((_marshalEffects.RallyUntil-_tick)/30.0)}초" : "";
+            string march=_marshalEffects.Marching(_tick) ? Lang.F("E · 진군 {0}초",Math.Ceiling((_marshalEffects.MarchUntil-_tick)/30.0)) : "";
+            string rally=_marshalEffects.Rallying(_tick) ? Lang.F("R · 부대 소집 {0}초",Math.Ceiling((_marshalEffects.RallyUntil-_tick)/30.0)) : "";
             _status.Text=march+(march!="" && rally!="" ? " / " : "")+rally;
         }
         else if (_wolfEffects.DrainReady || _wolfEffects.AuraUntil != 0 && unchecked((int)(_wolfEffects.AuraUntil - _tick)) > 0)
         {
-            string drain = _wolfEffects.DrainReady ? $"W · 흡혈 {50+10*((Progress?.W+1 ?? 1)/2)}% 대기" : "";
+            string drain = _wolfEffects.DrainReady ? Lang.F("W · 흡혈 {0}% 대기", 50+10*((Progress?.W+1 ?? 1)/2)) : "";
             int ticks = Math.Max(0, unchecked((int)(_wolfEffects.AuraUntil - _tick)));
             string aura = _wolfEffects.AuraUntil != 0 && ticks > 0
-                ? $"E · 지속 피해 {Math.Ceiling(ticks / (double)InterpolationClock.TickRate):0}초" : "";
+                ? Lang.F("E · 지속 피해 {0:0}초", Math.Ceiling(ticks / (double)InterpolationClock.TickRate)) : "";
             _status.Text = drain + (drain != "" && aura != "" ? " / " : "") + aura;
         }
-        else if (_maxHP > 0 && _currentHP / _maxHP < .25f) _status.Text = "체력 위험";
+        else if (_maxHP > 0 && _currentHP / _maxHP < .25f) _status.Text = Lang.T("체력 위험");
         else _status.Text = "";
-        if (_wolfEffects.DevourAttacks > 0) _status.Text += (_status.Text.Length > 0 ? " / " : "")+$"R · 강화 공격 {_wolfEffects.DevourAttacks}회";
+        if (_wolfEffects.DevourAttacks > 0) _status.Text += (_status.Text.Length > 0 ? " / " : "")+Lang.F("R · 강화 공격 {0}회",_wolfEffects.DevourAttacks);
         _status.Visible = _status.Text.Length > 0;
         _status.Modulate = IsRespawning || _maxHP > 0 && _currentHP / _maxHP < .25f
             ? new Color("ffc393") : Colors.White;
@@ -400,7 +400,7 @@ public partial class HeroSkillPanel : PanelContainer
         {
             _passiveUpgrade.Disabled = !CanUpgrade(4);
             _passiveUpgrade.Visible = pointsAvailable;
-            _passiveUpgrade.TooltipText = SkillDescriptions.PassiveUpgrade(HeroType,passiveRank+1)+"\n1포인트 · Ctrl+P";
+            _passiveUpgrade.TooltipText = SkillDescriptions.PassiveUpgrade(HeroType,passiveRank+1)+"\n"+Lang.T("1포인트 · Ctrl+P");
         }
         if (_targeting.HasValue && !CanUse(_targeting.Value)) _targeting = null;
         for (int slot = 0; slot < _slots.Count; slot++)
@@ -413,8 +413,8 @@ public partial class HeroSkillPanel : PanelContainer
             view.Rank.Text = RankMarks(rank, slot == 3 ? 1 : 4);
             view.Upgrade.Disabled = !CanUpgrade(slot);
             view.Upgrade.Text = "+";
-            view.Upgrade.TooltipText = locked ? "5레벨부터 1포인트로 궁극기 습득" :
-                (slot == 3 && rank == 0 ? "10레벨부터 1포인트로 궁극기 강화\n" : "")+SkillDescriptions.Upgrade(definition?.Id,rank+1);
+            view.Upgrade.TooltipText = locked ? Lang.T("5레벨부터 1포인트로 궁극기 습득") :
+                (slot == 3 && rank == 0 ? Lang.T("10레벨부터 1포인트로 궁극기 강화")+"\n" : "")+SkillDescriptions.Upgrade(definition?.Id,rank+1);
             view.Upgrade.Visible = pointsAvailable;
             view.Button.Disabled = !available;
             bool empowered = _golemEffects.EmpowerReady && slot < 3;
@@ -422,9 +422,9 @@ public partial class HeroSkillPanel : PanelContainer
             view.Button.TooltipText = SkillDescriptions.Active(HeroType, slot, definition?.Id, empowered, rank);
             float? manaCost = ManaCost(slot);
             view.ManaCost.Text = manaCost is float shownCost ? shownCost.ToString("0.##", CultureInfo.InvariantCulture) : "";
-            if (manaCost is float knownCost) view.Button.TooltipText += $"\n마나 {knownCost.ToString("0.##", CultureInfo.InvariantCulture)}";
-            if (!HasManaFor(slot)) view.Button.TooltipText += CurrentMana.HasValue ? " · 마나 부족" : " · 마나 확인 중";
-            if (locked) view.Button.TooltipText += "\n5레벨부터 강화 포인트로 습득";
+            if (manaCost is float knownCost) view.Button.TooltipText += "\n" + Lang.F("마나 {0:0.##}", knownCost);
+            if (!HasManaFor(slot)) view.Button.TooltipText += " · " + (CurrentMana.HasValue ? Lang.T("마나 부족") : Lang.T("마나 확인 중"));
+            if (locked) view.Button.TooltipText += "\n" + Lang.T("5레벨부터 강화 포인트로 습득");
             view.ManaCost.Modulate = HasManaFor(slot) ? Colors.White : new Color("ff9e88");
             view.Button.AddThemeStyleboxOverride("normal", _targeting == slot || empowered ? view.Targeting : view.Normal);
             view.Button.AddThemeStyleboxOverride("disabled", armed ? view.Targeting : view.Disabled);
@@ -439,7 +439,7 @@ public partial class HeroSkillPanel : PanelContainer
             bool cooling = !armed && _readyTicks.ContainsKey(slot) && (!_hasTick || RemainingTicks(slot) > 0);
             view.Cover.Visible = cooling;
             view.Cover.AnchorTop = cooling && _hasTick ? 1 - Mathf.Clamp(RemainingTicks(slot) / (float)Math.Max(1, _cooldownLengths.GetValueOrDefault(slot)), 0, 1) : 0;
-            view.Cooldown.Text = locked ? "잠김" : armed ? definition?.Id == "wolf-drain" ? "대기" : "사용 중"
+            view.Cooldown.Text = locked ? Lang.T("잠김") : armed ? definition?.Id == "wolf-drain" ? Lang.T("대기", "skill") : Lang.T("사용 중")
                 : cooling ? _hasTick ? Math.Ceiling(RemainingSeconds(slot)).ToString(CultureInfo.InvariantCulture) : "—" : "";
         }
         RefreshStatus();
@@ -451,7 +451,7 @@ public partial class HeroSkillPanel : PanelContainer
         CurrentMana = current; MaximumMana = maximum;
         ApplyVital(_mana, _manaText, current, maximum);
         _mana.GetParent<Control>().Show();
-        _mana.GetParent<Control>().TooltipText = $"마나 · {_manaText.Text}";
+        _mana.GetParent<Control>().TooltipText = Lang.F("마나 · {0}", _manaText.Text);
         Refresh();
     }
     public void HandleRemove(string[] parts)
@@ -476,7 +476,7 @@ public partial class HeroSkillPanel : PanelContainer
     private (ProgressBar, Label) CreateVital(VBoxContainer parent, string name, string color)
     {
         var row = new Control { Name = name, CustomMinimumSize = new Vector2(0, 16), MouseFilter = MouseFilterEnum.Stop,
-            TooltipText = name == "Health" ? "체력 · 보호막" : "마나" };
+            TooltipText = name == "Health" ? Lang.T("체력 · 보호막") : Lang.T("마나") };
         parent.AddChild(row);
         var bar = new ProgressBar { Name = "Bar", ShowPercentage = false, MouseFilter = MouseFilterEnum.Ignore };
         var track = Style("101c26", color, 3);

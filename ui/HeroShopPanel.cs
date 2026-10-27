@@ -34,16 +34,16 @@ public partial class HeroShopPanel : Control
         toolbar.AddThemeStyleboxOverride("panel",Frame());
         var content=new VBoxContainer();content.AddThemeConstantOverride("separation",7);toolbar.AddChild(content);
         var row=new HBoxContainer();row.AddThemeConstantOverride("separation",8);content.AddChild(row);
-        _gold=new Label { Name="Gold",Text="골드 —",SizeFlagsHorizontal=SizeFlags.ExpandFill };
+        _gold=new Label { Name="Gold",Text=Lang.T("골드 —"),SizeFlagsHorizontal=SizeFlags.ExpandFill };
         _gold.AddThemeColorOverride("font_color",new Color("f3ce86"));row.AddChild(_gold);
-        _toggle=Button("상점 [I]",()=>Toggle());row.AddChild(_toggle);
-        _recall=Button("귀환 [B]",()=> { if (_canRecall) RecallRequested?.Invoke(); });row.AddChild(_recall);
-        _recall.TooltipText="정신집중을 마치면 부활 구역으로 귀환합니다. 이동·적 피격 등으로 취소됩니다.";
+        _toggle=Button(Lang.T("상점 [I]"),()=>Toggle());row.AddChild(_toggle);
+        _recall=Button(Lang.T("귀환 [B]"),()=> { if (_canRecall) RecallRequested?.Invoke(); });row.AddChild(_recall);
+        _recall.TooltipText=Lang.T("정신집중을 마치면 부활 구역으로 귀환합니다. 이동·적 피격 등으로 취소됩니다.");
         var equipment=new HBoxContainer { Name="Slots" };equipment.AddThemeConstantOverride("separation",6);content.AddChild(equipment);
         for (int i=0;i<4;i++)
         {
             int slot=i;
-            var button=Button("빈 칸",()=>RequestSell(slot));button.Name=$"Slot{i}";
+            var button=Button(Lang.T("빈 칸"),()=>RequestSell(slot));button.Name=$"Slot{i}";
             button.CustomMinimumSize=new Vector2(72,42);button.SizeFlagsHorizontal=SizeFlags.ExpandFill;
             button.AddThemeFontSizeOverride("font_size",12);
             equipment.AddChild(button);_slots.Add(button);
@@ -56,8 +56,8 @@ public partial class HeroShopPanel : Control
         _shop.AddThemeStyleboxOverride("panel",Frame());
         var body=new VBoxContainer();body.AddThemeConstantOverride("separation",8);_shop.AddChild(body);
         var title=new HBoxContainer();body.AddChild(title);
-        title.AddChild(new Label { Text="전장 보급소",SizeFlagsHorizontal=SizeFlags.ExpandFill });
-        title.AddChild(Button("닫기",()=>_shop.Hide()));
+        title.AddChild(new Label { Text=Lang.T("전장 보급소"),SizeFlagsHorizontal=SizeFlags.ExpandFill });
+        title.AddChild(Button(Lang.T("닫기"),()=>_shop.Hide()));
         _hint=new Label { AutowrapMode=TextServer.AutowrapMode.WordSmart };
         _hint.AddThemeFontSizeOverride("font_size",12);body.AddChild(_hint);
         var scroll=new ScrollContainer { HorizontalScrollMode=ScrollContainer.ScrollMode.Disabled,SizeFlagsVertical=SizeFlags.ExpandFill };
@@ -109,21 +109,21 @@ public partial class HeroShopPanel : Control
     }
     public string BuyBlockReason(uint id)
     {
-        if (!_heroRole || Inventory==null || !_catalog.TryGetValue(id,out var item)) return "정보 대기 중";
+        if (!_heroRole || Inventory==null || !_catalog.TryGetValue(id,out var item)) return Lang.T("정보 대기 중");
         var s=Inventory;
-        if (s.TeamTier < item.Tier) return $"아군 HQ {item.Tier}티어 필요";
+        if (s.TeamTier < item.Tier) return Lang.F("아군 HQ {0}티어 필요",item.Tier);
         if (item.From!=0)
         {
             int slot=Array.IndexOf(s.Items,item.From);
-            if (slot<0) return $"{_catalog.GetValueOrDefault(item.From)?.Name ?? "이전 단계 장비"} 필요";
-            if (s.Pending[slot]) return "이전 단계 장비 수령 필요";
+            if (slot<0) return Lang.F("{0} 필요",_catalog.GetValueOrDefault(item.From)?.Name ?? Lang.T("이전 단계 장비"));
+            if (s.Pending[slot]) return Lang.T("이전 단계 장비 수령 필요");
         }
         else
         {
-            if (s.Items.Any(owned=>owned!=0 && ItemFamily(owned)==ItemFamily(id))) return "보유한 계열";
-            if (!s.Items.Contains(0u)) return "장비 칸 부족";
+            if (s.Items.Any(owned=>owned!=0 && ItemFamily(owned)==ItemFamily(id))) return Lang.T("보유한 계열");
+            if (!s.Items.Contains(0u)) return Lang.T("장비 칸 부족");
         }
-        return s.Gold<item.Cost ? "골드 부족" : null;
+        return s.Gold<item.Cost ? Lang.T("골드 부족") : null;
     }
     public void RequestBuy(uint id)
     { if (BuyBlockReason(id)==null) CommandRequested?.Invoke(Protocol.BuildBuyItem(id)); }
@@ -143,12 +143,12 @@ public partial class HeroShopPanel : Control
             if (item.Tier!=lastTier)
             {
                 lastTier=item.Tier;
-                _list.AddChild(new Label { Text=$"{item.Tier}티어 · {(item.Tier==1 ? "시작부터 구매 가능" : $"아군 HQ {item.Tier}티어 필요")}" });
+                _list.AddChild(new Label { Text=Lang.F("{0}티어",item.Tier)+" · "+(item.Tier==1 ? Lang.T("시작부터 구매 가능") : Lang.F("아군 HQ {0}티어 필요",item.Tier)) });
             }
             uint id=item.Id;
             var b=Button("",()=>RequestBuy(id));b.Name=$"Item{id}";b.CustomMinimumSize=new Vector2(0,58);
             b.Alignment=HorizontalAlignment.Left;b.AddThemeFontSizeOverride("font_size",13);
-            b.TooltipText=$"{item.Tier}티어 · {item.Description}\n{(item.From==0 ? "기본 장비" : "이전 단계 장비를 교체 · 표시 가격은 추가 비용")}";
+            b.TooltipText=Lang.F("{0}티어",item.Tier)+$" · {item.Description}\n"+(item.From==0 ? Lang.T("기본 장비") : Lang.T("이전 단계 장비를 교체 · 표시 가격은 추가 비용"));
             _list.AddChild(b);_buyButtons[id]=b;
         }
     }
@@ -156,22 +156,22 @@ public partial class HeroShopPanel : Control
     {
         Visible=_heroRole;
         if (_gold==null) return;
-        _gold.Text=Inventory==null ? "골드 —" : $"{Inventory.Gold:N0} G";
+        _gold.Text=Inventory==null ? Lang.T("골드 —") : $"{Inventory.Gold:N0} G";
         _toggle.Disabled=Inventory==null;
         _recall.Disabled=!_canRecall || _channel.Active;
-        _recall.Text=_channel.Active ? _channel.Remaining(_tick)>0 ? $"귀환 {_channel.Remaining(_tick):0.0}초" : "귀환 확인 중" : "귀환 [B]";
-        _hint.Text=$"아군 HQ {Inventory?.TeamTier ?? 1}티어\n" + (Inventory?.CanShop==true ? "부활 구역 · 즉시 장착 / 장비를 눌러 판매" :
-            "원격 구매 · 본진에 배송 상자가 생성됩니다.\n영웅으로 줍거나 아군 일꾼으로 배달하세요.");
+        _recall.Text=_channel.Active ? _channel.Remaining(_tick)>0 ? Lang.F("귀환 {0:0.0}초",_channel.Remaining(_tick)) : Lang.T("귀환 확인 중") : Lang.T("귀환 [B]");
+        _hint.Text=Lang.F("아군 HQ {0}티어",Inventory?.TeamTier ?? 1)+"\n" + (Inventory?.CanShop==true ? Lang.T("부활 구역 · 즉시 장착 / 장비를 눌러 판매") :
+            Lang.T("원격 구매 · 본진에 배송 상자가 생성됩니다.\n영웅으로 줍거나 아군 일꾼으로 배달하세요."));
         _notice.Visible=_noticeUntil>Time.GetTicksMsec()/1000.0;
         for (int i=0;i<_slots.Count;i++)
         {
             uint id=Inventory?.Items[i] ?? 0;
             var d=_catalog.GetValueOrDefault(id);
             bool pending=Inventory?.Pending[i]==true;
-            _slots[i].Text=id==0 ? "빈 칸" : $"{ShortName(d?.Name ?? "장비")}\n{(pending ? "배송 / 장착 중" : "장착됨")}";
+            _slots[i].Text=id==0 ? Lang.T("빈 칸") : ShortName(d?.Name ?? Lang.T("장비"))+"\n"+(pending ? Lang.T("배송 / 장착 중") : Lang.T("장착됨"));
             _slots[i].Disabled=id==0 || pending || Inventory?.CanShop!=true;
             int value=ItemValue(id);
-            _slots[i].TooltipText=d==null ? "아이템 슬롯" : $"{d.Name}\n{d.Description}\n{(pending ? "수령 후 장착됩니다." : $"부활 구역에서 클릭하여 {value/2} G에 판매")}";
+            _slots[i].TooltipText=d==null ? Lang.T("아이템 슬롯") : $"{d.Name}\n{d.Description}\n"+(pending ? Lang.T("수령 후 장착됩니다.") : Lang.F("부활 구역에서 클릭하여 {0} G에 판매",value/2));
         }
         foreach (var (id,b) in _buyButtons)
         {

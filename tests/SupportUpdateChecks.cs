@@ -31,7 +31,7 @@ public partial class SupportUpdateChecks : Main
                 Buildings.SelectedBuilding.CanTrain(UnitCatalog.Medic),"The barracks offers the quack doctor but waits for its server terms");
             // Arbitrary terms: the button follows the wire, not balance constants.
             Receive("REQUIRES UNIT 3 4 5");Receive("TRAIN_DEF 3 4 12 5 1 7");Receive("STOCK 0 12");Receive("STOCK 2 5");Receive("SUPPLY 0 10");
-            Check(!doctorSlot.Disabled && doctorSlot.TooltipText.Contains("기름 5") && doctorSlot.TooltipText.Contains("7초"),
+            Check(!doctorSlot.Disabled && doctorSlot.TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · 인구 {2} · {3:0.##}초",12,5,1,7)),
                 "A standing unlicensed lab and the server's terms open the quack doctor");
             doctorSlot.EmitSignal(BaseButton.SignalName.Pressed);
             Check(After(wire,before)=="TRAIN 901 3\n","The quack doctor trains at the selected barracks");
@@ -57,12 +57,12 @@ public partial class SupportUpdateChecks : Main
                 "Malformed slot prices cannot replace the server's 마석 price");
             Minions.GetNode<Button>("Tabs/MinionTab").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
             var stoneLabel=Minions.GetNode<Label>("Body/Content/Header/MagicStone");
-            Check(stoneLabel.IsVisibleInTree() && stoneLabel.Text.Contains("마석") && stoneLabel.Text.Contains("200") &&
+            Check(stoneLabel.IsVisibleInTree() && stoneLabel.Text.Contains(Lang.T("마석")) && stoneLabel.Text.Contains("200") &&
                 Minions.GetGlobalRect().Encloses(stoneLabel.GetGlobalRect()),
                 "The 마석 balance must remain readable inside the actual HUD");
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Add").EmitSignal(BaseButton.SignalName.Pressed);await Flush();
             var option=Minions.GetNode<Button>("Picker/Content/Options/Option102");
-            Check(!option.Disabled && option.FindChildren("Cost","Label",true,false).OfType<Label>().Single().Text.Contains("마석 100"),
+            Check(!option.Disabled && option.FindChildren("Cost","Label",true,false).OfType<Label>().Single().Text.Contains(Lang.T("마석")+" 100"),
                 "The + picker shows the server's 마석 price instead of wood");
             before=wire.Length;option.EmitSignal(BaseButton.SignalName.Pressed);
             Check(After(wire,before)=="MINION_ADD 0 0 102\n" && Minions.IsRequestPending && Minions.MagicStones==200,
@@ -84,7 +84,7 @@ public partial class SupportUpdateChecks : Main
             Receive("STOCK 3 200");Receive($"MAP 2 {Map.MapHash}");
             Check(Minions.AddCost==null && Minions.MagicStones==0 && !Minions.IsPickerOpen,"Map reset drops the old price, 마석 and picker");
             Begin();ConfigureMinions(false);
-            Check(!Minions.GetNode<Label>("Body/Content/Lanes/Rows/Lane0/Name").Text.Contains("경험치"),
+            Check(!Minions.GetNode<Label>("Body/Content/Lanes/Rows/Lane0/Name").Text.Contains(Lang.T("경험치 {0}%").Split("{0}")[0]),
                 "Map reset clears old experience rule; old servers do not display an assumed rate");
             Receive("MINION_XP_RULE 6 5");CheckLaneExperience(0,100);Receive("MINION_ADD_COST 3 100");Receive("STOCK 3 100");
             if (OS.GetCmdlineUserArgs().Contains("--capture-xp")) await Capture();
@@ -105,7 +105,7 @@ public partial class SupportUpdateChecks : Main
         Receive("MINION_LANE 1 0 6 100 100 100 101 101 101");
     }
     private void CheckLaneExperience(int lane,int percent) => Check(
-        Minions.GetNode<Label>($"Body/Content/Lanes/Rows/Lane{lane}/Name").Text.EndsWith($"경험치 {percent}%"),
+        Minions.GetNode<Label>($"Body/Content/Lanes/Rows/Lane{lane}/Name").Text.EndsWith(Lang.F("경험치 {0}%",percent)),
         $"Lane {lane} must show server-based experience {percent}%");
     private async Task Capture()
     {

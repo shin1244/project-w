@@ -21,7 +21,7 @@ public partial class StockChecks : Main
             Label oil = Stock.GetNode<Label>("Resources/Resource2/Amount");
             Check(label.Text == "0" && oil.Text == "0", "Wood and oil stocks both start at zero");
             Check(!Stock.HasNode("Resources/Resource2/Type") &&
-                Stock.GetNode<TextureRect>("Resources/Resource2/Icon").TooltipText == "기름", "Oil has a named tooltip instead of its protocol type number");
+                Stock.GetNode<TextureRect>("Resources/Resource2/Icon").TooltipText == Lang.T("기름"), "Oil has a named tooltip instead of its protocol type number");
             Check(Stock.MouseFilter == Control.MouseFilterEnum.Ignore && label.MouseFilter == Control.MouseFilterEnum.Ignore,
                 "Stock UI does not capture game clicks");
 

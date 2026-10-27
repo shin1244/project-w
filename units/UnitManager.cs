@@ -160,29 +160,29 @@ public partial class UnitManager : Node3D
     public string TownHallUpgradeBlockReason(Building hall)
     {
         if (!CommanderControl || Spectating || _controlledHeroType.HasValue || !CanUseSelectedBuilding(hall) ||
-            hall.BuildingType != BuildingCatalog.TownHall) return "아군 HQ를 선택하세요";
-        if (hall.IsUnderConstruction) return "HQ 건설 중";
+            hall.BuildingType != BuildingCatalog.TownHall) return Lang.T("아군 HQ를 선택하세요");
+        if (hall.IsUnderConstruction) return Lang.T("HQ 건설 중");
         var tier = Buildings.TeamTier(hall.SideId);
-        if (tier.Upgrading) return "HQ 업그레이드 중";
-        if (tier.TopTier) return "최고 단계";
-        if (hall.ProductionQueue.Count != 0) return "일꾼 생산 대기열을 비워주세요";
-        if (!tier.HasUpgradeTerms) return "업그레이드 정보 수신 대기";
-        if (Buildings.CommanderWood < tier.NextWood) return "나무 부족";
-        return Buildings.CommanderOil < tier.NextOil ? "기름 부족" : null;
+        if (tier.Upgrading) return Lang.T("HQ 업그레이드 중");
+        if (tier.TopTier) return Lang.T("최고 단계");
+        if (hall.ProductionQueue.Count != 0) return Lang.T("일꾼 생산 대기열을 비워주세요");
+        if (!tier.HasUpgradeTerms) return Lang.T("업그레이드 정보 수신 대기");
+        if (Buildings.CommanderWood < tier.NextWood) return Lang.T("나무 부족");
+        return Buildings.CommanderOil < tier.NextOil ? Lang.T("기름 부족") : null;
     }
 
     public string ArmyUpgradeBlockReason(Building forge, bool attack)
     {
         if (!CommanderControl || Spectating || _controlledHeroType.HasValue || !CanUseSelectedBuilding(forge) ||
-            forge.BuildingType != BuildingCatalog.Forge) return "아군 조병창을 선택하세요";
-        if (forge.IsUnderConstruction) return "조병창 건설 중";
+            forge.BuildingType != BuildingCatalog.Forge) return Lang.T("아군 조병창을 선택하세요");
+        if (forge.IsUnderConstruction) return Lang.T("조병창 건설 중");
         var state = Buildings.ArmyUpgrade(forge.SideId);
-        if (state.MaxLevel == 0) return "연구 정보 수신 대기";
-        if (state.Research(attack).Researching) return "연구 중";
-        if (state.Level(attack) >= state.MaxLevel) return "최고 단계";
-        if (state.ForgeBusy(forge.BuildingId)) return "이 조병창은 다른 연구 중";
+        if (state.MaxLevel == 0) return Lang.T("연구 정보 수신 대기");
+        if (state.Research(attack).Researching) return Lang.T("연구 중");
+        if (state.Level(attack) >= state.MaxLevel) return Lang.T("최고 단계");
+        if (state.ForgeBusy(forge.BuildingId)) return Lang.T("이 조병창은 다른 연구 중");
         var next = state.Research(attack);
-        return Buildings.CommanderWood < next.NextWood ? "나무 부족" : Buildings.CommanderOil < next.NextOil ? "기름 부족" : null;
+        return Buildings.CommanderWood < next.NextWood ? Lang.T("나무 부족") : Buildings.CommanderOil < next.NextOil ? Lang.T("기름 부족") : null;
     }
 
     public void RequestUpgradeArmy(bool attack)

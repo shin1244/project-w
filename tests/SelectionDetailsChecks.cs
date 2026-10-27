@@ -50,30 +50,30 @@ public partial class SelectionDetailsChecks : Main
 
             InvokeMain("SelectUnit", Unit(101));
             await Layout();
-            Check(Single.Visible && !Grid.Visible && Labels().Any(label => label.Text == "체력   — / —"), "Single selection does not invent HP before a server snapshot");
+            Check(Single.Visible && !Grid.Visible && Labels().Any(label => label.Text == Health("— / —")), "Single selection does not invent HP before a server snapshot");
             var unitPortrait = Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single();
             Check(unitPortrait.Texture is CompressedTexture2D && unitPortrait.Texture.ResourcePath == "res://ui/portraits/worker.png",
                 "Selection loads a pre-imported PNG instead of rendering a 3D portrait");
             Receive("HP 101 32.5 50");
             Receive("STATE 101 GATHER 7 0 1");
             await Layout();
-            Check(Labels().Any(label => label.Text == "체력   33 / 50") &&
-                Labels().Any(label => label.Text == "운반 중인 목재   7") &&
-                Labels().Any(label => label.Text == "상태   채집 중"), "HP, activity and carrying update without reselection");
+            Check(Labels().Any(label => label.Text == Health("33 / 50")) &&
+                Labels().Any(label => label.Text == Lang.F("운반 중인 목재   {0}", 7)) &&
+                Labels().Any(label => label.Text == Activity("채집 중")), "HP, activity and carrying update without reselection");
             Receive("STATE 101 IDLE 9 0 1 2");
             await Layout();
-            Check(Labels().Any(label => label.Text == "운반 중인 기름   9") &&
-                !Labels().Any(label => label.IsVisibleInTree() && label.Text.StartsWith("운반 중인 목재")),
+            Check(Labels().Any(label => label.Text == Lang.F("운반 중인 기름   {0}", 9)) &&
+                !Labels().Any(label => label.IsVisibleInTree() && label.Text.StartsWith(Lang.F("운반 중인 목재   {0}", ""))),
                 "Carried oil replaces the wood label without reselection");
             Receive("STATE 101 IDLE 0 0 1");
             await Layout();
-            Check(Labels().Any(label => label.Text == "운반 중인 목재   0"), "Legacy state clears the previous oil carry type");
+            Check(Labels().Any(label => label.Text == Lang.F("운반 중인 목재   {0}", 0)), "Legacy state clears the previous oil carry type");
             await CheckInspection();
             foreach (uint id in new uint[] { 102, 103 })
             {
                 InvokeMain("SelectUnit", Unit(id));
                 await Layout();
-                Check(!Labels().Any(label => label.IsVisibleInTree() && label.Text.StartsWith("운반 중인 목재")), "Combat units do not retain worker-only details");
+                Check(!Labels().Any(label => label.IsVisibleInTree() && label.Text.StartsWith(Lang.F("운반 중인 목재   {0}", ""))), "Combat units do not retain worker-only details");
             }
 
             SelectAll();
@@ -130,11 +130,11 @@ public partial class SelectionDetailsChecks : Main
 
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 201));
             await Layout();
-            Check(Single.Visible && Labels().Any(label => label.Text.StartsWith("HQ")) && Labels().Any(label => label.Text == "체력   740 / 1000"), "Building displays its name and current HP");
+            Check(Single.Visible && Labels().Any(label => label.Text.StartsWith("HQ")) && Labels().Any(label => label.Text == Health("740 / 1000")), "Building displays its name and current HP");
             InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 202));
             Receive("STATE 202 ATTACK 0 201 1");
             await Layout();
-            Check(Labels().Any(label => label.Text == "요새 · 1티어") && Labels().Any(label => label.Text == "상태   공격 중"), "Type 1 fortress displays its name, team tier and server activity");
+            Check(Labels().Any(label => label.Text == Lang.T("요새") + " · " + Lang.F("{0}티어", 1)) && Labels().Any(label => label.Text == Activity("공격 중")), "Type 1 fortress displays its name, team tier and server activity");
             var portrait = Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single();
             Texture2D enemyPortrait = portrait.Texture;
             Receive("WELCOME 7 2 COMMANDER");
@@ -278,7 +278,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATE 999 ATTACK 0 8005 1");
         Receive("STATS 999 12 0.7 1 6 8");
         await Layout();
-        Check(Info("HealthText").Text == "61 / 100" && portrait.TooltipText.Contains("공격 중") &&
+        Check(Info("HealthText").Text == "61 / 100" && portrait.TooltipText.Contains(Lang.T("공격 중")) &&
             Info("Damage").Text == "12" && Info("Range").Text == "0.7" &&
             !Info("Level").Visible && !experience.IsVisibleInTree() &&
             Skills.GetNode<Label>("Content/Vitals/Health/Value").Text == "204 / 330",
@@ -288,13 +288,13 @@ public partial class SelectionDetailsChecks : Main
         Receive("HP 999 40 100");
         Receive("STATE 999 HOLD 0 0 1");
         await Layout();
-        Check(Info("HealthText").Text == "40 / 100" && portrait.TooltipText.Contains("위치 사수"), "Inspected values and activity tooltip stay live");
+        Check(Info("HealthText").Text == "40 / 100" && portrait.TooltipText.Contains(Lang.T("위치 사수")), "Inspected values and activity tooltip stay live");
         Receive("EXP 2 75 150");
         Check(!experience.IsVisibleInTree() && experience.Value == 0, "Own EXP is retained but never attributed to the inspected enemy");
         Receive("UNIT 100 8810 0 8 0 1");
         InvokeMain("SelectUnit", Unit(8810));
         await Layout();
-        Check(Info("UnitName").Text == "근접 미니언" && Info("HealthText").Text == "— / —" &&
+        Check(Info("UnitName").Text == Lang.T("근접 미니언") && Info("HealthText").Text == "— / —" &&
             Info("Damage").Text == "—" && Info("AttackSpeed").Text == "—", "Switching to an allied minion clears the previous unit's values");
         Receive("STATS 8810 0 0 0 4 8");
         await Layout();
@@ -397,7 +397,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("REMOVE 8040");
         Receive("TEAM_RESPAWN 9 330");
         Receive("TICK 30");
-        Check(Teammates.StatusOf(9) == $"부활 {Math.Ceiling(300 / (double)InterpolationClock.TickRate)}초" && Teammates.HealthTextOf(9) == "— / —",
+        Check(Teammates.StatusOf(9) == Lang.F("부활 {0}초", Math.Ceiling(300 / (double)InterpolationClock.TickRate)) && Teammates.HealthTextOf(9) == "— / —",
             "A dead teammate counts down to its respawn");
         Receive("UNIT 201 8043 9 0 0 1");
         Check(Teammates.StatusOf(9) == "" && Teammates.HealthTextOf(9) == "— / —", "A respawned teammate starts fresh");
@@ -451,13 +451,13 @@ public partial class SelectionDetailsChecks : Main
     {
         Receive("STATS 101 5 0.5 1 5 8");
         await Layout();
-        Check(Labels().Any(label => label.Text.Contains("공격력 5") && label.Text.Contains("사거리 0.5") && label.Text.Contains("이동 속도 5")),
+        Check(Labels().Any(label => label.Text.Contains(Attack("5", "0.5", "1")) && label.Text.Contains(Lang.F("이동 속도 {0}   시야 {1}", "5", "8"))),
             "Info panel uses server damage, range, attack interval, speed and sight");
         foreach (string invalid in new[] { "STATS 101 NaN 1 1 1 1", "STATS 101 -1 1 1 1 1", "STATS 0 1 1 1 1 1", "STATS 101 1 1 1 1", "STATS 101 1 1 1 Infinity 1" }) Receive(invalid);
         Check(Unit(101).Stats?.Damage == 5, "Malformed stats do not overwrite the last known server values");
         Receive("STATS 101 7 0.75 1.2 6 9");
         await Layout();
-        Check(Labels().Any(label => label.Text.Contains("공격력 7") && label.Text.Contains("사거리 0.75")), "Stats update without reselection");
+        Check(Labels().Any(label => label.Text.Contains(Attack("7", "0.75", "1.2"))), "Stats update without reselection");
         Receive("HP 999 61 100");
         Receive("STATS 999 12 0.5 1 5 8");
         Receive("STATE 999 GUARD 0 0 0");
@@ -478,7 +478,7 @@ public partial class SelectionDetailsChecks : Main
             Check(!Units.RecallControlGroup(8), "Inspected foreign units cannot enter a control group");
             if (id == 999)
             {
-                Check(Labels().Any(label => label.Text == "체력   61 / 100") && Labels().Any(label => label.Text == "상태   경계 중"),
+                Check(Labels().Any(label => label.Text == Health("61 / 100")) && Labels().Any(label => label.Text == Activity("경계 중")),
                     "Enemy inspection shows current server health and guarding state");
                 Check(Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single().Texture.ResourcePath == "res://ui/portraits/knight-enemy.png",
                     "Enemy inspection uses the opposing team's portrait colors");
@@ -487,7 +487,8 @@ public partial class SelectionDetailsChecks : Main
             {
                 Check(Single.FindChildren("Portrait", "TextureRect", true, false).OfType<TextureRect>().Single().Texture.ResourcePath == "res://ui/portraits/minion-knight-enemy.png",
                     "Inspected minions retain their own model portrait");
-                Check(Labels().Any(label => label.Text == "근접 미니언") && Labels().Any(label => label.Text.Contains("공격력 4") && label.Text.Contains("시야 6")),
+                Check(Labels().Any(label => label.Text == Lang.T("근접 미니언")) &&
+                    Labels().Any(label => label.Text.Contains(Attack("4", "0.4", "1.4")) && label.Text.Contains(Lang.F("이동 속도 {0}   시야 {1}", "4", "6"))),
                     "Minion inspection shows its independent name and combat stats");
             }
         }
@@ -508,7 +509,7 @@ public partial class SelectionDetailsChecks : Main
         Receive("STATS 202 15 7 1.5 0 11");
         InvokeMain("SelectBuilding", enemy);
         await Layout();
-        Check(Single.Visible && Labels().Any(label => label.Text.Contains("공격력 15") && label.Text.Contains("사거리 7")), "Visible enemy buildings show combat stats");
+        Check(Single.Visible && Labels().Any(label => label.Text.Contains(Attack("15", "7", "1.5"))), "Visible enemy buildings show combat stats");
         Receive("BUILDING_VISION 202 0");
         await Layout();
         Check(Buildings.SelectedBuilding == null && !Single.Visible, "Losing building vision closes its current-status panel");
@@ -559,6 +560,12 @@ public partial class SelectionDetailsChecks : Main
     }
 
     private IEnumerable<Label> Labels() => _details.FindChildren("*", "Label", true, false).OfType<Label>();
+
+    // Detail lines as the panel prints them in the current language.
+    private static string Health(string value) => Lang.F("체력   {0}", value);
+    private static string Activity(string activity) => Lang.F("상태   {0}", Lang.T(activity));
+    private static string Attack(string damage, string range, string interval) =>
+        Lang.F("공격력 {0}   사거리 {1}   공격 간격 {2}초", damage, range, interval);
     private Unit Unit(uint id) => Units.LiveUnits.Single(unit => unit.UnitId == id);
     private void SelectAll() => InvokeMain("SelectBox", GetViewport().GetVisibleRect());
     private void Receive(string message) => InvokeMain("OnMessage", message);

@@ -25,7 +25,7 @@ public partial class CommandPanelChecks
         Receive("STOCK 0 37");
         Receive("STOCK 2 10");
         Receive("SUPPLY 3 5");
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("기름 11") && _slots[7].TooltipText.Contains("13.5초"),
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains(TrainTerms(37, 11, 2, 13.5)),
             "Production shows server oil/time terms and locks insufficient oil");
         KeyStroke(input, Key.Q);
         Units.RequestTrain(UnitCatalog.FlameAutomaton);
@@ -61,7 +61,7 @@ public partial class CommandPanelChecks
         Check(Caption(9).StartsWith(UnitCatalog.Name(UnitCatalog.Refueler)) && _slots[9].Disabled && _commands.Count == before,
             "The refueler waits for a standing research lab");
         Receive("BUILDING 9 9302 1 -25 14 0");
-        Check(!_slots[9].Disabled && _slots[9].TooltipText.Contains("기름 7"), "A research lab and the server's terms open the refueler");
+        Check(!_slots[9].Disabled && _slots[9].TooltipText.Contains(TrainTerms(29, 7, 1, 8.5)), "A research lab and the server's terms open the refueler");
         KeyStroke(input, Key.E);
         Check(_commands[^1] == "TRAIN 9300 6", "Workshop E produces the refueler");
         Receive("QUEUE 9300 25 9401:4:7 9402:5:7");

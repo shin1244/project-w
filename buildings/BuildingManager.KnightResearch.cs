@@ -16,6 +16,6 @@ public partial class BuildingManager
 
     // Research uses the same server-defined tier as its laboratory, without rechecking construction-only prerequisites.
     public string KnightResearchTierBlockReason(uint team) =>
-        !_buildingTierRequirements.TryGetValue(BuildingCatalog.ResearchLab, out int tier) ? "연구 조건 수신 대기" :
-        TeamTier(team).Tier < tier ? $"HQ {tier}티어 완료 필요" : null;
+        !_buildingTierRequirements.TryGetValue(BuildingCatalog.ResearchLab, out int tier) ? Lang.T("연구 조건 수신 대기") :
+        TeamTier(team).Tier < tier ? Lang.F("HQ {0}티어 완료 필요", tier) : null;
 }

@@ -66,21 +66,21 @@ public partial class UnitInfoPanel : PanelContainer
         _name.MouseFilter = MouseFilterEnum.Stop;
         _level = Text("Level", "", 12, "d5be7c");
         _level.VerticalAlignment = VerticalAlignment.Center;
-        _level.TooltipText = "팀 레벨";
+        _level.TooltipText = Lang.T("팀 레벨");
         _level.MouseFilter = MouseFilterEnum.Stop;
         _level.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
         header.AddChild(_name);
         header.AddChild(_level);
 
         (_, _health, _healthText) = Vital(content, "Health", "HealthText", 16, "64cf79");
-        _health.GetParent<Control>().TooltipText = "체력 · 보호막";
+        _health.GetParent<Control>().TooltipText = Lang.T("체력 · 보호막");
         _shieldFill = HealthDisplay.CreateShieldFill(_health);
         _healthFill = Style("64cf79", "64cf79");
         _health.AddThemeStyleboxOverride("fill", _healthFill);
         (_manaRow, _mana, _manaText) = Vital(content, "Mana", "ManaText", 14, "519bd1");
-        _manaRow.TooltipText = "마나 · 스킬 사용에 필요한 자원";
+        _manaRow.TooltipText = Lang.T("마나 · 스킬 사용에 필요한 자원");
         (_experienceRow, _experience, _experienceText) = Vital(content, "Experience", "ExperienceText", 14, "ac945a");
-        _experienceRow.TooltipText = "팀 경험치 · 다음 팀 레벨까지 필요한 경험치";
+        _experienceRow.TooltipText = Lang.T("팀 경험치 · 다음 팀 레벨까지 필요한 경험치");
         var stats = new GridContainer { Name = "Stats", Columns = 3, MouseFilter = MouseFilterEnum.Ignore };
         stats.AddThemeConstantOverride("h_separation", 4);
         stats.AddThemeConstantOverride("v_separation", 0);
@@ -166,8 +166,8 @@ public partial class UnitInfoPanel : PanelContainer
         _name.Text = UnitCatalog.Name(type);
         _name.TooltipText = UnitCatalog.Description(type);
         _portrait.Texture = _portraits.GetPortrait(Units.SceneFor(type), unit != null && unit.Team != Units.LocalTeam);
-        string activity = unit == null ? "—" : unit.UnitType == UnitCatalog.SiegeRam ? "자동 행군" :
-            SelectionDetails.ActivityText(unit.State, unit.HasServerState).Replace("상태   ", "");
+        string activity = unit == null ? "—" : unit.UnitType == UnitCatalog.SiegeRam ? Lang.T("자동 행군") :
+            SelectionDetails.ActivityName(unit.State, unit.HasServerState);
         _portrait.TooltipText = $"{UnitCatalog.Name(type)} · {activity}\n{UnitCatalog.Description(type)}";
         _healthText.Text = unit == null ? "— / —" : SelectionDetails.HealthText(unit.HealthBar);
         float ratio = unit?.HealthBar.Ratio ?? 0;
@@ -177,13 +177,13 @@ public partial class UnitInfoPanel : PanelContainer
         _manaText.Text = unit?.Mana is { } mana ? $"{mana.Current} / {mana.Maximum}" : "— / —";
         _mana.Value = unit?.Mana is { Maximum: > 0 } manaValue ? 100.0 * manaValue.Current / manaValue.Maximum : 0;
         StatsSnapshot? stats = unit?.Stats;
-        SetStat("Damage", stats is { } shown ? HealthDisplay.Whole(shown.Damage) : "—", "공격력", "기본 공격 한 번의 피해량");
-        SetStat("Range", Number(stats?.Range), "공격 사거리", "기본 공격이 닿는 거리");
-        SetStat("Sight", Number(stats?.Sight), "시야", "주변을 볼 수 있는 거리");
-        SetStat("Speed", Number(stats?.Speed), "이동 속도", "초당 이동 거리");
+        SetStat("Damage", stats is { } shown ? HealthDisplay.Whole(shown.Damage) : "—", Lang.T("공격력"), Lang.T("기본 공격 한 번의 피해량"));
+        SetStat("Range", Number(stats?.Range), Lang.T("공격 사거리"), Lang.T("기본 공격이 닿는 거리"));
+        SetStat("Sight", Number(stats?.Sight), Lang.T("시야"), Lang.T("주변을 볼 수 있는 거리"));
+        SetStat("Speed", Number(stats?.Speed), Lang.T("이동 속도"), Lang.T("초당 이동 거리"));
         string attackSpeed = stats is { Interval: > 0 } attack
             ? (1.0 / attack.Interval).ToString("0.##", CultureInfo.InvariantCulture) : "—";
-        SetStat("AttackSpeed", attackSpeed, "공격 속도", "초당 기본 공격 횟수");
+        SetStat("AttackSpeed", attackSpeed, Lang.T("공격 속도"), Lang.T("초당 기본 공격 횟수"));
         _level.Visible = _experienceRow.Visible = own;
         _level.Text = own && Experience is { } progress ? $"Lv.{progress.Level}" : "Lv.—";
         _experienceText.Text = own && Experience is { } exp

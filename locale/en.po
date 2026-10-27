@@ -24,16 +24,6 @@ msgstr "Team {0}"
 msgid "방으로 돌아가기"
 msgstr "Back to room"
 
-# Hero names the room's mercenary picker shows (UnitCatalog.Name).
-msgid "돌연변이 늑대"
-msgstr "Mutant Wolf"
-
-msgid "룬 골렘"
-msgstr "Rune Golem"
-
-msgid "사령관"
-msgstr "Marshal"
-
 # Region names the lobby sends (its -regions and -remote-regions flags).
 msgid "한국"
 msgstr "Korea"
@@ -408,3 +398,1443 @@ msgstr "Sending timed out. Check the server connection."
 
 msgid "전송 실패: {0}"
 msgstr "Send failed: {0}"
+
+# ---------------------------------------------------------------- unit and building names (units/UnitCatalog.cs, buildings/BuildingCatalog.cs)
+
+msgid "일꾼"
+msgstr "Worker"
+
+msgid "스팀돌격병"
+msgstr "Steam Trooper"
+
+msgid "공압사수"
+msgstr "Pneumatic Rifleman"
+
+msgid "돌팔이 의사"
+msgstr "Quack Doctor"
+
+msgid "화염기계"
+msgstr "Flame Automaton"
+
+msgid "증기포격차"
+msgstr "Steam Artillery"
+
+msgid "급유 기계"
+msgstr "Refueler"
+
+msgid "근접 미니언"
+msgstr "Melee Minion"
+
+msgid "원거리 미니언"
+msgstr "Ranged Minion"
+
+msgid "생명의 미니언"
+msgstr "Life Minion"
+
+msgid "화로 미니언"
+msgstr "Furnace Minion"
+
+msgid "호위 미니언"
+msgstr "Warden Minion"
+
+msgid "전격 미니언"
+msgstr "Arc Minion"
+
+msgid "돌연변이 늑대"
+msgstr "Mutant Wolf"
+
+msgid "룬 골렘"
+msgstr "Rune Golem"
+
+msgid "사령관"
+msgstr "Marshal"
+
+msgid "레인저"
+msgstr "Ranger"
+
+msgid "공성추"
+msgstr "Siege Ram"
+
+msgid "가시 멧돼지"
+msgstr "Thorn Boar"
+
+msgid "고목 수호자"
+msgstr "Elder Treant"
+
+msgid "유닛"
+msgstr "Unit"
+
+msgid "검과 방패를 갖춘 근접 보병\n기술연구소의 와이어 돌진 연구로 자동 돌진 해금"
+msgstr "Melee infantry with sword and shield\nThe Research Lab's Wire Charge research unlocks an automatic charge"
+
+msgid "면허 없는 의사 · 마나를 써서 사거리 안 아군 한 명을 고치며 공격도 함\n영웅 > 용병 > 미니언 순 · 영웅은 모두, 용병·미니언은 생체만 · 비허가 실험실 필요"
+msgstr "An unlicensed doctor · spends mana to treat one ally in range and attacks too\nHeroes > mercenaries > minions · treats any hero, but only living mercenaries and minions · requires a Forge"
+
+msgid "기계 전용 수리기 · 마나 없이 사거리 안 기계 하나를 고치며 공격도 함\n용병 > 미니언 순 · 영웅·생체는 못 고침 · 기술연구소 필요"
+msgstr "Repairs machines only · fixes one machine in range without mana and attacks too\nMercenaries > minions · cannot fix heroes or living units · requires a Research Lab"
+
+msgid "전방 부채꼴 화염 공격 · 공장 생산"
+msgstr "Flame attack in a cone ahead · trained at the Factory"
+
+msgid "일반 모드 단일 공격 · 전개 시 장거리 범위 포격\n전개 중 이동·근접 표적 공격 불가 · 전환 중 이동·공격 불가"
+msgstr "Single-target attack in normal mode · long-range area bombardment when deployed\nDeployed: cannot move or hit close targets · switching: cannot move or attack"
+
+msgid "2티어 근접 미니언 · 등에 진 화로로 주변 적 유닛을 계속 태움"
+msgstr "Tier 2 melee minion · the furnace on its back keeps burning nearby enemy units"
+
+msgid "2티어 근접 미니언 · 주변 아군 영웅·용병이 받는 피해 일부를 대신 받음\n여러 기가 있어도 가장 가까운 한 기만 받음"
+msgstr "Tier 2 melee minion · takes part of the damage dealt to nearby allied heroes and mercenaries\nWith several around, only the closest one takes it"
+
+msgid "2티어 원거리 미니언 · 맞힌 공격이 주변의 다른 적에게 줄어든 피해로 튕김"
+msgstr "Tier 2 ranged minion · its hits bounce to other nearby enemies for reduced damage"
+
+msgid "자동 행군 · 마석 수집 횟수에 따른 건물 충돌 피해\n기절·넉백 면역 · 치유·보호막·포식 불가"
+msgstr "Marches on its own · its impact damage on buildings grows with each Mana Stone captured\nImmune to stun and knockback · cannot be healed, shielded or devoured"
+
+msgid "중립 정글몹 · 먼저 공격받으면 반격\n처치 시 작은 금덩어리(수집한 영웅에게 골드·경험치) · 수집 2분 20초 뒤 더 강해져 부활"
+msgstr "Neutral jungle monster · fights back once attacked\nDrops a small gold nugget (gold and experience for the hero who collects it) · respawns stronger 2 min 20 s after collection"
+
+msgid "강한 중립 정글몹 · 먼저 공격받으면 반격\n처치 시 큰 금덩어리(골드·경험치 + 팀에 미니언 무료권) · 수집 2분 20초 뒤 더 강해져 부활"
+msgstr "Strong neutral jungle monster · fights back once attacked\nDrops a large gold nugget (gold and experience + a free minion for the team) · respawns stronger 2 min 20 s after collection"
+
+# Building names; HQ stays HQ in both languages.
+msgid "요새"
+msgstr "Fortress"
+
+msgid "브랜치"
+msgstr "Supply Depot"
+
+msgid "숙소"
+msgstr "House"
+
+msgid "인력 사무소"
+msgstr "Barracks"
+
+msgid "비허가 실험실"
+msgstr "Forge"
+
+msgid "감시탑"
+msgstr "Watchtower"
+
+msgid "시추탑"
+msgstr "Oil Derrick"
+
+msgid "공장"
+msgstr "Factory"
+
+msgid "기술연구소"
+msgstr "Research Lab"
+
+msgid "석탄 시추기"
+msgstr "Coal Drill"
+
+msgid "땅굴"
+msgstr "Tunnel"
+
+msgid "건물"
+msgstr "Building"
+
+# ---------------------------------------------------------------- command panel (ui/CommandPanel.cs)
+
+msgid "공격"
+msgstr "Attack"
+
+msgid "정지"
+msgstr "Stop"
+
+msgid "홀드"
+msgstr "Hold"
+
+msgid "1티어 건설"
+msgstr "Build tier 1"
+
+msgid "2티어 건설"
+msgstr "Build tier 2"
+
+msgid "뒤로"
+msgstr "Back"
+
+msgid "업그레이드"
+msgstr "Upgrade"
+
+msgid "공격력 연구"
+msgstr "Attack research"
+
+msgid "체력 연구"
+msgstr "HP research"
+
+msgid "와이어 돌진"
+msgstr "Wire Charge"
+
+msgid "출구 설치"
+msgstr "Open exit"
+
+msgid "건설 취소"
+msgstr "Cancel construction"
+
+msgid "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소"
+msgstr "A: show attack range · click an enemy: attack · click the ground: attack-move · Esc: cancel"
+
+msgid "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀"
+msgstr "Stops the current task · chases nearby enemies, then returns to its spot"
+
+msgid "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격"
+msgstr "Stops the current task · holds position and attacks only enemies in range"
+
+msgid "공성 전개"
+msgstr "Deploy"
+
+msgid "전개 해제"
+msgstr "Pack up"
+
+msgid "공성 전환"
+msgstr "Siege mode"
+
+msgid "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가"
+msgstr "Switches only your selected Steam Artillery · cannot move or attack while switching"
+
+msgid "유전 지대에만 건설 · 유전마다 1개"
+msgstr "Built only on oilfields · one per oilfield"
+
+msgid "일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용"
+msgstr "A fixed site where workers gather wood endlessly · keeps working after the trees are gone"
+
+msgid "완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동"
+msgstr "Once built, select it and press Q to open an exit elsewhere · right-click a friendly tunnel: travel to its other end"
+
+msgid "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)"
+msgstr "Cancels construction and refunds 75% of the cost (rounded down)"
+
+msgid "연결됨"
+msgstr "Linked"
+
+msgid "이미 출구가 있습니다"
+msgstr "It already has an exit"
+
+msgid "지휘관만 출구를 낼 수 있습니다"
+msgstr "Only the Director can open an exit"
+
+msgid "보이는 빈 땅에 출구를 바로 설치 (추가 비용 없음)\n한쪽이 무너지면 다른 쪽도 함께 무너짐"
+msgstr "Opens an exit at once on visible empty ground (no extra cost)\nIf one end collapses, the other collapses with it"
+
+msgid "생산 취소"
+msgstr "Cancel training"
+
+msgid "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭"
+msgstr "Cancels the current training and refunds 75% of the cost · click queued items in the info panel"
+
+msgid "지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제"
+msgstr "Right-click the ground: set rally · right-click the selected building: clear rally"
+
+msgid "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집"
+msgstr "Wood 100 · Supply 1 · 9s to train\nRight-click a tree: new workers gather automatically"
+
+msgid "{0}티어"
+msgstr "Tier {0}"
+
+msgid "{0}티어 업그레이드"
+msgstr "Upgrade to tier {0}"
+
+msgid "{0:0}초"
+msgstr "{0:0}s"
+
+msgid "최고 단계"
+msgstr "Max level"
+
+msgid "나무 {0:N0} · 기름 {1:N0} · {2:0.##}초"
+msgstr "Wood {0:N0} · Oil {1:N0} · {2:0.##}s"
+
+msgid "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금"
+msgstr "HQ, Fortress and Watchtower max HP and attack: +20% of base\nUnlocks the team's next tier of hero gear"
+
+msgid "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다."
+msgstr "Workers cannot be trained while the HQ upgrades."
+
+msgid "지휘관만 생산할 수 있습니다"
+msgstr "Only the Director can train units"
+
+msgid "생산 대기열 가득 참"
+msgstr "Training queue full"
+
+msgid "목재 {0:N0} · 기름 {1:N0} · 인구 {2} · {3:0.##}초"
+msgstr "Wood {0:N0} · Oil {1:N0} · Supply {2} · {3:0.##}s"
+
+msgid "공격력"
+msgstr "Attack"
+
+msgid "체력"
+msgstr "HP"
+
+msgid "{0}단계 {1}초"
+msgstr "Level {0} {1}s"
+
+msgid "{0}단계"
+msgstr "Level {0}"
+
+msgid "미니언 {0} 단계당 {1}"
+msgstr "Minion {0} per level: {1}"
+
+msgid "용병 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계"
+msgstr "Mercenary base {0} +{1}% (not workers or heroes) · level {2}/{3}"
+
+msgid "근접"
+msgstr "Melee"
+
+msgid "원거리"
+msgstr "Ranged"
+
+msgid "치유"
+msgstr "Healing"
+
+msgid "화로"
+msgstr "Furnace"
+
+msgid "호위"
+msgstr "Warden"
+
+msgid "전격"
+msgstr "Arc"
+
+msgid "완료"
+msgstr "Done"
+
+msgid "목재 {0:N0} · 기름 {1:N0} · {2:0.##}초"
+msgstr "Wood {0:N0} · Oil {1:N0} · {2:0.##}s"
+
+msgid "아군 {0} 전체에 자동 돌진 해금 · 이후 생산한 병력에도 적용"
+msgstr "Unlocks an automatic charge for every friendly {0} · also applies to units trained later"
+
+msgid "적 유닛 추격 중 {0:0.##}m 이내에서 자동 발동 · 이동 속도 +{1:0.##}% · 재사용 {2:0.##}초"
+msgstr "Triggers by itself within {0:0.##}m while chasing an enemy unit · move speed +{1:0.##}% · cooldown {2:0.##}s"
+
+# ---------------------------------------------------------------- why a command is locked (units/UnitManager*.cs, buildings/)
+
+msgid "아군 HQ를 선택하세요"
+msgstr "Select a friendly HQ"
+
+msgid "HQ 건설 중"
+msgstr "HQ under construction"
+
+msgid "HQ 업그레이드 중"
+msgstr "HQ upgrading"
+
+msgid "일꾼 생산 대기열을 비워주세요"
+msgstr "Empty the worker training queue first"
+
+msgid "업그레이드 정보 수신 대기"
+msgstr "Waiting for upgrade info"
+
+msgid "나무 부족"
+msgstr "Not enough wood"
+
+msgid "목재 부족"
+msgstr "Not enough wood"
+
+msgid "기름 부족"
+msgstr "Not enough oil"
+
+msgid "인구 부족"
+msgstr "Not enough supply"
+
+# 조병창 is the Forge's older name (BuildingCatalog.Forge).
+msgid "아군 조병창을 선택하세요"
+msgstr "Select a friendly Forge"
+
+msgid "조병창 건설 중"
+msgstr "Forge under construction"
+
+msgid "이 조병창은 다른 연구 중"
+msgstr "This Forge is busy with other research"
+
+msgid "연구 정보 수신 대기"
+msgstr "Waiting for research info"
+
+msgid "연구 중"
+msgstr "Researching"
+
+msgid "연구 완료"
+msgstr "Research done"
+
+msgid "아군 기술연구소를 선택하세요"
+msgstr "Select a friendly Research Lab"
+
+msgid "기술연구소 건설 중"
+msgstr "Research Lab under construction"
+
+msgid "다른 기술연구소에서 연구 중"
+msgstr "Being researched at another Research Lab"
+
+msgid "연구 조건 수신 대기"
+msgstr "Waiting for research requirements"
+
+msgid "내 증기포격차를 선택하세요"
+msgstr "Select your Steam Artillery"
+
+msgid "공성 상태 수신 대기"
+msgstr "Waiting for siege state"
+
+msgid "전환 중"
+msgstr "Switching"
+
+msgid "생산 정보 수신 대기"
+msgstr "Waiting for training info"
+
+msgid "생산 건물 불일치"
+msgstr "Wrong production building"
+
+msgid "인구 정보 수신 대기"
+msgstr "Waiting for supply info"
+
+msgid "HQ {0}티어 완료 필요"
+msgstr "Requires a tier {0} HQ"
+
+msgid "건설 조건 수신 대기"
+msgstr "Waiting for build requirements"
+
+msgid "선행 건물 필요: {0} (완공)"
+msgstr "Requires: {0} (finished)"
+
+# ---------------------------------------------------------------- building placement (buildings/PlacementRules.cs, input/BuildingPlacement.cs)
+
+msgid "맵 동기화가 끝나지 않았습니다."
+msgstr "The map has not finished syncing."
+
+msgid "올바른 건설 위치가 아닙니다."
+msgstr "Not a valid building spot."
+
+msgid "시추탑은 유전 지대에만 지을 수 있습니다."
+msgstr "Oil Derricks can only be built on oilfields."
+
+msgid "맵 밖에는 지을 수 없습니다."
+msgstr "You cannot build outside the map."
+
+msgid "도로에는 건물을 지을 수 없습니다."
+msgstr "You cannot build on roads."
+
+msgid "벽이나 나무가 있는 곳에는 지을 수 없습니다."
+msgstr "You cannot build on walls or trees."
+
+msgid "이미 시추탑이 있는 유전입니다."
+msgstr "This oilfield already has an Oil Derrick."
+
+msgid "다른 건물과 겹칩니다."
+msgstr "Overlaps another building."
+
+msgid "유닛이 있는 곳에는 지을 수 없습니다."
+msgstr "You cannot build where units are standing."
+
+msgid "건설할 내 일꾼을 선택하세요."
+msgstr "Select one of your workers to build."
+
+msgid "전장에서 건설 위치를 선택하세요."
+msgstr "Pick a building spot on the battlefield."
+
+msgid "{0} 배치 · 좌클릭: 건설"
+msgstr "Placing {0} · left-click: build"
+
+msgid "{0} 출구 배치 · 좌클릭: 설치"
+msgstr "Placing a {0} exit · left-click: open"
+
+msgid "{0} · 우클릭/Esc: 취소"
+msgstr "{0} · right-click/Esc: cancel"
+
+msgid "건설 불가: {0}"
+msgstr "Cannot build: {0}"
+
+msgid "{0} 출구 설치를 요청했습니다."
+msgstr "Exit requested: {0}."
+
+msgid "{0} 건설을 요청했습니다."
+msgstr "Build requested: {0}."
+
+# ---------------------------------------------------------------- selection (ui/SelectionDetails.cs, ui/SelectionUnitCard.cs, ui/UnitInfoPanel.cs)
+
+msgid "선택 없음"
+msgstr "Nothing selected"
+
+msgid "이전 유닛"
+msgstr "Previous unit"
+
+msgid "다음 유닛"
+msgstr "Next unit"
+
+# A selected tree's title.
+msgid "나무"
+msgstr "Tree"
+
+msgid "상태   {0}"
+msgstr "Status   {0}"
+
+msgid "자동 행군"
+msgstr "Marching"
+
+msgid "채집 중"
+msgstr "Gathering"
+
+msgid "공격 중"
+msgstr "Attacking"
+
+msgid "경계 중"
+msgstr "Guarding"
+
+msgid "위치 사수"
+msgstr "Holding position"
+
+msgid "돌진 중"
+msgstr "Charging"
+
+msgid "기절"
+msgstr "Stunned"
+
+msgid "마석 수집 중"
+msgstr "Channeling the Mana Stone"
+
+msgid "시추탑 안"
+msgstr "Inside an Oil Derrick"
+
+msgid "건설 중"
+msgstr "Building"
+
+msgid "대기 / 이동"
+msgstr "Idle / moving"
+
+msgid "운반 중인 기름   {0}"
+msgstr "Carrying oil   {0}"
+
+msgid "운반 중인 목재   {0}"
+msgstr "Carrying wood   {0}"
+
+msgid "운반 중인 자원   —"
+msgstr "Carrying   —"
+
+msgid "공사 중   {0}%"
+msgstr "Under construction   {0}%"
+
+msgid "일꾼을 선택하고 우클릭하여 이어 짓기"
+msgstr "Select a worker and right-click to keep building"
+
+msgid "일꾼 우클릭: 목재 채집 (줄지 않음)"
+msgstr "Right-click with a worker: gather wood (never runs out)"
+
+msgid "우클릭으로 랠리 지정"
+msgstr "Right-click to set a rally"
+
+msgid "랠리: 자동 채집"
+msgstr "Rally: gather"
+
+msgid "랠리: 이동"
+msgstr "Rally: move"
+
+msgid "남은 채집량   {0}"
+msgstr "Left to gather   {0}"
+
+msgid "체력   {0}"
+msgstr "HP   {0}"
+
+msgid "출구 없음 · Q: 출구 설치"
+msgstr "No exit · Q: open exit"
+
+msgid "출구 없음"
+msgstr "No exit"
+
+msgid "짝 땅굴 연결됨 · 유닛 우클릭: 짝 옆으로 이동 · 한쪽이 무너지면 함께 무너짐"
+msgstr "Linked to its pair · right-click with units: move beside the pair · if one collapses, both do"
+
+msgid "와이어 돌진 연구 · {0:0}초 남음"
+msgstr "Wire Charge research · {0:0}s left"
+
+msgid "{0} → {1}티어 업그레이드 · {2:0}초 남음"
+msgstr "Tier {0} → {1} upgrade · {2:0}s left"
+
+msgid "출구 대기"
+msgstr "Waiting to exit"
+
+msgid "생산 중"
+msgstr "Training"
+
+msgid "대기 {0}"
+msgstr "Queued {0}"
+
+msgid "클릭하여 취소 · 지불 비용 75% 반환"
+msgstr "Click to cancel · refunds 75% of the cost"
+
+msgid "빈 생산 슬롯"
+msgstr "Empty training slot"
+
+msgid "공격력 —   사거리 —   공격 간격 —"
+msgstr "Attack —   Range —   Interval —"
+
+msgid "공격력 {0}   사거리 {1}   공격 간격 {2}초"
+msgstr "Attack {0}   Range {1}   Interval {2}s"
+
+msgid "공격 불가"
+msgstr "Cannot attack"
+
+msgid "이동 속도 {0}   시야 {1}"
+msgstr "Speed {0}   Sight {1}"
+
+msgid "시야 {0}"
+msgstr "Sight {0}"
+
+msgid "공성 상태   —"
+msgstr "Siege   —"
+
+msgid "이동 모드"
+msgstr "Mobile mode"
+
+msgid "공성 모드 · 이동 불가"
+msgstr "Siege mode · cannot move"
+
+msgid "전개 중   {0:0}%"
+msgstr "Deploying   {0:0}%"
+
+msgid "전개 해제 중   {0:0}%"
+msgstr "Packing up   {0:0}%"
+
+msgid "와이어 돌진 · 자동 발동"
+msgstr "Wire Charge · automatic"
+
+msgid "와이어 돌진 · 연구 중 {0:0}초"
+msgstr "Wire Charge · researching {0:0}s"
+
+msgid "와이어 돌진 · 기술연구소 연구 필요"
+msgstr "Wire Charge · needs research at a Research Lab"
+
+msgid "와이어 돌진 · 정보 수신 대기"
+msgstr "Wire Charge · waiting for info"
+
+msgid "와이어 돌진 · 돌진 중"
+msgstr "Wire Charge · charging"
+
+msgid "와이어 돌진 · 준비"
+msgstr "Wire Charge · ready"
+
+msgid "와이어 돌진 · 재사용 {0:0}초"
+msgstr "Wire Charge · cooldown {0:0}s"
+
+msgid "체력 {0}"
+msgstr "HP {0}"
+
+msgid "클릭: 단일 선택 / Shift: 선택 제외\nCtrl: 같은 종류 선택 / Ctrl+Shift: 같은 종류 제외"
+msgstr "Click: select only this / Shift: deselect\nCtrl: select all of this type / Ctrl+Shift: deselect all of this type"
+
+msgid "팀 레벨"
+msgstr "Team level"
+
+msgid "체력 · 보호막"
+msgstr "HP · shield"
+
+msgid "마나 · 스킬 사용에 필요한 자원"
+msgstr "Mana · spent to use skills"
+
+msgid "팀 경험치 · 다음 팀 레벨까지 필요한 경험치"
+msgstr "Team experience · what the next team level needs"
+
+msgid "기본 공격 한 번의 피해량"
+msgstr "Damage of one basic attack"
+
+msgid "공격 사거리"
+msgstr "Attack range"
+
+msgid "기본 공격이 닿는 거리"
+msgstr "How far basic attacks reach"
+
+msgid "시야"
+msgstr "Sight"
+
+msgid "주변을 볼 수 있는 거리"
+msgstr "How far it can see"
+
+msgid "이동 속도"
+msgstr "Move speed"
+
+msgid "초당 이동 거리"
+msgstr "Distance moved per second"
+
+msgid "공격 속도"
+msgstr "Attack speed"
+
+msgid "초당 기본 공격 횟수"
+msgstr "Basic attacks per second"
+
+# ---------------------------------------------------------------- minion lineup (ui/MinionPanel.cs, ui/StockDisplay.cs)
+
+msgid "목재"
+msgstr "Wood"
+
+msgid "기름"
+msgstr "Oil"
+
+msgid "마석"
+msgstr "Mana Stone"
+
+msgid "자원 {0}"
+msgstr "Resource {0}"
+
+msgid "부대"
+msgstr "Army"
+
+msgid "미니언"
+msgstr "Minions"
+
+msgid "미니언 편성"
+msgstr "Minion lineup"
+
+msgid "웨이브 정보 대기 중"
+msgstr "Waiting for wave info"
+
+msgid "미니언 변경"
+msgstr "Change minion"
+
+msgid "닫기 (Esc)"
+msgstr "Close (Esc)"
+
+msgid "편성 변경됨 · 다시 선택"
+msgstr "Lineup changed · choose again"
+
+msgid "구매 요청을 처리하지 못했습니다"
+msgstr "Could not process the purchase"
+
+msgid "웨이브 {0:0}초"
+msgstr "Wave in {0:0}s"
+
+msgid "라인별 미니언 편성을 불러오는 중…"
+msgstr "Loading each lane's minion lineup…"
+
+msgid "경험치 {0}%"
+msgstr "XP {0}%"
+
+msgid "상대 영웅이 미니언 한 기에서 받는 경험치\n기본 {0}칸에서 추가 1칸마다 {1}%p 감소\n다음 웨이브의 이 라인 모든 미니언에 적용"
+msgstr "Experience an enemy hero gets from one minion\n{1} percentage points less for each slot beyond {0}\nApplies to every minion of this lane from the next wave"
+
+msgid "{0} · {1}번째 생성"
+msgstr "{0} · spawns #{1}"
+
+msgid "최대 {0}명까지 편성할 수 있습니다"
+msgstr "A lane holds at most {0} minions"
+
+msgid "미니언 영구 추가\n한 번 구매하면 이후 매 웨이브마다 생성됩니다"
+msgstr "Add a minion for good\nOnce bought, it spawns every wave"
+
+msgid "미니언 종류는 바꿀 수 없습니다 · 근접 미니언만 2티어로 강화"
+msgstr "Minion types cannot be changed · only melee minions upgrade to tier 2"
+
+msgid "{0} · 미니언 추가"
+msgstr "{0} · add a minion"
+
+msgid "{0} · {1}번 2티어 강화"
+msgstr "{0} · tier 2 upgrade for #{1}"
+
+msgid "HQ {0}티어부터 · 한 번 바꾸면 되돌릴 수 없음"
+msgstr "From HQ tier {0} · cannot be undone"
+
+msgid "{0} · 2티어"
+msgstr "{0} · tier 2"
+
+msgid "편성 변경 요청 중…"
+msgstr "Requesting the lineup change…"
+
+msgid "슬롯 추가 가격을 받는 중"
+msgstr "Waiting for the slot price"
+
+msgid "{0} {1:N0}으로 원하는 미니언을 이 라인에 영구 추가합니다\n보유 {0} {2:N0}"
+msgstr "Adds a minion of your choice to this lane for good for {0} {1:N0}\nYou have: {0} {2:N0}"
+
+msgid "{0} {1:N0}이 필요합니다 (보유 {2:N0})\n중앙 마석·정글 큰 금덩어리를 수집하거나 적 요새를 무너뜨리면 얻습니다"
+msgstr "Needs {0} {1:N0} (you have {2:N0})\nEarn more by collecting the central Mana Stone or a large jungle gold nugget, or by bringing down an enemy Fortress"
+
+msgid "HQ {0}티어 필요 · {1}"
+msgstr "Needs HQ tier {0} · {1}"
+
+msgid "가격 받는 중"
+msgstr "Waiting for the price"
+
+msgid "부족"
+msgstr "not enough"
+
+msgid "슬롯 추가 1번에 {0} {1:N0}"
+msgstr "Each added slot costs {0} {1:N0}"
+
+msgid "{0} · 순서 이동"
+msgstr "{0} · reorder"
+
+msgid "순서 변경 요청 중…"
+msgstr "Requesting the new order…"
+
+msgid "라인 {0}"
+msgstr "Lane {0}"
+
+msgid "미니언 {0}"
+msgstr "Minion {0}"
+
+msgid "앞에서 적을 막는 근접 전투원"
+msgstr "Melee fighter that holds enemies at the front"
+
+msgid "뒤에서 공격하는 원거리 전투원"
+msgstr "Ranged fighter that attacks from behind"
+
+msgid "사망 시 주변 아군 최대 HP 10% 회복"
+msgstr "Restores 10% max HP to nearby allies when it dies"
+
+msgid "등에 진 화로로 주변 적 유닛을 계속 태우는 근접 전투원"
+msgstr "Melee fighter whose back-mounted furnace keeps burning nearby enemy units"
+
+msgid "주변 아군 영웅·용병이 받는 피해 일부를 대신 받는 근접 전투원"
+msgstr "Melee fighter that takes part of the damage dealt to nearby allied heroes and mercenaries"
+
+msgid "맞힌 화살의 전기가 주변 적에게 튕기는 원거리 전투원"
+msgstr "Ranged fighter whose arrows bounce electricity to nearby enemies"
+
+msgid "라인을 따라 전진하는 미니언"
+msgstr "A minion that advances along its lane"
+
+msgid "주변 {0:0.#}m의 적 유닛에게 1초마다 자기 최대 체력의 {1:0.#}% 피해 (건물·일꾼·정글몹 제외)"
+msgstr "Every second, deals {1:0.#}% of its own max HP to enemy units within {0:0.#}m (not buildings, workers or jungle monsters)"
+
+msgid "주변 {0:0.#}m 아군 영웅·용병이 받는 피해의 {1:0.#}%를 대신 받음 (여러 기여도 가장 가까운 한 기만)"
+msgstr "Takes {1:0.#}% of the damage dealt to allied heroes and mercenaries within {0:0.#}m (only the closest one when there are several)"
+
+msgid "공격이 맞으면 {0:0.#}m 안의 다른 적에게 공격력의 {1:0.#}%, 다시 {2:0.#}%로 튕김 (소수점 내림·최소 1, 이미 맞은 적 제외, 건물·정글몹 제외)"
+msgstr "On hit, bounces to another enemy within {0:0.#}m for {1:0.#}% of its attack, then again for {2:0.#}% (rounded down, at least 1; skips enemies already hit, buildings and jungle monsters)"
+
+msgid "드래그: 같은 라인에서 무료 순서 이동"
+msgstr "Drag: reorder within the lane for free"
+
+msgid "HQ {0}티어부터 클릭: {1}으로 2티어 강화"
+msgstr "From HQ tier {0}, click: upgrade to {1} (tier 2)"
+
+msgid "클릭: {0}으로 2티어 강화"
+msgstr "Click: upgrade to {0} (tier 2)"
+
+# ---------------------------------------------------------------- hero shop (ui/HeroShopPanel.cs); item names and descriptions come from the server
+
+msgid "골드 —"
+msgstr "Gold —"
+
+msgid "상점 [I]"
+msgstr "Shop [I]"
+
+msgid "귀환 [B]"
+msgstr "Recall [B]"
+
+msgid "정신집중을 마치면 부활 구역으로 귀환합니다. 이동·적 피격 등으로 취소됩니다."
+msgstr "Returns to the respawn zone after channeling. Moving or taking enemy hits cancels it."
+
+msgid "빈 칸"
+msgstr "Empty"
+
+msgid "전장 보급소"
+msgstr "Field Supply"
+
+msgid "정보 대기 중"
+msgstr "Waiting for info"
+
+msgid "아군 HQ {0}티어 필요"
+msgstr "Needs a tier {0} allied HQ"
+
+msgid "{0} 필요"
+msgstr "Needs {0}"
+
+msgid "이전 단계 장비"
+msgstr "the previous gear"
+
+msgid "이전 단계 장비 수령 필요"
+msgstr "Pick up the previous gear first"
+
+msgid "보유한 계열"
+msgstr "You own this line"
+
+msgid "장비 칸 부족"
+msgstr "No free gear slot"
+
+msgid "골드 부족"
+msgstr "Not enough gold"
+
+msgid "시작부터 구매 가능"
+msgstr "Available from the start"
+
+msgid "기본 장비"
+msgstr "Base gear"
+
+msgid "이전 단계 장비를 교체 · 표시 가격은 추가 비용"
+msgstr "Replaces the previous gear · the price shown is the extra cost"
+
+msgid "귀환 {0:0.0}초"
+msgstr "Recall {0:0.0}s"
+
+msgid "귀환 확인 중"
+msgstr "Confirming recall"
+
+msgid "아군 HQ {0}티어"
+msgstr "Allied HQ tier {0}"
+
+msgid "부활 구역 · 즉시 장착 / 장비를 눌러 판매"
+msgstr "Respawn zone · equips at once / click gear to sell"
+
+msgid "원격 구매 · 본진에 배송 상자가 생성됩니다.\n영웅으로 줍거나 아군 일꾼으로 배달하세요."
+msgstr "Remote purchase · a delivery crate appears at your base.\nPick it up with your hero or have an allied worker deliver it."
+
+msgid "장비"
+msgstr "Gear"
+
+msgid "배송 / 장착 중"
+msgstr "Delivering / equipping"
+
+msgid "장착됨"
+msgstr "Equipped"
+
+msgid "아이템 슬롯"
+msgstr "Item slot"
+
+msgid "수령 후 장착됩니다."
+msgstr "Equips once picked up."
+
+msgid "부활 구역에서 클릭하여 {0} G에 판매"
+msgstr "Click in the respawn zone to sell for {0} G"
+
+# ---------------------------------------------------------------- hero skills (ui/HeroSkillPanel.cs)
+
+msgid "스킬 강화 포인트 · Ctrl + P/Q/W/E/R"
+msgstr "Skill upgrade points · Ctrl + P/Q/W/E/R"
+
+msgid "부활 대기 중"
+msgstr "Waiting to respawn"
+
+msgid "부활 · {0:0}초"
+msgstr "Respawn · {0:0}s"
+
+msgid "부활 위치 확보 중"
+msgstr "Finding a respawn spot"
+
+msgid "영웅 대기 중"
+msgstr "Waiting for the hero"
+
+msgid "아군 대상 지정"
+msgstr "Pick an ally"
+
+msgid "적 대상 지정"
+msgstr "Pick an enemy"
+
+msgid "침묵"
+msgstr "Silenced"
+
+msgid "R · 강화 대기"
+msgstr "R · empower ready"
+
+msgid "E · 진군 {0}초"
+msgstr "E · March {0}s"
+
+msgid "R · 부대 소집 {0}초"
+msgstr "R · Rally Troops {0}s"
+
+msgid "W · 흡혈 {0}% 대기"
+msgstr "W · lifesteal {0}% ready"
+
+msgid "E · 지속 피해 {0:0}초"
+msgstr "E · damage over time {0:0}s"
+
+msgid "체력 위험"
+msgstr "Low HP"
+
+msgid "R · 강화 공격 {0}회"
+msgstr "R · empowered attacks ×{0}"
+
+msgid "1포인트 · Ctrl+P"
+msgstr "1 point · Ctrl+P"
+
+msgid "5레벨부터 1포인트로 궁극기 습득"
+msgstr "From level 5: learn the ultimate for 1 point"
+
+msgid "10레벨부터 1포인트로 궁극기 강화"
+msgstr "From level 10: upgrade the ultimate for 1 point"
+
+msgid "마나 {0:0.##}"
+msgstr "Mana {0:0.##}"
+
+msgid "마나 부족"
+msgstr "Not enough mana"
+
+msgid "마나 확인 중"
+msgstr "Checking mana"
+
+msgid "5레벨부터 강화 포인트로 습득"
+msgstr "Learned with an upgrade point from level 5"
+
+msgid "잠김"
+msgstr "Locked"
+
+# Over a skill that is armed and waits for its hit (the wolf's W).
+msgctxt "skill"
+msgid "대기"
+msgstr "Armed"
+
+msgid "사용 중"
+msgstr "Active"
+
+msgid "마나 · {0}"
+msgstr "Mana · {0}"
+
+msgid "마나"
+msgstr "Mana"
+
+# ---------------------------------------------------------------- skill descriptions (ui/SkillDescriptions.cs)
+
+msgid "P · 허기"
+msgstr "P · Hunger"
+
+msgid "공격을 쉬는 동안 초당 공격력 +{0}%, 최대 +{1}%.\n일반 공격 또는 Q 명중 시 초기화."
+msgstr "While not attacking, attack rises +{0}% per second, up to +{1}%.\nResets on a basic attack or Q hit."
+
+msgid "최대 중첩 명중 시 대상 최대 체력 10% 추가 피해.\nQ 배율은 추가 피해에 곱하지 않으며, 대상 피해 감소·보호막이 적용됩니다."
+msgstr "A hit at full stacks deals extra damage equal to 10% of the target's max HP.\nThe Q multiplier does not apply to it; the target's damage reduction and shields do."
+
+msgid "일꾼 공격에는 적용되지 않으며 중첩을 소모하지 않습니다."
+msgstr "Attacks on workers neither get it nor spend the stacks."
+
+msgid "P · 돌가죽"
+msgstr "P · Stoneskin"
+
+msgid "받는 피해 {0}% 감소."
+msgstr "Takes {0}% less damage."
+
+msgid "기절·속박 지속 시간 20% 감소."
+msgstr "Stuns and roots last 20% shorter."
+
+msgid "체력이 30% 이하이면 받는 피해 감소가 총 25%로 증가."
+msgstr "At 30% HP or less, damage reduction rises to 25% in total."
+
+msgid "P · 전선 지휘"
+msgstr "P · Frontline Command"
+
+msgid "주변 5m 아군 미니언·용병·영웅에게 공격 피해 +{0}, 받는 피해 −{0}."
+msgstr "Allied minions, mercenaries and heroes within 5m deal +{0} damage and take −{0} damage."
+
+msgid "주변 5m 아군 미니언·용병에게 공격 피해 +{0}, 받는 피해 −{0}."
+msgstr "Allied minions and mercenaries within 5m deal +{0} damage and take −{0} damage."
+
+msgid "오라 대상 이동 속도 +10%."
+msgstr "Aura targets move 10% faster."
+
+msgid "자신과 일꾼에게는 적용되지 않으며 같은 오라는 중첩되지 않습니다."
+msgstr "Does not affect the Marshal or workers; the same aura does not stack."
+
+msgid "P · 집중 사격"
+msgstr "P · Focus Fire"
+
+msgid "같은 대상을 연달아 맞힐 때마다 그 대상에게 주는 피해 +{0}%, 최대 {1}중첩.\n일반 공격과 Q 명중이 쌓고, 대상을 바꾸거나 3초 동안 쏘지 않으면 초기화."
+msgstr "Each hit in a row on the same target adds +{0}% damage against it, up to {1} stacks.\nBasic attacks and Q hits build it; switching targets or not shooting for 3s resets it."
+
+msgid "최대 중첩 명중 시 대상 이동 속도 20% 감소, 1초."
+msgstr "A hit at full stacks slows the target by 20% for 1s."
+
+msgid "최대 강화"
+msgstr "Fully upgraded"
+
+msgid "초당 공격력 +6%, 최대 +60% (최대 도달 10초)"
+msgstr "Attack +6% per second, up to +60% (full in 10s)"
+
+msgid "초당 공격력 +12%, 최대 +60% (최대 도달 5초)"
+msgstr "Attack +12% per second, up to +60% (full in 5s)"
+
+msgid "초당 공격력 +14%, 최대 +70% (최대 도달 5초)"
+msgstr "Attack +14% per second, up to +70% (full in 5s)"
+
+msgid "최대 중첩의 일반 공격·Q 명중 시 대상 최대 체력 10% 추가 피해"
+msgstr "Basic attack and Q hits at full stacks deal extra damage equal to 10% of the target's max HP"
+
+msgid "받는 피해 감소 10% → 12%"
+msgstr "Damage reduction 10% → 12%"
+
+msgid "기절·속박 지속 시간 20% 감소"
+msgstr "Stuns and roots last 20% shorter"
+
+msgid "받는 피해 감소 12% → 15%"
+msgstr "Damage reduction 12% → 15%"
+
+msgid "체력 30% 이하에서 받는 피해 감소 총 25%"
+msgstr "Damage reduction 25% in total at 30% HP or less"
+
+msgid "오라 공격 피해 +0.7, 받는 피해 −0.7"
+msgstr "Aura: +0.7 damage dealt, −0.7 damage taken"
+
+msgid "오라 대상 이동 속도 +10%"
+msgstr "Aura targets move 10% faster"
+
+msgid "오라 공격 피해 +1, 받는 피해 −1"
+msgstr "Aura: +1 damage dealt, −1 damage taken"
+
+msgid "주변 아군 영웅도 모든 패시브 오라 효과를 받음"
+msgstr "Nearby allied heroes also get every passive aura effect"
+
+msgid "중첩당 피해 +6% → +7%"
+msgstr "Damage per stack +6% → +7%"
+
+msgid "최대 4중첩 → 5중첩"
+msgstr "Max stacks 4 → 5"
+
+msgid "중첩당 피해 +7% → +8%"
+msgstr "Damage per stack +7% → +8%"
+
+msgid "최대 중첩 명중 시 대상 이동 속도 20% 감소, 1초"
+msgstr "A hit at full stacks slows the target by 20% for 1s"
+
+msgid "Q · 뜯기"
+msgstr "Q · Rend"
+
+msgid "적에게 돌진하여 공격력 {0:0}% 피해. 일반 공격 판정.\n사거리 8m · 재사용 7초"
+msgstr "Lunges at an enemy for {0:0}% of attack as damage. Counts as a basic attack.\nRange 8m · cooldown 7s"
+
+msgid "W · 피의 송곳니"
+msgstr "W · Blood Fang"
+
+msgid "다음 일반 공격 또는 Q로 실제 깎은 체력의 {0}% 회복.\nE에는 적용되지 않음 · 명중까지 유지 · 종료 후 재사용 8초"
+msgstr "The next basic attack or Q heals {0}% of the HP it actually removes.\nNot for E · lasts until it hits · cooldown 8s after it ends"
+
+msgid "E · 피의 안개"
+msgstr "E · Blood Mist"
+
+msgid "주변 3.5m 적에게 즉시 1회, 이후 0.5초마다 10회 타격.\n매 타격 공격력 {0:0}% 피해 · 5초 지속 · 종료 후 재사용 10초"
+msgstr "Hits enemies within 3.5m once right away, then 10 times every 0.5s.\nEach hit deals {0:0}% of attack · lasts 5s · cooldown 10s after it ends"
+
+msgid "R · 무리 포식"
+msgstr "R · Pack Devour"
+
+msgid "주변 8m 아군 미니언·용병을 모두 먹습니다.\n가장 높은 최대 체력 ×1 보호막, 가장 높은 기본 공격력 ×2 추가 공격력.\n먹은 유닛 수만큼 일반 공격·Q 명중에 적용. 마지막 명중 후 남은 보호막도 종료.\n재사용 40초 · 재시전 시 이전 효과 교체"
+msgstr "Devours every allied minion and mercenary within 8m.\nShield of the highest max HP ×1, bonus attack of the highest base attack ×2.\nApplies to as many basic attack or Q hits as units eaten. Any shield left ends after the last hit.\nCooldown 40s · recasting replaces the previous effect"
+
+msgid "R · 포식"
+msgstr "R · Devour"
+
+msgid "8m 안 아군 미니언·용병 1마리를 먹습니다.\n대상의 최대 체력 ×1 보호막, 기본 공격력 ×2 추가 공격력.\n다음 일반 공격·Q 명중 후 종료 · 재사용 40초"
+msgstr "Devours one allied minion or mercenary within 8m.\nShield of its max HP ×1, bonus attack of its base attack ×2.\nEnds after the next basic attack or Q hit · cooldown 40s"
+
+msgid "Q · 강화 내려찍기"
+msgstr "Q · Empowered Slam"
+
+msgid "주변 {0}m 적에게 공격력 {1:0}% 피해.\n룬 각성 소모 · 재사용 10초"
+msgstr "Deals {1:0}% of attack to enemies within {0}m.\nUses Rune Awakening · cooldown 10s"
+
+msgid "Q · 내려찍기"
+msgstr "Q · Slam"
+
+msgid "주변 {0}m 적에게 공격력 {1:0}% 피해.\n2초 동안 이동 속도 35% 감소 · 재사용 10초"
+msgstr "Deals {1:0}% of attack to enemies within {0}m.\nSlows them by 35% for 2s · cooldown 10s"
+
+msgid "W · 강화 돌갑옷"
+msgstr "W · Empowered Stone Armor"
+
+msgid "W · 돌갑옷"
+msgstr "W · Stone Armor"
+
+msgid "자신의 최대 체력 {0:0}% 보호막, {1}초 지속.\n재사용 13초 · 보호막 유지 중 재시전 불가"
+msgstr "Shield of {0:0}% of own max HP for {1}s.\nCooldown 13s · cannot recast while the shield holds"
+
+msgid "E · 강화 바위 돌진"
+msgstr "E · Empowered Boulder Charge"
+
+msgid "E · 바위 돌진"
+msgstr "E · Boulder Charge"
+
+msgid "적에게 돌진해 공격력 {0:0}% 피해와 {1}초 기절.\n사거리 7m · 장애물에 막힘 · 재사용 12초"
+msgstr "Charges an enemy for {0:0}% of attack and a {1}s stun.\nRange 7m · blocked by obstacles · cooldown 12s"
+
+msgid "R · 룬 각성"
+msgstr "R · Rune Awakening"
+
+msgid "다음 Q/W/E {0}회를 강화. 사용하거나 사망할 때까지 유지.\nQ: 범위 5m, 기본 피해 150% · W: 기본 보호막 40% · E: 기절 1초\n재사용 40초 · 중첩되지 않음"
+msgstr "Empowers the next {0} Q/W/E casts. Lasts until used or until death.\nQ: 5m area, 150% base damage · W: 40% base shield · E: 1s stun\nCooldown 40s · does not stack"
+
+msgid "Q · 집중 사격"
+msgstr "Q · Focus Fire"
+
+msgid "지정한 적에게 공격력 {0:0}% 피해. 소집 부대가 집중 공격.\n사거리 7m · 재사용 7초"
+msgstr "Deals {0:0}% of attack to the chosen enemy. Rallied troops focus it.\nRange 7m · cooldown 7s"
+
+msgid "W · 방벽"
+msgstr "W · Bulwark"
+
+msgid "자신에게 최대 체력 {0:0.#}%, 주변 5m 아군에게 자신의 최대 체력 {1:0.#}% 보호막.\n5초 지속 · 재사용 12초"
+msgstr "Shields itself for {0:0.#}% of its max HP and allies within 5m for {1:0.#}% of its max HP.\nLasts 5s · cooldown 12s"
+
+msgid "E · 진군"
+msgstr "E · March"
+
+msgid "자신과 주변 5m 아군 미니언·용병에게 이동 속도 ×1.25, 공격 속도 ×1.2.\n{0}초 지속 · 재사용 12초"
+msgstr "Itself and allied minions and mercenaries within 5m get move speed ×1.25 and attack speed ×1.2.\nLasts {0}s · cooldown 12s"
+
+msgid "Q · 관통 화살"
+msgstr "Q · Piercing Arrow"
+
+msgid "지정한 적에게 공격력 {0:0}% 피해. 일반 공격 판정이라 집중 사격을 쌓고 적용받음.\n사거리 8m · 재사용 8초"
+msgstr "Deals {0:0}% of attack to the chosen enemy. Counts as a basic attack, so it builds and uses Focus Fire.\nRange 8m · cooldown 8s"
+
+msgid "W · 바람 걸음"
+msgstr "W · Wind Step"
+
+msgid "{0:0.#}초 동안 이동 속도 ×1.35, {1:0.#}초 동안 공격 속도 ×1.3.\n재사용 12초"
+msgstr "Move speed ×1.35 for {0:0.#}s and attack speed ×1.3 for {1:0.#}s.\nCooldown 12s"
+
+msgid "E · 화살비"
+msgstr "E · Arrow Rain"
+
+msgid "찍은 곳 {0}m 안 적에게 공격력 {1:0}% 피해, 2초 동안 이동 속도 30% 감소.\n사거리 8m · 재사용 11초"
+msgstr "Deals {1:0}% of attack to enemies within {0}m of the chosen spot and slows them by 30% for 2s.\nRange 8m · cooldown 11s"
+
+msgid "R · 저격"
+msgstr "R · Snipe"
+
+msgid "지정한 적에게 공격력 {0:0}% 피해.\n사거리 {1}m · 대상이 시야에 있어야 함 · 재사용 45초"
+msgstr "Deals {0:0}% of attack to the chosen enemy.\nRange {1}m · the target must be in sight · cooldown 45s"
+
+msgid "R · 부대 소집"
+msgstr "R · Rally Troops"
+
+msgid "주변 6m의 아군 미니언·용병을 소집.\n30초 동안 따라 이동하며 지정한 적을 집중 공격. 종료 시 소집 유닛 소멸.\n재사용 60초"
+msgstr "Rallies allied minions and mercenaries within 6m.\nFor 30s they follow and focus the chosen enemy. Rallied units vanish when it ends.\nCooldown 60s"
+
+msgid "주변 6m의 아군 미니언을 소집.\n30초 동안 따라 이동하며 지정한 적을 집중 공격. 종료 시 소집 유닛 소멸.\n재사용 60초"
+msgstr "Rallies allied minions within 6m.\nFor 30s they follow and focus the chosen enemy. Rallied units vanish when it ends.\nCooldown 60s"
+
+msgid "특성 2: {0}"
+msgstr "Talent 2: {0}"
+
+msgid "특성 4: {0}"
+msgstr "Talent 4: {0}"
+
+msgid "일꾼은 영웅 스킬 효과의 대상에서 제외됩니다."
+msgstr "Workers are never affected by hero skills."
+
+msgid "주변 8m 아군 미니언·용병 전체 포식 (일꾼 제외) · 가장 높은 체력 ×1 보호막·공격력 ×2 · 먹은 수만큼 강화 공격"
+msgstr "Devours every allied minion and mercenary within 8m (not workers) · shield of the highest HP ×1, attack ×2 · as many empowered attacks as units eaten"
+
+msgid "다음 Q/W/E 2회 강화"
+msgstr "Empowers the next 2 Q/W/E casts"
+
+msgid "사거리 14m → 18m, 피해 20% 증가"
+msgstr "Range 14m → 18m, damage +20%"
+
+msgid "아군 용병도 소집 가능 (일꾼 제외)"
+msgstr "Also rallies allied mercenaries (not workers)"
+
+msgid "흡혈 {0}%로 증가"
+msgstr "Lifesteal up to {0}%"
+
+msgid "진군 지속 시간 {0}초로 증가"
+msgstr "March lasts {0}s"
+
+msgid "바람 걸음 지속 시간 +{0}초"
+msgstr "Wind Step lasts +{0}s"
+
+msgid "기본 피해·보호막의 {0}%만큼 증가 (누적)"
+msgstr "+{0}% of base damage and shield (in total)"
+
+msgid "대상을 2초간 25% 둔화"
+msgstr "Slows the target by 25% for 2s"
+
+msgid "명중 시 자신의 최대 체력 5% 회복"
+msgstr "Heals 5% of own max HP on hit"
+
+msgid "흡혈 명중 시 2초간 이동 속도 +20%"
+msgstr "A lifesteal hit gives +20% move speed for 2s"
+
+msgid "흡혈 명중 시 최대 체력 5% 보호막, 4초"
+msgstr "A lifesteal hit gives a shield of 5% max HP for 4s"
+
+msgid "매 타격마다 0.6초간 15% 둔화"
+msgstr "Each hit slows by 15% for 0.6s"
+
+msgid "안개로 실제 깎은 체력의 20% 회복"
+msgstr "Heals 20% of the HP the mist actually removes"
+
+msgid "맞은 적이 가하는 피해를 2초간 20% 감소"
+msgstr "Enemies hit deal 20% less damage for 2s"
+
+msgid "맞은 적을 0.5초 기절"
+msgstr "Stuns enemies hit for 0.5s"
+
+msgid "보호막 유지 중 이동 속도 +20%"
+msgstr "+20% move speed while the shield holds"
+
+msgid "시전 시 최대 체력 8% 회복"
+msgstr "Heals 8% of max HP on cast"
+
+msgid "명중 시 최대 체력 8% 보호막, 4초"
+msgstr "Shield of 8% max HP for 4s on hit"
+
+msgid "명중 지점 3m 적을 2초간 30% 둔화"
+msgstr "Slows enemies within 3m of the impact by 30% for 2s"
+
+msgid "대상이 가하는 피해를 3초간 20% 감소"
+msgstr "The target deals 20% less damage for 3s"
+
+msgid "보호막을 받은 대상의 이동 속도 +15%, 3초"
+msgstr "Shielded allies get +15% move speed for 3s"
+
+msgid "보호막을 받은 대상의 체력을 시전자 최대 체력 2%만큼 회복"
+msgstr "Heals shielded allies for 2% of the caster's max HP"
+
+msgid "진군 중 받는 피해 10% 감소"
+msgstr "Takes 10% less damage while marching"
+
+msgid "진군을 받은 대상의 체력을 시전자 최대 체력 2%만큼 회복"
+msgstr "Heals marching allies for 2% of the caster's max HP"
+
+msgid "대상이 받는 피해를 3초간 10% 증가"
+msgstr "The target takes 10% more damage for 3s"
+
+msgid "바람 걸음 동안 받는 피해 15% 감소"
+msgstr "Takes 15% less damage during Wind Step"
+
+msgid "시전 시 최대 체력 6% 보호막, 3초"
+msgstr "Shield of 6% max HP for 3s on cast"
+
+msgid "맞은 적이 가하는 피해를 2초간 15% 감소"
+msgstr "Enemies hit deal 15% less damage for 2s"
+
+msgid "범위 3m → 4m"
+msgstr "Area 3m → 4m"
+
+# ---------------------------------------------------------------- teams, spectating, the Mana Stone and world labels (ui/BattleGuide.cs, ui/SpectatorPanel.cs, ui/TeamFrame.cs, ui/TributeEventPanel.cs, events/, maps/SpawnZoneView.cs)
+
+msgid "우리 팀"
+msgstr "Our team"
+
+msgid "상대 팀"
+msgstr "Enemy team"
+
+msgid "경험치 {0} / {1}"
+msgstr "XP {0} / {1}"
+
+msgid "누적 경험치 {0}"
+msgstr "Total XP {0}"
+
+msgid "전체 맵 관전"
+msgstr "Full-map spectating"
+
+msgid "중앙"
+msgstr "Center"
+
+msgid "{0}팀 본진"
+msgstr "Team {0} base"
+
+msgid "선택 유닛 따라가기"
+msgstr "Follow the selected unit"
+
+msgid "화면 가장자리 / 휠 / 가운데 드래그\n미니맵 클릭 · 유닛 클릭으로 정보 확인"
+msgstr "Screen edges / wheel / middle-drag\nClick the minimap · click a unit for its info"
+
+msgid "{0} · 전체 맵 관전"
+msgstr "{0} · full-map spectating"
+
+msgid "1팀 {0}기     ·     2팀 {1}기"
+msgstr "Team 1: {0}     ·     Team 2: {1}"
+
+msgid "중립"
+msgstr "Neutral"
+
+msgid "전장의 유닛을 선택하세요"
+msgstr "Select a unit on the battlefield"
+
+msgid "팀원"
+msgstr "Teammate"
+
+msgid "부활 {0}초"
+msgstr "Respawn {0}s"
+
+msgid "사망"
+msgstr "Dead"
+
+msgid "AI 대행"
+msgstr "AI playing"
+
+msgid "{0}팀 마석 획득"
+msgstr "Team {0} took the Mana Stone"
+
+msgid "{0}팀 수집 · {1:0.0}초"
+msgstr "Team {0} channeling · {1:0.0}s"
+
+msgid "마석 등장"
+msgstr "Mana Stone is up"
+
+msgid "공성추 진군 중"
+msgstr "Siege rams marching"
+
+msgid "마석 · {0}"
+msgstr "Mana Stone · {0}"
+
+msgid "큰 금덩어리 · {0}골드 · 경험치 {1}\n+ 팀 지휘관에게 마석 · 우클릭 3초 수집"
+msgstr "Large gold nugget · {0} gold · {1} XP\n+ a Mana Stone for the team's Director · right-click to collect (3s)"
+
+msgid "작은 금덩어리 · {0}골드 · 경험치 {1}\n우클릭 3초 수집"
+msgstr "Small gold nugget · {0} gold · {1} XP\nRight-click to collect (3s)"
+
+msgid "우클릭 · 줍기 / 일꾼 배달"
+msgstr "Right-click: pick up / have a worker deliver"
+
+msgid "배달 중"
+msgstr "Being delivered"
+
+msgid "부활 · 보급"
+msgstr "Respawn · supply"
+
+msgid "아군 부활 · 보급"
+msgstr "Allied respawn · supply"
+
+msgid "적 부활 구역"
+msgstr "Enemy respawn zone"
+
+# ---------------------------------------------------------------- match screen and map checks (game/Main.cs, maps/MapWorld.cs)
+
+msgid "맵 확인 중…"
+msgstr "Checking the map…"
+
+msgid "접속 역할을 선택해 주세요."
+msgstr "Choose a role to join."
+
+msgid "보급 상자"
+msgstr "Supply crate"
+
+msgid "요청을 처리할 수 없습니다."
+msgstr "The request could not be processed."
+
+msgid "연결 끊김 · AI가 대신 조종 중: {0}"
+msgstr "Disconnected · the AI is playing for: {0}"
+
+msgid "지휘관"
+msgstr "Director"
+
+msgid "맵 동기화 메시지가 올바르지 않습니다."
+msgstr "The map sync message is invalid."
+
+msgid "맵 로드 실패: {0}"
+msgstr "Could not load the map: {0}"
+
+msgid "잘못된 맵 형식"
+msgstr "Invalid map format"
+
+msgid "잘못된 이벤트·정글 구역 형식"
+msgstr "Invalid event or jungle area format"
+
+msgid "잘못된 유전 지형 형식"
+msgstr "Invalid oilfield format"
+
+msgid "나무 점유 영역이 겹치거나 도로·맵 밖입니다."
+msgstr "Tree footprints overlap or lie on a road or outside the map."
+
+msgid "나무 씬이 지정되지 않았습니다."
+msgstr "No tree scene is set."
+
+msgid "서버와 맵 파일 또는 맵 프로토콜이 다릅니다. 같은 maps/test.json을 사용하세요."
+msgstr "The map file or map protocol differs from the server's. Use the same maps/test.json."
+
+msgid "잘못된 TREE 메시지"
+msgstr "Invalid TREE message"
+
+msgid "맵에 없는 나무 ID"
+msgstr "Tree ID not on the map"
+
+msgid "제거된 나무의 자원량 변경"
+msgstr "Amount change for a removed tree"
+
+msgid "맵 확인 전 동기화 완료 메시지"
+msgstr "Sync-complete message before the map check"

@@ -268,10 +268,10 @@ public partial class RtsControlChecks : Main
         var drainCooldown = drainButton.GetNode<Label>("Cooldown");
         var auraButton = Skills.GetNode<Button>("Content/Slots/ESlot/E");
         var auraCooldown = auraButton.GetNode<Label>("Cooldown");
-        Check(drainButton.TooltipText.Contains("50%") && drainButton.TooltipText.Contains("일반 공격 또는 Q") &&
-            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("25%") &&
-            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("0.5초마다 10회") &&
-            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("즉시 1회"), "W/E descriptions show their actual effects");
+        Check(drainButton.TooltipText.Contains(Lang.F("다음 일반 공격 또는 Q로 실제 깎은 체력의 {0}% 회복.\nE에는 적용되지 않음 · 명중까지 유지 · 종료 후 재사용 8초", 50)) &&
+            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains(
+                Lang.F("주변 3.5m 적에게 즉시 1회, 이후 0.5초마다 10회 타격.\n매 타격 공격력 {0:0}% 피해 · 5초 지속 · 종료 후 재사용 10초", 25)),
+            "W/E descriptions show their actual effects");
         Receive("COOLDOWN 1400 1 0");
         Receive("SKILL_ACTIVE 1400 1 1");
         Receive("COOLDOWN 1400 2 0");
@@ -281,12 +281,12 @@ public partial class RtsControlChecks : Main
         await Flush();
         var effects = Unit(1400).GetNode<Node3D>("WolfEffects");
         Check(effects.GetNode<MeshInstance3D>("DrainReady").Visible && effects.GetNode<MeshInstance3D>("DamageAura").Visible &&
-            Skills.StatusText.Contains("50%") && Skills.StatusText.Contains("5초"),
+            Skills.StatusText.Contains(Lang.F("W · 흡혈 {0}% 대기", 50)) && Skills.StatusText.Contains(Lang.F("E · 지속 피해 {0:0}초", 5)),
             "Authoritative snapshots show W readiness and the remaining E duration for the owned hero");
-        Check(!Skills.CanUse(1) && drainButton.Disabled && Skills.RemainingSeconds(1) == 0 && drainCooldown.Text == "대기",
+        Check(!Skills.CanUse(1) && drainButton.Disabled && Skills.RemainingSeconds(1) == 0 && drainCooldown.Text == Lang.T("대기", "skill"),
             "Armed W waits for an attack without starting its cooldown or allowing recasts");
         Check(Skills.IsActive(2) && !Skills.CanUse(2) && auraButton.Disabled &&
-            Skills.RemainingSeconds(2) == 0 && auraCooldown.Text == "사용 중",
+            Skills.RemainingSeconds(2) == 0 && auraCooldown.Text == Lang.T("사용 중"),
             "E remains active without counting down or allowing recasts");
         foreach (string invalid in new[] { "SKILL_ACTIVE 1400 2 2", "SKILL_ACTIVE 1400 -1 0", "SKILL_ACTIVE 1400 5 0",
             "SKILL_ACTIVE 0 2 0", "SKILL_ACTIVE 1400 2 0 extra", "SKILL_ACTIVE 1401 2 0" }) Receive(invalid);
@@ -297,7 +297,7 @@ public partial class RtsControlChecks : Main
         KeyPress(Key.W); KeyPress(Key.E);
         Check(_commands.Count == before + 2, "Armed W and cooling E block repeat casts");
         Receive("TICK 630");
-        Check(Skills.StatusText.Contains("4초"), "E duration uses server ticks");
+        Check(Skills.StatusText.Contains(Lang.F("E · 지속 피해 {0:0}초", 4)), "E duration uses server ticks");
         Receive("TICK 750");
         Check(Skills.IsActive(2) && !Skills.CanUse(2), "E waits for authoritative completion at its final tick");
         Receive("COOLDOWN 1400 2 1110");
@@ -310,7 +310,7 @@ public partial class RtsControlChecks : Main
             "E starts its full twelve-second cooldown after its five-second execution");
         Receive("TICK 900");
         KeyPress(Key.W);
-        Check(_commands.Count == before + 2 && !Skills.CanUse(1) && Skills.RemainingSeconds(1) == 0 && drainCooldown.Text == "대기",
+        Check(_commands.Count == before + 2 && !Skills.CanUse(1) && Skills.RemainingSeconds(1) == 0 && drainCooldown.Text == Lang.T("대기", "skill"),
             "W remains armed after more than eight seconds without an attack");
         Receive("COOLDOWN 1400 1 1140");
         Receive("SKILL_ACTIVE 1400 1 0");
@@ -737,12 +737,13 @@ public partial class RtsControlChecks : Main
         Receive("COOLDOWN 970 3 900");
         await Flush();
         Check(golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
-            !golem.GetNode<MeshInstance3D>("SlamPulse").Visible && Skills.StatusText.Contains("강화 대기"),
+            !golem.GetNode<MeshInstance3D>("SlamPulse").Visible && Skills.StatusText.Contains(Lang.T("R · 강화 대기")),
             "R arms the next basic skill without playing an area attack");
         Check(Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.Contains("150%") &&
             !Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.Contains("35%") &&
             Skills.GetNode<Button>("Content/Slots/WSlot/W").TooltipText.Contains("40%") &&
-            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.Contains("1초 기절"),
+            Skills.GetNode<Button>("Content/Slots/ESlot/E").TooltipText.StartsWith(Lang.T("E · 강화 바위 돌진") + "\n" +
+                Lang.F("적에게 돌진해 공격력 {0:0}% 피해와 {1}초 기절.\n사거리 7m · 장애물에 막힘 · 재사용 12초", 100, 1)),
             "Ready tooltips show empowered Q without its old slow, W shield and E stun");
         foreach (string invalid in new[] { "GOLEM 970 2", "GOLEM 0 0", "GOLEM 970 0 extra", "GOLEM 970", "GOLEM 971 1", "GOLEM 9999 1" }) Receive(invalid);
         Check(Unit(970).GolemEffects.EmpowerReady && !Unit(971).GolemEffects.EmpowerReady,
@@ -762,8 +763,8 @@ public partial class RtsControlChecks : Main
         Receive("SKILL 970 0 EMPOWERED");
         await Flush();
         Check(!golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
-            golem.GetNode<MeshInstance3D>("SlamPulse").Visible && !Skills.StatusText.Contains("강화 대기") &&
-            Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.StartsWith("Q · 내려찍기"),
+            golem.GetNode<MeshInstance3D>("SlamPulse").Visible && !Skills.StatusText.Contains(Lang.T("R · 강화 대기")) &&
+            Skills.GetNode<Button>("Content/Slots/QSlot/Q").TooltipText.StartsWith(Lang.T("Q · 내려찍기") + "\n"),
             "Consumption clears readiness while an explicit empowered Q still plays after that update");
         Receive("GOLEM 970 1");
         Receive("SKILL 970 1 EMPOWERED");
@@ -776,20 +777,20 @@ public partial class RtsControlChecks : Main
         Receive("GOLEM 970 1");
         Receive("HIDE 970");
         Receive("GOLEM 970 1"); // 시야에서 사라진 객체에 대한 늦은 메시지는 무시한다.
-        Check(!Skills.StatusText.Contains("강화 대기"), "Hiding the hero clears HUD readiness");
+        Check(!Skills.StatusText.Contains(Lang.T("R · 강화 대기")), "Hiding the hero clears HUD readiness");
         Receive("UNIT 201 970 7 0 -8 1");
         Receive("GOLEM 970 1");
         await Flush();
         golem = Unit(970).GetNode<GolemAnimation>("GolemAnimation");
         Check(Unit(970).GolemEffects.EmpowerReady && golem.GetNode<MeshInstance3D>("EmpowerRune").Visible &&
-            Skills.StatusText.Contains("강화 대기"), "A visibility snapshot restores the armed ultimate without a new R cast");
+            Skills.StatusText.Contains(Lang.T("R · 강화 대기")), "A visibility snapshot restores the armed ultimate without a new R cast");
         Receive("REMOVE 970");
         await Flush();
-        Check(!golem.GetNode<MeshInstance3D>("EmpowerRune").Visible && !Skills.StatusText.Contains("강화 대기"),
+        Check(!golem.GetNode<MeshInstance3D>("EmpowerRune").Visible && !Skills.StatusText.Contains(Lang.T("R · 강화 대기")),
             "Death clears the rune and HUD readiness");
         Receive("UNIT 201 972 7 0 -8 1");
         Receive("GOLEM 972 0");
-        Check(!Unit(972).GolemEffects.EmpowerReady && !Skills.StatusText.Contains("강화 대기"),
+        Check(!Unit(972).GolemEffects.EmpowerReady && !Skills.StatusText.Contains(Lang.T("R · 강화 대기")),
             "A respawn starts with no empowered skill");
     }
 
@@ -956,12 +957,12 @@ public partial class RtsControlChecks : Main
         Receive("TICK 300");
         Receive("RESPAWN 660"); // 실제 서버는 REMOVE보다 먼저 부활 시점을 보낸다.
         Receive("REMOVE 1200");
-        Check(Skills.IsRespawning && Skills.StatusText.Contains("12초"), "Death identifies its respawn countdown");
+        Check(Skills.IsRespawning && Skills.StatusText.Contains(Lang.F("부활 · {0:0}초", 12)), "Death identifies its respawn countdown");
         Receive("RESPAWN invalid");
         Receive("TICK 330");
-        Check(Skills.StatusText.Contains("11초"), "Countdown follows server time and ignores malformed messages");
+        Check(Skills.StatusText.Contains(Lang.F("부활 · {0:0}초", 11)), "Countdown follows server time and ignores malformed messages");
         Receive("TICK 660");
-        Check(Skills.StatusText.Contains("부활 위치"), "A blocked respawn is not presented as already alive");
+        Check(Skills.StatusText == Lang.T("부활 위치 확보 중"), "A blocked respawn is not presented as already alive");
         Receive("UNIT 201 1202 7 -20 -8 1");
         Receive("HP 1202 420 420");
         Check(!Skills.IsRespawning && Skills.StatusText == "", "Respawn clears death feedback for the new unit ID");

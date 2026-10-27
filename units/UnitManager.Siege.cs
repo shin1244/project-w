@@ -24,10 +24,10 @@ public partial class UnitManager
         var artillery = SelectedArtillery();
         deploy = true;
         reason = null;
-        if (artillery.Length == 0) { reason = "내 증기포격차를 선택하세요"; return false; }
+        if (artillery.Length == 0) { reason = Lang.T("내 증기포격차를 선택하세요"); return false; }
         if (artillery.Any(unit => unit.Siege is { Mode: SiegeMode.Mobile })) return true;
         if (artillery.Any(unit => unit.Siege is { Mode: SiegeMode.Deployed })) { deploy = false; return true; }
-        reason = artillery.Any(unit => unit.Siege == null) ? "공성 상태 수신 대기" : "전환 중";
+        reason = artillery.Any(unit => unit.Siege == null) ? Lang.T("공성 상태 수신 대기") : Lang.T("전환 중");
         return false;
     }
 

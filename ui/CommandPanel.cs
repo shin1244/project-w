@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // 선택한 일꾼의 건설 메뉴, HQ·인력 사무소의 생산 버튼, 조병창 연구 버튼을 표시합니다. 생산 진행도는 정보 패널에 표시합니다.
 public partial class CommandPanel : PanelContainer
@@ -145,44 +146,47 @@ public partial class CommandPanel : PanelContainer
         {
             (string name, string key, Texture2D icon) = (next, SlotNumbers[i]) switch
             {
-                (DisplayMode.Units or DisplayMode.Workers, 4) => ("공격", "A", Icon("command-attack")),
-                (DisplayMode.Units or DisplayMode.Workers, 5) => ("정지", "S", Icon("command-stop")),
-                (DisplayMode.Units or DisplayMode.Workers, 6) => ("홀드", "D", Icon("command-hold")),
-                (DisplayMode.Workers, 1) => ("1티어 건설", "Z", Icon("command-build")),
-                (DisplayMode.Workers, 2) => ("2티어 건설", "X", Icon("command-build-advanced")),
-                (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, 3) => ("뒤로", "C", Icon("command-back")),
+                (DisplayMode.Units or DisplayMode.Workers, 4) => (Lang.T("공격"), "A", Icon("command-attack")),
+                (DisplayMode.Units or DisplayMode.Workers, 5) => (Lang.T("정지"), "S", Icon("command-stop")),
+                (DisplayMode.Units or DisplayMode.Workers, 6) => (Lang.T("홀드"), "D", Icon("command-hold")),
+                (DisplayMode.Workers, 1) => (Lang.T("1티어 건설"), "Z", Icon("command-build")),
+                (DisplayMode.Workers, 2) => (Lang.T("2티어 건설"), "X", Icon("command-build-advanced")),
+                (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, 3) => (Lang.T("뒤로"), "C", Icon("command-back")),
                 (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, int number) when BuildingCatalog.IsPlayerBuildable(BuildingTypeForSlot(next, number)) =>
                     (BuildingCatalog.Name(BuildingTypeForSlot(next, number)), CellKey(number), BuildingIcon(BuildingTypeForSlot(next, number))),
                 (DisplayMode.TownHall, 7) => (UnitCatalog.Name(UnitCatalog.Worker), "", UnitIcon(UnitCatalog.Worker)),
-                (DisplayMode.TownHall, 1) => ("업그레이드", "Z", Icon("command-upgrade")),
+                (DisplayMode.TownHall, 1) => (Lang.T("업그레이드"), "Z", Icon("command-upgrade")),
                 (DisplayMode.Barracks, 7) => (UnitCatalog.Name(UnitCatalog.Knight), "", UnitIcon(UnitCatalog.Knight)),
                 (DisplayMode.Barracks, 8) => (UnitCatalog.Name(UnitCatalog.Archer), "", UnitIcon(UnitCatalog.Archer)),
                 (DisplayMode.Barracks, 9) => (UnitCatalog.Name(UnitCatalog.Medic), "", UnitIcon(UnitCatalog.Medic)),
                 (DisplayMode.Workshop, 7) => (UnitCatalog.Name(UnitCatalog.FlameAutomaton), "Q", UnitIcon(UnitCatalog.FlameAutomaton)),
                 (DisplayMode.Workshop, 8) => (UnitCatalog.Name(UnitCatalog.SteamArtillery), "W", UnitIcon(UnitCatalog.SteamArtillery)),
                 (DisplayMode.Workshop, 9) => (UnitCatalog.Name(UnitCatalog.Refueler), "E", UnitIcon(UnitCatalog.Refueler)),
-                (DisplayMode.Forge, 7) => ("공격력 연구", "Q", Icon("research-attack")),
-                (DisplayMode.Forge, 8) => ("체력 연구", "W", Icon("research-armor")),
-                (DisplayMode.ResearchLab, 7) => ("와이어 돌진", "Q", Icon("research-wire")),
-                (DisplayMode.Tunnel, 7) => ("출구 설치", "Q", BuildingIcon(BuildingCatalog.Tunnel)),
-                (DisplayMode.Construction, 3) => ("건설 취소", "Esc", Icon("command-cancel")),
+                (DisplayMode.Forge, 7) => (Lang.T("공격력 연구"), "Q", Icon("research-attack")),
+                (DisplayMode.Forge, 8) => (Lang.T("체력 연구"), "W", Icon("research-armor")),
+                (DisplayMode.ResearchLab, 7) => (Lang.T("와이어 돌진"), "Q", Icon("research-wire")),
+                (DisplayMode.Tunnel, 7) => (Lang.T("출구 설치"), "Q", BuildingIcon(BuildingCatalog.Tunnel)),
+                (DisplayMode.Construction, 3) => (Lang.T("건설 취소"), "Esc", Icon("command-cancel")),
                 _ => ("", "", null)
             };
             _slots[i].Set(name, key, icon);
         }
         if (next is DisplayMode.Units or DisplayMode.Workers)
         {
-            Slot(4).Detail = "A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소";
-            Slot(5).Detail = "현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀";
-            Slot(6).Detail = "현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격";
+            Slot(4).Detail = Lang.T("A: 공격 사거리 표시 · 적 클릭: 공격 · 지형 클릭: 공격 이동 · Esc: 취소");
+            Slot(5).Detail = Lang.T("현재 작업 중단 · 주변 적을 추격하고 제자리로 복귀");
+            Slot(6).Detail = Lang.T("현재 작업 중단 · 자리를 지키며 사거리 안의 적만 공격");
         }
         if (next == DisplayMode.Workers)
         {
-            Slot(1).Detail = "브랜치 · 숙소 · 시추탑 · 감시탑 · 인력 사무소 · 비허가 실험실";
-            Slot(2).Detail = "석탄 시추기 · 땅굴 · 공장 · 기술연구소";
+            Slot(1).Detail = BuildingList(BuildingCatalog.Store, BuildingCatalog.Supply, BuildingCatalog.OilDerrick, BuildingCatalog.Tower,
+                BuildingCatalog.Barracks, BuildingCatalog.Forge);
+            Slot(2).Detail = BuildingList(BuildingCatalog.CoalDrill, BuildingCatalog.Tunnel, BuildingCatalog.Workshop, BuildingCatalog.ResearchLab);
         }
         RefreshProduction();
     }
+
+    private static string BuildingList(params uint[] types) => string.Join(" · ", types.Select(BuildingCatalog.Name));
 
     // The key printed on each cell of the 4x3 grid, by slot number.
     private static string CellKey(int number) => number switch
@@ -209,10 +213,10 @@ public partial class CommandPanel : PanelContainer
             bool available = Units.HasSelectedArtillery;
             bool allowed = Units.TryGetSiegeToggle(out bool deploy, out string reason);
             if (!available) Slot(1).Set("");
-            else Slot(1).Set(allowed ? deploy ? "공성 전개" : "전개 해제" : "공성 전환", "Z",
+            else Slot(1).Set(allowed ? deploy ? Lang.T("공성 전개") : Lang.T("전개 해제") : Lang.T("공성 전환"), "Z",
                 Icon(allowed && !deploy ? "siege-pack" : "siege-deploy"));
             Slot(1).Disabled = !allowed;
-            Slot(1).Detail = available ? reason ?? "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가" : "";
+            Slot(1).Detail = available ? reason ?? Lang.T("선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가") : "";
             return;
         }
         if (BuildMenu)
@@ -225,9 +229,9 @@ public partial class CommandPanel : PanelContainer
                 _slots[i].Disabled = reason != null;
                 string about = type switch
                 {
-                    BuildingCatalog.OilDerrick => "유전 지대에만 건설 · 유전마다 1개",
-                    BuildingCatalog.CoalDrill => "일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용",
-                    BuildingCatalog.Tunnel => "완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동",
+                    BuildingCatalog.OilDerrick => Lang.T("유전 지대에만 건설 · 유전마다 1개"),
+                    BuildingCatalog.CoalDrill => Lang.T("일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용"),
+                    BuildingCatalog.Tunnel => Lang.T("완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동"),
                     _ => ""
                 };
                 _slots[i].Detail = reason == null ? about : about.Length == 0 ? reason : reason + "\n" + about;
@@ -237,7 +241,7 @@ public partial class CommandPanel : PanelContainer
         if (_display == DisplayMode.Construction)
         {
             Slot(3).Disabled = !Units.CanCancelConstruction(Buildings.SelectedBuilding);
-            Slot(3).Detail = "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)";
+            Slot(3).Detail = Lang.T("공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)");
             return;
         }
         if (_display == DisplayMode.Forge)
@@ -256,9 +260,9 @@ public partial class CommandPanel : PanelContainer
             Building tunnel = Buildings.SelectedBuilding;
             bool linked = Buildings.TunnelPartner(tunnel) != null;
             Slot(7).Disabled = !Units.CanOpenTunnelExit(tunnel);
-            Slot(7).Status = linked ? "연결됨" : "";
-            Slot(7).Detail = (linked ? "이미 출구가 있습니다\n" : !Units.CommanderControl ? "지휘관만 출구를 낼 수 있습니다\n" : "") +
-                "보이는 빈 땅에 출구를 바로 설치 (추가 비용 없음)\n한쪽이 무너지면 다른 쪽도 함께 무너짐";
+            Slot(7).Status = linked ? Lang.T("연결됨") : "";
+            Slot(7).Detail = (linked ? Lang.T("이미 출구가 있습니다") + "\n" : !Units.CommanderControl ? Lang.T("지휘관만 출구를 낼 수 있습니다") + "\n" : "") +
+                Lang.T("보이는 빈 땅에 출구를 바로 설치 (추가 비용 없음)\n한쪽이 무너지면 다른 쪽도 함께 무너짐");
             return;
         }
         if (_display is not (DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop)) return;
@@ -266,11 +270,11 @@ public partial class CommandPanel : PanelContainer
         if (!GodotObject.IsInstanceValid(producer)) return;
         int count = producer.ProductionQueue.Count;
         bool canCancel = producer.ProductionJobs.Count > 0 && Units.CanCancelTraining(producer, producer.ProductionJobs[0].Id);
-        if (canCancel) Slot(3).Set("생산 취소", "Esc", Icon("command-cancel"));
+        if (canCancel) Slot(3).Set(Lang.T("생산 취소"), "Esc", Icon("command-cancel"));
         else Slot(3).Set("");
-        Slot(3).Detail = canCancel ? "현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭" : "";
+        Slot(3).Detail = canCancel ? Lang.T("현재 생산을 취소하고 지불 비용의 75% 반환 · 대기 항목은 정보 패널에서 클릭") : "";
         Slot(7).Disabled = count >= ProductionSnapshot.MaxQueue || Buildings.IsTownHallUpgrading(producer);
-        const string rallyHint = "\n지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제";
+        string rallyHint = "\n" + Lang.T("지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제");
         if (_display == DisplayMode.Workshop)
         {
             RefreshUnitTraining(Slot(7), producer, UnitCatalog.FlameAutomaton, rallyHint);
@@ -285,20 +289,21 @@ public partial class CommandPanel : PanelContainer
             RefreshUnitTraining(Slot(9), producer, UnitCatalog.Medic, rallyHint);
             return;
         }
-        Slot(7).Detail = "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집" + rallyHint;
+        Slot(7).Detail = Lang.T("나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집") + rallyHint;
         if (_display == DisplayMode.TownHall)
         {
             var state = Buildings.TeamTier(producer.SideId);
             string reason = Units.TownHallUpgradeBlockReason(producer);
             CommandSlot upgrade = Slot(1);
-            if (state.TopTier) upgrade.Set($"{state.Tier}티어", "", Icon("command-upgrade"));
-            else upgrade.Set($"{(state.Upgrading ? state.TargetTier : state.Tier + 1)}티어 업그레이드", "Z", Icon("command-upgrade"));
-            upgrade.Status = state.Upgrading ? $"{state.Remaining:0}초" : state.TopTier ? "최고 단계" : "";
+            if (state.TopTier) upgrade.Set(Lang.F("{0}티어", state.Tier), "", Icon("command-upgrade"));
+            else upgrade.Set(Lang.F("{0}티어 업그레이드", state.Upgrading ? state.TargetTier : state.Tier + 1), "Z", Icon("command-upgrade"));
+            upgrade.Status = state.Upgrading ? Lang.F("{0:0}초", state.Remaining) : state.TopTier ? Lang.T("최고 단계") : "";
             upgrade.Disabled = reason != null;
-            string terms = state.HasUpgradeTerms ? $"나무 {state.NextWood:N0} · 기름 {state.NextOil:N0} · {state.NextSeconds:0.##}초\n" : "";
-            upgrade.Detail = state.TopTier ? "최고 단계" : terms +
-                "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금" + (reason == null ? "" : "\n" + reason);
-            if (Buildings.IsTownHallUpgrading(producer)) Slot(7).Detail = "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.";
+            string terms = state.HasUpgradeTerms
+                ? Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", state.NextWood, state.NextOil, state.NextSeconds) + "\n" : "";
+            upgrade.Detail = state.TopTier ? Lang.T("최고 단계") : terms +
+                Lang.T("HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금") + (reason == null ? "" : "\n" + reason);
+            if (Buildings.IsTownHallUpgrading(producer)) Slot(7).Detail = Lang.T("HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다.");
         }
         ApplyUnitRequirement(Slot(7), UnitCatalog.Worker);
     }
@@ -306,12 +311,12 @@ public partial class CommandPanel : PanelContainer
     // Barracks and workshop buttons: costs and supply come from the server's TRAIN_DEF.
     private void RefreshUnitTraining(CommandSlot slot, Building producer, uint type, string rallyHint)
     {
-        string reason = !Units.CommanderControl || Units.Spectating ? "지휘관만 생산할 수 있습니다" :
-            producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ? "생산 대기열 가득 참" :
+        string reason = !Units.CommanderControl || Units.Spectating ? Lang.T("지휘관만 생산할 수 있습니다") :
+            producer.ProductionQueue.Count >= ProductionSnapshot.MaxQueue ? Lang.T("생산 대기열 가득 참") :
             Buildings.UnitRequirementBlockReason(type) ?? Buildings.TrainingTermsBlockReason(producer, type);
         slot.Disabled = reason != null;
         string terms = Buildings.TrainingTerms(type) is TrainingDefinition definition
-            ? $"목재 {definition.Wood:N0} · 기름 {definition.Oil:N0} · 인구 {definition.Supply} · {definition.Seconds:0.##}초\n" : "";
+            ? Lang.F("목재 {0:N0} · 기름 {1:N0} · 인구 {2} · {3:0.##}초", definition.Wood, definition.Oil, definition.Supply, definition.Seconds) + "\n" : "";
         slot.Detail = terms + UnitCatalog.Description(type) + (reason == null ? "" : "\n" + reason) + rallyHint;
     }
 
@@ -323,28 +328,30 @@ public partial class CommandPanel : PanelContainer
         var state = Buildings.ArmyUpgrade(forge.SideId);
         var research = state.Research(attack);
         int level = state.Level(attack);
-        string name = attack ? "공격력" : "체력";
+        string name = attack ? Lang.T("공격력") : Lang.T("체력");
         string reason = Units.ArmyUpgradeBlockReason(forge, attack);
         slot.Disabled = reason != null;
-        slot.Status = research.Researching ? $"{research.TargetLevel}단계 {research.Remaining}초" :
-            state.MaxLevel > 0 && level >= state.MaxLevel ? "최고 단계" : $"{level + 1}단계";
-        string terms = research.NextSeconds > 0 ? $"나무 {research.NextWood:N0} · 기름 {research.NextOil:N0} · {research.NextSeconds}초\n" : "";
+        slot.Status = research.Researching ? Lang.F("{0}단계 {1}초", research.TargetLevel, research.Remaining) :
+            state.MaxLevel > 0 && level >= state.MaxLevel ? Lang.T("최고 단계") : Lang.F("{0}단계", level + 1);
+        string terms = research.NextSeconds > 0
+            ? Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", research.NextWood, research.NextOil, research.NextSeconds) + "\n" : "";
         var minionGains = new List<string>();
         foreach (var step in Buildings.MinionUpgradeSteps)
             minionGains.Add($"{MinionShortName(step.UnitType)} +{(attack ? step.Attack : step.Hp):0.##}");
-        string minions = minionGains.Count > 0 ? $"미니언 {name} 단계당 {string.Join(" · ", minionGains)}\n" : "";
-        slot.Detail = terms + minions + $"용병 기본 {name} +{state.StepPercent}% (일꾼·영웅 제외) · 현재 {level}/{state.MaxLevel}단계" +
+        string minions = minionGains.Count > 0 ? Lang.F("미니언 {0} 단계당 {1}", name, string.Join(" · ", minionGains)) + "\n" : "";
+        slot.Detail = terms + minions +
+            Lang.F("용병 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", name, state.StepPercent, level, state.MaxLevel) +
             (reason == null ? "" : "\n" + reason);
     }
 
     private static string MinionShortName(uint type) => type switch
     {
-        UnitCatalog.MinionMelee => "근접",
-        UnitCatalog.MinionRanged => "원거리",
-        UnitCatalog.MinionHealer => "치유",
-        UnitCatalog.MinionFurnace => "화로",
-        UnitCatalog.MinionWarden => "호위",
-        UnitCatalog.MinionArc => "전격",
+        UnitCatalog.MinionMelee => Lang.T("근접"),
+        UnitCatalog.MinionRanged => Lang.T("원거리"),
+        UnitCatalog.MinionHealer => Lang.T("치유"),
+        UnitCatalog.MinionFurnace => Lang.T("화로"),
+        UnitCatalog.MinionWarden => Lang.T("호위"),
+        UnitCatalog.MinionArc => Lang.T("전격"),
         _ => UnitCatalog.Name(type)
     };
 
@@ -362,15 +369,16 @@ public partial class CommandPanel : PanelContainer
         string reason = Units.KnightResearchBlockReason(lab);
         slot.Disabled = reason != null;
         var state = Buildings.KnightResearch(lab.SideId);
-        slot.Status = state is { Unlocked: true } ? "완료" : state is { Researching: true } research ? $"{research.Remaining:0}초" : "";
+        slot.Status = state is { Unlocked: true } ? Lang.T("완료") : state is { Researching: true } research ? Lang.F("{0:0}초", research.Remaining) : "";
         string terms = state is KnightResearchSnapshot s
-            ? $"목재 {s.Wood:N0} · 기름 {s.Oil:N0} · {s.ResearchSeconds:0.##}초\n" + KnightResearchDescription(s) : "";
+            ? Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", s.Wood, s.Oil, s.ResearchSeconds) + "\n" + KnightResearchDescription(s) : "";
         slot.Detail = terms + (reason == null ? "" : "\n" + reason);
     }
 
     public static string KnightResearchDescription(KnightResearchSnapshot state) =>
-        $"아군 {UnitCatalog.Name(UnitCatalog.Knight)} 전체에 자동 돌진 해금 · 이후 생산한 병력에도 적용\n" +
-        $"적 유닛 추격 중 {state.TriggerRange:0.##}m 이내에서 자동 발동 · 이동 속도 +{(state.SpeedMultiplier - 1) * 100:0.##}% · 재사용 {state.CooldownSeconds:0.##}초";
+        Lang.F("아군 {0} 전체에 자동 돌진 해금 · 이후 생산한 병력에도 적용", UnitCatalog.Name(UnitCatalog.Knight)) + "\n" +
+        Lang.F("적 유닛 추격 중 {0:0.##}m 이내에서 자동 발동 · 이동 속도 +{1:0.##}% · 재사용 {2:0.##}초",
+            state.TriggerRange, (state.SpeedMultiplier - 1) * 100, state.CooldownSeconds);
 
     private static uint BuildingTypeForSlot(DisplayMode menu, int number) => (menu, number) switch
     {

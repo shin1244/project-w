@@ -24,7 +24,7 @@ public partial class SpectatorPanel : PanelContainer
         var content = new VBoxContainer { Name = "Content" };
         content.AddThemeConstantOverride("separation", 8);
         AddChild(content);
-        _heading = new Label { Text = "전체 맵 관전", HorizontalAlignment = HorizontalAlignment.Center };
+        _heading = new Label { Text = Lang.T("전체 맵 관전"), HorizontalAlignment = HorizontalAlignment.Center };
         content.AddChild(_heading);
         _counts = new Label { Name = "Counts", HorizontalAlignment = HorizontalAlignment.Center };
         content.AddChild(_counts);
@@ -33,17 +33,17 @@ public partial class SpectatorPanel : PanelContainer
         foreach (uint team in new uint[] { 1, 0, 2 })
         {
             uint chosen = team;
-            var button = new Button { Name = $"Focus{team}", Text = team == 0 ? "중앙" : $"{team}팀 본진", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            var button = new Button { Name = $"Focus{team}", Text = team == 0 ? Lang.T("중앙") : Lang.F("{0}팀 본진", team), SizeFlagsHorizontal = SizeFlags.ExpandFill };
             button.Pressed += () => FocusTeam(chosen);
             cameras.AddChild(button);
         }
-        _follow = new Button { Name = "Follow", Text = "선택 유닛 따라가기", ToggleMode = true };
+        _follow = new Button { Name = "Follow", Text = Lang.T("선택 유닛 따라가기"), ToggleMode = true };
         _follow.Toggled += enabled => { if (enabled && !Units.CanInspect(Units.InspectedUnit)) StopFollowing(); };
         content.AddChild(_follow);
         _target = new Label { Name = "Target", HorizontalAlignment = HorizontalAlignment.Center };
         _target.AddThemeFontSizeOverride("font_size", 12);
         content.AddChild(_target);
-        var help = new Label { Text = "화면 가장자리 / 휠 / 가운데 드래그\n미니맵 클릭 · 유닛 클릭으로 정보 확인", HorizontalAlignment = HorizontalAlignment.Center };
+        var help = new Label { Text = Lang.T("화면 가장자리 / 휠 / 가운데 드래그\n미니맵 클릭 · 유닛 클릭으로 정보 확인"), HorizontalAlignment = HorizontalAlignment.Center };
         help.AddThemeFontSizeOverride("font_size", 12);
         content.AddChild(help);
     }
@@ -67,12 +67,13 @@ public partial class SpectatorPanel : PanelContainer
     public override void _Process(double delta)
     {
         if (!Visible || Units == null) return;
-        _heading.Text = $"{AIName} · 전체 맵 관전";
+        _heading.Text = Lang.F("{0} · 전체 맵 관전", AIName);
         int Count(uint team) => Units.LiveUnits.Count(u => u.Team == team && !u.IsDying);
-        _counts.Text = $"1팀 {Count(1)}기     ·     2팀 {Count(2)}기";
+        _counts.Text = Lang.F("1팀 {0}기     ·     2팀 {1}기", Count(1), Count(2));
         Unit selected = Units.InspectedUnit;
         bool inspect = Units.CanInspect(selected);
-        _target.Text = inspect ? $"{(selected.Team == 0 ? "중립" : $"{selected.Team}팀")} · {UnitCatalog.Name(selected.UnitType)}" : "전장의 유닛을 선택하세요";
+        _target.Text = inspect ? (selected.Team == 0 ? Lang.T("중립") : Lang.F("{0}팀", selected.Team)) + " · " + UnitCatalog.Name(selected.UnitType)
+            : Lang.T("전장의 유닛을 선택하세요");
         if (!inspect) StopFollowing();
         else if (Following) CameraNavigation.FocusGround(Units.Camera, selected.GlobalPosition);
     }

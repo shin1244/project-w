@@ -68,7 +68,7 @@ public partial class SelectionDetails : PanelContainer
         var empty = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center };
         body.AddChild(empty);
         empty.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        var emptyTitle = Text("선택 없음", 18, "a8b9b1");
+        var emptyTitle = Text(Lang.T("선택 없음"), 18, "a8b9b1");
         emptyTitle.HorizontalAlignment = HorizontalAlignment.Center;
         empty.AddChild(emptyTitle);
         _empty = empty;
@@ -164,13 +164,13 @@ public partial class SelectionDetails : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ShrinkEnd
         };
         content.AddChild(_navigation);
-        _previous = PageButton("‹", "이전 유닛", -1);
+        _previous = PageButton("‹", Lang.T("이전 유닛"), -1);
         _navigation.AddChild(_previous);
         _pageText = Text("", 12, "d0dcd2");
         _pageText.CustomMinimumSize = new Vector2(42, 0);
         _pageText.HorizontalAlignment = HorizontalAlignment.Center;
         _navigation.AddChild(_pageText);
-        _next = PageButton("›", "다음 유닛", 1);
+        _next = PageButton("›", Lang.T("다음 유닛"), 1);
         _navigation.AddChild(_next);
         if (GodotObject.IsInstanceValid(Units)) Units.SelectionChanged += RefreshSelection;
         if (GodotObject.IsInstanceValid(Buildings))
@@ -228,7 +228,7 @@ public partial class SelectionDetails : PanelContainer
             }
             else if (_tree != null)
             {
-                _title.Text = "나무";
+                _title.Text = Lang.T("나무");
                 _portrait.Texture = null;
             }
             else
@@ -257,12 +257,13 @@ public partial class SelectionDetails : PanelContainer
         if (Available(single))
         {
             health = single.HealthBar;
-            SetText(_activity, single.UnitType == UnitCatalog.SiegeRam ? "상태   자동 행군" :
+            SetText(_activity, single.UnitType == UnitCatalog.SiegeRam ? Lang.F("상태   {0}", Lang.T("자동 행군")) :
                 ActivityText(single.State, single.HasServerState));
             _activity.TooltipText = UnitCatalog.Description(single.UnitType);
             SetText(_extra, single.UnitType == 0 ? single.HasServerState
-                ? $"운반 중인 {(single.State.CarryType == ResourceType.Oil ? "기름" : "목재")}   {single.State.Carrying}"
-                : "운반 중인 자원   —" : single.UnitType == UnitCatalog.SteamArtillery ? SiegeText(single) :
+                ? single.State.CarryType == ResourceType.Oil ? Lang.F("운반 중인 기름   {0}", single.State.Carrying)
+                    : Lang.F("운반 중인 목재   {0}", single.State.Carrying)
+                : Lang.T("운반 중인 자원   —") : single.UnitType == UnitCatalog.SteamArtillery ? SiegeText(single) :
                 single.UnitType == UnitCatalog.Knight ? KnightChargeText(single) : "");
             _extra.TooltipText = single.UnitType == UnitCatalog.Knight && Buildings?.KnightResearch(single.Team) is KnightResearchSnapshot research
                 ? CommandPanel.KnightResearchDescription(research) : "";
@@ -272,19 +273,19 @@ public partial class SelectionDetails : PanelContainer
         {
             health = _building.HealthBar;
             _activity.TooltipText = "";
-            SetText(_activity, _building.IsUnderConstruction ? $"공사 중   {_building.ConstructionPercent}%" :
+            SetText(_activity, _building.IsUnderConstruction ? Lang.F("공사 중   {0}%", _building.ConstructionPercent) :
                 _building.IsDefense ? ActivityText(_building.State, _building.HasServerState) : "");
             SetText(_extra, _building.IsUnderConstruction && _building.SideId == Units.LocalTeam
-                ? "일꾼을 선택하고 우클릭하여 이어 짓기" :
+                ? Lang.T("일꾼을 선택하고 우클릭하여 이어 짓기") :
                 _building.BuildingType == BuildingCatalog.ResearchLab ? KnightResearchText(_building.SideId) :
                 _building.SideId != Units.LocalTeam ? "" :
                 _building.BuildingType == BuildingCatalog.Tunnel ? TunnelText(_building) :
-                _building.BuildingType == BuildingCatalog.CoalDrill ? "일꾼 우클릭: 목재 채집 (줄지 않음)" : "");
+                _building.BuildingType == BuildingCatalog.CoalDrill ? Lang.T("일꾼 우클릭: 목재 채집 (줄지 않음)") : "");
             _extra.TooltipText = _building.BuildingType == BuildingCatalog.ResearchLab && Buildings.KnightResearch(_building.SideId) is KnightResearchSnapshot research
                 ? CommandPanel.KnightResearchDescription(research) : "";
             string rallyText = _building.IsProducer && _building.SideId == Units.LocalTeam ?
-                _building.Rally is not RallySnapshot r ? " · 우클릭으로 랠리 지정" : r.ResourceId != 0 ? " · 랠리: 자동 채집" : " · 랠리: 이동" : "";
-            string tierText = _building.IsDefense ? $" · {Buildings.TeamTier(_building.SideId).Tier}티어" : "";
+                " · " + (_building.Rally is not RallySnapshot r ? Lang.T("우클릭으로 랠리 지정") : r.ResourceId != 0 ? Lang.T("랠리: 자동 채집") : Lang.T("랠리: 이동")) : "";
+            string tierText = _building.IsDefense ? " · " + Lang.F("{0}티어", Buildings.TeamTier(_building.SideId).Tier) : "";
             SetText(_title, BuildingCatalog.Name(_building.BuildingType) + tierText + rallyText);
             SetText(_stats, StatsText(_building.Stats, false));
             RefreshProduction();
@@ -292,7 +293,7 @@ public partial class SelectionDetails : PanelContainer
         else if (Available(_tree))
         {
             // A tree shows only what is left to gather; the server's TREE line keeps it current.
-            SetText(_healthText, $"남은 채집량   {_tree.Amount}");
+            SetText(_healthText, Lang.F("남은 채집량   {0}", _tree.Amount));
             _health.Visible = _activity.Visible = _extra.Visible = _stats.Visible = false;
             return;
         }
@@ -300,7 +301,7 @@ public partial class SelectionDetails : PanelContainer
         _health.Visible = _stats.Visible = true;
         _activity.Visible = _activity.Text.Length > 0;
         _extra.Visible = _extra.Text.Length > 0;
-        SetText(_healthText, $"체력   {HealthText(health)}");
+        SetText(_healthText, Lang.F("체력   {0}", HealthText(health)));
         HealthDisplay.Apply(_health, _shieldFill, health.CurrentHP, health.MaxHP, health.Shield);
         Color color = HealthColor(health.Ratio);
         if (_healthFill.BgColor != color) _healthFill.BgColor = _healthFill.BorderColor = color;
@@ -308,8 +309,8 @@ public partial class SelectionDetails : PanelContainer
 
     // The server's TUNNEL_LINK decides the pair; this only reads it.
     private string TunnelText(Building tunnel) => Buildings.TunnelPartner(tunnel) == null
-        ? Units.CommanderControl ? "출구 없음 · Q: 출구 설치" : "출구 없음"
-        : "짝 땅굴 연결됨 · 유닛 우클릭: 짝 옆으로 이동 · 한쪽이 무너지면 함께 무너짐";
+        ? Units.CommanderControl ? Lang.T("출구 없음 · Q: 출구 설치") : Lang.T("출구 없음")
+        : Lang.T("짝 땅굴 연결됨 · 유닛 우클릭: 짝 옆으로 이동 · 한쪽이 무너지면 함께 무너짐");
 
     private void RefreshProduction()
     {
@@ -317,7 +318,7 @@ public partial class SelectionDetails : PanelContainer
             Buildings.KnightResearch(_building.SideId) is { Researching: true } research && research.LabId == _building.BuildingId)
         {
             _production.Visible = true;
-            SetText(_productionText, $"와이어 돌진 연구 · {research.Remaining:0}초 남음");
+            SetText(_productionText, Lang.F("와이어 돌진 연구 · {0:0}초 남음", research.Remaining));
             _productionProgress.Value = research.Percent;
             foreach (var frame in _queueFrames) frame.Visible = false;
             return;
@@ -326,7 +327,7 @@ public partial class SelectionDetails : PanelContainer
         {
             var state = Buildings.TeamTier(_building.SideId);
             _production.Visible = true;
-            SetText(_productionText, $"{state.Tier} → {state.TargetTier}티어 업그레이드 · {state.Remaining:0}초 남음");
+            SetText(_productionText, Lang.F("{0} → {1}티어 업그레이드 · {2:0}초 남음", state.Tier, state.TargetTier, state.Remaining));
             _productionProgress.Value = state.Percent;
             foreach (var frame in _queueFrames) frame.Visible = false;
             return;
@@ -336,7 +337,7 @@ public partial class SelectionDetails : PanelContainer
         _production.Visible = true;
         int count = _building.ProductionQueue.Count;
         string name = UnitName(_building.ProductionQueue[0]);
-        SetText(_productionText, $"{name} · {(_building.ProductionPercent == 100 ? "출구 대기" : "생산 중")}   {count} / {ProductionSnapshot.MaxQueue}");
+        SetText(_productionText, $"{name} · {(_building.ProductionPercent == 100 ? Lang.T("출구 대기") : Lang.T("생산 중"))}   {count} / {ProductionSnapshot.MaxQueue}");
         _productionProgress.Value = _building.ProductionPercent;
         for (int i = 0; i < _queuePortraits.Count; i++)
         {
@@ -344,17 +345,19 @@ public partial class SelectionDetails : PanelContainer
             _queuePortraits[i].Texture = occupied ? _portraits.GetPortrait(UnitScene(_building.ProductionQueue[i])) : null;
             bool canCancel = occupied && Units.CanCancelTraining(_building, _building.ProductionJobs[i].Id);
             _queueFrames[i].MouseDefaultCursorShape = canCancel ? CursorShape.PointingHand : CursorShape.Arrow;
-            _queueFrames[i].TooltipText = occupied ? $"{(i == 0 ? "생산 중" : $"대기 {i}")} · {UnitName(_building.ProductionQueue[i])}" +
-                (canCancel ? "\n클릭하여 취소 · 지불 비용 75% 반환" : "") : "빈 생산 슬롯";
+            _queueFrames[i].TooltipText = occupied ? $"{(i == 0 ? Lang.T("생산 중") : Lang.F("대기 {0}", i))} · {UnitName(_building.ProductionQueue[i])}" +
+                (canCancel ? "\n" + Lang.T("클릭하여 취소 · 지불 비용 75% 반환") : "") : Lang.T("빈 생산 슬롯");
         }
     }
 
     public static string StatsText(StatsSnapshot? snapshot, bool mobile)
     {
-        if (snapshot is not StatsSnapshot s) return "공격력 —   사거리 —   공격 간격 —";
+        if (snapshot is not StatsSnapshot s) return Lang.T("공격력 —   사거리 —   공격 간격 —");
         string F(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
-        string attack = s.Interval > 0 ? $"공격력 {HealthDisplay.Whole(s.Damage)}   사거리 {F(s.Range)}   공격 간격 {F(s.Interval)}초" : "공격 불가";
-        return mobile ? $"{attack}\n이동 속도 {F(s.Speed)}   시야 {F(s.Sight)}" : s.Interval > 0 ? $"{attack}\n시야 {F(s.Sight)}" : $"{attack}   시야 {F(s.Sight)}";
+        string attack = s.Interval > 0
+            ? Lang.F("공격력 {0}   사거리 {1}   공격 간격 {2}초", HealthDisplay.Whole(s.Damage), F(s.Range), F(s.Interval)) : Lang.T("공격 불가");
+        return mobile ? attack + "\n" + Lang.F("이동 속도 {0}   시야 {1}", F(s.Speed), F(s.Sight))
+            : attack + (s.Interval > 0 ? "\n" : "   ") + Lang.F("시야 {0}", F(s.Sight));
     }
 
     private void RefreshColumns()
@@ -448,45 +451,48 @@ public partial class SelectionDetails : PanelContainer
     public static Color HealthColor(float ratio) => new(ratio > .5f ? "64cf79" : ratio > .25f ? "edbf55" : "e96860");
     private static string SiegeText(Unit unit)
     {
-        if (unit.Siege is not SiegeSnapshot state) return "공성 상태   —";
+        if (unit.Siege is not SiegeSnapshot state) return Lang.T("공성 상태   —");
         return state.Mode switch
         {
-            SiegeMode.Mobile => "이동 모드",
-            SiegeMode.Deployed => "공성 모드 · 이동 불가",
-            SiegeMode.Deploying => $"전개 중   {state.DeploymentAt(unit.EffectTick) * 100:0}%",
-            SiegeMode.Packing => $"전개 해제 중   {(1 - state.DeploymentAt(unit.EffectTick)) * 100:0}%",
+            SiegeMode.Mobile => Lang.T("이동 모드"),
+            SiegeMode.Deployed => Lang.T("공성 모드 · 이동 불가"),
+            SiegeMode.Deploying => Lang.F("전개 중   {0:0}%", state.DeploymentAt(unit.EffectTick) * 100),
+            SiegeMode.Packing => Lang.F("전개 해제 중   {0:0}%", (1 - state.DeploymentAt(unit.EffectTick)) * 100),
             _ => ""
         };
     }
 
     private string KnightResearchText(uint team) => Buildings?.KnightResearch(team) switch
     {
-        { Unlocked: true } => "와이어 돌진 · 자동 발동",
-        { Researching: true } state => $"와이어 돌진 · 연구 중 {state.Remaining:0}초",
-        KnightResearchSnapshot => "와이어 돌진 · 기술연구소 연구 필요",
-        _ => "와이어 돌진 · 정보 수신 대기"
+        { Unlocked: true } => Lang.T("와이어 돌진 · 자동 발동"),
+        { Researching: true } state => Lang.F("와이어 돌진 · 연구 중 {0:0}초", state.Remaining),
+        KnightResearchSnapshot => Lang.T("와이어 돌진 · 기술연구소 연구 필요"),
+        _ => Lang.T("와이어 돌진 · 정보 수신 대기")
     };
 
     private string KnightChargeText(Unit unit)
     {
         if (unit.KnightCharge is not KnightChargeSnapshot charge)
-            return Buildings?.KnightResearch(unit.Team) is { Unlocked: false } ? KnightResearchText(unit.Team) : "와이어 돌진 · 정보 수신 대기";
+            return Buildings?.KnightResearch(unit.Team) is { Unlocked: false } ? KnightResearchText(unit.Team) : Lang.T("와이어 돌진 · 정보 수신 대기");
         if (!charge.Enabled) return KnightResearchText(unit.Team);
-        if (charge.ActiveAt(unit.EffectTick)) return "와이어 돌진 · 돌진 중";
-        if (charge.IsReadyAt(unit.EffectTick)) return "와이어 돌진 · 준비";
+        if (charge.ActiveAt(unit.EffectTick)) return Lang.T("와이어 돌진 · 돌진 중");
+        if (charge.IsReadyAt(unit.EffectTick)) return Lang.T("와이어 돌진 · 준비");
         double seconds = (charge.ReadyTick - unit.EffectTick) / (double)InterpolationClock.TickRate;
-        return $"와이어 돌진 · 재사용 {System.Math.Ceiling(seconds):0}초";
+        return Lang.F("와이어 돌진 · 재사용 {0:0}초", System.Math.Ceiling(seconds));
     }
 
-    public static string ActivityText(UnitState state, bool known) => !known ? "상태   —" : state.Activity switch
+    public static string ActivityText(UnitState state, bool known) => Lang.F("상태   {0}", ActivityName(state, known));
+
+    // The activity alone, for places that print their own label.
+    public static string ActivityName(UnitState state, bool known) => !known ? "—" : state.Activity switch
     {
-        UnitActivity.Gather => "상태   채집 중", UnitActivity.Attack => "상태   공격 중",
-        UnitActivity.Guard => "상태   경계 중",
-        UnitActivity.Hold => "상태   위치 사수",
-        UnitActivity.Dash => "상태   돌진 중", UnitActivity.Stun => "상태   기절",
-        UnitActivity.Channel => "상태   마석 수집 중",
-        UnitActivity.Inside => "상태   시추탑 안",
-        UnitActivity.Build => "상태   건설 중", _ => "상태   대기 / 이동"
+        UnitActivity.Gather => Lang.T("채집 중"), UnitActivity.Attack => Lang.T("공격 중"),
+        UnitActivity.Guard => Lang.T("경계 중"),
+        UnitActivity.Hold => Lang.T("위치 사수"),
+        UnitActivity.Dash => Lang.T("돌진 중"), UnitActivity.Stun => Lang.T("기절"),
+        UnitActivity.Channel => Lang.T("마석 수집 중"),
+        UnitActivity.Inside => Lang.T("시추탑 안"),
+        UnitActivity.Build => Lang.T("건설 중"), _ => Lang.T("대기 / 이동")
     };
 
     public override void _GuiInput(InputEvent @event)

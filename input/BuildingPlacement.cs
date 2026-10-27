@@ -40,7 +40,7 @@ public partial class BuildingPlacement : Node3D
         Cancel();
         if (!Map.IsSynchronized || !Units.TryGetSelectedWorker(out Unit worker))
         {
-            Notice("건설할 내 일꾼을 선택하세요.", true);
+            Notice(Lang.T("건설할 내 일꾼을 선택하세요."), true);
             return false;
         }
         if (!BuildingCatalog.IsPlayerBuildable(type) || !_preview.Select(type, out _footprint)) return false;
@@ -94,7 +94,7 @@ public partial class BuildingPlacement : Node3D
             Ground.IntersectsRay(Camera.ProjectRayOrigin(screenPosition), Camera.ProjectRayNormal(screenPosition)) is not Vector3 point)
         {
             _preview.Hide();
-            BlockReason = "전장에서 건설 위치를 선택하세요.";
+            BlockReason = Lang.T("전장에서 건설 위치를 선택하세요.");
             SetStatus(BlockReason, false);
             return;
         }
@@ -103,8 +103,8 @@ public partial class BuildingPlacement : Node3D
             PlacementRules.Check(Map, Buildings, Units, PlacementPosition, _footprint, _type);
         CanPlace = BlockReason == null;
         _preview.Update(Camera, PlacementPosition, CanPlace);
-        string action = _tunnel == 0 ? $"{BuildingName} 배치 · 좌클릭: 건설" : $"{BuildingName} 출구 배치 · 좌클릭: 설치";
-        SetStatus(CanPlace ? $"{action} · 우클릭/Esc: 취소" : $"건설 불가: {BlockReason}", !CanPlace);
+        string action = _tunnel == 0 ? Lang.F("{0} 배치 · 좌클릭: 건설", BuildingName) : Lang.F("{0} 출구 배치 · 좌클릭: 설치", BuildingName);
+        SetStatus(CanPlace ? Lang.F("{0} · 우클릭/Esc: 취소", action) : Lang.F("건설 불가: {0}", BlockReason), !CanPlace);
     }
 
     public bool TryPlace(Vector2 screenPosition)
@@ -119,7 +119,7 @@ public partial class BuildingPlacement : Node3D
         if (!sent) { Cancel(); return false; }
         string name = BuildingName;
         Cancel();
-        Notice(exit ? $"{name} 출구 설치를 요청했습니다." : $"{name} 건설을 요청했습니다.", false);
+        Notice(exit ? Lang.F("{0} 출구 설치를 요청했습니다.", name) : Lang.F("{0} 건설을 요청했습니다.", name), false);
         return true;
     }
 

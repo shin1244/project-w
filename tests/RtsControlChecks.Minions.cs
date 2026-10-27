@@ -41,7 +41,7 @@ public partial class RtsControlChecks
         Receive("STOCK 2 850");
         Receive("MINION_LANE 0 1 6 103 100 100 101 101 101");
         await Flush();
-        Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("화로"),
+        Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.StartsWith(Lang.T("화로 미니언")),
             "Only the authoritative lane snapshot confirms an upgrade");
         Check(((Button)MinionControl("Body/Content/Lanes/Rows/Lane1/Add")).Disabled,
             "Plus needs 마석; wood never buys a slot");
@@ -62,7 +62,7 @@ public partial class RtsControlChecks
         Click(MinionControl("Body/Content/Lanes/Rows/Lane0/Slot1").GetGlobalRect().GetCenter(), MouseButton.Left);
         await Flush();
         Check(Minions.GetNode<Button>("Picker/Content/Options/Option103") is { Disabled: true } furnace &&
-            furnace.FindChild("Cost", true, false) is Label { Text: var price } && price.Contains("목재") && price.Contains("기름"),
+            furnace.FindChild("Cost", true, false) is Label { Text: var price } && price.Contains(Lang.T("목재")) && price.Contains(Lang.T("기름")),
             "Missing oil disables an upgrade while keeping both costs visible");
         int purchases = MinionWire(wire).Length;
         KeyPress(Key.Escape);
@@ -112,7 +112,7 @@ public partial class RtsControlChecks
         await Flush();
         var furnace = Minions.GetNodeOrNull<Button>("Picker/Content/Options/Option103");
         Check(furnace != null && furnace.Disabled && Minions.GetNodeOrNull<Button>("Picker/Content/Options/Option104") is { Disabled: true } &&
-            furnace.FindChild("Cost", true, false) is Label { Text: var locked } && locked.Contains("2티어"),
+            furnace.FindChild("Cost", true, false) is Label { Text: var locked } && locked.StartsWith(Lang.F("HQ {0}티어 필요 · {1}", 2, "")),
             "A melee slot lists both tier-two upgrades, locked until the HQ reaches their tier");
         KeyPress(Key.Escape);
         Receive("TEAM_TIER 2 2 0 0 0 0");
@@ -137,7 +137,7 @@ public partial class RtsControlChecks
             await Flush();
             Check(!Minions.IsPickerOpen, $"Slot {slot} (upgraded, ranged or warden) cannot change type");
         }
-        Check(MinionWire(wire).Length == sent && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("화로"),
+        Check(MinionWire(wire).Length == sent && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.StartsWith(Lang.T("화로 미니언")),
             "Clicking a slot that cannot change sends nothing");
         Receive("MINION_ADD_COST 3 100");
         Receive("STOCK 3 100");
@@ -189,13 +189,13 @@ public partial class RtsControlChecks
         await EndMinionDrag(SlotCenter(0, 2));
         Check(MinionWire(wire).Length == before + 1 && MinionWire(wire).Last() == "MINION_MOVE 0 7 0 2" &&
             Minions.IsRequestPending && !Minions.IsPickerOpen, "Native drag sends one revisioned move without opening the purchase picker");
-        Check(MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("근접") &&
+        Check(MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.StartsWith(Lang.T("근접 미니언")) &&
             Minions.GetNode<Button>("Body/Content/Lanes/Rows/Lane0/Slot2").Disabled,
             "Reordering works with zero wood, waits for the server and blocks overlapping requests");
         Receive("MINION_LANE 0 8 4 101 102 100 100");
         await Flush();
-        Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.Contains("원거리") &&
-            MinionControl("Body/Content/Lanes/Rows/Lane0/Slot1").TooltipText.Contains("생명"),
+        Check(!Minions.IsRequestPending && MinionControl("Body/Content/Lanes/Rows/Lane0/Slot0").TooltipText.StartsWith(Lang.T("원거리 미니언")) &&
+            MinionControl("Body/Content/Lanes/Rows/Lane0/Slot1").TooltipText.StartsWith(Lang.T("생명의 미니언")),
             "Only the authoritative inserted order updates the portraits");
         await BeginMinionDrag(0, 2);
         await EndMinionDrag(SlotCenter(0, 0));
