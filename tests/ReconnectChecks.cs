@@ -98,7 +98,7 @@ public partial class ReconnectChecks : Main
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             var screen = GetTree().CurrentScene as Room ?? throw new Exception("room did not open");
-            var rejoin = screen.FindChildren("*", "Button", true, false).OfType<Button>().First(b => b.Text == "경기로 돌아가기");
+            var rejoin = screen.FindChildren("*", "Button", true, false).OfType<Button>().First(b => b.Text == Lang.T("경기로 돌아가기"));
             Check(rejoin.Visible, "the room must show the way back to the running match");
             _session.ForgetRejoin();
             Check(_session.Rejoinable == null && !rejoin.Visible, "forgetting the match must hide the way back");

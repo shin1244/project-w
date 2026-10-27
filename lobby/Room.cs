@@ -11,7 +11,9 @@ public partial class Room : Control
     private static readonly Color Muted = LobbyPalette.Muted, Faint = LobbyPalette.Faint, Accent = LobbyPalette.BrassLight, Warn = LobbyPalette.Ember;
     private const int CommanderItem = 0, HeroItem = 1, StandItem = 2;
     private MatchSession _session;
-    private Label _title, _status, _waiting, _regionHint;
+    private Label _title, _status, _waiting, _regionHint, _regionCaption;
+    private readonly List<Label> _teamCaptions = new();
+    private Settings _settings;
     private OptionButton _region;
     private Button _spectate, _start, _leave, _rejoin, _send;
     private RichTextLabel _chat;
@@ -35,10 +37,10 @@ public partial class Room : Control
         _title = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis };
         _title.AddThemeFontSizeOverride("font_size", 26);
         top.AddChild(_title);
-        var regionCaption = LobbyPalette.Caption("서버", 14);
-        regionCaption.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-        top.AddChild(regionCaption);
-        _region = new OptionButton { ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(150, 36), TooltipText = "방장만 바꿀 수 있습니다. 기본은 방장의 핑이 낮은 쪽입니다." };
+        _regionCaption = LobbyPalette.Caption("", 14);
+        _regionCaption.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        top.AddChild(_regionCaption);
+        _region = new OptionButton { ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(150, 36) };
         _region.ItemSelected += index => { if (!_updatingRegion) _session.ChooseRegion(_region.GetItemMetadata((int)index).AsString()); };
         top.AddChild(_region);
         _regionHint = LobbyPalette.Caption("", 13, Faint);
@@ -66,9 +68,9 @@ public partial class Room : Control
         chatBox.AddChild(chatPanel);
         var chatRow = new HBoxContainer();
         chatRow.AddThemeConstantOverride("separation", 8);
-        _chatInput = new LineEdit { SizeFlagsHorizontal = SizeFlags.ExpandFill, PlaceholderText = "채팅", MaxLength = MatchSession.ChatMaxLength };
+        _chatInput = new LineEdit { SizeFlagsHorizontal = SizeFlags.ExpandFill, MaxLength = MatchSession.ChatMaxLength };
         _chatInput.TextSubmitted += _ => SendChat();
-        _send = new Button { Text = "보내기", ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(80, 36) };
+        _send = new Button { ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(80, 36) };
         _send.Pressed += SendChat;
         chatRow.AddChild(_chatInput);
         chatRow.AddChild(_send);
@@ -83,11 +85,11 @@ public partial class Room : Control
         actions.AddChild(_status);
         _spectate = new Button { ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 38) };
         _spectate.Pressed += () => _session.ChooseRole(0, _session.Room?.Me?.Spectator == true ? "" : "SPECTATOR", 0);
-        _start = new Button { Text = "시작", CustomMinimumSize = new Vector2(0, 46) };
+        _start = new Button { CustomMinimumSize = new Vector2(0, 46) };
         _start.Pressed += () => { if (_session.Room?.State == "countdown") _session.CancelStart(); else _session.StartRoom(); };
-        _rejoin = new Button { Text = "경기로 돌아가기", CustomMinimumSize = new Vector2(0, 46) };
+        _rejoin = new Button { CustomMinimumSize = new Vector2(0, 46) };
         _rejoin.Pressed += () => _session.Rejoin();
-        _leave = new Button { Text = "방 나가기", ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 38) };
+        _leave = new Button { ThemeTypeVariation = "SecondaryButton", CustomMinimumSize = new Vector2(0, 38) };
         _leave.Pressed += () => _session.LeaveRoom();
         actions.AddChild(_start);
         actions.AddChild(_rejoin);
@@ -96,7 +98,28 @@ public partial class Room : Control
         bottom.AddChild(actions);
         content.AddChild(bottom);
 
+        SettingsPanel.Attach(this);
+        _settings = Settings.Instance;
+        if (_settings != null) _settings.LanguageChanged += ApplyText;
         _session.Changed += Refresh;
+        ApplyText();
+    }
+
+    // The text this screen sets once; Refresh sets the rest.
+    private void ApplyText()
+    {
+        _regionCaption.Text = Lang.T("서버");
+        _region.TooltipText = Lang.T("방장만 바꿀 수 있습니다. 기본은 방장의 핑이 낮은 쪽입니다.");
+        for (int i = 0; i < _teamCaptions.Count; i++) _teamCaptions[i].Text = Lang.F("{0}팀", i + 1);
+        foreach (var seat in _seatRows.SelectMany(rows => rows))
+        {
+            seat.RoleBox.TooltipText = Lang.T("대표는 팀에 한 명입니다. 고르지 않으면 시작할 때 남은 자리에 앉습니다.");
+            seat.HeroBox.TooltipText = Lang.T("같은 팀에서 한 용병은 한 명만 고를 수 있습니다.");
+        }
+        _chatInput.PlaceholderText = Lang.T("채팅");
+        _send.Text = Lang.T("보내기");
+        _rejoin.Text = Lang.T("경기로 돌아가기");
+        _leave.Text = Lang.T("방 나가기");
         Refresh();
     }
 
@@ -113,18 +136,20 @@ public partial class Room : Control
         var panel = new PanelContainer { ThemeTypeVariation = "PlatePanel", SizeFlagsHorizontal = SizeFlags.ExpandFill };
         var rows = new VBoxContainer();
         rows.AddThemeConstantOverride("separation", 6);
-        rows.AddChild(LobbyPalette.Caption($"{team}팀", 15, LobbyPalette.Brass));
+        var caption = LobbyPalette.Caption("", 15, LobbyPalette.Brass);
+        _teamCaptions.Add(caption);
+        rows.AddChild(caption);
         for (int i = 0; i < 4; i++)
         {
             var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, 30) };
             row.AddThemeConstantOverride("separation", 10);
             var seat = new SeatRow
             {
-                RoleBox = Picker(96, "대표는 팀에 한 명입니다. 고르지 않으면 시작할 때 남은 자리에 앉습니다."),
+                RoleBox = Picker(96),
                 Role = Cell(96),
                 Name = new Label { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ShrinkCenter, ClipText = true, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis },
                 Ping = LobbyPalette.Caption("", 14),
-                HeroBox = Picker(144, "같은 팀에서 한 용병은 한 명만 고를 수 있습니다."),
+                HeroBox = Picker(144),
                 Hero = Cell(144),
             };
             seat.Ping.CustomMinimumSize = new Vector2(52, 0);
@@ -141,9 +166,9 @@ public partial class Room : Control
         return panel;
     }
 
-    private static OptionButton Picker(float width, string tooltip) => new()
+    private static OptionButton Picker(float width) => new()
     {
-        ThemeTypeVariation = "SeatButton", CustomMinimumSize = new Vector2(width, 30), TooltipText = tooltip,
+        ThemeTypeVariation = "SeatButton", CustomMinimumSize = new Vector2(width, 30),
         SizeFlagsVertical = SizeFlags.ShrinkCenter, FitToLongestItem = false,
     };
 
@@ -162,7 +187,7 @@ public partial class Room : Control
         {
             _transitioning = true;
             if (GetTree().ChangeSceneToFile("res://lobby/Loading.tscn") != Error.Ok)
-            { _transitioning = false; _session.Fail("로딩 화면을 열지 못했습니다."); }
+            { _transitioning = false; _session.Fail(Lang.T("로딩 화면을 열지 못했습니다.")); }
             return;
         }
         var room = _session.Room;
@@ -174,21 +199,21 @@ public partial class Room : Control
         foreach (var seat in room.Seats) RefreshSeat(room, seat, waiting && me != null);
         var unseated = room.Members.Where(m => m.Seat < 0 && !m.Spectator).Select(m => m.Name).ToArray();
         var spectators = room.Members.Where(m => m.Spectator).Select(m => m.Name).ToArray();
-        _waiting.Text = $"인원 {room.Members.Count}/8" + (unseated.Length > 0 ? $" · 선택 전: {string.Join(", ", unseated)}" : "") +
-            (spectators.Length > 0 ? $" · 관전: {string.Join(", ", spectators)}" : "");
-        _spectate.Text = me?.Spectator == true ? "관전 취소" : "관전";
+        _waiting.Text = Lang.F("인원 {0}/8", room.Members.Count) + (unseated.Length > 0 ? Lang.F(" · 선택 전: {0}", string.Join(", ", unseated)) : "") +
+            (spectators.Length > 0 ? Lang.F(" · 관전: {0}", string.Join(", ", spectators)) : "");
+        _spectate.Text = me?.Spectator == true ? Lang.T("관전 취소") : Lang.T("관전");
         _spectate.Disabled = !waiting;
         _start.Visible = room.IsHost;
-        _start.Text = room.State == "countdown" ? "시작 취소" : "시작";
+        _start.Text = room.State == "countdown" ? Lang.T("시작 취소") : Lang.T("시작");
         _start.Disabled = room.State is not ("waiting" or "countdown");
         _rejoin.Visible = _session.Rejoinable != null;
         _status.Text = _session.Notice ?? _session.ErrorMessage ?? room.State switch
         {
-            "countdown" => $"{room.Countdown}초 후 시작",
-            "launching" => "서버 준비 중",
-            "playing" => "경기 진행 중",
-            _ when room.IsHost => "대기 중",
-            _ => "방장 대기 중",
+            "countdown" => Lang.F("{0}초 후 시작", room.Countdown),
+            "launching" => Lang.T("서버 준비 중"),
+            "playing" => Lang.T("경기 진행 중"),
+            _ when room.IsHost => Lang.T("대기 중"),
+            _ => Lang.T("방장 대기 중"),
         };
         _status.AddThemeColorOverride("font_color", _session.Notice != null || _session.ErrorMessage != null ? Warn : room.State == "countdown" ? Accent : Muted);
         RenderChat();
@@ -207,18 +232,18 @@ public partial class Room : Control
             _region.Clear();
             foreach (var region in room.Regions)
             {
-                _region.AddItem(region.Name);
+                _region.AddItem(Lang.T(region.Name));
                 _region.SetItemMetadata(_region.ItemCount - 1, region.Id);
             }
         }
         for (int i = 0; i < room.Regions.Count; i++)
         {
             var region = room.Regions[i];
-            _region.SetItemText(i, region.Name + (_session.Pings.TryGetValue(region.Id, out int ms) ? $"  {ms}ms" : ""));
+            _region.SetItemText(i, Lang.T(region.Name) + (_session.Pings.TryGetValue(region.Id, out int ms) ? $"  {ms}ms" : ""));
             if (region.Id == room.Region) _region.Select(i);
         }
         _region.Disabled = !room.IsHost || room.State != "waiting";
-        _regionHint.Text = room.RegionAuto ? "자동" : "방장 선택";
+        _regionHint.Text = room.RegionAuto ? Lang.T("자동") : Lang.T("방장 선택");
         _updatingRegion = false;
     }
 
@@ -228,28 +253,28 @@ public partial class Room : Control
         var member = seat.PlayerId != null ? room.Member(seat.PlayerId) : null;
         bool mine = seat.PlayerId == room.You, hero = seat.Role == "HERO";
         bool open = canChoose && (member == null || mine);
-        row.Name.Text = member == null ? "AI" : member.Name + (member.Id == room.HostId ? " (방장)" : "");
+        row.Name.Text = member == null ? "AI" : member.Name + (member.Id == room.HostId ? Lang.T(" (방장)") : "");
         row.Name.AddThemeColorOverride("font_color", member == null ? Faint : mine ? Accent : LobbyPalette.Text);
         row.Ping.Text = member == null ? "" : member.Ping < 0 ? "-" : $"{member.Ping}ms";
         row.Ping.AddThemeColorOverride("font_color", member != null && member.Ping >= 150 ? Warn : Muted);
 
-        row.Role.Text = hero ? "용병" : "대표";
+        row.Role.Text = hero ? Lang.T("용병") : Lang.T("대표");
         row.Role.Visible = !open;
         row.RoleBox.Visible = open;
         if (open && !row.RoleBox.GetPopup().Visible)
         {
             var commander = room.Seats.First(s => s.Team == seat.Team && s.Role == "COMMANDER");
             row.RoleBox.Clear();
-            row.RoleBox.AddItem("대표", CommanderItem);
+            row.RoleBox.AddItem(Lang.T("대표"), CommanderItem);
             row.RoleBox.SetItemDisabled(0, commander.PlayerId != null && commander.PlayerId != room.You);
-            row.RoleBox.AddItem("용병", HeroItem);
+            row.RoleBox.AddItem(Lang.T("용병"), HeroItem);
             row.RoleBox.SetItemDisabled(1, FreeHero(room, seat.Team) == 0);
-            if (mine) row.RoleBox.AddItem("비우기", StandItem);
+            if (mine) row.RoleBox.AddItem(Lang.T("비우기"), StandItem);
             row.RoleBox.Select(hero ? 1 : 0);
         }
         row.RoleBox.AddThemeColorOverride("font_color", mine ? Accent : LobbyPalette.Text);
 
-        row.Hero.Text = hero && member != null ? UnitCatalog.Name(seat.Hero) : "";
+        row.Hero.Text = hero && member != null ? Lang.T(UnitCatalog.Name(seat.Hero)) : "";
         row.Hero.Visible = !(hero && open);
         row.HeroBox.Visible = hero && open;
         if (hero && open && !row.HeroBox.GetPopup().Visible)
@@ -257,11 +282,11 @@ public partial class Room : Control
             row.HeroBox.Clear();
             for (int i = 0; i < Heroes.Length; i++)
             {
-                row.HeroBox.AddItem(UnitCatalog.Name(Heroes[i]), (int)Heroes[i]);
+                row.HeroBox.AddItem(Lang.T(UnitCatalog.Name(Heroes[i])), (int)Heroes[i]);
                 row.HeroBox.SetItemDisabled(i, TakenByOther(room, seat.Team, Heroes[i]));
             }
             row.HeroBox.Select(mine ? System.Array.IndexOf(Heroes, seat.Hero) : -1);
-            if (!mine) row.HeroBox.Text = "용병 선택";
+            if (!mine) row.HeroBox.Text = Lang.T("용병 선택");
         }
         row.HeroBox.AddThemeColorOverride("font_color", mine ? Accent : Muted);
     }
@@ -324,5 +349,9 @@ public partial class Room : Control
         _session.SendChat(text);
     }
 
-    public override void _ExitTree() { if (_session != null) _session.Changed -= Refresh; }
+    public override void _ExitTree()
+    {
+        if (_session != null) _session.Changed -= Refresh;
+        if (_settings != null) _settings.LanguageChanged -= ApplyText;
+    }
 }

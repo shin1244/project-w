@@ -33,7 +33,7 @@ public partial class SpectatorChecks : Main
             Check(assignment.IsValid, "Eight humans can fill the same match");
             assignment.Bots = 8;
             Check(!assignment.IsValid, "A human assignment cannot also fill all eight seats with AI");
-            Check(new MatchResultSnapshot(2,"BASE_DESTROYED",500).Title(0) == "2팀 승리", "Observer result is neutral");
+            Check(new MatchResultSnapshot(2,"BASE_DESTROYED",500).Title(0) == Lang.F("{0}팀 승리", 2), "Observer result is neutral");
             Check(TeamExperienceSnapshot.TryParse("TEAM_EXP 1 2 35 150 13525".Split(' '), out var teamXP) &&
                 teamXP == new TeamExperienceSnapshot(1, 2, 35, 150, 13525) && teamXP.TotalExperienceText == "135.25",
                 "Team XP retains exact hundredths and displays experience rather than a percentage");

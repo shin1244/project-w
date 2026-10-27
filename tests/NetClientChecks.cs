@@ -115,7 +115,7 @@ public partial class NetClientChecks : Node
         await Tail(net).WaitAsync(TimeSpan.FromSeconds(8));
         Check(reason == null, "Background write failure must not invoke scene callbacks");
         net._Process(0);
-        Check(reason?.Contains("시간이 초과") == true, "A stalled write must time out and close the connection");
+        Check(reason == Lang.T("전송 시간이 초과되었습니다. 서버 연결을 확인해 주세요."), "A stalled write must time out and close the connection");
         stream.Release();
         await writer.DisposeAsync();
     }
