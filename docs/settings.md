@@ -31,7 +31,9 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 - 같은 한국어가 영어에서 둘로 갈리면 문맥을 붙입니다: `Lang.T("입장", "lobby")` = Enter, `Lang.T("입장", "room")` = Join (`msgctxt`).
 - 컨트롤이 자기 글자를 스스로 번역하는 Godot 자동 번역은 루트에서 껐습니다. 번역은 `Lang`을 거친 곳에서만 일어나므로, 플레이어·방 이름이 번역 문장과 같아도 그대로 보입니다.
 - 화면은 `Settings.LanguageChanged`를 받아 한 번만 넣는 글자(`ApplyText`)를 다시 넣고 `Refresh`합니다. 매 갱신마다 글자를 다시 만드는 곳은 따로 할 일이 없습니다.
-- 용어는 상점 페이지 영어를 따릅니다: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone. 지역은 Korea·US·Germany·Australia입니다.
+- 용어는 상점 페이지 영어를 따릅니다: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone. 지역은 Korea·US·Germany·Australia입니다. 경기 화면의 `지휘관`도 같은 자리라 Director, 영웅 = hero이고, 경기 중 `용병`(인력 사무소·공장에서 뽑는 병력)도 한국어처럼 mercenary입니다.
+- 건물 영어 이름은 [건물 문서의 추천 이름](../buildings/README.md#영어-이름-추천)을 따르고(브랜치 = Supply Depot, 숙소 = House, 인력 사무소 = Barracks, 비허가 실험실 = Forge, 감시탑 = Watchtower, 시추탑 = Oil Derrick), HQ는 두 언어 모두 HQ입니다. 표에 없는 건물·유닛·스킬 이름은 `locale/en.po`의 이름 묶음에 있습니다.
+- 한 번만 넣는 글자를 다시 넣을 일은 로비 화면에만 있습니다. 설정 창은 로비에만 있어 경기 중에는 언어가 바뀌지 않으므로, 경기 HUD는 만들 때 한 번 번역하면 됩니다.
 
 ### 번역한 범위
 
@@ -41,10 +43,12 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 | 로비 세션 안내와 재접속 화면, `방으로 나가기` 버튼 (`network/MatchSession.cs`), 게임 서버 연결 오류 (`network/NetClient.cs`) | 번역함 |
 | 로비가 보내는 거절 (`MatchSession.Describe`) | 오류 코드로 번역함. 모르는 코드는 로비 문장 그대로 |
 | 로비가 보내는 지역 이름, 방 화면의 용병 이름 | 알려진 이름만 번역함 (`en.po`) |
-| **경기 중 HUD**: 명령창·선택 정보·미니언 편성·영웅 스킬과 상점·팀 창·관전 창·마석·건설 배치·유닛/건물 이름과 설명 (`ui/`, `game/Main.cs`, `units/`, `buildings/`, `input/`, `maps/`, `events/`, `resources/`) | **아직 한국어**. 30여 개 파일, 한국어 문자열이 있는 줄 약 400개 |
-| 서버가 보내는 문장: 경기 중 `ERR` 거절, 방 채팅의 회색 안내 줄(입장·방장 변경·카운트다운 등), 로딩 실패 시 맵 동기화 오류 | 한국어 그대로. 바꾸려면 서버가 코드나 키를 보내도록 프로토콜을 바꿔야 함 |
+| 경기 중 HUD: 명령창·선택 정보·미니언 편성·영웅 스킬과 상점·팀 창·관전 창·마석·건설 배치·유닛/건물 이름과 설명·스킬 설명, 맵 확인 문구와 맵 동기화 오류(로딩 화면에도 나옴) (`ui/`, `game/Main.cs`, `units/`, `buildings/`, `input/`, `maps/`, `events/`) | 번역함 |
+| 서버가 보내는 문장: 경기 중 `ERR` 거절(건설·구매·편성 등), 방 채팅의 회색 안내 줄(입장·방장 변경·카운트다운 등), 상점의 아이템 이름과 설명(`ITEM_CATALOG`) | 한국어 그대로. 바꾸려면 서버가 코드나 키를 보내도록 프로토콜을 바꿔야 함 |
+| 맵 파일의 라인 이름(`maps/test.json`의 `top`·`bottom`) | 맵 데이터 그대로 |
+| 개발용 경고(`GD.PushWarning`·`GD.Print`) | 한국어 그대로 |
 
-경기 중 HUD를 옮길 때는 같은 방식으로 문자열을 `Lang.T`/`Lang.F`로 감싸고 `en.po`에 줄을 더합니다. 한국어 문구를 직접 비교하는 검사(`CommandPanelChecks` 등)는 기대값도 `Lang.T(...)`로 바꿉니다.
+한국어 문구를 비교하는 검사(`CommandPanelChecks`, `SelectionDetailsChecks` 등)는 기대값도 `Lang.T(...)`·`Lang.F(...)`로 만들어, 플레이어의 `settings.cfg`가 어느 언어든 통과합니다.
 
 ## 새 문장 넣기
 

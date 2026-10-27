@@ -158,7 +158,7 @@ public partial class MapWorld : Node3D
     public override void _Ready()
     {
         try { LoadLocalMap(); }
-        catch (Exception error) { Fail("맵 로드 실패: " + error.Message); }
+        catch (Exception error) { Fail(Lang.F("맵 로드 실패: {0}", error.Message)); }
     }
 
     public void LoadLocalMap()
@@ -173,14 +173,14 @@ public partial class MapWorld : Node3D
             string.IsNullOrWhiteSpace(map.Name) || map.Bases == null || map.Bases.Length == 0 ||
             map.Bases.Any(b => b == null || b.Length != 2 || b.Any(v => !float.IsFinite(v))) ||
             map.Rows.Any(r => r == null || r.Length != map.Rows[0].Length || r.Any(c => c != '#' && c != '.' && c != 'T' && c != 'R' && c != 'W')))
-            throw new InvalidOperationException("잘못된 맵 형식");
+            throw new InvalidOperationException(Lang.T("잘못된 맵 형식"));
 
         if (map.ActivityAreas == null || map.ActivityAreas.Any(area => area == null || !area.IsValid()))
-            throw new InvalidOperationException("잘못된 이벤트·정글 구역 형식");
+            throw new InvalidOperationException(Lang.T("잘못된 이벤트·정글 구역 형식"));
         if (map.OilFields == null || map.OilFields.Any(field => field == null || !field.IsValid()) ||
             map.OilFields.Select(field => field.Id).Distinct(StringComparer.Ordinal).Count() != map.OilFields.Length ||
             map.OilFields.Select(field => (field.Center[0], field.Center[1])).Distinct().Count() != map.OilFields.Length)
-            throw new InvalidOperationException("잘못된 유전 지형 형식");
+            throw new InvalidOperationException(Lang.T("잘못된 유전 지형 형식"));
 
         var occupied = new bool[map.Rows.Length, map.Rows[0].Length];
         for (int z = 0; z < map.Rows.Length; z++)
@@ -192,7 +192,7 @@ public partial class MapWorld : Node3D
                             int cx = x + dx, cz = z + dz;
                             if (cz >= map.Rows.Length || cx >= map.Rows[0].Length ||
                                 map.Rows[cz][cx] == '#' || map.Rows[cz][cx] == 'R' || map.Rows[cz][cx] == 'W' || occupied[cz, cx])
-                                throw new InvalidOperationException("나무 점유 영역이 겹치거나 도로·맵 밖입니다.");
+                                throw new InvalidOperationException(Lang.T("나무 점유 영역이 겹치거나 도로·맵 밖입니다."));
                             occupied[cz, cx] = true;
                         }
 
@@ -255,7 +255,7 @@ public partial class MapWorld : Node3D
                     var tree = Resources.SpawnOrUpdate(id, TreeVariant(x, z), new Vector3(
                         _map.OriginX + (x + _map.TreeSize * 0.5f) * _map.CellSize, 0,
                         _map.OriginZ + (z + _map.TreeSize * 0.5f) * _map.CellSize));
-                    if (tree == null) throw new InvalidOperationException("나무 씬이 지정되지 않았습니다.");
+                    if (tree == null) throw new InvalidOperationException(Lang.T("나무 씬이 지정되지 않았습니다."));
                     tree.SetAmount(_map.TreeAmount);
                 }
     }
@@ -265,7 +265,7 @@ public partial class MapWorld : Node3D
         IsSynchronized = false;
         _accepted = false;
         if (_map == null || parts.Length != 3 || parts[1] != "2" || parts[2] != MapHash)
-            return Fail("서버와 맵 파일 또는 맵 프로토콜이 다릅니다. 같은 maps/test.json을 사용하세요.");
+            return Fail(Lang.T("서버와 맵 파일 또는 맵 프로토콜이 다릅니다. 같은 maps/test.json을 사용하세요."));
         ResetTrees(); // 재접속 시 기본 상태에서 현재 변경분을 다시 적용합니다.
         SyncError = null;
         _accepted = true;
@@ -277,10 +277,10 @@ public partial class MapWorld : Node3D
         if (!_accepted || parts.Length != 3 || !uint.TryParse(parts[1], out uint id) ||
             !int.TryParse(parts[2], out int amount) || amount < 0 || amount > _map.TreeAmount ||
             id == 0 || id > (long)_map.Rows.Length * _map.Rows[0].Length)
-            return Fail("잘못된 TREE 메시지");
+            return Fail(Lang.T("잘못된 TREE 메시지"));
         int index = (int)id - 1;
         if (_map.Rows[index / _map.Rows[0].Length][index % _map.Rows[0].Length] != 'T')
-            return Fail("맵에 없는 나무 ID");
+            return Fail(Lang.T("맵에 없는 나무 ID"));
         if (amount == 0)
         {
             Resources.Remove(id);
@@ -290,7 +290,7 @@ public partial class MapWorld : Node3D
         else if (Resources.TryGetResource(id, out ResourceNode tree))
             tree.SetAmount(amount);
         else
-            return Fail("제거된 나무의 자원량 변경");
+            return Fail(Lang.T("제거된 나무의 자원량 변경"));
         return true;
     }
 
@@ -303,7 +303,7 @@ public partial class MapWorld : Node3D
 
     public bool CompleteSync()
     {
-        if (!_accepted) return Fail("맵 확인 전 동기화 완료 메시지");
+        if (!_accepted) return Fail(Lang.T("맵 확인 전 동기화 완료 메시지"));
         IsSynchronized = true;
         return true;
     }

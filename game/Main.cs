@@ -53,6 +53,7 @@ public partial class Main : Node3D
     public override void _Ready()
     {
         _autoFrameStart = true;
+        if (SyncStatus != null) SyncStatus.Text = Lang.T("맵 확인 중…");
         SetPlayerRole(PlayerRole.None);
         if (Map.SyncError != null)
         {
@@ -380,7 +381,7 @@ public partial class Main : Node3D
                 if (RequestedRole is not (PlayerRole.Commander or PlayerRole.Hero) &&
                     !(RequestedRole == PlayerRole.Spectator && _matchSession?.Match?.Role == "SPECTATOR"))
                 {
-                    ShowStatus("접속 역할을 선택해 주세요.");
+                    ShowStatus(Lang.T("접속 역할을 선택해 주세요."));
                     return;
                 }
                 _net.Send(_matchSession?.Match is { } match
@@ -476,7 +477,7 @@ public partial class Main : Node3D
                 {
                     if (!_crates.TryGetValue(crate.Id,out var view))
                     { view=new ItemCrateView { Name=$"ItemCrate_{crate.Id}" };_crates.Add(crate.Id,view);AddChild(view); }
-                    view.Apply(crate,Units.LocalTeam,Shop?.Catalog.GetValueOrDefault(crate.ItemId)?.Name ?? "보급 상자");
+                    view.Apply(crate,Units.LocalTeam,Shop?.Catalog.GetValueOrDefault(crate.ItemId)?.Name ?? Lang.T("보급 상자"));
                 }
                 break;
             case "ITEM_CRATE_REMOVE":
@@ -773,9 +774,9 @@ public partial class Main : Node3D
                 break;
             case "ERR":
                 Sfx.Interface("ui-error");
-                Shop?.Notice(message.Length>4 ? message[4..] : "요청을 처리할 수 없습니다.");
+                Shop?.Notice(message.Length>4 ? message[4..] : Lang.T("요청을 처리할 수 없습니다."));
                 Minions?.HandleMessage(parts);
-                Placement?.Notice(message.Length > 4 ? message[4..] : "요청을 처리할 수 없습니다.", true);
+                Placement?.Notice(message.Length > 4 ? message[4..] : Lang.T("요청을 처리할 수 없습니다."), true);
                 GD.Print($"서버 안내: {message}");
                 break;
             default:
@@ -841,7 +842,7 @@ public partial class Main : Node3D
     {
         if (_awayNotice == null) return;
         _awayNotice.Visible = _away.Count > 0;
-        _awayNotice.Text = "연결 끊김 · AI가 대신 조종 중: " + string.Join(", ", _away.OrderBy(id => id).Select(PlayerName));
+        _awayNotice.Text = Lang.F("연결 끊김 · AI가 대신 조종 중: {0}", string.Join(", ", _away.OrderBy(id => id).Select(PlayerName)));
     }
 
     private string PlayerName(uint player)
@@ -853,7 +854,7 @@ public partial class Main : Node3D
             if (UnitCatalog.IsHero(unit.UnitType)) return UnitCatalog.Name(unit.UnitType);
             owns = true;
         }
-        return Teammates?.NameOf(player) ?? (owns ? "지휘관" : "팀원");
+        return Teammates?.NameOf(player) ?? (owns ? Lang.T("지휘관") : Lang.T("팀원"));
     }
 
     private void OnPositionsRendered()
@@ -896,7 +897,7 @@ public partial class Main : Node3D
         Minimap?.Reset();
         Units.Clear();
         Buildings?.Clear();
-        ShowStatus(Map.SyncError ?? "맵 동기화 메시지가 올바르지 않습니다.");
+        ShowStatus(Map.SyncError ?? Lang.T("맵 동기화 메시지가 올바르지 않습니다."));
         Map.StopSync();
         _net?.Disconnect();
     }

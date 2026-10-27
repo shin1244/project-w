@@ -78,7 +78,7 @@ public partial class CommandPanelChecks : Main
             }
 
             SelectBuilding(201);
-            Expect("The friendly town hall shows worker", (7, "일꾼"));
+            Expect("The friendly town hall shows worker", (7, Lang.T("일꾼")));
             Check(Cell(7) == 0 && Cell(1) == 8 && Cell(3) == 11,
                 "The town hall's worker takes the top row, Z upgrade its Z cell and Esc cancel the free bottom-right cell");
             Check(Units.SelectedUnitIds.Count == 0, "Building selection clears selected units");
@@ -122,14 +122,14 @@ public partial class CommandPanelChecks : Main
             Expect("Changing the selected hall's team clears worker immediately");
             CheckNoWorkerTrain("Changing the hall's team prevents worker requests");
             Receive("BUILDING 0 201 1 -10 8 0");
-            Expect("A selected hall returning to our team restores worker", (7, "일꾼"));
+            Expect("A selected hall returning to our team restores worker", (7, Lang.T("일꾼")));
             Receive("REMOVE 201");
             Expect("Removing the selected hall clears worker");
             CheckNoWorkerTrain("Removed halls cannot request workers");
 
             SelectBuilding(203);
             Receive("WELCOME 8 2 COMMANDER");
-            Expect("Changing the local team refreshes an already selected hall", (7, "일꾼"));
+            Expect("Changing the local team refreshes an already selected hall", (7, Lang.T("일꾼")));
             CheckWorkerTrain();
             Receive("TEAM_TIER 2 1 203 0 0 0 37 11 13");
             Receive("STOCK 0 37");
@@ -148,8 +148,8 @@ public partial class CommandPanelChecks : Main
             Check(Buildings.KnightResearch(1) == null && Buildings.KnightResearch(2) == null,
                 "Map synchronization discards both teams' charge unlocks, research progress and costs");
             Receive("TEAM_TIER 2 3 203 0 0 0");
-            Check(Buildings.BuildingRequirementBlockReason(BuildingCatalog.Workshop) == "건설 조건 수신 대기" &&
-                Buildings.BuildingRequirementBlockReason(BuildingCatalog.ResearchLab) == "건설 조건 수신 대기",
+            Check(Buildings.BuildingRequirementBlockReason(BuildingCatalog.Workshop) == Lang.T("건설 조건 수신 대기") &&
+                Buildings.BuildingRequirementBlockReason(BuildingCatalog.ResearchLab) == Lang.T("건설 조건 수신 대기"),
                 "Map synchronization discards tier definitions even if a new team tier has already arrived");
             Buildings.ResetTeamTiers();
             Check(Buildings.CommanderWood == 0 && Buildings.CommanderOil == 0 && !Buildings.TeamTier(2).HasUpgradeTerms,
@@ -200,8 +200,8 @@ public partial class CommandPanelChecks : Main
     private void ExpectUnit(string message)
     {
         if (Units.TryGetSelectedWorker(out _))
-            Expect(message, (1, "1티어 건설(Z)"), (2, "2티어 건설(X)"), (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
-        else Expect(message, (4, "공격(A)"), (5, "정지(S)"), (6, "홀드(D)"));
+            Expect(message, (1, Cap("1티어 건설", "Z")), (2, Cap("2티어 건설", "X")), (4, Cap("공격", "A")), (5, Cap("정지", "S")), (6, Cap("홀드", "D")));
+        else Expect(message, (4, Cap("공격", "A")), (5, Cap("정지", "S")), (6, Cap("홀드", "D")));
     }
 
     private void CheckRequirements()
@@ -218,7 +218,7 @@ public partial class CommandPanelChecks : Main
         int sent = _commands.Count;
         _slots[7].EmitSignal(BaseButton.SignalName.Pressed);
         Units.RequestTrain(UnitCatalog.Knight);
-        Check(_slots[7].Disabled && !_slots[8].Disabled && _slots[7].TooltipText.Contains("비허가 실험실") &&
+        Check(_slots[7].Disabled && !_slots[8].Disabled && _slots[7].TooltipText.Contains(Lang.T("비허가 실험실")) &&
             _commands.Count == sent, "Enemy and incomplete prerequisites do not unlock training or direct commands");
         Receive("CONSTRUCTION 903 100");
         Check(!_slots[7].Disabled, "Completion immediately refreshes the selected producer");
@@ -264,8 +264,8 @@ public partial class CommandPanelChecks : Main
     private void Expect(string message, params (int Slot, string Text)[] entries)
     {
         var expected = entries.ToDictionary(entry => entry.Slot, entry => entry.Text);
-        bool townHall = expected.GetValueOrDefault(7) == "일꾼";
-        if (townHall) expected[1] = "2티어 업그레이드(Z)";
+        bool townHall = expected.GetValueOrDefault(7) == Lang.T("일꾼");
+        if (townHall) expected[1] = Lang.F("{0}티어 업그레이드", 2) + "(Z)";
         foreach ((int number, Button button) in _slots)
         {
             string text = expected.GetValueOrDefault(number, "");
@@ -276,6 +276,13 @@ public partial class CommandPanelChecks : Main
         }
         ExpectKeyCells(message);
     }
+
+    // A command's caption in the current language: its name and hotkey, e.g. 공장(A).
+    private static string Cap(string name, string key) => Lang.T(name) + $"({key})";
+
+    // Production terms as the barracks and workshop buttons print them.
+    private static string TrainTerms(int wood, int oil, int supply, double seconds) =>
+        Lang.F("목재 {0:N0} · 기름 {1:N0} · 인구 {2} · {3:0.##}초", wood, oil, supply, seconds);
 
     // The building a menu caption names, e.g. "공장(A)"; null for other captions.
     private static uint? MenuBuilding(string caption)
@@ -323,7 +330,7 @@ public partial class CommandPanelChecks : Main
 
         Receive("TEAM_TIER 1 2 201 3 7 11");
         Check(_slots[4].Disabled && !_slots[5].Disabled && !_slots[7].Disabled && _slots[8].Disabled &&
-            _slots[4].TooltipText.Contains("3티어") && _slots[8].TooltipText.Contains("3티어"),
+            _slots[4].TooltipText.Contains(Lang.F("HQ {0}티어 완료 필요", 3)) && _slots[8].TooltipText.Contains(Lang.F("HQ {0}티어 완료 필요", 3)),
             "Each button follows its own server-defined completed tier while the next upgrade runs");
         Receive("TEAM_TIER 1 3 201 0 0 0");
         Check(!_slots[4].Disabled && !_slots[5].Disabled && !_slots[7].Disabled && !_slots[8].Disabled,
@@ -375,19 +382,19 @@ public partial class CommandPanelChecks : Main
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Units.RequestUpgradeTownHall();
         Check(_slots[1].Disabled && _commands.Count == sent && !Buildings.TeamTier(1).HasUpgradeTerms &&
-            _slots[1].TooltipText.Contains("정보 수신 대기"), "Legacy tier snapshots display state but cannot guess upgrade costs");
+            _slots[1].TooltipText.Contains(Lang.T("업그레이드 정보 수신 대기")), "Legacy tier snapshots display state but cannot guess upgrade costs");
         Receive("TEAM_TIER 1 1 201 0 0 0 37 11 13");
         Receive("STOCK 0 36");
         Units.RequestUpgradeTownHall();
-        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains("나무 37") &&
-            _slots[1].TooltipText.Contains("기름 11") && _slots[1].TooltipText.Contains("13초") && _slots[1].TooltipText.Contains("나무 부족"),
+        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains(Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", 37, 11, 13)) &&
+            _slots[1].TooltipText.Contains(Lang.T("나무 부족")),
             "Upgrade tooltip and wood gate use arbitrary server-provided terms");
         Receive("STOCK 0 37");
         Receive("STOCK 2 10");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Z);
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Units.RequestUpgradeTownHall();
-        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains("기름 부족"),
+        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains(Lang.T("기름 부족")),
             "Insufficient oil blocks hotkey, button and direct upgrade requests even with enough wood");
         foreach (string invalid in new[] { "STOCK 2 -1", "STOCK 2 oil", "STOCK 2 11 extra", "STOCK 2 999999999999999999999" }) Receive(invalid);
         Check(Buildings.CommanderOil == 10 && _slots[1].Disabled, "Malformed oil snapshots cannot unlock an upgrade");
@@ -422,19 +429,19 @@ public partial class CommandPanelChecks : Main
         Check(Buildings.TeamTier(2).TargetTier == 3 && Buildings.TeamTier(1).Tier == 1, "Enemy public tier is stored independently");
         Receive("TEAM_TIER 1 2 201 0 0 0 61 23 19");
         Receive("STOCK 0 61");
-        Check(_slots[1].Disabled && !_slots[7].Disabled && _slots[1].TooltipText.Contains("기름 23") &&
-            _slots[1].TooltipText.Contains("19초"), "Tier transition uses new server costs and requires additional oil");
+        Check(_slots[1].Disabled && !_slots[7].Disabled && _slots[1].TooltipText.Contains(Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", 61, 23, 19)), "Tier transition uses new server costs and requires additional oil");
         Receive("STOCK 2 23");
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_TOWNHALL 201", "Tier three button uses the same authoritative command");
         Receive("TEAM_TIER 1 3 201 0 0 0 0 0 0");
         sent = _commands.Count;
         Units.RequestUpgradeTownHall();
-        Check(_slots[1].Disabled && _commands.Count == sent && ((CommandSlot)_slots[1]).Detail == "최고 단계", "Tier three is the maximum and shows no obsolete costs");
+        Check(_slots[1].Disabled && _commands.Count == sent && ((CommandSlot)_slots[1]).Detail == Lang.T("최고 단계"), "Tier three is the maximum and shows no obsolete costs");
         Receive("TEAM_TIER 1 2 201 0 0 0 0 0 0");
         Units.RequestUpgradeTownHall();
         Check(Buildings.TeamTier(1) is { Tier: 2, TopTier: true } && _slots[1].Disabled && _commands.Count == sent &&
-            Caption(1) == "2티어 최고 단계" && Units.TownHallUpgradeBlockReason(Buildings.LiveBuildings.First(b => b.BuildingId == 201)) == "최고 단계",
+            Caption(1) == Lang.F("{0}티어", 2) + " " + Lang.T("최고 단계") &&
+            Units.TownHallUpgradeBlockReason(Buildings.LiveBuildings.First(b => b.BuildingId == 201)) == Lang.T("최고 단계"),
             "Zero next-tier terms make the current tier the top even below three");
         foreach (string invalid in new[] { "TEAM_TIER 1 1 201 2 4 9 0 0 0", "TEAM_TIER 1 1 201 0 0 0 0 0 -1" }) Receive(invalid);
         Check(Buildings.TeamTier(1) is { Tier: 2, TopTier: true }, "An upgrade cannot run toward no next tier");
@@ -459,7 +466,7 @@ public partial class CommandPanelChecks : Main
     {
         Receive("BUILDING 5 206 1 0 14 0");
         SelectBuilding(206);
-        Check(Caption(7) == "공격력 연구(Q) 1단계" && Caption(8) == "체력 연구(W) 1단계" && _slots[7].Disabled && _slots[8].Disabled,
+        Check(Caption(7) == Cap("공격력 연구", "Q") + " " + Lang.F("{0}단계", 1) && Caption(8) == Cap("체력 연구", "W") + " " + Lang.F("{0}단계", 1) && _slots[7].Disabled && _slots[8].Disabled,
             "A forge shows both researches, locked until the server sends terms");
         Receive("ARMY_UPGRADE 1 0 0 15 5 0 0 0 0 300 120 45 0 0 0 0 300 120 45");
         foreach (string line in new[] { "MINION_UPGRADE_STEP 100 40 4", "MINION_UPGRADE_STEP 102 20 1.5",
@@ -469,16 +476,17 @@ public partial class CommandPanelChecks : Main
         Receive("STOCK 2 120");
         int sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
-        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("나무 300") &&
-            _slots[7].TooltipText.Contains("기름 120") && _slots[7].TooltipText.Contains("+15%") && _slots[7].TooltipText.Contains("0/5단계"),
+        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains(Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", 300, 120, 45)) &&
+            _slots[7].TooltipText.Contains(Lang.F("용병 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", Lang.T("공격력"), 15, 0, 5)),
             "Research cost, step and maximum level come from the server and gate the button");
-        Check(_slots[7].TooltipText.Contains("근접 +4 · 치유 +1.5") && _slots[8].TooltipText.Contains("근접 +40 · 치유 +20") &&
-            !_slots[7].TooltipText.Contains("원거리") && !_slots[7].TooltipText.Contains("+99"),
+        string melee = Lang.T("근접"), healing = Lang.T("치유");
+        Check(_slots[7].TooltipText.Contains($"{melee} +4 · {healing} +1.5") && _slots[8].TooltipText.Contains($"{melee} +40 · {healing} +20") &&
+            !_slots[7].TooltipText.Contains(Lang.T("원거리")) && !_slots[7].TooltipText.Contains("+99"),
             "Minion per-level gains come from valid MINION_UPGRADE_STEP lines only");
         Receive("STOCK 0 300");
         Receive("STOCK 2 119");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
-        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains("기름 부족"), "Research needs its oil too");
+        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains(Lang.T("기름 부족")), "Research needs its oil too");
         Receive("STOCK 2 120");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_ARMY 206 ATTACK" && Buildings.ArmyUpgrade(1).AttackLevel == 0,
@@ -486,7 +494,7 @@ public partial class CommandPanelChecks : Main
         Receive("ARMY_UPGRADE 1 0 0 15 5 206 1 30 45 300 120 45 0 0 0 0 300 120 45");
         sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
-        Check(_slots[7].Disabled && _slots[8].Disabled && Caption(7) == "공격력 연구(Q) 1단계 30초" && _commands.Count == sent,
+        Check(_slots[7].Disabled && _slots[8].Disabled && Caption(7) == Cap("공격력 연구", "Q") + " " + Lang.F("{0}단계 {1}초", 1, 30) && _commands.Count == sent,
             "A researching forge blocks a second research and shows server progress");
         foreach (string invalid in new[] { "ARMY_UPGRADE 1 6 0 15 5 0 0 0 0 0 0 0 0 0 0 0 300 120 45",
                      "ARMY_UPGRADE 1 0 0 15 5 206 2 30 45 300 120 45 0 0 0 0 300 120 45",
@@ -496,10 +504,10 @@ public partial class CommandPanelChecks : Main
             Receive(invalid);
         Check(Buildings.ArmyUpgrade(1).Attack.Remaining == 30, "Malformed research snapshots preserve valid progress");
         Receive("ARMY_UPGRADE 1 4 0 15 5 0 0 0 0 350 350 70 0 0 0 0 300 120 45");
-        Check(Caption(7) == "공격력 연구(Q) 5단계", "Levels past the old third come from the server's maximum");
+        Check(Caption(7) == Cap("공격력 연구", "Q") + " " + Lang.F("{0}단계", 5), "Levels past the old third come from the server's maximum");
         Receive("ARMY_UPGRADE 1 5 0 15 5 0 0 0 0 0 0 0 0 0 0 0 300 120 45");
         Receive("STOCK 0 1000");
-        Check(_slots[7].Disabled && Caption(7) == "공격력 연구(Q) 최고 단계" && !_slots[8].Disabled, "Max attack level leaves HP research available");
+        Check(_slots[7].Disabled && Caption(7) == Cap("공격력 연구", "Q") + " " + Lang.T("최고 단계") && !_slots[8].Disabled, "Max attack level leaves HP research available");
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.W);
         Check(_commands[^1] == "UPGRADE_ARMY 206 HP", "W sends HP research");
         Receive("ARMY_UPGRADE 2 1 0 15 5 0 0 0 0 500 200 60 0 0 0 0 300 120 45");
@@ -576,7 +584,7 @@ public partial class CommandPanelChecks : Main
         Check(_commands.Count == sent, "Foreign inspection and empty selection cannot stop or hold units");
         SelectUnit(101);
         Receive("STATE 101 HOLD 17 0 1");
-        Check(worker.State.Activity == UnitActivity.Hold && SelectionDetails.ActivityText(worker.State, true).Contains("위치 사수"),
+        Check(worker.State.Activity == UnitActivity.Hold && SelectionDetails.ActivityText(worker.State, true).Contains(Lang.T("위치 사수")),
             "Server HOLD state reaches the selection display");
     }
 
@@ -595,12 +603,13 @@ public partial class CommandPanelChecks : Main
             KeyStroke(input, Key.C);
             _slots[2].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierTwoMenu("The X worker button opens the tier-two construction menu");
-            Check(_slots[7].TooltipText.Contains("목재") && _slots[8].TooltipText.Contains("출구"),
+            Check(_slots[7].TooltipText.Contains(Lang.T("일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용")) &&
+                _slots[8].TooltipText.Contains(Lang.T("완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동")),
                 "The tier-two menu explains the coal drill's wood and the tunnel's exit");
             KeyStroke(input, Key.C);
             ExpectUnit("C leaves the tier-two menu");
             KeyStroke(input, Key.Z);
-            Check(_slots[9].TooltipText.Contains("유전"), "The derrick menu explains its oilfield-only restriction");
+            Check(_slots[9].TooltipText.Contains(Lang.T("유전 지대에만 건설 · 유전마다 1개")), "The derrick menu explains its oilfield-only restriction");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
             KeyStroke(input, Key.C);
@@ -694,13 +703,13 @@ public partial class CommandPanelChecks : Main
 
     private void ExpectTierMenu(string message)
     {
-        Expect(message, (7, "브랜치(Q)"), (8, "숙소(W)"), (9, "시추탑(E)"), (10, "감시탑(R)"), (4, "인력 사무소(A)"),
-            (5, "비허가 실험실(S)"), (3, "뒤로(C)"));
+        Expect(message, (7, Cap("브랜치", "Q")), (8, Cap("숙소", "W")), (9, Cap("시추탑", "E")), (10, Cap("감시탑", "R")), (4, Cap("인력 사무소", "A")),
+            (5, Cap("비허가 실험실", "S")), (3, Cap("뒤로", "C")));
     }
 
     private void ExpectTierTwoMenu(string message)
     {
-        Expect(message, (7, "석탄 시추기(Q)"), (8, "땅굴(W)"), (4, "공장(A)"), (5, "기술연구소(S)"), (3, "뒤로(C)"));
+        Expect(message, (7, Cap("석탄 시추기", "Q")), (8, Cap("땅굴", "W")), (4, Cap("공장", "A")), (5, Cap("기술연구소", "S")), (3, Cap("뒤로", "C")));
     }
 
     private static InputEventKey KeyEvent(Key key, bool pressed, bool echo = false) =>
@@ -727,7 +736,7 @@ public partial class CommandPanelChecks : Main
             "The existing Main and NetClient path writes exactly one correctly framed training line");
         Check(Units.LiveUnits.Count == unitsBefore && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == stockBefore,
             "A training request does not create a local unit or deduct local stock");
-        Expect("Sending a worker request preserves the hall selection", (7, "일꾼"));
+        Expect("Sending a worker request preserves the hall selection", (7, Lang.T("일꾼")));
     }
 
     private async Task CheckBarracksProduction()
@@ -751,9 +760,9 @@ public partial class CommandPanelChecks : Main
         Receive("SUPPLY 0 10");
         SelectBuilding(601);
         Expect("A completed friendly barracks trains both soldiers and the quack doctor",
-            (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, UnitCatalog.Name(UnitCatalog.Medic)));
-        Check(_slots[7].TooltipText.Contains("목재 41") && _slots[8].TooltipText.Contains("10.5초") &&
-            _slots[9].TooltipText.Contains("기름 6") && _slots[9].TooltipText.Contains("인구 1"), "Barracks buttons display the server's terms");
+            (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, Lang.T("공압사수")), (9, UnitCatalog.Name(UnitCatalog.Medic)));
+        Check(_slots[7].TooltipText.Contains(TrainTerms(41, 0, 1, 9.5)) && _slots[8].TooltipText.Contains(TrainTerms(43, 0, 1, 10.5)) &&
+            _slots[9].TooltipText.Contains(TrainTerms(47, 6, 1, 11.5)), "Barracks buttons display the server's terms");
         int unitCount = Units.LiveUnits.Count;
         string stock = Stock.GetNode<Label>("Resources/Resource0/Amount").Text;
         foreach (int slot in new[] { 7, 8, 9 })
@@ -776,7 +785,7 @@ public partial class CommandPanelChecks : Main
         Check(progress.IsVisibleInTree() && progress.Value == 25 && !progress.ShowPercentage,
             "Server production fills a bar in the information panel without a percent button");
         Expect("Command slots contain only production actions",
-            (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, UnitCatalog.Name(UnitCatalog.Medic)));
+            (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, Lang.T("공압사수")), (9, UnitCatalog.Name(UnitCatalog.Medic)));
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
         Check(queue.GetChildCount() == 5 && queue.GetChild(0).GetChild<TextureRect>(0).Texture != null &&
             queue.GetChild(1).GetChild<TextureRect>(0).Texture != null && queue.GetChild(2).GetChild<TextureRect>(0).Texture == null,
@@ -787,7 +796,7 @@ public partial class CommandPanelChecks : Main
         SelectBuilding(602);
         Check(!progress.IsVisibleInTree(), "Another empty producer hides the previous progress");
         Expect("Another barracks starts with its own empty queue",
-            (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, UnitCatalog.Name(UnitCatalog.Medic)));
+            (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, Lang.T("공압사수")), (9, UnitCatalog.Name(UnitCatalog.Medic)));
         _slots[8].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "TRAIN 602 2", "Changing selection changes the producer ID");
         Receive("QUEUE 602 75 2");
@@ -805,11 +814,11 @@ public partial class CommandPanelChecks : Main
         _slots[8].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_slots[7].Disabled && _slots[8].Disabled && _commands.Count == count, "Full queue disables further production");
         Receive("QUEUE 601 100 1");
-        Check(progress.Value == 100 && details.FindChildren("*", "Label", true, false).OfType<Label>().Any(label => label.IsVisibleInTree() && label.Text.Contains("출구 대기")),
+        Check(progress.Value == 100 && details.FindChildren("*", "Label", true, false).OfType<Label>().Any(label => label.IsVisibleInTree() && label.Text.Contains(Lang.T("출구 대기"))),
             "A completed unit with no exit keeps its full progress bar and waiting status");
         Receive("QUEUE 601 0");
         Check(!progress.IsVisibleInTree(), "Completing production hides the production area");
-        Expect("Completing all work clears progress and unlocks both buttons", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, UnitCatalog.Name(UnitCatalog.Medic)));
+        Expect("Completing all work clears progress and unlocks both buttons", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, Lang.T("공압사수")), (9, UnitCatalog.Name(UnitCatalog.Medic)));
 
         foreach (uint id in new uint[] { 603, 604 })
         {
@@ -824,7 +833,7 @@ public partial class CommandPanelChecks : Main
         Check(Buildings.SelectedBuilding.ProductionQueue.Count == 0, "Enemy production snapshots are ignored");
         SelectBuilding(603);
         Receive("CONSTRUCTION 603 100");
-        Expect("Finishing construction enables production immediately", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, UnitCatalog.Name(UnitCatalog.Medic)));
+        Expect("Finishing construction enables production immediately", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, Lang.T("공압사수")), (9, UnitCatalog.Name(UnitCatalog.Medic)));
         Receive("REMOVE 603");
         Expect("Destroying the selected barracks clears its commands and progress");
         count = _commands.Count;
@@ -844,7 +853,7 @@ public partial class CommandPanelChecks : Main
         SelectBuilding(601);
         Receive("QUEUE 601 40 9001:1:7 9002:2:7 9003:1:9");
         Building producer = Buildings.SelectedBuilding;
-        Expect("Owned active production shows cancel", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, "공압사수"), (9, UnitCatalog.Name(UnitCatalog.Medic)), (3, "생산 취소(Esc)"));
+        Expect("Owned active production shows cancel", (7, UnitCatalog.Name(UnitCatalog.Knight)), (8, Lang.T("공압사수")), (9, UnitCatalog.Name(UnitCatalog.Medic)), (3, Cap("생산 취소", "Esc")));
         Check(_slots[3].TooltipText.Contains("75%"), "Cancellation explains the refund rate");
         var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
@@ -892,7 +901,7 @@ public partial class CommandPanelChecks : Main
         Receive("HP 701 140 400");
         SelectBuilding(701);
         Building site = Buildings.SelectedBuilding;
-        Expect("The payer can cancel unfinished construction", (3, "건설 취소(Esc)"));
+        Expect("The payer can cancel unfinished construction", (3, Cap("건설 취소", "Esc")));
         _slots[3].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands[^1] == "CANCEL_BUILD 701" && Buildings.TryGetBuilding(701, out _) && site.ConstructionPercent == 35,
             "Construction click sends the building ID and waits for authoritative removal");

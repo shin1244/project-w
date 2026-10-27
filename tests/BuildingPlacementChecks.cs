@@ -69,7 +69,7 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectUnit", Unit());
             Units.ToggleSelection(Unit(102));
             Units.ToggleSelection(Unit(201));
-            Check(((CommandSlot)Slot(1)).Caption == "1티어 건설(Z)" && ((CommandSlot)Slot(2)).Caption == "2티어 건설(X)" &&
+            Check(((CommandSlot)Slot(1)).Caption == Lang.T("1티어 건설") + "(Z)" && ((CommandSlot)Slot(2)).Caption == Lang.T("2티어 건설") + "(X)" &&
                 !Slot(1).Disabled && !Slot(2).Disabled && Slot(7).Disabled && Slot(8).Disabled && Slot(9).Disabled,
                 "Mixed selection with own workers exposes the two tier menus instead of direct build buttons");
             ChooseBuilding();
@@ -83,7 +83,7 @@ public partial class BuildingPlacementChecks : Main
             Check(Placement.Begin(BuildingCatalog.Supply), "Completed prerequisites allow placement");
             Receive("REMOVE 900");
             Check(!Placement.TryPlace(Screen(-10.5f, -3.5f)) && Placement.Active &&
-                Placement.BlockReason.Contains("비허가 실험실") && _commands.Count == 0,
+                Placement.BlockReason.Contains(Lang.T("비허가 실험실")) && _commands.Count == 0,
                 "Losing prerequisites during placement blocks the click without sending BUILD");
             Receive("REQUIRES BUILDING 3");
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
@@ -93,23 +93,23 @@ public partial class BuildingPlacementChecks : Main
                 Check(ghost.Select(type, out Vector2 size) && size == SceneFootprint(type),
                     "Cached construction previews and live scenes use the same footprint");
             ghost.Select(BuildingCatalog.Supply, out _);
-            Check(Issue(-20, 0)?.Contains("맵 밖") == true, "Entire footprint must fit inside the map");
-            Check(Issue(1, -8)?.Contains("벽이나 나무") == true, "Walls block construction");
-            Check(Issue(1, 0)?.Contains("벽이나 나무") == true, "A two-cell tree blocks its whole footprint");
+            Check(Issue(-20, 0)?.Contains(Lang.T("맵 밖에는 지을 수 없습니다.")) == true, "Entire footprint must fit inside the map");
+            Check(Issue(1, -8)?.Contains(Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.")) == true, "Walls block construction");
+            Check(Issue(1, 0)?.Contains(Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.")) == true, "A two-cell tree blocks its whole footprint");
             Receive("TREE 581 0");
             Check(Issue(1, 0) == null, "Server-confirmed tree removal opens its footprint");
-            Check(Issue(-12, 2)?.Contains("유닛") == true, "The builder itself also occupies ground");
+            Check(Issue(-12, 2)?.Contains(Lang.T("유닛이 있는 곳에는 지을 수 없습니다.")) == true, "The builder itself also occupies ground");
             Receive("BUILDING 3 501 1 -10.5 -3.5 0");
             Receive("HP 501 150 200");
             long before = _wire.Length;
             Click(-10.5f, -3.5f);
-            Check(_wire.Length == before && Placement.Active && !Placement.CanPlace && Placement.Status.Text.Contains("다른 건물"),
+            Check(_wire.Length == before && Placement.Active && !Placement.CanPlace && Placement.Status.Text.Contains(Lang.T("다른 건물과 겹칩니다.")),
                 "Blocked click shows a reason, stays in placement mode and sends nothing");
             Receive("REMOVE 501");
             Receive("UNIT 100 303 0 10 5 2");
             Receive("TICK 100");
             Receive("POS 303 -10.5 -3.5");
-            Check(Unit(303).GlobalPosition == new Vector3(10, 0, 5) && Issue(-10.5f, -3.5f)?.Contains("유닛") == true,
+            Check(Unit(303).GlobalPosition == new Vector3(10, 0, 5) && Issue(-10.5f, -3.5f)?.Contains(Lang.T("유닛이 있는 곳에는 지을 수 없습니다.")) == true,
                 "Occupancy uses the latest received position instead of the delayed render position");
             Receive("HIDE 303");
             Placement.UpdatePreview(Screen(-10.5f, -3.5f));
@@ -126,7 +126,7 @@ public partial class BuildingPlacementChecks : Main
             Invoke("SelectBuilding", supply);
             var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
             var title = (Label)typeof(SelectionDetails).GetField("_title", Private).GetValue(details);
-            Check(title.Text == "숙소", "New building selection uses its correct name");
+            Check(title.Text == Lang.T("숙소"), "New building selection uses its correct name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(4);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
@@ -141,14 +141,14 @@ public partial class BuildingPlacementChecks : Main
             Check(Issue(8, besideBarracks, 1, 1) == null, "Ground beyond the building footprint stays available");
             Receive("BUILDING 4 503 1 8 -4 1.5707963");
             Check(Issue(8, besideBarracks, 1, 1) == null, "Server yaw and visual facing do not rotate the server-aligned footprint");
-            Check(Issue(-8, -3.5f) == null && Issue(-8.1f, -3.5f)?.Contains("다른 건물") == true, "Touching edges are allowed while partial footprint overlap is blocked");
+            Check(Issue(-8, -3.5f) == null && Issue(-8.1f, -3.5f)?.Contains(Lang.T("다른 건물과 겹칩니다.")) == true, "Touching edges are allowed while partial footprint overlap is blocked");
 
             foreach (uint unavailable in new[] { BuildingCatalog.TownHall, BuildingCatalog.Fortress })
                 Check(!Placement.Begin(unavailable) && !Units.RequestBuild(unavailable, new Vector3(-4, 0, -8), 101),
                     $"Type {unavailable} is unavailable for player construction in both preview and command paths");
             ChooseBuilding(7);
             Placement.UpdatePreview(Screen(-6f, -9f));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("브랜치 배치"),
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains(Lang.F("{0} 배치 · 좌클릭: 건설", Lang.T("브랜치"))),
                 "Tier-one slot 7 selects the supply depot placement preview");
             before = _wire.Length;
             int buildingsBefore = Buildings.LiveBuildings.Count;
@@ -161,16 +161,16 @@ public partial class BuildingPlacementChecks : Main
                 "Type 2 response creates the supply depot without changing its protocol ID");
             Vector2 depotSize = store.GetMeta("footprint").AsVector2I();
             Check(Issue(-6f + depotSize.X / 2 + .5f, -9f, 1, 1) == null &&
-                Issue(-6f + depotSize.X / 2 + .4f, -9f, 1, 1)?.Contains("다른 건물") == true,
+                Issue(-6f + depotSize.X / 2 + .4f, -9f, 1, 1)?.Contains(Lang.T("다른 건물과 겹칩니다.")) == true,
                 "Depot occupancy allows touching edges and rejects overlap using its scene footprint");
             Invoke("SelectBuilding", store);
-            Check(title.Text == "브랜치", "Supply depot selection displays its name");
+            Check(title.Text == Lang.T("브랜치"), "Supply depot selection displays its name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(5);
             Vector2 forgeSize = SceneFootprint(BuildingCatalog.Forge);
             Vector2 forgeCenter = new Vector2(-8, -5) + forgeSize * .5f;
             Placement.UpdatePreview(Screen(forgeCenter.X, forgeCenter.Y));
-            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains("비허가 실험실 배치"),
+            Check(Placement.Active && Placement.CanPlace && Placement.Status.Text.Contains(Lang.F("{0} 배치 · 좌클릭: 건설", Lang.T("비허가 실험실"))),
                 "Tier-one slot 5 selects the cached forge preview");
             before = _wire.Length;
             buildingsBefore = Buildings.LiveBuildings.Count;
@@ -183,7 +183,7 @@ public partial class BuildingPlacementChecks : Main
             Check(Buildings.TryGetBuilding(505, out Building forge) && forge.BuildingType == BuildingCatalog.Forge &&
                 (Vector2)forge.GetMeta("footprint").AsVector2I() == forgeSize, "Type 5 response uses the scene footprint");
             Invoke("SelectBuilding", forge);
-            Check(title.Text == "비허가 실험실", "Forge selection displays its synchronized name");
+            Check(title.Text == Lang.T("비허가 실험실"), "Forge selection displays its synchronized name");
             Invoke("SelectUnit", Unit());
             ChooseBuilding(10);
             before = _wire.Length;
@@ -196,8 +196,8 @@ public partial class BuildingPlacementChecks : Main
                 tower.GetMeta("footprint").AsVector2I() == new Vector2I(2, 2) && tower.IsDefense,
                 "Type 6 response creates the 2x2 watchtower rather than a fortress");
             Invoke("SelectBuilding", tower);
-            Check(title.Text == "감시탑 · 1티어", "Small tower displays its separate name and team tier");
-            Check(Issue(6, -8)?.Contains("다른 건물") == true, "The confirmed tower blocks overlapping construction");
+            Check(title.Text == Lang.T("감시탑") + " · " + Lang.F("{0}티어", 1), "Small tower displays its separate name and team tier");
+            Check(Issue(6, -8)?.Contains(Lang.T("다른 건물과 겹칩니다.")) == true, "The confirmed tower blocks overlapping construction");
             Invoke("SelectUnit", Unit());
 
             ChooseBuilding();
@@ -285,10 +285,10 @@ public partial class BuildingPlacementChecks : Main
         ChooseBuilding(9);
         int before = _commands.Count;
         Click(0, -5);
-        Check(Placement.Active && !Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
+        Check(Placement.Active && !Placement.CanPlace && Placement.BlockReason.Contains(Lang.T("시추탑은 유전 지대에만 지을 수 있습니다.")) && _commands.Count == before,
             "Derricks reject ordinary grass without sending BUILD");
         Click(4.5f, -7);
-        Check(!Placement.CanPlace && Placement.BlockReason.Contains("유전") && _commands.Count == before,
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains(Lang.T("시추탑은 유전 지대에만 지을 수 있습니다.")) && _commands.Count == before,
             "An ordinary road cannot be used as an oilfield");
         Click(-1.8f, 0);
         Check(!Placement.CanPlace && _commands.Count == before,
@@ -296,14 +296,14 @@ public partial class BuildingPlacementChecks : Main
         Placement.UpdatePreview(Screen(-3.2f, .4f));
         Check(Placement.CanPlace && Placement.PlacementPosition == new Vector3(-4, 0, 0),
             "A click inside the oil ellipse snaps the derrick to its one shared center despite R cells");
-        Check(Issue(-4, 0, 4, 4)?.Contains("도로") == true,
+        Check(Issue(-4, 0, 4, 4)?.Contains(Lang.T("도로에는 건물을 지을 수 없습니다.")) == true,
             "An oilfield remains reserved against other building types");
         Click(6, 0);
-        Check(!Placement.CanPlace && Placement.BlockReason.Contains("벽") && _commands.Count == before,
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains(Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.")) && _commands.Count == before,
             "An oilfield does not bypass physical terrain obstacles");
         Receive("UNIT 0 102 7 -4 0 1");
         Click(-4, 0);
-        Check(!Placement.CanPlace && Placement.BlockReason.Contains("유닛") && _commands.Count == before,
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains(Lang.T("유닛이 있는 곳에는 지을 수 없습니다.")) && _commands.Count == before,
             "Units still obstruct oilfield construction");
         Receive("REMOVE 102");
         Click(-3.2f, .4f);
@@ -316,11 +316,11 @@ public partial class BuildingPlacementChecks : Main
             derrick.IsUnderConstruction, "Type 7 receives ordinary authoritative construction snapshots");
         ChooseBuilding(9);
         Click(-4, 0);
-        Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑") && _commands.Count == before + 1,
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains(Lang.T("이미 시추탑이 있는 유전입니다.")) && _commands.Count == before + 1,
             "An unfinished derrick occupies the entire oilfield");
         Receive("CONSTRUCTION 507 100 7");
         Placement.UpdatePreview(Screen(-4, 0));
-        Check(!Placement.CanPlace && Placement.BlockReason.Contains("이미 시추탑"),
+        Check(!Placement.CanPlace && Placement.BlockReason.Contains(Lang.T("이미 시추탑이 있는 유전입니다.")),
             "A completed derrick retains its site occupancy");
         Receive("REMOVE 507");
         Placement.UpdatePreview(Screen(-4, 0));

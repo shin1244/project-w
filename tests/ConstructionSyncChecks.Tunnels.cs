@@ -41,8 +41,8 @@ public partial class ConstructionSyncChecks
 
         // An unlinked tunnel offers its exit to the commander; units just walk to it.
         Invoke("SelectBuilding", entrance);
-        Check(exitSlot.Caption == "출구 설치(Q)" && !exitSlot.Disabled && Buildings.TunnelExit(entrance) == null &&
-            Detail("_extra").Text.Contains("출구 없음"), "A tunnel without an exit offers Q to open one");
+        Check(exitSlot.Caption == Lang.T("출구 설치") + "(Q)" && !exitSlot.Disabled && Buildings.TunnelExit(entrance) == null &&
+            Detail("_extra").Text.Contains(Lang.T("출구 없음")), "A tunnel without an exit offers Q to open one");
         Units.CommanderControl = false;
         Commands.TryHandleShortcut(new InputEventKey { Keycode = Key.Q, PhysicalKeycode = Key.Q, Pressed = true });
         Commands.TryHandleShortcut(new InputEventKey { Keycode = Key.Q, PhysicalKeycode = Key.Q, Pressed = false });
@@ -84,7 +84,8 @@ public partial class ConstructionSyncChecks
         Receive("TUNNEL_LINK 771 770");
         Check(Buildings.TunnelExit(entrance) == exit && Buildings.TunnelExit(exit) == entrance, "The server link pairs both ends");
         Invoke("SelectBuilding", entrance);
-        Check(exitSlot.Disabled && exitSlot.Status == "연결됨" && Detail("_extra").Text.Contains("연결됨"),
+        Check(exitSlot.Disabled && exitSlot.Status == Lang.T("연결됨") &&
+            Detail("_extra").Text == Lang.T("짝 땅굴 연결됨 · 유닛 우클릭: 짝 옆으로 이동 · 한쪽이 무너지면 함께 무너짐"),
             "A linked tunnel shows its link and cannot open a second exit");
 
         Invoke("SelectUnit", Worker(101));

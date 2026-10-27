@@ -15,10 +15,10 @@ public partial class SelectionDetailsChecks
         Receive($"TREE {id} 37");
         await Layout();
         Check(Resources.SelectedResource == tree && ring.Visible && Single.Visible &&
-            Labels().Any(label => label.Visible && label.Text == "나무") &&
-            Labels().Any(label => label.Visible && label.Text == "남은 채집량   37"),
+            Labels().Any(label => label.Visible && label.Text == Lang.T("나무")) &&
+            Labels().Any(label => label.Visible && label.Text == Lang.F("남은 채집량   {0}", 37)),
             "The tree panel shows its name and the server's remaining amount");
-        Check(!Labels().Any(label => label.Visible && (label.Text.StartsWith("체력") || label.Text.StartsWith("공격"))) &&
+        Check(!Labels().Any(label => label.Visible && (label.Text.StartsWith(Lang.T("체력")) || label.Text.StartsWith(Lang.T("공격력")))) &&
             !Single.FindChildren("Health", "ProgressBar", true, false).OfType<Control>().Single().Visible,
             "The tree panel shows nothing but its name and remaining amount");
 
@@ -26,8 +26,8 @@ public partial class SelectionDetailsChecks
         Receive($"BUILDING 3 9501 {Units.LocalTeam} 30 30 0");
         InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 9501));
         await Layout();
-        Check(Labels().Any(label => label.Visible && label.Text.StartsWith("체력")) &&
-            !Labels().Any(label => label.Visible && label.Text.StartsWith("남은 채집량")),
+        Check(Labels().Any(label => label.Visible && label.Text.StartsWith(Lang.T("체력"))) &&
+            !Labels().Any(label => label.Visible && label.Text.StartsWith(Lang.F("남은 채집량   {0}", ""))),
             "A building selected after a tree shows its own health again");
         Receive("REMOVE 9501");
 

@@ -110,12 +110,13 @@ public partial class BattleGuide : PanelContainer
             label.AddThemeColorOverride("font_color", color);
             _experienceFills[i].BgColor = color;
             label.Text = _levels[i] is { } level ? $"Lv.{level}" : "Lv.—";
-            label.TooltipText = _role == PlayerRole.Spectator ? $"{i + 1}팀"
-                : $"{(i + 1 == _team ? "우리 팀" : "상대 팀")} · {i + 1}팀";
+            label.TooltipText = _role == PlayerRole.Spectator ? Lang.F("{0}팀", i + 1)
+                : (i + 1 == _team ? Lang.T("우리 팀") : Lang.T("상대 팀")) + " · " + Lang.F("{0}팀", i + 1);
             bar.Visible = _experience[i].HasValue;
             if (_experience[i] is { } progress)
             {
-                label.TooltipText += $"\n{(progress.IsMaxLevel ? "MAX" : $"경험치 {progress.Current} / {progress.Required}")}\n누적 경험치 {progress.TotalExperienceText}";
+                label.TooltipText += "\n" + (progress.IsMaxLevel ? "MAX" : Lang.F("경험치 {0} / {1}", progress.Current, progress.Required)) +
+                    "\n" + Lang.F("누적 경험치 {0}", progress.TotalExperienceText);
                 bar.Value = progress.IsMaxLevel ? 1 : (double)progress.Current / progress.Required;
             }
             else

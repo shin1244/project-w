@@ -77,13 +77,13 @@ public partial class SpectatorChecks : Main
                 "Malformed public level messages preserve both prior snapshots");
             Receive("TEAM_EXP 1 2 35 150 13525"); Receive("TEAM_EXP 2 3 40 200 29050");
             Check(TeamProgress(1).Visible && TeamProgress(2).Visible && TeamProgress(1).Text.Contains("Lv.2") &&
-                TeamProgress(1).TooltipText.Contains("누적 경험치 135.25") && TeamProgress(2).Text.Contains("Lv.3") &&
+                TeamProgress(1).TooltipText.Contains(Lang.F("누적 경험치 {0}", "135.25")) && TeamProgress(2).Text.Contains("Lv.3") &&
                 TeamBar(1).Visible && TeamBar(2).Visible && Math.Abs(TeamBar(1).Value - 35.0 / 150) < .001,
                 "Observer sees concise team levels and retains exact cumulative XP in tooltips");
             Receive("TEAM_EXP 1 10 0 0 500050"); Receive("TEAM_EXP 1 10 0 0 510075");
             string maxProgress = TeamProgress(1).TooltipText;
             Receive("TEAM_EXP 1 10 1 0 510075");
-            Check(maxProgress.Contains("MAX") && maxProgress.Contains("누적 경험치 5100.75") &&
+            Check(maxProgress.Contains("MAX") && maxProgress.Contains(Lang.F("누적 경험치 {0}", "5100.75")) &&
                 TeamProgress(1).TooltipText == maxProgress && TeamBar(1).Value == 1,
                 "Lifetime XP continues at max level and malformed updates preserve the last valid snapshot");
             Receive($"TICK {123 * InterpolationClock.TickRate}");
@@ -141,7 +141,7 @@ public partial class SpectatorChecks : Main
             Check(TeamProgress(2).Text == "Lv.9" && !TeamBar(2).Visible && TeamIsLeft(1) && !TeamIsLeft(2),
                 "Commander sees the public enemy level while detailed enemy XP stays hidden");
             Receive("WELCOME 7 1 COMMANDER");
-            Check(TeamProgress(1).TooltipText.Contains("누적 경험치 135.25") && TeamProgress(2).Text == "Lv.9",
+            Check(TeamProgress(1).TooltipText.Contains(Lang.F("누적 경험치 {0}", "135.25")) && TeamProgress(2).Text == "Lv.9",
                 "Repeated welcome preserves valid public levels and own progress");
             Receive("WELCOME 7 1 HERO 200");
             Check(TeamProgress(1).Text.Contains("Lv.—") && TeamProgress(2).Text.Contains("Lv.—") &&

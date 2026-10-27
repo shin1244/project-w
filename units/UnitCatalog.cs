@@ -37,25 +37,25 @@ public static class UnitCatalog
     public static bool IsAutonomous(uint type) => IsMinion(type) || IsObjective(type) || IsNeutral(type);
     public static string Description(uint type) => type switch
     {
-        Knight => "검과 방패를 갖춘 근접 보병\n기술연구소의 와이어 돌진 연구로 자동 돌진 해금",
-        Medic => "면허 없는 의사 · 마나를 써서 사거리 안 아군 한 명을 고치며 공격도 함\n영웅 > 용병 > 미니언 순 · 영웅은 모두, 용병·미니언은 생체만 · 비허가 실험실 필요",
-        Refueler => "기계 전용 수리기 · 마나 없이 사거리 안 기계 하나를 고치며 공격도 함\n용병 > 미니언 순 · 영웅·생체는 못 고침 · 기술연구소 필요",
-        FlameAutomaton => "전방 부채꼴 화염 공격 · 공장 생산",
-        SteamArtillery => "일반 모드 단일 공격 · 전개 시 장거리 범위 포격\n전개 중 이동·근접 표적 공격 불가 · 전환 중 이동·공격 불가",
-        MinionFurnace => "2티어 근접 미니언 · 등에 진 화로로 주변 적 유닛을 계속 태움",
-        MinionWarden => "2티어 근접 미니언 · 주변 아군 영웅·용병이 받는 피해 일부를 대신 받음\n여러 기가 있어도 가장 가까운 한 기만 받음",
-        MinionArc => "2티어 원거리 미니언 · 맞힌 공격이 주변의 다른 적에게 줄어든 피해로 튕김",
-        SiegeRam => "자동 행군 · 마석 수집 횟수에 따른 건물 충돌 피해\n기절·넉백 면역 · 치유·보호막·포식 불가",
-        JungleBoar => "중립 정글몹 · 먼저 공격받으면 반격\n처치 시 작은 금덩어리(수집한 영웅에게 골드·경험치) · 수집 2분 20초 뒤 더 강해져 부활",
-        JungleTreant => "강한 중립 정글몹 · 먼저 공격받으면 반격\n처치 시 큰 금덩어리(골드·경험치 + 팀에 미니언 무료권) · 수집 2분 20초 뒤 더 강해져 부활",
+        Knight => Lang.T("검과 방패를 갖춘 근접 보병\n기술연구소의 와이어 돌진 연구로 자동 돌진 해금"),
+        Medic => Lang.T("면허 없는 의사 · 마나를 써서 사거리 안 아군 한 명을 고치며 공격도 함\n영웅 > 용병 > 미니언 순 · 영웅은 모두, 용병·미니언은 생체만 · 비허가 실험실 필요"),
+        Refueler => Lang.T("기계 전용 수리기 · 마나 없이 사거리 안 기계 하나를 고치며 공격도 함\n용병 > 미니언 순 · 영웅·생체는 못 고침 · 기술연구소 필요"),
+        FlameAutomaton => Lang.T("전방 부채꼴 화염 공격 · 공장 생산"),
+        SteamArtillery => Lang.T("일반 모드 단일 공격 · 전개 시 장거리 범위 포격\n전개 중 이동·근접 표적 공격 불가 · 전환 중 이동·공격 불가"),
+        MinionFurnace => Lang.T("2티어 근접 미니언 · 등에 진 화로로 주변 적 유닛을 계속 태움"),
+        MinionWarden => Lang.T("2티어 근접 미니언 · 주변 아군 영웅·용병이 받는 피해 일부를 대신 받음\n여러 기가 있어도 가장 가까운 한 기만 받음"),
+        MinionArc => Lang.T("2티어 원거리 미니언 · 맞힌 공격이 주변의 다른 적에게 줄어든 피해로 튕김"),
+        SiegeRam => Lang.T("자동 행군 · 마석 수집 횟수에 따른 건물 충돌 피해\n기절·넉백 면역 · 치유·보호막·포식 불가"),
+        JungleBoar => Lang.T("중립 정글몹 · 먼저 공격받으면 반격\n처치 시 작은 금덩어리(수집한 영웅에게 골드·경험치) · 수집 2분 20초 뒤 더 강해져 부활"),
+        JungleTreant => Lang.T("강한 중립 정글몹 · 먼저 공격받으면 반격\n처치 시 큰 금덩어리(골드·경험치 + 팀에 미니언 무료권) · 수집 2분 20초 뒤 더 강해져 부활"),
         _ => ""
     };
     public static string Name(uint type) => type switch
     {
-        Worker => "일꾼", Knight => "스팀돌격병", Archer => "공압사수", Medic => "돌팔이 의사", FlameAutomaton => "화염기계", SteamArtillery => "증기포격차", Refueler => "급유 기계",
-        MinionMelee => "근접 미니언", MinionRanged => "원거리 미니언", MinionHealer => "생명의 미니언",
-        MinionFurnace => "화로 미니언", MinionWarden => "호위 미니언", MinionArc => "전격 미니언",
-        HeroTest => "돌연변이 늑대", HeroGolem => "룬 골렘", HeroMarshal => "사령관", HeroRanger => "레인저", SiegeRam => "공성추",
-        JungleBoar => "가시 멧돼지", JungleTreant => "고목 수호자", _ => "유닛"
+        Worker => Lang.T("일꾼"), Knight => Lang.T("스팀돌격병"), Archer => Lang.T("공압사수"), Medic => Lang.T("돌팔이 의사"), FlameAutomaton => Lang.T("화염기계"), SteamArtillery => Lang.T("증기포격차"), Refueler => Lang.T("급유 기계"),
+        MinionMelee => Lang.T("근접 미니언"), MinionRanged => Lang.T("원거리 미니언"), MinionHealer => Lang.T("생명의 미니언"),
+        MinionFurnace => Lang.T("화로 미니언"), MinionWarden => Lang.T("호위 미니언"), MinionArc => Lang.T("전격 미니언"),
+        HeroTest => Lang.T("돌연변이 늑대"), HeroGolem => Lang.T("룬 골렘"), HeroMarshal => Lang.T("사령관"), HeroRanger => Lang.T("레인저"), SiegeRam => Lang.T("공성추"),
+        JungleBoar => Lang.T("가시 멧돼지"), JungleTreant => Lang.T("고목 수호자"), _ => Lang.T("유닛")
     };
 }

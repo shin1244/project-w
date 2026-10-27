@@ -62,8 +62,8 @@ public partial class MinionPanel : Control
         _tabs.AnchorRight = 1;
         _tabs.OffsetTop = -34;
         _tabs.OffsetBottom = -6;
-        _defaultTab = MakeButton("DefaultTab", "부대", new Vector2(86, 28));
-        _minionTab = MakeButton("MinionTab", "미니언", new Vector2(86, 28));
+        _defaultTab = MakeButton("DefaultTab", Lang.T("부대"), new Vector2(86, 28));
+        _minionTab = MakeButton("MinionTab", Lang.T("미니언"), new Vector2(86, 28));
         _tabs.AddChild(_defaultTab);
         _tabs.AddChild(_minionTab);
         _defaultTab.Pressed += () => SetView(false);
@@ -80,7 +80,7 @@ public partial class MinionPanel : Control
         _body.AddChild(content);
         var header = new HBoxContainer { Name = "Header", MouseFilter = MouseFilterEnum.Ignore };
         content.AddChild(header);
-        var title = Text("미니언 편성", 15, "ece6cf");
+        var title = Text(Lang.T("미니언 편성"), 15, "ece6cf");
         title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         header.AddChild(title);
         _stoneLabel = Text("", 12, "9ce7b5");
@@ -89,7 +89,7 @@ public partial class MinionPanel : Control
         _stoneLabel.MouseFilter = MouseFilterEnum.Pass;
         _stoneLabel.Visible = false;
         header.AddChild(_stoneLabel);
-        _timer = Text("웨이브 정보 대기 중", 13, "e6d59e");
+        _timer = Text(Lang.T("웨이브 정보 대기 중"), 13, "e6d59e");
         _timer.Name = "WaveTimer";
         _timer.TextOverrunBehavior = TextServer.OverrunBehavior.NoTrimming;
         header.AddChild(_timer);
@@ -118,11 +118,11 @@ public partial class MinionPanel : Control
         _picker.AddChild(pickerContent);
         var pickerHeader = new HBoxContainer { Name = "Header", MouseFilter = MouseFilterEnum.Ignore };
         pickerContent.AddChild(pickerHeader);
-        _pickerTitle = Text("미니언 변경", 15, "ece6cf");
+        _pickerTitle = Text(Lang.T("미니언 변경"), 15, "ece6cf");
         _pickerTitle.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         pickerHeader.AddChild(_pickerTitle);
         var close = MakeButton("Close", "×", new Vector2(24, 24));
-        close.TooltipText = "닫기 (Esc)";
+        close.TooltipText = Lang.T("닫기 (Esc)");
         close.Pressed += ClosePicker;
         pickerHeader.AddChild(close);
         _choices = new VBoxContainer { Name = "Options", MouseFilter = MouseFilterEnum.Ignore };
@@ -236,7 +236,7 @@ public partial class MinionPanel : Control
                 _pendingLane = null;
                 SetHint(lane.Revision != _pendingRevision
                     ? ""
-                    : "편성 변경됨 · 다시 선택");
+                    : Lang.T("편성 변경됨 · 다시 선택"));
             }
             else if (!_pendingLane.HasValue) SetHint("");
             RebuildLanes();
@@ -251,7 +251,7 @@ public partial class MinionPanel : Control
         else if (parts[0] == "ERR" && _pendingLane.HasValue)
         {
             _pendingLane = null;
-            SetHint(parts.Length > 1 ? string.Join(" ", parts, 1, parts.Length - 1) : "구매 요청을 처리하지 못했습니다", true);
+            SetHint(parts.Length > 1 ? string.Join(" ", parts, 1, parts.Length - 1) : Lang.T("구매 요청을 처리하지 못했습니다"), true);
             RefreshPurchases();
         }
     }
@@ -286,8 +286,8 @@ public partial class MinionPanel : Control
     {
         if (!_ready) return;
         _timer.Text = _hasTick && _hasNextWave
-            ? $"웨이브 {Math.Ceiling(Math.Max(0, unchecked((int)(_nextWaveTick - _tick))) / (double)InterpolationClock.TickRate):0}초"
-            : "웨이브 정보 대기 중";
+            ? Lang.F("웨이브 {0:0}초", Math.Ceiling(Math.Max(0, unchecked((int)(_nextWaveTick - _tick))) / (double)InterpolationClock.TickRate))
+            : Lang.T("웨이브 정보 대기 중");
     }
 
     private void RebuildLanes()
@@ -299,7 +299,7 @@ public partial class MinionPanel : Control
         _slotButtons.Clear();
         if (_lanes.Count == 0)
         {
-            var empty = Text("라인별 미니언 편성을 불러오는 중…", 14, "a8b9b1");
+            var empty = Text(Lang.T("라인별 미니언 편성을 불러오는 중…"), 14, "a8b9b1");
             empty.CustomMinimumSize = new Vector2(0, 92);
             empty.VerticalAlignment = VerticalAlignment.Center;
             _rows.AddChild(empty);
@@ -312,7 +312,7 @@ public partial class MinionPanel : Control
             _rows.AddChild(row);
             string maximum = _rules is MinionRulesSnapshot rules ? $" / {rules.MaxSlots}" : "";
             string experience = _experienceRule is MinionExperienceRuleSnapshot xp
-                ? $"\n경험치 {xp.PercentForCount(lane.UnitTypes.Length)}%" : "";
+                ? "\n" + Lang.F("경험치 {0}%", xp.PercentForCount(lane.UnitTypes.Length)) : "";
             var name = Text($"{LaneName(index)}\n{lane.UnitTypes.Length}{maximum}{experience}", 12, "cbd6c5");
             name.Name = "Name";
             name.CustomMinimumSize = new Vector2(80, 48);
@@ -320,7 +320,8 @@ public partial class MinionPanel : Control
             if (_experienceRule is MinionExperienceRuleSnapshot rule)
             {
                 name.MouseFilter = MouseFilterEnum.Pass;
-                name.TooltipText = $"상대 영웅이 미니언 한 기에서 받는 경험치\n기본 {rule.BaseSlots}칸에서 추가 1칸마다 {rule.ReductionPerSlot}%p 감소\n다음 웨이브의 이 라인 모든 미니언에 적용";
+                name.TooltipText = Lang.F("상대 영웅이 미니언 한 기에서 받는 경험치\n기본 {0}칸에서 추가 1칸마다 {1}%p 감소\n다음 웨이브의 이 라인 모든 미니언에 적용",
+                    rule.BaseSlots, rule.ReductionPerSlot);
             }
             row.AddChild(name);
             for (int i = 0; i < lane.UnitTypes.Length; i++)
@@ -328,7 +329,7 @@ public partial class MinionPanel : Control
                 int slot = i;
                 uint type = lane.UnitTypes[i];
                 var button = MakeButton($"Slot{i}", "", new Vector2(44, 48));
-                button.TooltipText = $"{MinionName(type)} · {i + 1}번째 생성\n{Description(type)}\n{SlotActions(type)}";
+                button.TooltipText = Lang.F("{0} · {1}번째 생성", MinionName(type), i + 1) + $"\n{Description(type)}\n{SlotActions(type)}";
                 button.Disabled = _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
                 AddPortrait(button, type, 3);
                 row.AddChild(button);
@@ -343,7 +344,8 @@ public partial class MinionPanel : Control
             add.AddThemeFontSizeOverride("font_size", 28);
             bool full = _rules is MinionRulesSnapshot limit && lane.UnitTypes.Length >= limit.MaxSlots;
             add.Disabled = full || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
-            add.TooltipText = full ? $"최대 {_rules.Value.MaxSlots}명까지 편성할 수 있습니다" : "미니언 영구 추가\n한 번 구매하면 이후 매 웨이브마다 생성됩니다";
+            add.TooltipText = full ? Lang.F("최대 {0}명까지 편성할 수 있습니다", _rules.Value.MaxSlots)
+                : Lang.T("미니언 영구 추가\n한 번 구매하면 이후 매 웨이브마다 생성됩니다");
             row.AddChild(add);
             _slotButtons.Add((add, index, true));
             add.Pressed += () => OpenPicker(index, -1, add);
@@ -360,21 +362,21 @@ public partial class MinionPanel : Control
         if (slot >= 0 && !Choices(lane.UnitTypes[slot]).Any())
         {
             ClosePicker();
-            SetHint("미니언 종류는 바꿀 수 없습니다 · 근접 미니언만 2티어로 강화");
+            SetHint(Lang.T("미니언 종류는 바꿀 수 없습니다 · 근접 미니언만 2티어로 강화"));
             return;
         }
         _pickerLane = laneIndex;
         _pickerSlot = slot;
         _pickerRevision = lane.Revision;
         _pickerAnchor = anchor;
-        _pickerTitle.Text = slot < 0 ? $"{LaneName(laneIndex)} · 미니언 추가" : $"{LaneName(laneIndex)} · {slot + 1}번 2티어 강화";
+        _pickerTitle.Text = slot < 0 ? Lang.F("{0} · 미니언 추가", LaneName(laneIndex)) : Lang.F("{0} · {1}번 2티어 강화", LaneName(laneIndex), slot + 1);
         ClearChildren(_choices);
         _optionButtons.Clear();
         foreach (Choice option in Choices(slot < 0 ? null : lane.UnitTypes[slot]))
         {
             var button = MakeButton($"Option{option.UnitType}", "", new Vector2(270, 54));
             button.TooltipText = $"{MinionName(option.UnitType)}\n{Description(option.UnitType)}" +
-                (option.Upgrade is { } upgrade ? $"\n{Effect(upgrade)}\nHQ {upgrade.Tier}티어부터 · 한 번 바꾸면 되돌릴 수 없음" : "");
+                (option.Upgrade is { } upgrade ? $"\n{Effect(upgrade)}\n" + Lang.F("HQ {0}티어부터 · 한 번 바꾸면 되돌릴 수 없음", upgrade.Tier) : "");
             var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 8);
             button.AddChild(row);
@@ -387,7 +389,7 @@ public partial class MinionPanel : Control
             var information = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
             information.AddThemeConstantOverride("separation", 0);
             row.AddChild(information);
-            information.AddChild(Text(option.Upgrade.HasValue ? $"{MinionName(option.UnitType)} · 2티어" : MinionName(option.UnitType), 13, "ece6cf"));
+            information.AddChild(Text(option.Upgrade.HasValue ? Lang.F("{0} · 2티어", MinionName(option.UnitType)) : MinionName(option.UnitType), 13, "ece6cf"));
             var cost = Text("", 12, "e6d59e");
             cost.Name = "Cost";
             information.AddChild(cost);
@@ -421,7 +423,7 @@ public partial class MinionPanel : Control
         _pendingLane = _pickerLane;
         _pendingRevision = lane.Revision;
         ClosePicker();
-        SetHint("편성 변경 요청 중…");
+        SetHint(Lang.T("편성 변경 요청 중…"));
         RefreshPurchases();
         CommandRequested?.Invoke(command);
     }
@@ -434,9 +436,11 @@ public partial class MinionPanel : Control
             bool full = add && _rules is MinionRulesSnapshot rules &&
                 _lanes.TryGetValue(laneIndex, out var lane) && lane.UnitTypes.Length >= rules.MaxSlots;
             button.Disabled = full || (add && !CanAffordAdd) || _pendingLane.HasValue || !_rules.HasValue || _options.Count == 0;
-            if (add && !full) button.TooltipText = AddCost is not { } price ? "슬롯 추가 가격을 받는 중"
-                : CanAffordAdd ? $"{ResourceName(price.ResourceId)} {price.Amount:N0}으로 원하는 미니언을 이 라인에 영구 추가합니다\n보유 {ResourceName(price.ResourceId)} {MagicStones:N0}"
-                : $"{ResourceName(price.ResourceId)} {price.Amount:N0}이 필요합니다 (보유 {MagicStones:N0})\n중앙 마석·정글 큰 금덩어리를 수집하거나 적 요새를 무너뜨리면 얻습니다";
+            if (add && !full) button.TooltipText = AddCost is not { } price ? Lang.T("슬롯 추가 가격을 받는 중")
+                : CanAffordAdd ? Lang.F("{0} {1:N0}으로 원하는 미니언을 이 라인에 영구 추가합니다\n보유 {0} {2:N0}",
+                    ResourceName(price.ResourceId), price.Amount, MagicStones)
+                : Lang.F("{0} {1:N0}이 필요합니다 (보유 {2:N0})\n중앙 마석·정글 큰 금덩어리를 수집하거나 적 요새를 무너뜨리면 얻습니다",
+                    ResourceName(price.ResourceId), price.Amount, MagicStones);
         }
         if (!IsPickerOpen || !_lanes.TryGetValue(_pickerLane, out var selected)) return;
         foreach (var (button, label, option) in _optionButtons)
@@ -444,9 +448,9 @@ public partial class MinionPanel : Control
             bool affordable = Affordable(option);
             string price = string.Join(" · ", option.Costs.Select(cost => $"{ResourceName(cost.Resource)} {cost.Amount:N0}"));
             int? lockedTier = option.Upgrade is { } upgrade && upgrade.Tier > _teamTier ? upgrade.Tier : null;
-            label.Text = lockedTier is int tier ? $"HQ {tier}티어 필요 · {price}"
-                : option.Costs.Length == 0 ? "가격 받는 중"
-                : price + (affordable ? "" : " · 부족");
+            label.Text = lockedTier is int tier ? Lang.F("HQ {0}티어 필요 · {1}", tier, price)
+                : option.Costs.Length == 0 ? Lang.T("가격 받는 중")
+                : price + (affordable ? "" : " · " + Lang.T("부족"));
             label.AddThemeColorOverride("font_color", new Color(lockedTier.HasValue ? "a8b9b1" : affordable ? "e6d59e" : "ed9785"));
             button.Disabled = lockedTier.HasValue || !affordable || _pendingLane.HasValue || selected.Revision != _pickerRevision;
         }
@@ -458,7 +462,7 @@ public partial class MinionPanel : Control
         _stoneLabel.Visible = AddCost.HasValue;
         if (AddCost is not { } price) return;
         _stoneLabel.Text = $"{ResourceName(price.ResourceId)} {MagicStones:N0}";
-        _stoneLabel.TooltipText = $"슬롯 추가 1번에 {ResourceName(price.ResourceId)} {price.Amount:N0}";
+        _stoneLabel.TooltipText = Lang.F("슬롯 추가 1번에 {0} {1:N0}", ResourceName(price.ResourceId), price.Amount);
     }
 
     private Variant BeginSlotDrag(int laneIndex, int slot, Button source)
@@ -471,7 +475,7 @@ public partial class MinionPanel : Control
         preview.AddChild(new TextureRect { Texture = Portrait(lane.UnitTypes[slot]),
             CustomMinimumSize = new Vector2(48, 48), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore });
-        preview.AddChild(Text($"{MinionName(lane.UnitTypes[slot])} · 순서 이동", 13, "ece6cf"));
+        preview.AddChild(Text(Lang.F("{0} · 순서 이동", MinionName(lane.UnitTypes[slot])), 13, "ece6cf"));
         source.SetDragPreview(preview);
         SetHint("");
         return new Godot.Collections.Dictionary {
@@ -501,7 +505,7 @@ public partial class MinionPanel : Control
         _pendingLane = laneIndex;
         _pendingRevision = lane.Revision;
         ClosePicker();
-        SetHint("순서 변경 요청 중…");
+        SetHint(Lang.T("순서 변경 요청 중…"));
         RefreshPurchases();
         CommandRequested?.Invoke(FormattableString.Invariant($"MINION_MOVE {laneIndex} {lane.Revision} {source} {destination}"));
     }
@@ -586,28 +590,28 @@ public partial class MinionPanel : Control
     }
 
     private string LaneName(int index) => index >= 0 && index < _laneNames.Count && !string.IsNullOrWhiteSpace(_laneNames[index])
-        ? _laneNames[index] : $"라인 {index + 1}";
-    private static string ResourceName(uint resource) => resource switch { 0 => "목재", 2 => "기름", 3 => "마석", _ => $"자원 {resource}" };
-    private static string MinionName(uint type) => type switch
+        ? _laneNames[index] : Lang.F("라인 {0}", index + 1);
+    private static string ResourceName(uint resource) => resource switch
     {
-        100 => "근접 미니언", 101 => "원거리 미니언", 102 => "생명의 미니언",
-        103 => "화로 미니언", 104 => "호위 미니언", 105 => "전격 미니언", _ => $"미니언 {type}"
+        0 => Lang.T("목재"), 2 => Lang.T("기름"), 3 => Lang.T("마석"), _ => Lang.F("자원 {0}", resource)
     };
+    private static string MinionName(uint type) => UnitCatalog.IsMinion(type) ? UnitCatalog.Name(type) : Lang.F("미니언 {0}", type);
     private static string Description(uint type) => type switch
     {
-        100 => "앞에서 적을 막는 근접 전투원", 101 => "뒤에서 공격하는 원거리 전투원",
-        102 => "사망 시 주변 아군 최대 HP 10% 회복",
-        103 => "등에 진 화로로 주변 적 유닛을 계속 태우는 근접 전투원",
-        104 => "주변 아군 영웅·용병이 받는 피해 일부를 대신 받는 근접 전투원",
-        105 => "맞힌 화살의 전기가 주변 적에게 튕기는 원거리 전투원", _ => "라인을 따라 전진하는 미니언"
+        100 => Lang.T("앞에서 적을 막는 근접 전투원"), 101 => Lang.T("뒤에서 공격하는 원거리 전투원"),
+        102 => Lang.T("사망 시 주변 아군 최대 HP 10% 회복"),
+        103 => Lang.T("등에 진 화로로 주변 적 유닛을 계속 태우는 근접 전투원"),
+        104 => Lang.T("주변 아군 영웅·용병이 받는 피해 일부를 대신 받는 근접 전투원"),
+        105 => Lang.T("맞힌 화살의 전기가 주변 적에게 튕기는 원거리 전투원"), _ => Lang.T("라인을 따라 전진하는 미니언")
     };
 
     // Effect numbers come from MINION_UPGRADE; the server applies the effect.
     private static string Effect(MinionUpgradeSnapshot upgrade) => upgrade.UnitType switch
     {
-        103 => $"주변 {upgrade.Radius:0.#}m의 적 유닛에게 1초마다 자기 최대 체력의 {upgrade.Percent:0.#}% 피해 (건물·일꾼·정글몹 제외)",
-        104 => $"주변 {upgrade.Radius:0.#}m 아군 영웅·용병이 받는 피해의 {upgrade.Percent:0.#}%를 대신 받음 (여러 기여도 가장 가까운 한 기만)",
-        105 => $"공격이 맞으면 {upgrade.Radius:0.#}m 안의 다른 적에게 공격력의 {upgrade.Percent:0.#}%, 다시 {upgrade.Percent * upgrade.Percent / 100:0.#}%로 튕김 (소수점 내림·최소 1, 이미 맞은 적 제외, 건물·정글몹 제외)",
+        103 => Lang.F("주변 {0:0.#}m의 적 유닛에게 1초마다 자기 최대 체력의 {1:0.#}% 피해 (건물·일꾼·정글몹 제외)", upgrade.Radius, upgrade.Percent),
+        104 => Lang.F("주변 {0:0.#}m 아군 영웅·용병이 받는 피해의 {1:0.#}%를 대신 받음 (여러 기여도 가장 가까운 한 기만)", upgrade.Radius, upgrade.Percent),
+        105 => Lang.F("공격이 맞으면 {0:0.#}m 안의 다른 적에게 공격력의 {1:0.#}%, 다시 {2:0.#}%로 튕김 (소수점 내림·최소 1, 이미 맞은 적 제외, 건물·정글몹 제외)",
+            upgrade.Radius, upgrade.Percent, upgrade.Percent * upgrade.Percent / 100),
         _ => ""
     };
 
@@ -632,11 +636,13 @@ public partial class MinionPanel : Control
 
     private string SlotActions(uint slotType)
     {
-        string drag = "드래그: 같은 라인에서 무료 순서 이동";
+        string drag = Lang.T("드래그: 같은 라인에서 무료 순서 이동");
         var names = Choices(slotType).Select(choice => MinionName(choice.UnitType)).ToList();
         if (names.Count == 0) return drag;
         int tier = Choices(slotType).Max(choice => choice.Upgrade?.Tier ?? 0);
-        return (tier > _teamTier ? $"HQ {tier}티어부터 " : "") + $"클릭: {string.Join("·", names)}으로 2티어 강화 · " + drag;
+        string upgrades = string.Join("·", names);
+        return (tier > _teamTier ? Lang.F("HQ {0}티어부터 클릭: {1}으로 2티어 강화", tier, upgrades) : Lang.F("클릭: {0}으로 2티어 강화", upgrades)) +
+            " · " + drag;
     }
 
     private Texture2D Portrait(uint type)

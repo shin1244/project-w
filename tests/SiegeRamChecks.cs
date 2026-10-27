@@ -46,13 +46,13 @@ public partial class SiegeRamChecks : Main
             Receive("TRIBUTE 1 WAITING 0 0 0 0 0 0 0 1 1");
             Receive("TICK 30");
             var panel = GetNode<TributeEventPanel>("SelectionUI/TributeEventPanel");
-            Check(Tribute.RamsMarching && panel.StatusText == "공성추 진군 중",
+            Check(Tribute.RamsMarching && panel.StatusText == Lang.T("공성추 진군 중"),
                 "The tribute HUD shows the server's marching state without a respawn countdown");
 
             Click(ally.GlobalPosition + Vector3.Up, MouseButton.Left);
             await Flush();
             Check(Units.InspectedUnit == ally && Units.SelectedUnitIds.Count == 0 && !Units.CanControl(ally) &&
-                Details.FindChildren("*", "Label", true, false).OfType<Label>().Any(label => label.IsVisibleInTree() && label.Text.Contains("공성추")),
+                Details.FindChildren("*", "Label", true, false).OfType<Label>().Any(label => label.IsVisibleInTree() && label.Text.Contains(Lang.T("공성추"))),
                 "A viewport click inspects an allied ram without granting control");
             int before = _commands.Count;
             Click(enemy.GlobalPosition + Vector3.Up, MouseButton.Right);
@@ -88,7 +88,7 @@ public partial class SiegeRamChecks : Main
             Check(!Units.TryGetUnit(801, out _) && !ally.IsInsideTree() && Units.InspectedUnit == null && Impacts == beforeHide,
                 "HIDE removes ram model, inspection and picking without a false collision effect");
             Receive("TICK 90");
-            Check(Tribute.RamsMarching && panel.StatusText == "공성추 진군 중",
+            Check(Tribute.RamsMarching && panel.StatusText == Lang.T("공성추 진군 중"),
                 "Removing all client ram models cannot start the next tribute timer without a server snapshot");
             Receive("TRIBUTE 1 WAITING 0 0 5490 0 0 0 0 1 1");
             Check(!Tribute.RamsMarching && panel.StatusText.Contains("03:00"),

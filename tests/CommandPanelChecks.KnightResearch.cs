@@ -21,7 +21,7 @@ public partial class CommandPanelChecks
         int before = _commands.Count;
         KeyStroke(input, Key.Q);
         Units.RequestKnightResearch();
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("정보 수신 대기") && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains(Lang.T("연구 정보 수신 대기")) && _commands.Count == before,
             "Laboratories cannot guess research terms before an authoritative snapshot");
 
         Receive(idle);
@@ -31,22 +31,21 @@ public partial class CommandPanelChecks
         Receive("TEAM_TIER 1 1 201 2 4 9");
         Receive("TEAM_TIER 2 3 203 0 0 0");
         KeyStroke(input, Key.Q);
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("HQ 2티어 완료") && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains(Lang.F("HQ {0}티어 완료 필요", 2)) && _commands.Count == before,
             "An upgrading hall or the enemy tier cannot unlock charge research");
         Receive("TEAM_TIER 1 2 201 0 0 0");
         Receive("STOCK 0 36");
         KeyStroke(input, Key.Q);
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("목재 부족") && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains(Lang.T("목재 부족")) && _commands.Count == before,
             "Insufficient wood blocks charge research");
         Receive("STOCK 0 37");
         Receive("STOCK 2 10");
         Units.RequestKnightResearch();
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("기름 부족") && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains(Lang.T("기름 부족")) && _commands.Count == before,
             "Insufficient oil blocks both UI and direct research requests");
         Receive("STOCK 2 11");
-        Check(!_slots[7].Disabled && _slots[7].TooltipText.Contains("목재 37") && _slots[7].TooltipText.Contains("기름 11") &&
-            _slots[7].TooltipText.Contains("13.5초") && _slots[7].TooltipText.Contains("7.25m") &&
-            _slots[7].TooltipText.Contains("+250%") && _slots[7].TooltipText.Contains("8.5초"),
+        Check(!_slots[7].Disabled && _slots[7].TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", 37, 11, 13.5)) &&
+            _slots[7].TooltipText.Contains(Lang.F("적 유닛 추격 중 {0:0.##}m 이내에서 자동 발동 · 이동 속도 +{1:0.##}% · 재사용 {2:0.##}초", 7.25, 250, 8.5)),
             "Research cost, duration and passive terms use arbitrary server values");
 
         KnightResearchSnapshot accepted = Buildings.KnightResearch(1).Value;
@@ -85,7 +84,7 @@ public partial class CommandPanelChecks
         SelectBuilding(9601);
         KeyStroke(input, Key.Q);
         Units.RequestKnightResearch();
-        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains("다른 기술연구소") && _commands.Count == before,
+        Check(_slots[7].Disabled && _slots[7].TooltipText.Contains(Lang.T("다른 기술연구소에서 연구 중")) && _commands.Count == before,
             "An active team research prevents duplicates in every laboratory");
         Receive("REMOVE 9600");
         Check(_slots[7].Disabled, "Removing a lab does not invent a cancellation before the server snapshot");
@@ -118,19 +117,19 @@ public partial class CommandPanelChecks
             "Enemy completion cannot unlock or lock the local research");
         Receive(complete);
         KeyStroke(input, Key.Q);
-        Check(_slots[7].Disabled && Caption(7) == "와이어 돌진(Q) 완료" && _commands.Count == before,
+        Check(_slots[7].Disabled && Caption(7) == Cap("와이어 돌진", "Q") + " " + Lang.T("완료") && _commands.Count == before,
             "Completed research remains permanently unavailable without hiding its server-defined effects");
 
         Receive("KNIGHT_CHARGE 102 1 0 0 0 0 0 0");
         SelectUnit(102);
         details._Process(0);
-        Check(extra.Text == "와이어 돌진 · 준비" && extra.TooltipText.Contains("+250%"),
+        Check(extra.Text == Lang.T("와이어 돌진 · 준비") && extra.TooltipText.Contains("+250%"),
             "An existing soldier shows its authoritative unlocked passive and team terms");
         Receive("UNIT 1 9610 7 -10 4 1");
         Receive("KNIGHT_CHARGE 9610 1 0 0 0 0 0 0");
         SelectUnit(9610);
         details._Process(0);
-        Check(extra.Text == "와이어 돌진 · 준비", "A newly produced soldier uses the same completed team research");
+        Check(extra.Text == Lang.T("와이어 돌진 · 준비"), "A newly produced soldier uses the same completed team research");
         Receive("HIDE 9610");
         SelectBuilding(9601);
         Building removed = Buildings.SelectedBuilding;

@@ -58,12 +58,12 @@ public partial class RecoveryClientChecks : Main
             InvokeMain("RequestRecall");Check(After(wire,before)=="RECALL 701\n","Recall command carries own hero ID");
             Receive("RECALL 701 300 540");Receive("TICK 420");
             Check(Shop.RecallText.Contains("4.0"),"Recall remaining time follows server tick");
-            Receive("TICK 540");Check(Shop.RecallText.Contains("확인"),"Recall completion is not predicted");
-            Receive("RECALL 701 0 0");Check(Shop.RecallText=="귀환 [B]","Server cancels recall channel");
+            Receive("TICK 540");Check(Shop.RecallText==Lang.T("귀환 확인 중"),"Recall completion is not predicted");
+            Receive("RECALL 701 0 0");Check(Shop.RecallText==Lang.T("귀환 [B]"),"Server cancels recall channel");
             Receive("MARSHAL 701 660 1440");
-            Check(Skills.StatusText.Contains("진군") && Skills.StatusText.Contains("부대 소집"),"Marshal persistent effects use server end ticks");
-            Receive("TICK 660");Check(!Skills.StatusText.Contains("진군") && Skills.StatusText.Contains("부대 소집"),"March expires independently of rally");
-            Receive("HIDE 701");Check(!Skills.HeroUnitId.HasValue && Skills.StatusText=="영웅 대기 중","Hidden hero drops stale effects and controls");
+            Check(Skills.StatusText==Lang.F("E · 진군 {0}초",4)+" / "+Lang.F("R · 부대 소집 {0}초",30),"Marshal persistent effects use server end ticks");
+            Receive("TICK 660");Check(Skills.StatusText==Lang.F("R · 부대 소집 {0}초",26),"March expires independently of rally");
+            Receive("HIDE 701");Check(!Skills.HeroUnitId.HasValue && Skills.StatusText==Lang.T("영웅 대기 중"),"Hidden hero drops stale effects and controls");
             before=wire.Length;InvokeMain("RequestRecall");Check(wire.Length==before,"No recall without own hero");
             Receive("WELCOME 7 1 COMMANDER");Receive("UNIT 0 710 7 -5 -3 1");Receive("HP 710 500 500");
             Units.SelectSingle(Units.LiveUnits.Single(u=>u.UnitId==710));await Flush();
@@ -112,8 +112,8 @@ public partial class RecoveryClientChecks : Main
         sent=wire.Length;
         Units.RequestContextOrder(enemy,enemy.GlobalPosition);
         Check(After(wire,sent)=="ATTACK 711 701\n","Workers remain valid hero basic attack targets");
-        Check(SkillDescriptions.Passive(UnitCatalog.HeroMarshal).Contains("일꾼") &&
-            SkillDescriptions.Active(UnitCatalog.HeroTest,3,"wolf-devour",rank:1).Contains("일꾼"),
+        Check(SkillDescriptions.Passive(UnitCatalog.HeroMarshal).Contains(Lang.T("자신과 일꾼에게는 적용되지 않으며 같은 오라는 중첩되지 않습니다.")) &&
+            SkillDescriptions.Active(UnitCatalog.HeroTest,3,"wolf-devour",rank:1).Contains(Lang.T("일꾼은 영웅 스킬 효과의 대상에서 제외됩니다.")),
             "Hero descriptions disclose worker exclusion");
     }
     private void CheckMarshalSkillTargets(MemoryStream wire)
@@ -163,17 +163,17 @@ public partial class RecoveryClientChecks : Main
         Receive("HERO_ITEMS 1000 1 1 7 0 0 0 0 0 0 0 2");
         long sent = wire.Length;
         Shop.RequestBuy(13);
-        Check(wire.Length == sent && Shop.BuyBlockReason(13).Contains("3티어"), "Forge cannot bypass tier-three town hall requirement");
+        Check(wire.Length == sent && Shop.BuyBlockReason(13) == Lang.F("아군 HQ {0}티어 필요", 3), "Forge cannot bypass tier-three town hall requirement");
         Receive("HERO_ITEMS 1000 1 0 7 0 0 0 0 0 0 0 3");
         Shop.RequestBuy(13);
         Check(After(wire,sent) == "BUY_ITEM 13\n" && Shop.Inventory.Items[0] == 7 && Shop.Inventory.Gold == 1000,
             "Tier-three purchase needs no forge and awaits server inventory confirmation");
         Receive("HERO_ITEMS 1000 1 0 13 0 0 0 0 0 0 0 3");
-        Check(Shop.BuyBlockReason(1) == "보유한 계열" && Shop.BuyBlockReason(7) != null &&
+        Check(Shop.BuyBlockReason(1) == Lang.T("보유한 계열") && Shop.BuyBlockReason(7) != null &&
             ((Button)Shop.FindChild("Slot0",true,false)).TooltipText.Contains("950 G"),
             "Tier-three ownership blocks base duplicates and sale value includes both ancestors");
         Receive("HERO_ITEMS 1000 1 0 7 1 0 0 0 0 0 0 3");
-        Check(Shop.BuyBlockReason(13).Contains("수령"), "Pending tier-two delivery cannot be upgraded");
+        Check(Shop.BuyBlockReason(13) == Lang.T("이전 단계 장비 수령 필요"), "Pending tier-two delivery cannot be upgraded");
         var inventory = Shop.Inventory;
         Receive("HERO_ITEMS 1000 1 0 7 0 0 0 0 0 0 0 4");
         Check(Shop.Inventory == inventory, "Invalid appended team tier cannot replace inventory");
@@ -200,7 +200,7 @@ public partial class RecoveryClientChecks : Main
         {
             Receive($"HERO_SKILLS 202 {level} {level-2} 1 0 0 0 0 0");
             Check(Skills.CanUse(3) && !Skills.CanUpgrade(3) && ultimateButton.Disabled &&
-                ultimateButton.TooltipText.Contains("10레벨"),"Learned R usable but upgrade locked before level 10");
+                ultimateButton.TooltipText.Contains(Lang.T("10레벨부터 1포인트로 궁극기 강화")),"Learned R usable but upgrade locked before level 10");
             start=wire.Length;learn.Echo=false;Skills.TryHandleShortcut(learn);ultimateButton.EmitSignal(Button.SignalName.Pressed);
             Check(wire.Length==start,"Locked R upgrade sends no command by shortcut or button");
         }
@@ -226,7 +226,7 @@ public partial class RecoveryClientChecks : Main
         Receive("HERO_ABILITY UNIT 200 3 wolf-devour SELF 0 40 0");
         Receive("ABILITY UNIT 200 3 wolf-devour ALLY 8 40 0");
         Check(Skills.Definition(3)?.Target==SkillTargetMode.Self,"Own upgraded definition overrides global catalog");
-        Receive("WOLF 802 0 0 3");Check(Skills.StatusText.Contains("3회"),"Remaining devour attacks displayed");
+        Receive("WOLF 802 0 0 3");Check(Skills.StatusText.Contains(Lang.F("R · 강화 공격 {0}회",3)),"Remaining devour attacks displayed");
         Check(Skills.CanUpgrade(4),"Passive can spend the same point pool");
         start=wire.Length;
         using var passiveKey=new InputEventKey { Pressed=true,Keycode=Key.P,CtrlPressed=true };
@@ -243,7 +243,7 @@ public partial class RecoveryClientChecks : Main
         Check(After(wire,start)=="UPGRADE_SKILL 4\n","Passive button uses same command as shortcut");
         Receive("HERO_SKILLS 200 10 3 1 0 0 0 1 4");
         Check(!Skills.CanUpgrade(4) && passiveButton.Disabled && passivePanel.TooltipText.Contains("+14%") &&
-            passivePanel.TooltipText.Contains("10% 추가 피해"),"Passive caps at four and displays full-charge talent");
+            passivePanel.TooltipText.Contains(Lang.T("최대 중첩 명중 시 대상 최대 체력 10% 추가 피해.\nQ 배율은 추가 피해에 곱하지 않으며, 대상 피해 감소·보호막이 적용됩니다.")),"Passive caps at four and displays full-charge talent");
         progress=Skills.Progress;
         Receive("HERO_SKILLS 200 10 2 1 0 0 0 1 5");Receive("HERO_SKILLS 200 10 4 1 0 0 0 1 4");
         Check(Skills.Progress==progress,"Invalid passive rank/budget rejected");

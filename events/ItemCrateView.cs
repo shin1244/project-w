@@ -35,7 +35,7 @@ public partial class ItemCrateView : Node3D
     {
         Snapshot=snapshot;LocalTeam=team;_available=true;
         Position=snapshot.Position;
-        if (_label!=null) _label.Text=$"{name}\n{(snapshot.CarrierId==0 ? "우클릭 · 줍기 / 일꾼 배달" : "배달 중")}";
+        if (_label!=null) _label.Text=$"{name}\n"+(snapshot.CarrierId==0 ? Lang.T("우클릭 · 줍기 / 일꾼 배달") : Lang.T("배달 중"));
         Refresh();
     }
     private void Refresh()

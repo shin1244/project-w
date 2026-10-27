@@ -5,6 +5,7 @@ using System.Collections.Generic;
 // STOCK은 증감량이 아닌 내 자원의 현재 총량입니다. 타인의 자원은 서버가 보내지 않습니다.
 public partial class StockDisplay : PanelContainer
 {
+    // Korean names, shown through Lang.T (tests/SettingsChecks.cs lists them as Indirect).
     [Export] public Godot.Collections.Dictionary<uint, string> ResourceNames { get; set; } = new() { { 0, "목재" }, { 2, "기름" }, { 3, "마석" } };
     private readonly SortedDictionary<uint, long> _amounts = new();
     private HBoxContainer _resources;
@@ -92,7 +93,7 @@ public partial class StockDisplay : PanelContainer
                 row.AddChild(new TextureRect { Name = "Icon", Texture = type switch { 0 => _woodIcon, 2 => _oilIcon, 3 => _magicStoneIcon, _ => _genericIcon },
                     CustomMinimumSize = new Vector2(40, 36), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                     StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Pass,
-                    TooltipText = ResourceNames.TryGetValue(type, out string resourceName) ? resourceName : $"자원 {type}" });
+                    TooltipText = ResourceNames.TryGetValue(type, out string resourceName) ? Lang.T(resourceName) : Lang.F("자원 {0}", type) });
                 if (type is not (0 or 2 or 3)) row.AddChild(AmountLabel("Type", type.ToString(CultureInfo.InvariantCulture), 13));
                 row.AddChild(AmountLabel("Amount", "", 24));
                 _resources.AddChild(row);

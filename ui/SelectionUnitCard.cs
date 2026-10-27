@@ -27,9 +27,9 @@ public partial class SelectionUnitCard : Button
         _maximum = maximum;
         _state = unit.State;
         _knownState = unit.HasServerState;
-        TooltipText = $"{_caption} · #{UnitId}\n체력 {SelectionDetails.HealthText(unit.HealthBar)}\n" +
+        TooltipText = $"{_caption} · #{UnitId}\n" + Lang.F("체력 {0}", SelectionDetails.HealthText(unit.HealthBar)) + "\n" +
             $"{SelectionDetails.ActivityText(unit.State, unit.HasServerState)}\n" +
-            "클릭: 단일 선택 / Shift: 선택 제외\nCtrl: 같은 종류 선택 / Ctrl+Shift: 같은 종류 제외";
+            Lang.T("클릭: 단일 선택 / Shift: 선택 제외\nCtrl: 같은 종류 선택 / Ctrl+Shift: 같은 종류 제외");
         QueueRedraw();
     }
 

@@ -41,7 +41,7 @@ public partial class ReconnectChecks : Main
 
             // AWAY: teammates the AI plays are named, listed on the team frame and cleared by a resync.
             InvokeMain("OnMessage", "AWAY 9 1");
-            Check(AwayNotice?.Contains(UnitCatalog.Name(UnitCatalog.HeroGolem)) == true && Teammates.StatusOf(9) == "AI 대행",
+            Check(AwayNotice?.Contains(UnitCatalog.Name(UnitCatalog.HeroGolem)) == true && Teammates.StatusOf(9) == Lang.T("AI 대행"),
                 "a teammate the AI plays must be shown");
             InvokeMain("OnMessage", "AWAY 9 0");
             Check(AwayNotice == null && Teammates.StatusOf(9) == "", "a returned teammate must be cleared");

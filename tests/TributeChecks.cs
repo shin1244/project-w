@@ -77,11 +77,11 @@ public partial class TributeChecks : Main
             Receive("TRIBUTE 1 WAITING 0 0 0 0 0 0 0 1 0");
             Check(Tribute is { RamsMarching: true, Channeling: false, NextSpawnTick: 0, Team1Count: 1, Team2Count: 0 } &&
                 !_tributeView.IsVisibleInTree() &&
-                _tributePanel.CollectionText.Contains("1팀"),
+                _tributePanel.CollectionText == Lang.F("{0}팀 마석 획득", 1),
                 "Collection hides the event and waits for the rams without starting the respawn timer");
             Receive("TICK 9210");
             Check(Tribute.RamsMarching && !_tributeView.IsVisibleInTree() &&
-                _tributePanel.StatusText == "공성추 진군 중" && _tributePanel.CollectionText == "",
+                _tributePanel.StatusText == Lang.T("공성추 진군 중") && _tributePanel.CollectionText == "",
                 "Three minutes after capture still shows marching, without a zero countdown or inferred respawn");
             Receive("TRIBUTE 1 WAITING 0 0 14610 0 0 0 0 1 0");
             Check(!Tribute.RamsMarching && Tribute.RemainingSeconds(9210) == 180 &&
@@ -124,7 +124,7 @@ public partial class TributeChecks : Main
             BeginHeroSession();
             Receive("TRIBUTE 4 WAITING 0 0 0 0 0 0 0 1 1");
             Check(Tribute.RamsMarching && _tributePanel.CollectionText == "" &&
-                _tributePanel.StatusText == "공성추 진군 중" && !_tributeView.IsVisibleInTree(),
+                _tributePanel.StatusText == Lang.T("공성추 진군 중") && !_tributeView.IsVisibleInTree(),
                 "Reconnecting during a ram march restores the waiting state without a collection announcement");
             Receive("TRIBUTE 4 ACTIVE 0 0 0 701 1 3600 3810 1 1");
             Receive("TICK 3705");
@@ -268,7 +268,7 @@ public partial class TributeChecks : Main
         Receive("UNIT 100 902 0 6 6 0");
         Receive("UNIT 401 903 7 6 6 0");
         await Flush();
-        Check(Units.TryGetUnit(900, out Unit monster) && monster.Team == 0 && UnitCatalog.Name(monster.UnitType) == "가시 멧돼지" &&
+        Check(Units.TryGetUnit(900, out Unit monster) && monster.Team == 0 && UnitCatalog.Name(monster.UnitType) == Lang.T("가시 멧돼지") &&
             !Units.TryGetUnit(901, out _) && !Units.TryGetUnit(902, out _) && !Units.TryGetUnit(903, out _),
             "Only neutral jungle types take team 0, and they have no owner");
         foreach (string malformed in new[] { "NUGGET 50 3 0 120 80 0 0 0 0", "NUGGET 0 3 0 120 80 0 0 0 0 0",

@@ -37,10 +37,10 @@ public partial class BuildingManager
     {
         if (_buildingTierRequirements.TryGetValue(type, out int tier))
         {
-            if (_localTeam == 0 || TeamTier(_localTeam).Tier < tier) return $"HQ {tier}티어 완료 필요";
+            if (_localTeam == 0 || TeamTier(_localTeam).Tier < tier) return Lang.F("HQ {0}티어 완료 필요", tier);
         }
         else if (BuildingCatalog.IsTierTwo(type))
-            return "건설 조건 수신 대기";
+            return Lang.T("건설 조건 수신 대기");
         return RequirementBlockReason(_buildingRequirements, type);
     }
 
@@ -60,6 +60,6 @@ public partial class BuildingManager
                 }
             if (!complete) (missing ??= new()).Add(BuildingCatalog.Name(prerequisite));
         }
-        return missing == null ? null : $"선행 건물 필요: {string.Join(", ", missing)} (완공)";
+        return missing == null ? null : Lang.F("선행 건물 필요: {0} (완공)", string.Join(", ", missing));
     }
 }

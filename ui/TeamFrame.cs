@@ -154,7 +154,7 @@ public partial class TeamFrame : PanelContainer
         Visible = _active && _mates.Count > 0;
         foreach (Mate mate in _mates.Values)
         {
-            mate.Name.Text = mate.Type != 0 ? UnitCatalog.Name(mate.Type) : "팀원";
+            mate.Name.Text = mate.Type != 0 ? UnitCatalog.Name(mate.Type) : Lang.T("팀원");
             Texture2D portrait = Portrait(mate.Type);
             if (mate.Portrait.Texture != portrait) mate.Portrait.Texture = portrait;
             mate.Portrait.Modulate = mate.Dead ? new Color(.45f, .45f, .45f) : Colors.White;
@@ -163,8 +163,8 @@ public partial class TeamFrame : PanelContainer
             mate.HealthText.Text = knownHealth ? HealthDisplay.Whole(mate.Hp) + " / " + HealthDisplay.Whole(mate.MaxHp) : "— / —";
             mate.ManaBar.Value = !mate.Dead && mate.MaxMana > 0 ? 100.0 * mate.Mana / mate.MaxMana : 0;
             string status = !mate.Dead ? "" : mate.RespawnTick is uint at && _hasTick
-                ? $"부활 {Math.Ceiling(Math.Max(0, unchecked((int)(at - _tick))) / (double)InterpolationClock.TickRate)}초" : "사망";
-            mate.Status.Text = !_away.Contains(mate.Owner) ? status : status == "" ? "AI 대행" : "AI · " + status;
+                ? Lang.F("부활 {0}초", Math.Ceiling(Math.Max(0, unchecked((int)(at - _tick))) / (double)InterpolationClock.TickRate)) : Lang.T("사망");
+            mate.Status.Text = !_away.Contains(mate.Owner) ? status : status == "" ? Lang.T("AI 대행") : "AI · " + status;
         }
     }
 

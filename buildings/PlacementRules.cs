@@ -16,27 +16,27 @@ public static class PlacementRules
 
     public static string Check(MapWorld map, BuildingManager buildings, UnitManager units, Vector3 center, Vector2 footprint, uint type = uint.MaxValue)
     {
-        if (!GodotObject.IsInstanceValid(map) || !map.HasMap || !map.IsSynchronized) return "맵 동기화가 끝나지 않았습니다.";
-        if (!center.IsFinite() || !footprint.IsFinite() || footprint.X <= 0 || footprint.Y <= 0) return "올바른 건설 위치가 아닙니다.";
+        if (!GodotObject.IsInstanceValid(map) || !map.HasMap || !map.IsSynchronized) return Lang.T("맵 동기화가 끝나지 않았습니다.");
+        if (!center.IsFinite() || !footprint.IsFinite() || footprint.X <= 0 || footprint.Y <= 0) return Lang.T("올바른 건설 위치가 아닙니다.");
         bool oilDerrick = type == BuildingCatalog.OilDerrick;
         if (oilDerrick && (!map.TryGetOilFieldCenter(center, out Vector3 oilCenter) || !center.IsEqualApprox(oilCenter)))
-            return "시추탑은 유전 지대에만 지을 수 있습니다.";
+            return Lang.T("시추탑은 유전 지대에만 지을 수 있습니다.");
         var area = new Rect2(new Vector2(center.X, center.Z) - footprint * .5f, footprint);
         Vector2 mapEnd = map.GridOrigin + (Vector2)map.GridSize * map.CellSize;
         if (area.Position.X < map.GridOrigin.X || area.Position.Y < map.GridOrigin.Y ||
-            area.End.X > mapEnd.X || area.End.Y > mapEnd.Y) return "맵 밖에는 지을 수 없습니다.";
+            area.End.X > mapEnd.X || area.End.Y > mapEnd.Y) return Lang.T("맵 밖에는 지을 수 없습니다.");
         Vector2 from = (area.Position - map.GridOrigin) / map.CellSize;
         Vector2 to = (area.End - map.GridOrigin) / map.CellSize;
         for (int z = Mathf.FloorToInt(from.Y + .0001f); z < Mathf.CeilToInt(to.Y - .0001f); z++)
             for (int x = Mathf.FloorToInt(from.X + .0001f); x < Mathf.CeilToInt(to.X - .0001f); x++)
             {
-                if (!oilDerrick && map.IsRoad(x, z)) return "도로에는 건물을 지을 수 없습니다.";
-                if (map.IsTerrainBlocked(x, z)) return "벽이나 나무가 있는 곳에는 지을 수 없습니다.";
+                if (!oilDerrick && map.IsRoad(x, z)) return Lang.T("도로에는 건물을 지을 수 없습니다.");
+                if (map.IsTerrainBlocked(x, z)) return Lang.T("벽이나 나무가 있는 곳에는 지을 수 없습니다.");
             }
         if (GodotObject.IsInstanceValid(buildings))
             foreach (Building building in buildings.LiveBuildings)
                 if (BuildingFootprint.Overlaps(area, BuildingFootprint.Corners(building)))
-                    return oilDerrick && building.BuildingType == BuildingCatalog.OilDerrick ? "이미 시추탑이 있는 유전입니다." : "다른 건물과 겹칩니다.";
+                    return oilDerrick && building.BuildingType == BuildingCatalog.OilDerrick ? Lang.T("이미 시추탑이 있는 유전입니다.") : Lang.T("다른 건물과 겹칩니다.");
         if (GodotObject.IsInstanceValid(units))
             foreach (Unit unit in units.LiveUnits)
             {
@@ -44,7 +44,7 @@ public static class PlacementRules
                 Vector2 position = new(unit.ServerPosition.X, unit.ServerPosition.Z);
                 Vector2 closest = position.Clamp(area.Position, area.End);
                 if (position.DistanceSquaredTo(closest) < unit.PlacementRadius * unit.PlacementRadius)
-                    return "유닛이 있는 곳에는 지을 수 없습니다.";
+                    return Lang.T("유닛이 있는 곳에는 지을 수 없습니다.");
             }
         return null;
     }
