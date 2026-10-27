@@ -2,12 +2,13 @@ using System.Globalization;
 
 public sealed record MatchResultSnapshot(uint Winner, string Reason, uint Seconds)
 {
-    public string Title(uint localTeam) => Winner == 0 ? "무승부" : localTeam == 0 ? $"{Winner}팀 승리" : Winner == localTeam ? "승리" : "패배";
+    public string Title(uint localTeam) => Winner == 0 ? Lang.T("무승부") : localTeam == 0 ? Lang.F("{0}팀 승리", Winner) :
+        Winner == localTeam ? Lang.T("승리") : Lang.T("패배");
     public string Description => Reason switch
     {
-        "BOTH_BASES" => "두 팀의 본진이 동시에 파괴되었습니다.",
-        "TIME_LIMIT" => "제한 시간이 지나 경기가 종료되었습니다.",
-        _ => $"{(Winner == 1 ? 2 : 1)}팀의 본진이 파괴되었습니다."
+        "BOTH_BASES" => Lang.T("두 팀의 본진이 동시에 파괴되었습니다."),
+        "TIME_LIMIT" => Lang.T("제한 시간이 지나 경기가 종료되었습니다."),
+        _ => Lang.F("{0}팀의 본진이 파괴되었습니다.", Winner == 1 ? 2 : 1)
     };
 
     public static bool TryParse(string[] parts, out MatchResultSnapshot result)

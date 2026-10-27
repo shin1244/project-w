@@ -16,6 +16,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [autoload]
 
+Settings="*res://settings/Settings.cs"
 Net="*res://network/NetClient.cs"
 MatchSession="*res://network/MatchSession.cs"
 Sfx="*res://audio/Sfx.cs"
@@ -28,6 +29,11 @@ window/stretch/aspect="expand"
 [dotnet]
 
 project/assembly_name="Project W"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://locale/en.po")
+locale/fallback="ko"
 
 [physics]
 

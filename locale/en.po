@@ -1,0 +1,410 @@
+# English for Burn Quarter's interface (docs/settings.md).
+# Each msgid is the Korean the code passes to Lang.T or Lang.F (settings/Lang.cs); Korean is the
+# source language, so there is no ko.po. A msgid left out here shows in Korean.
+# Use the store page's terms: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone.
+msgid ""
+msgstr ""
+"Project-Id-Version: Burn Quarter\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+# ---------------------------------------------------------------- shared
+
+msgid "대표"
+msgstr "Director"
+
+msgid "용병"
+msgstr "Mercenary"
+
+msgid "{0}팀"
+msgstr "Team {0}"
+
+msgid "방으로 돌아가기"
+msgstr "Back to room"
+
+# Hero names the room's mercenary picker shows (UnitCatalog.Name).
+msgid "돌연변이 늑대"
+msgstr "Mutant Wolf"
+
+msgid "룬 골렘"
+msgstr "Rune Golem"
+
+msgid "사령관"
+msgstr "Marshal"
+
+# Region names the lobby sends (its -regions and -remote-regions flags).
+msgid "한국"
+msgstr "Korea"
+
+msgid "미국"
+msgstr "US"
+
+msgid "독일"
+msgstr "Germany"
+
+msgid "호주"
+msgstr "Australia"
+
+# ---------------------------------------------------------------- settings (lobby/SettingsPanel.cs)
+
+msgid "설정"
+msgstr "Settings"
+
+msgid "음량"
+msgstr "Volume"
+
+msgid "전체 음량"
+msgstr "Master"
+
+msgid "효과음"
+msgstr "Effects"
+
+msgid "인터페이스"
+msgstr "Interface"
+
+msgid "언어"
+msgstr "Language"
+
+msgid "닫기"
+msgstr "Close"
+
+# ---------------------------------------------------------------- entry and room list (lobby/Lobby.cs)
+
+msgid "이름"
+msgstr "Name"
+
+msgid "서버 (개발용)"
+msgstr "Server (development)"
+
+msgid "http://서버주소:8080"
+msgstr "http://server-address:8080"
+
+msgid "개발용: 접속할 로비 서버 주소"
+msgstr "Development: the lobby server address to connect to"
+
+msgid "게스트 입장"
+msgstr "Enter as a guest"
+
+msgid "입장 중…"
+msgstr "Entering…"
+
+msgctxt "lobby"
+msgid "입장"
+msgstr "Enter"
+
+msgid "방 목록"
+msgstr "Rooms"
+
+msgid "새로고침"
+msgstr "Refresh"
+
+msgid "나가기"
+msgstr "Leave"
+
+msgid "방 만들기"
+msgstr "Create room"
+
+msgid "{0}의 방"
+msgstr "{0}'s room"
+
+msgid "불러오는 중…"
+msgstr "Loading…"
+
+msgid "열린 방 없음"
+msgstr "No open rooms"
+
+msgid "진행 중"
+msgstr "Playing"
+
+msgid "대기"
+msgstr "Waiting"
+
+msgctxt "room"
+msgid "입장"
+msgstr "Join"
+
+msgid "로딩 화면을 열지 못했습니다."
+msgstr "Could not open the loading screen."
+
+# ---------------------------------------------------------------- room (lobby/Room.cs)
+
+msgid "서버"
+msgstr "Server"
+
+msgid "방장만 바꿀 수 있습니다. 기본은 방장의 핑이 낮은 쪽입니다."
+msgstr "Only the host can change this. By default it is the server with the host's lowest ping."
+
+msgid "자동"
+msgstr "Auto"
+
+msgid "방장 선택"
+msgstr "Host's choice"
+
+msgid "대표는 팀에 한 명입니다. 고르지 않으면 시작할 때 남은 자리에 앉습니다."
+msgstr "Each team has one Director. Anyone who has not picked takes a remaining seat at the start."
+
+msgid "같은 팀에서 한 용병은 한 명만 고를 수 있습니다."
+msgstr "Each mercenary can be picked by only one player per team."
+
+msgid "비우기"
+msgstr "Leave seat"
+
+msgid "용병 선택"
+msgstr "Choose"
+
+msgid " (방장)"
+msgstr " (host)"
+
+msgid "인원 {0}/8"
+msgstr "Players {0}/8"
+
+msgid " · 선택 전: {0}"
+msgstr " · Not seated: {0}"
+
+msgid " · 관전: {0}"
+msgstr " · Spectating: {0}"
+
+msgid "채팅"
+msgstr "Chat"
+
+msgid "보내기"
+msgstr "Send"
+
+msgid "시작"
+msgstr "Start"
+
+msgid "시작 취소"
+msgstr "Cancel start"
+
+msgid "경기로 돌아가기"
+msgstr "Return to match"
+
+msgid "관전"
+msgstr "Spectate"
+
+msgid "관전 취소"
+msgstr "Stop spectating"
+
+msgid "방 나가기"
+msgstr "Leave room"
+
+msgid "{0}초 후 시작"
+msgstr "Starting in {0}s"
+
+msgid "서버 준비 중"
+msgstr "Preparing server"
+
+msgid "경기 진행 중"
+msgstr "Match in progress"
+
+msgid "대기 중"
+msgstr "Waiting"
+
+msgid "방장 대기 중"
+msgstr "Waiting for the host"
+
+# ---------------------------------------------------------------- loading (lobby/Loading.cs)
+
+msgid "경기 시작"
+msgstr "Match start"
+
+msgid "전장 준비"
+msgstr "Getting ready"
+
+msgid "진행 중인 경기로 복귀"
+msgstr "Rejoining the match"
+
+msgid "전장 준비 중"
+msgstr "Preparing the battlefield"
+
+msgid "전장을 준비하고 있어요. 잠시만 기다려주세요."
+msgstr "Preparing the battlefield. Please wait a moment."
+
+msgid "전장을 확인하고 있어요"
+msgstr "Checking the battlefield"
+
+msgid "AI 용병 3 vs 3 · 대표 각 1명 · 전체 맵 관전"
+msgstr "AI mercenaries 3 vs 3 · one Director each · full-map spectating"
+
+msgid "{0}팀 · {1} · 플레이어 {2}명 + AI {3}명"
+msgstr "Team {0} · {1} · {2} players + {3} AI"
+
+msgid "진행 중인 경기로 돌아갑니다. AI가 맡던 자리를 이어받습니다."
+msgstr "Returning to the match in progress. You take your seat back from the AI."
+
+msgid "모든 참가자의 맵 준비가 끝나면 함께 시작합니다."
+msgstr "Everyone starts together once every player has the map ready."
+
+msgid "전장 리소스를 불러오고 있어요"
+msgstr "Loading battlefield resources"
+
+msgid "게임 서버 연결 및 맵 확인 중…"
+msgstr "Connecting to the game server and checking the map…"
+
+msgid "준비 완료 · 다른 참가자를 기다리고 있어요"
+msgstr "Ready · waiting for the other players"
+
+msgid "경기 정보가 없습니다. 방에서 다시 시작해 주세요."
+msgstr "No match information. Please start again from the room."
+
+msgid "전장 리소스를 불러오지 못했습니다."
+msgstr "Could not load the battlefield resources."
+
+msgid "전장을 불러오지 못했습니다."
+msgstr "Could not load the battlefield."
+
+msgid "전장 준비 시간이 초과되었습니다. 방으로 돌아가 다시 시작해 주세요."
+msgstr "Preparing the battlefield took too long. Go back to the room and start again."
+
+# ---------------------------------------------------------------- result (lobby/MatchResultPanel.cs, network/MatchResultSnapshot.cs)
+
+msgid "경기 종료"
+msgstr "Match over"
+
+msgid "관전 · 최종 결과"
+msgstr "Spectating · final result"
+
+msgid "{0}팀 · 최종 결과"
+msgstr "Team {0} · final result"
+
+msgid "승리"
+msgstr "Victory"
+
+msgid "패배"
+msgstr "Defeat"
+
+msgid "무승부"
+msgstr "Draw"
+
+msgid "{0}팀 승리"
+msgstr "Team {0} wins"
+
+msgid "{0}팀의 본진이 파괴되었습니다."
+msgstr "Team {0}'s headquarters was destroyed."
+
+msgid "두 팀의 본진이 동시에 파괴되었습니다."
+msgstr "Both headquarters fell at the same time."
+
+msgid "제한 시간이 지나 경기가 종료되었습니다."
+msgstr "The match ended when time ran out."
+
+msgid "플레이 시간  {0:00}:{1:00}"
+msgstr "Play time  {0:00}:{1:00}"
+
+msgid "방으로 돌아가 같은 멤버와 다시 시작할 수 있습니다."
+msgstr "Go back to the room to play again with the same players."
+
+# ---------------------------------------------------------------- lobby session (network/MatchSession.cs)
+
+msgid "게스트{0}"
+msgstr "Guest{0}"
+
+msgid "서버 주소를 https://주소 또는 http://주소:8080 형식으로 입력해 주세요."
+msgstr "Enter the server address as https://address or http://address:8080."
+
+msgid "이름은 1~{0}자로 정해 주세요."
+msgstr "Names must be 1 to {0} characters."
+
+msgid "로비에 연결할 수 없습니다. 서버 주소와 실행 상태를 확인해 주세요."
+msgstr "Cannot reach the lobby. Check the server address and that it is running."
+
+msgid "서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해 주세요."
+msgstr "Cannot reach the server. Check your internet connection and try again in a moment."
+
+msgid "로비가 요청을 거절했습니다 ({0})."
+msgstr "The lobby refused the request ({0})."
+
+msgid "로비 연결이 끊겼습니다."
+msgstr "Lost the lobby connection."
+
+msgid "로비와 연결이 끊겼습니다. 다시 입장해 주세요."
+msgstr "Lost the connection to the lobby. Please enter again."
+
+msgid "방에서 나왔습니다."
+msgstr "You left the room."
+
+msgid "방으로 나가기"
+msgstr "Leave to room"
+
+msgid "서버와 연결이 끊겼습니다. 다시 연결하는 중…\n그동안 AI가 대신 조종합니다."
+msgstr "Lost the connection to the server. Reconnecting…\nThe AI plays for you in the meantime."
+
+msgid "서버와 연결이 끊겼습니다. 다시 연결하는 중… {0}초\n그동안 AI가 대신 조종합니다."
+msgstr "Lost the connection to the server. Reconnecting… {0}s\nThe AI plays for you in the meantime."
+
+msgid "서버에 다시 연결하지 못했습니다. 경기가 계속되고 있으면 방에서 돌아갈 수 있습니다."
+msgstr "Could not reconnect to the server. If the match is still going, you can return to it from the room."
+
+msgid "경기가 끝났습니다."
+msgstr "The match has ended."
+
+# The lobby's refusals by code (MatchSession.Describe; project-w-server internal/lobby).
+msgid "잘못된 요청입니다"
+msgstr "Invalid request"
+
+msgid "방이 없어졌습니다"
+msgstr "The room is gone"
+
+msgid "이 방에 들어가 있지 않습니다"
+msgstr "You are not in this room"
+
+msgid "방장만 할 수 있습니다"
+msgstr "Only the host can do that"
+
+msgid "지금은 바꿀 수 없습니다"
+msgstr "This cannot be changed right now"
+
+msgid "로비 연결이 끊겼습니다. 다시 입장해 주세요"
+msgstr "Lost the lobby connection. Please enter again"
+
+msgid "게임을 최신 버전으로 업데이트해 주세요"
+msgstr "Please update the game to the latest version"
+
+msgid "로비가 가득 찼습니다. 잠시 뒤 다시 시도해 주세요"
+msgstr "The lobby is full. Please try again shortly"
+
+msgid "방 이름은 1~{0}자로 정해 주세요"
+msgstr "Room names must be 1 to {0} characters"
+
+msgid "방이 너무 많습니다. 다른 방에 들어가 주세요"
+msgstr "There are too many rooms. Please join another one"
+
+msgid "게임 중인 방에는 들어갈 수 없습니다"
+msgstr "You cannot join a room that is in a match"
+
+msgid "방이 가득 찼습니다"
+msgstr "The room is full"
+
+msgid "채팅은 1~{0}자까지 보낼 수 있습니다"
+msgstr "Chat messages can be 1 to {0} characters"
+
+msgid "채팅을 너무 빨리 보내고 있습니다"
+msgstr "You are sending messages too fast"
+
+msgid "이미 다른 사람이 고른 역할입니다"
+msgstr "Someone else already picked that role"
+
+msgid "이 팀의 영웅 자리가 모두 찼습니다"
+msgstr "This team's mercenary seats are all taken"
+
+# ---------------------------------------------------------------- game connection (network/NetClient.cs)
+
+msgid "연결 실패: {0}"
+msgstr "Connection failed: {0}"
+
+msgid "서버 연결이 종료되었습니다."
+msgstr "The server closed the connection."
+
+msgid "서버 연결 종료: {0}"
+msgstr "Server connection closed: {0}"
+
+msgid "전송 대기열이 가득 찼습니다. 서버 연결을 확인해 주세요."
+msgstr "The send queue is full. Check the server connection."
+
+msgid "전송 시간이 초과되었습니다. 서버 연결을 확인해 주세요."
+msgstr "Sending timed out. Check the server connection."
+
+msgid "전송 실패: {0}"
+msgstr "Send failed: {0}"

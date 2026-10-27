@@ -18,9 +18,15 @@ public partial class Loading : Control
         _progress = GetNode<ProgressBar>("%Progress");
         _status = GetNode<Label>("%Status");
         _percent = GetNode<Label>("%ProgressValue");
-        GetNode<Button>("%PrimaryButton").Pressed += ReturnToLobby;
-        GetNode<Label>("%Footnote").Text = _session.Rejoining ? "진행 중인 경기로 돌아갑니다. AI가 맡던 자리를 이어받습니다." : "모든 참가자의 맵 준비가 끝나면 함께 시작합니다.";
-        GetNode<Label>("Header/Row/PreviewBadge").Text = _session.Rejoining ? "진행 중인 경기로 복귀" : "전장 준비";
+        var back = GetNode<Button>("%PrimaryButton");
+        back.Text = Lang.T("방으로 돌아가기");
+        back.Pressed += ReturnToLobby;
+        GetNode<Label>("%Kicker").Text = Lang.T("경기 시작");
+        GetNode<Label>("%Title").Text = Lang.T("전장 준비 중");
+        GetNode<Label>("%Description").Text = Lang.T("전장을 준비하고 있어요. 잠시만 기다려주세요.");
+        _status.Text = Lang.T("전장을 확인하고 있어요");
+        GetNode<Label>("%Footnote").Text = _session.Rejoining ? Lang.T("진행 중인 경기로 돌아갑니다. AI가 맡던 자리를 이어받습니다.") : Lang.T("모든 참가자의 맵 준비가 끝나면 함께 시작합니다.");
+        GetNode<Label>("Header/Row/PreviewBadge").Text = _session.Rejoining ? Lang.T("진행 중인 경기로 복귀") : Lang.T("전장 준비");
         // The overlay sits above Main's in-game CanvasLayers.
         // A CanvasLayer breaks theme inheritance, so the moved nodes sit under a frame that carries the theme.
         var overlay = new CanvasLayer { Layer = 100 };
@@ -29,10 +35,11 @@ public partial class Loading : Control
         frame.SetAnchorsPreset(LayoutPreset.FullRect);
         overlay.AddChild(frame);
         foreach (string name in new[] { "Background", "Header", "Center" }) GetNode(name).Reparent(frame);
-        if (_session.Match == null) { Fail("경기 정보가 없습니다. 방에서 다시 시작해 주세요."); return; }
+        if (_session.Match == null) { Fail(Lang.T("경기 정보가 없습니다. 방에서 다시 시작해 주세요.")); return; }
         var match = _session.Match;
-        GetNode<Label>("%Description").Text = match.Role == "SPECTATOR" ? "AI 용병 3 vs 3 · 대표 각 1명 · 전체 맵 관전" : $"{match.Team}팀 · {(match.Role == "HERO" ? "용병" : "대표")} · 플레이어 {match.Players - match.Bots}명 + AI {match.Bots}명";
-        if (ResourceLoader.LoadThreadedRequest(GamePath) != Error.Ok) Fail("전장 리소스를 불러오지 못했습니다.");
+        GetNode<Label>("%Description").Text = match.Role == "SPECTATOR" ? Lang.T("AI 용병 3 vs 3 · 대표 각 1명 · 전체 맵 관전") :
+            Lang.F("{0}팀 · {1} · 플레이어 {2}명 + AI {3}명", match.Team, match.Role == "HERO" ? Lang.T("용병") : Lang.T("대표"), match.Players - match.Bots, match.Bots);
+        if (ResourceLoader.LoadThreadedRequest(GamePath) != Error.Ok) Fail(Lang.T("전장 리소스를 불러오지 못했습니다."));
     }
 
     public override void _Process(double delta)
@@ -40,14 +47,14 @@ public partial class Loading : Control
         if (_finished || _failed) return;
         _elapsed += delta;
         if (_session.ErrorMessage != null) { Fail(_session.ErrorMessage); return; }
-        if (_elapsed > 100) { Fail("전장 준비 시간이 초과되었습니다. 방으로 돌아가 다시 시작해 주세요."); return; }
+        if (_elapsed > 100) { Fail(Lang.T("전장 준비 시간이 초과되었습니다. 방으로 돌아가 다시 시작해 주세요.")); return; }
         if (_game == null)
         {
             if (_instantiating) return;
             var progress = new Godot.Collections.Array();
             var state = ResourceLoader.LoadThreadedGetStatus(GamePath, progress);
-            SetProgress(progress.Count > 0 ? progress[0].AsDouble() * 65 : 0, "전장 리소스를 불러오고 있어요");
-            if (state is ResourceLoader.ThreadLoadStatus.Failed or ResourceLoader.ThreadLoadStatus.InvalidResource) { Fail("전장을 불러오지 못했습니다."); return; }
+            SetProgress(progress.Count > 0 ? progress[0].AsDouble() * 65 : 0, Lang.T("전장 리소스를 불러오고 있어요"));
+            if (state is ResourceLoader.ThreadLoadStatus.Failed or ResourceLoader.ThreadLoadStatus.InvalidResource) { Fail(Lang.T("전장을 불러오지 못했습니다.")); return; }
             if (state != ResourceLoader.ThreadLoadStatus.Loaded) return;
             _instantiating = true;
             Callable.From(CreateGame).CallDeferred();
@@ -55,7 +62,7 @@ public partial class Loading : Control
         }
         if (_game.Map.SyncError != null) { Fail(_game.Map.SyncError); return; }
         SetProgress(_game.Map.IsSynchronized ? 90 : 75,
-            _game.Map.IsSynchronized ? "준비 완료 · 다른 참가자를 기다리고 있어요" : "게임 서버 연결 및 맵 확인 중…");
+            _game.Map.IsSynchronized ? Lang.T("준비 완료 · 다른 참가자를 기다리고 있어요") : Lang.T("게임 서버 연결 및 맵 확인 중…"));
         if (!_loadedSent && _game.Map.IsSynchronized && _game.LocalRole != PlayerRole.None)
         {
             _loadedSent = true;

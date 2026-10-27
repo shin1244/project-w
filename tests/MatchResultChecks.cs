@@ -17,9 +17,9 @@ public partial class MatchResultChecks : Main
             foreach (string invalid in new[] { "MATCH_END", "MATCH_END 3 BASE_DESTROYED 1", "MATCH_END 0 BASE_DESTROYED 1",
                 "MATCH_END 1 TIME_LIMIT 1", "MATCH_END 0 TIME_LIMIT -1", "MATCH_END 1 UNKNOWN 3", "MATCH_END 1 BASE_DESTROYED 1 extra" })
                 Check(!MatchResultSnapshot.TryParse(invalid.Split(' '), out _), "invalid result accepted");
-            Check(new MatchResultSnapshot(1, "BASE_DESTROYED", 123).Title(1) == "승리" &&
-                new MatchResultSnapshot(2, "BASE_DESTROYED", 123).Title(1) == "패배" &&
-                new MatchResultSnapshot(0, "BOTH_BASES", 123).Title(1) == "무승부", "wrong perspective");
+            Check(new MatchResultSnapshot(1, "BASE_DESTROYED", 123).Title(1) == Lang.T("승리") &&
+                new MatchResultSnapshot(2, "BASE_DESTROYED", 123).Title(1) == Lang.T("패배") &&
+                new MatchResultSnapshot(0, "BOTH_BASES", 123).Title(1) == Lang.T("무승부"), "wrong perspective");
             var net = GetNode<NetClient>("/root/Net");
             var session = GetNode<MatchSession>("/root/MatchSession");
             session.RememberAddress = false;

@@ -61,7 +61,7 @@ public partial class SteamKnightAnimation : Node
         }
         for (int i = 0; i < 3; i++) _idlePuffs.Add(NewPuff($"ReadySteam{i}"));
         for (int i = 0; i < 16; i++) _burstPuffs.Add(NewPuff($"ReleaseSteam{i}"));
-        _releaseSound = new AudioStreamPlayer3D { Name = "PressureRelease", Stream = ReleaseClip(), VolumeDb = -18,
+        _releaseSound = new AudioStreamPlayer3D { Name = "PressureRelease", Stream = ReleaseClip(), VolumeDb = -18, Bus = SoundBank.World,
             MaxDistance = 26, UnitSize = 4 };
         AddChild(_releaseSound);
         _unit.StateChanged += OnStateChanged;

@@ -18,7 +18,9 @@ public partial class NetClient : Node
     private CancellationTokenSource _lifetime;
     private SendQueue _sendQueue;
     private int _session;
-    private readonly ConcurrentQueue<(int Session, string Message, bool Closed)> _inbox = new();
+    // A closing entry holds the Korean reason and the exception's detail; it is translated on
+    // the main thread, since the language may change while a socket thread runs.
+    private readonly ConcurrentQueue<(int Session, string Message, bool Closed, string Detail)> _inbox = new();
 
     private sealed class SendQueue
     {
@@ -55,28 +57,28 @@ public partial class NetClient : Node
         {
             tcp.Dispose();
             if (!cancellation.IsCancellationRequested)
-                _inbox.Enqueue((session, $"연결 실패: {e.Message}", true));
+                _inbox.Enqueue((session, "연결 실패: {0}", true, e.Message));
         }
     }
 
     // 백그라운드 스레드: 받은 줄을 큐에 넣기만 함
     private async Task ReadLoop(StreamReader reader, int session, CancellationToken cancellation)
     {
-        string reason = "서버 연결이 종료되었습니다.";
+        string reason = "서버 연결이 종료되었습니다.", detail = null;
         try
         {
             using (reader)
             {
                 string line;
                 while ((line = await reader.ReadLineAsync(cancellation).ConfigureAwait(false)) != null)
-                    _inbox.Enqueue((session, line, false));
+                    _inbox.Enqueue((session, line, false, null));
             }
         }
-        catch (Exception error) { reason = "서버 연결 종료: " + error.Message; }
+        catch (Exception error) { reason = "서버 연결 종료: {0}"; detail = error.Message; }
         finally
         {
             if (!cancellation.IsCancellationRequested)
-                _inbox.Enqueue((session, reason, true));
+                _inbox.Enqueue((session, reason, true, detail));
         }
     }
 
@@ -86,7 +88,7 @@ public partial class NetClient : Node
         while (_inbox.TryDequeue(out var msg))
         {
             if (msg.Session != _session) continue;
-            if (msg.Closed) { Disconnect(); ConnectionClosed?.Invoke(msg.Message); }
+            if (msg.Closed) { Disconnect(); ConnectionClosed?.Invoke(Lang.F(msg.Message, msg.Detail)); }
             else MessageReceived?.Invoke(msg.Message);
         }
     }
@@ -102,7 +104,7 @@ public partial class NetClient : Node
         if (Interlocked.Increment(ref queue.Pending) > MaxPendingWrites)
         {
             Interlocked.Decrement(ref queue.Pending);
-            FailSend(queue, "전송 대기열이 가득 찼습니다. 서버 연결을 확인해 주세요.");
+            FailSend(queue, "전송 대기열이 가득 찼습니다. 서버 연결을 확인해 주세요.", null);
             return;
         }
         // Each operation captures this connection's writer and waits for the prior
@@ -123,17 +125,16 @@ public partial class NetClient : Node
         catch (OperationCanceledException) when (queue.Cancellation.IsCancellationRequested) { }
         catch (Exception error)
         {
-            FailSend(queue, error is OperationCanceledException
-                ? "전송 시간이 초과되었습니다. 서버 연결을 확인해 주세요."
-                : "전송 실패: " + error.Message);
+            if (error is OperationCanceledException) FailSend(queue, "전송 시간이 초과되었습니다. 서버 연결을 확인해 주세요.", null);
+            else FailSend(queue, "전송 실패: {0}", error.Message);
         }
         finally { Interlocked.Decrement(ref queue.Pending); }
     }
 
-    private void FailSend(SendQueue queue, string reason)
+    private void FailSend(SendQueue queue, string reason, string detail)
     {
         if (Interlocked.Exchange(ref queue.Failed, 1) == 0)
-            _inbox.Enqueue((queue.Session, reason, true));
+            _inbox.Enqueue((queue.Session, reason, true, detail));
     }
 
     // Sends one last line and closes once it is written. The client is free for a new

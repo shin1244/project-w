@@ -70,7 +70,7 @@ public partial class MatchSession : Node
         var config = LoadConfig();
         if (AddressEditable) LobbyUrl = config.GetValue("network", "lobby_url", LobbyUrl).AsString();
         PlayerName = config.GetValue("player", "name", "").AsString();
-        if (PlayerName == "") PlayerName = $"게스트{Random.Shared.Next(1000, 10000)}";
+        if (PlayerName == "") PlayerName = Lang.F("게스트{0}", Random.Shared.Next(1000, 10000));
         foreach (string argument in OS.GetCmdlineUserArgs())
         {
             if (argument == "--spectate") AutoSpectate = true;
@@ -112,7 +112,7 @@ public partial class MatchSession : Node
                 return new Reply<T>(true, response.StatusCode, text == "" ? default : JsonSerializer.Deserialize<T>(text, JsonOptions), null);
             LobbyError error = null;
             try { error = JsonSerializer.Deserialize<LobbyError>(text, JsonOptions); } catch (JsonException) { }
-            string message = error?.Message ?? $"로비가 요청을 거절했습니다 ({(int)response.StatusCode}).";
+            string message = Describe(error) ?? Lang.F("로비가 요청을 거절했습니다 ({0}).", (int)response.StatusCode);
             if (response.StatusCode == HttpStatusCode.Unauthorized && token == Lobby?.Token && generation == _lobbyGeneration && !quiet)
                 LoseLobby(message);
             else if (!quiet) SetNotice(message);
@@ -120,11 +120,36 @@ public partial class MatchSession : Node
         }
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException or JsonException)
         {
-            if (!quiet) SetNotice(AddressEditable ? "로비에 연결할 수 없습니다. 서버 주소와 실행 상태를 확인해 주세요."
-                : "서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해 주세요.");
+            if (!quiet) SetNotice(AddressEditable ? Lang.T("로비에 연결할 수 없습니다. 서버 주소와 실행 상태를 확인해 주세요.")
+                : Lang.T("서버에 연결할 수 없습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해 주세요."));
             return new Reply<T>(false, null, default, null);
         }
     }
+
+    // The lobby's refusal in this client's language, by its code (project-w-server
+    // internal/lobby); a code this build does not know keeps the lobby's own words.
+    private static string Describe(LobbyError error) => error?.Code switch
+    {
+        null => error?.Message,
+        "BAD_REQUEST" => Lang.T("잘못된 요청입니다"),
+        "NO_ROOM" => Lang.T("방이 없어졌습니다"),
+        "NOT_IN_ROOM" => Lang.T("이 방에 들어가 있지 않습니다"),
+        "NOT_HOST" => Lang.T("방장만 할 수 있습니다"),
+        "ROOM_BUSY" => Lang.T("지금은 바꿀 수 없습니다"),
+        "NO_SESSION" => Lang.T("로비 연결이 끊겼습니다. 다시 입장해 주세요"),
+        "UPDATE_REQUIRED" => Lang.T("게임을 최신 버전으로 업데이트해 주세요"),
+        "BAD_NAME" => Lang.F("이름은 1~{0}자로 정해 주세요.", NameMaxLength),
+        "LOBBY_FULL" => Lang.T("로비가 가득 찼습니다. 잠시 뒤 다시 시도해 주세요"),
+        "BAD_ROOM_NAME" => Lang.F("방 이름은 1~{0}자로 정해 주세요", RoomNameMaxLength),
+        "TOO_MANY_ROOMS" => Lang.T("방이 너무 많습니다. 다른 방에 들어가 주세요"),
+        "ROOM_PLAYING" => Lang.T("게임 중인 방에는 들어갈 수 없습니다"),
+        "ROOM_FULL" => Lang.T("방이 가득 찼습니다"),
+        "BAD_CHAT" => Lang.F("채팅은 1~{0}자까지 보낼 수 있습니다", ChatMaxLength),
+        "CHAT_TOO_FAST" => Lang.T("채팅을 너무 빨리 보내고 있습니다"),
+        "ROLE_TAKEN" => Lang.T("이미 다른 사람이 고른 역할입니다"),
+        "TEAM_FULL" => Lang.T("이 팀의 영웅 자리가 모두 찼습니다"),
+        _ => error.Message
+    };
 
     private void SetNotice(string message) { Notice = message; Changed?.Invoke(); }
 
@@ -137,9 +162,9 @@ public partial class MatchSession : Node
         if (Connecting || Lobby != null) return;
         if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != "http" && uri.Scheme != "https") || uri.AbsolutePath != "/" || uri.Query != "" || uri.Fragment != "" || uri.UserInfo != "")
-        { SetNotice("서버 주소를 https://주소 또는 http://주소:8080 형식으로 입력해 주세요."); return; }
+        { SetNotice(Lang.T("서버 주소를 https://주소 또는 http://주소:8080 형식으로 입력해 주세요.")); return; }
         name = name.Trim();
-        if (name.Length is 0 or > NameMaxLength) { SetNotice($"이름은 1~{NameMaxLength}자로 정해 주세요."); return; }
+        if (name.Length is 0 or > NameMaxLength) { SetNotice(Lang.F("이름은 1~{0}자로 정해 주세요.", NameMaxLength)); return; }
         LobbyUrl = uri.GetLeftPart(UriPartial.Authority);
         PlayerName = name;
         var config = LoadConfig();
@@ -312,15 +337,15 @@ public partial class MatchSession : Node
                 var reply = await Call<RoomState>(HttpMethod.Get, $"/rooms/{id}?chat={_chatSeq}", quiet: true);
                 if (generation != _lobbyGeneration || Room?.Id != id) { }
                 else if (reply.Ok) { failures = 0; ApplyRoom(reply.Value); }
-                else if (reply.Status == HttpStatusCode.Unauthorized) { LoseLobby(reply.Error?.Message ?? "로비 연결이 끊겼습니다."); return; }
-                else if (reply.Status is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) LostRoom(reply.Error?.Message ?? "방에서 나왔습니다.");
-                else if (reply.Status == null && ++failures >= 6) { LoseLobby("로비와 연결이 끊겼습니다. 다시 입장해 주세요."); return; }
+                else if (reply.Status == HttpStatusCode.Unauthorized) { LoseLobby(Describe(reply.Error) ?? Lang.T("로비 연결이 끊겼습니다.")); return; }
+                else if (reply.Status is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) LostRoom(Describe(reply.Error) ?? Lang.T("방에서 나왔습니다."));
+                else if (reply.Status == null && ++failures >= 6) { LoseLobby(Lang.T("로비와 연결이 끊겼습니다. 다시 입장해 주세요.")); return; }
             }
             else if (Room == null && !playing && (sinceHeartbeat += 0.5) >= 10)
             {
                 sinceHeartbeat = 0;
                 var me = await Call<LobbyMe>(HttpMethod.Get, "/me", quiet: true);
-                if (me.Status == HttpStatusCode.Unauthorized && generation == _lobbyGeneration) { LoseLobby(me.Error?.Message ?? "로비 연결이 끊겼습니다."); return; }
+                if (me.Status == HttpStatusCode.Unauthorized && generation == _lobbyGeneration) { LoseLobby(Describe(me.Error) ?? Lang.T("로비 연결이 끊겼습니다.")); return; }
             }
             await Task.Delay(500);
         }
@@ -430,7 +455,7 @@ public partial class MatchSession : Node
     {
         InGame = true;
         _gameMenu = new CanvasLayer { Layer = 50 };
-        var back = new Button { Text = "방으로 나가기", Position = new Vector2(12, 58) };
+        var back = new Button { Text = Lang.T("방으로 나가기"), Position = new Vector2(12, 58) };
         back.Pressed += ReturnToLobby;
         _gameMenu.AddChild(back);
         AddChild(_gameMenu);
@@ -520,10 +545,10 @@ public partial class MatchSession : Node
         _reconnectElapsed += delta;
         if (_reconnectElapsed > ReconnectWindow)
         {
-            Fail("서버에 다시 연결하지 못했습니다. 경기가 계속되고 있으면 방에서 돌아갈 수 있습니다.");
+            Fail(Lang.T("서버에 다시 연결하지 못했습니다. 경기가 계속되고 있으면 방에서 돌아갈 수 있습니다."));
             return;
         }
-        _reconnectLabel.Text = $"서버와 연결이 끊겼습니다. 다시 연결하는 중… {(int)_reconnectElapsed}초\n그동안 AI가 대신 조종합니다.";
+        _reconnectLabel.Text = Lang.F("서버와 연결이 끊겼습니다. 다시 연결하는 중… {0}초\n그동안 AI가 대신 조종합니다.", (int)_reconnectElapsed);
         _retryIn -= delta;
         if (_attempting || _retryIn > 0) return;
         _retryIn = RetryInterval;
@@ -541,7 +566,7 @@ public partial class MatchSession : Node
         if (me.Ok && me.Value?.Match?.MatchId != id)
         {
             _finishedMatchId = id;
-            Fail("경기가 끝났습니다.");
+            Fail(Lang.T("경기가 끝났습니다."));
             return;
         }
         _net.ConnectToServer(Match.Host, Match.Port); // Main resends MAP_READY with the ticket.
@@ -570,11 +595,11 @@ public partial class MatchSession : Node
         _reconnectLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
         _reconnectLabel.AddThemeFontSizeOverride("font_size", 18);
         box.AddChild(_reconnectLabel);
-        var leave = new Button { Text = "방으로 나가기", SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        var leave = new Button { Text = Lang.T("방으로 나가기"), SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
         leave.Pressed += ReturnToLobby;
         box.AddChild(leave);
         AddChild(_reconnectOverlay);
-        _reconnectLabel.Text = "서버와 연결이 끊겼습니다. 다시 연결하는 중…\n그동안 AI가 대신 조종합니다.";
+        _reconnectLabel.Text = Lang.T("서버와 연결이 끊겼습니다. 다시 연결하는 중…\n그동안 AI가 대신 조종합니다.");
     }
 
     private static void SaveSetting(string section, string key, string value)
