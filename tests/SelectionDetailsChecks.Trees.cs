@@ -24,6 +24,8 @@ public partial class SelectionDetailsChecks
 
         // Main.ConnectInput, which this scene skips, also drops the tree; the panel prefers the building anyway.
         Receive($"BUILDING 3 9501 {Units.LocalTeam} 30 30 0");
+        // Reveal it now, not on the fog's 20 Hz tick, so the removal below always frees a fog reveal overlay.
+        Fog.RefreshVision();
         InvokeMain("SelectBuilding", Buildings.LiveBuildings.Single(building => building.BuildingId == 9501));
         await Layout();
         Check(Labels().Any(label => label.Visible && label.Text.StartsWith(Lang.T("체력"))) &&
