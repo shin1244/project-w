@@ -1176,7 +1176,7 @@ msgstr "From HQ tier {0}, click: upgrade to {1} (tier 2)"
 msgid "클릭: {0}으로 2티어 강화"
 msgstr "Click: upgrade to {0} (tier 2)"
 
-# ---------------------------------------------------------------- hero shop (ui/HeroShopPanel.cs); item names and descriptions come from the server
+# ---------------------------------------------------------------- hero shop (ui/HeroShopPanel.cs, network/HeroEconomySnapshot.cs)
 
 msgid "골드 —"
 msgstr "Gold —"
@@ -1248,7 +1248,7 @@ msgid "장비"
 msgstr "Gear"
 
 msgid "배송 / 장착 중"
-msgstr "Delivering / equipping"
+msgstr "Pending"
 
 msgid "장착됨"
 msgstr "Equipped"
@@ -1261,6 +1261,117 @@ msgstr "Equips once picked up."
 
 msgid "부활 구역에서 클릭하여 {0} G에 판매"
 msgstr "Click in the respawn zone to sell for {0} G"
+
+# Item effects, worded from the numbers in ITEM_CATALOG's effects (network/HeroEconomySnapshot.cs).
+
+msgid "공격력 +{0:0.##}"
+msgstr "Attack +{0:0.##}"
+
+msgid "최대 체력 +{0:0.##}"
+msgstr "Max HP +{0:0.##}"
+
+msgid "이동 속도 +{0:0.##}"
+msgstr "Move speed +{0:0.##}"
+
+msgid "공격 속도 +{0:0.##}%"
+msgstr "Attack speed +{0:0.##}%"
+
+msgid "받는 피해 {0:0.##}% 감소 (고정 피해 제외)"
+msgstr "{0:0.##}% less damage taken (not true damage)"
+
+# Item names by the key ITEM_CATALOG sends, with the server's Korean name above each
+# (project-w-server hero_item_defs.go). A key left out here shows the server's Korean name.
+# The equipment slot shows only the last word, so end each name with what the item is.
+
+# 강철 장검
+msgctxt "item"
+msgid "sword"
+msgstr "Steel Longsword"
+
+# 생명의 보석
+msgctxt "item"
+msgid "heart"
+msgstr "Life Gem"
+
+# 진군의 장화
+msgctxt "item"
+msgid "boots"
+msgstr "Marching Boots"
+
+# 신속의 장갑
+msgctxt "item"
+msgid "gloves"
+msgstr "Swift Gloves"
+
+# 수호 갑옷
+msgctxt "item"
+msgid "plate"
+msgstr "Guardian Armor"
+
+# 전장의 문장
+msgctxt "item"
+msgid "crest"
+msgstr "Battle Crest"
+
+# 명장의 대검
+msgctxt "item"
+msgid "greatsword"
+msgstr "Master's Greatsword"
+
+# 거인의 심장
+msgctxt "item"
+msgid "titanheart"
+msgstr "Giant's Heart"
+
+# 질풍의 장화
+msgctxt "item"
+msgid "galeboots"
+msgstr "Gale Boots"
+
+# 광전사의 장갑
+msgctxt "item"
+msgid "berserkgloves"
+msgstr "Berserker Gloves"
+
+# 불굴의 판금
+msgctxt "item"
+msgid "bulwark"
+msgstr "Unyielding Plate"
+
+# 군주의 문장
+msgctxt "item"
+msgid "royalcrest"
+msgstr "Royal Crest"
+
+# 황제의 대검
+msgctxt "item"
+msgid "emperor_blade"
+msgstr "Emperor's Greatsword"
+
+# 세계수의 심장
+msgctxt "item"
+msgid "worldtree_heart"
+msgstr "World Tree Heart"
+
+# 폭풍의 장화
+msgctxt "item"
+msgid "storm_boots"
+msgstr "Storm Boots"
+
+# 패왕의 장갑
+msgctxt "item"
+msgid "warlord_gloves"
+msgstr "Warlord Gloves"
+
+# 금강의 판금
+msgctxt "item"
+msgid "adamant_plate"
+msgstr "Adamant Plate"
+
+# 제왕의 문장
+msgctxt "item"
+msgid "sovereign_crest"
+msgstr "Sovereign Crest"
 
 # ---------------------------------------------------------------- hero skills (ui/HeroSkillPanel.cs)
 

@@ -4,8 +4,34 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 
-public sealed record HeroItemDefinition(uint Id, string Key, string Name, string Description, int Cost, uint From, int Tier = 0)
+public sealed record HeroItemDefinition(uint Id, string Key, string Name, string Description, int Cost, uint From, int Tier = 0,
+    HeroItemEffect[] Effects = null)
 {
+    // The server names items in Korean. locale/en.po holds English by the item's key (context
+    // "item"); a key it does not know, or Korean, shows the server's name.
+    public string DisplayName
+    {
+        get
+        {
+            string text = Lang.T(Key, "item");
+            return text != Key ? text : Name;
+        }
+    }
+
+    // Worded here from the server's numbers. An older server sends no effects and a newer one may
+    // send a kind this client cannot word; both show the server's Korean description.
+    public string EffectText
+    {
+        get
+        {
+            if (Effects is not { Length: > 0 }) return Description;
+            var parts = new string[Effects.Length];
+            for (int i = 0; i < Effects.Length; i++)
+                if ((parts[i] = Effects[i].Text) == null) return Description;
+            return string.Join(" · ", parts);
+        }
+    }
+
     public static bool TryParseCatalog(string message, out HeroItemDefinition[] items)
     {
         items = null;
@@ -16,7 +42,8 @@ public sealed record HeroItemDefinition(uint Id, string Key, string Name, string
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (parsed == null || parsed.Length is 0 or > 128 ||
                 parsed.Any(i => i == null || i.Id == 0 || i.Cost < 0 || string.IsNullOrWhiteSpace(i.Name) ||
-                    string.IsNullOrWhiteSpace(i.Key) || i.Description == null) ||
+                    string.IsNullOrWhiteSpace(i.Key) || i.Description == null ||
+                    i.Effects != null && i.Effects.Any(e => e == null || string.IsNullOrWhiteSpace(e.Stat) || !float.IsFinite(e.Value))) ||
                 parsed.Select(i => i.Id).Distinct().Count() != parsed.Length) return false;
             var byId = parsed.ToDictionary(i => i.Id);
             for (int i = 0; i < parsed.Length; i++)
@@ -38,6 +65,20 @@ public sealed record HeroItemDefinition(uint Id, string Key, string Name, string
         }
         catch (JsonException) { return false; }
     }
+}
+
+// One effect of an item as ITEM_CATALOG sends it (project-w-server hero_items.go, ItemEffect).
+public sealed record HeroItemEffect(string Stat, float Value)
+{
+    public string Text => Stat switch
+    {
+        "attack" => Lang.F("공격력 +{0:0.##}", Value),
+        "maxHp" => Lang.F("최대 체력 +{0:0.##}", Value),
+        "moveSpeed" => Lang.F("이동 속도 +{0:0.##}", Value),
+        "attackSpeed" => Lang.F("공격 속도 +{0:0.##}%", Value),
+        "damageReduction" => Lang.F("받는 피해 {0:0.##}% 감소 (고정 피해 제외)", Value),
+        _ => null
+    };
 }
 
 public sealed record HeroInventorySnapshot(int Gold, bool CanShop, bool HasForge, uint[] Items, bool[] Pending, int TeamTier = 1)

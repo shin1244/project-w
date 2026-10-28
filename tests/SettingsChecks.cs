@@ -31,10 +31,11 @@ public partial class SettingsChecks : Node
             DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(Path));
             CheckEnglishText();
             CheckDefaultsAndRestart();
+            CheckShopItems();
             await CheckLobbyPanel();
             DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(Path));
             _settings.Load(Settings.DefaultPath);
-            GD.Print("PASS: settings default to English at full volume, apply at once, save and load back; lobby text follows the language");
+            GD.Print("PASS: settings default to English at full volume, apply at once, save and load back; lobby text and shop items follow the language");
             // Let go of the screen's styles and textures before the engine checks for leaks.
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -102,6 +103,25 @@ public partial class SettingsChecks : Node
         file.Save(Path);
         _settings.Load(Path);
         Check(_settings.Language == Lang.English, "A broken file falls back to valid settings");
+    }
+
+    // Shop items come from the server in Korean (ITEM_CATALOG): English names follow the item key
+    // and effects are worded from the server's numbers. What this client does not know stays Korean.
+    private void CheckShopItems()
+    {
+        const string sword = "{\"id\":1,\"key\":\"sword\",\"name\":\"검\",\"description\":\"공격력 +9 · 최대 체력 +20\",\"cost\":1,\"effects\":[{\"stat\":\"attack\",\"value\":9},{\"stat\":\"maxHp\",\"value\":20}]}";
+        Check(HeroItemDefinition.TryParseCatalog("ITEM_CATALOG [" + sword +
+            ",{\"id\":2,\"key\":\"not_in_po\",\"name\":\"새 장비\",\"description\":\"새 효과 +1\",\"cost\":1,\"effects\":[{\"stat\":\"attack\",\"value\":1},{\"stat\":\"mana\",\"value\":1}]}" +
+            ",{\"id\":3,\"key\":\"boots\",\"name\":\"장화\",\"description\":\"이동 속도 +0.5\",\"cost\":1}]", out var items) &&
+            !HeroItemDefinition.TryParseCatalog("ITEM_CATALOG [" + sword.Replace("{\"stat\":\"attack\",\"value\":9}", "null") + "]", out _),
+            "Item effects parse, and a broken one rejects the catalog");
+        Check(_settings.Language == Lang.English && items[0].DisplayName == Lang.T("sword", "item") && items[0].DisplayName != "검" &&
+            items[0].EffectText == "Attack +9 · Max HP +20", "An item shows English by its key, with its effects worded from the server's numbers");
+        Check(items[1].DisplayName == "새 장비" && items[1].EffectText == "새 효과 +1" && items[2].EffectText == "이동 속도 +0.5",
+            "An unknown key, an unknown effect, or no effects (an older server) show the server's Korean");
+        _settings.SetLanguage(Lang.Korean);
+        Check(items[0].DisplayName == "검" && items[0].EffectText == "공격력 +9 · 최대 체력 +20", "Korean shows the server's name");
+        _settings.SetLanguage(Lang.English);
     }
 
     private async Task CheckLobbyPanel()
