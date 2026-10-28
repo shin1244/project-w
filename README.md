@@ -119,6 +119,7 @@ HQ 업그레이드는 2티어 건물과 함께 **용병들의 2티어 장비**�
 
 ## 🎮 플레이
 
+- [**itch.io**](https://jg99917.itch.io/burn-quarter)에서 Windows용 데모를 받을 수 있습니다.
 - **한국, 미국, 호주, 독일 서버**에서 플레이할 수 있습니다.
 - 빈자리는 AI가 채워서 혼자서도 한 판을 시작할 수 있습니다.
 
@@ -216,4 +217,8 @@ A*를 덜 돌리는 장치도 함께 둡니다.
   <a href="docs/art-direction.md">아트 디렉션</a> &nbsp;·&nbsp;
   <a href="CHANGELOG.md">변경 이력</a> &nbsp;·&nbsp;
   <a href="AGENTS.md">작업 규칙</a>
+</p>
+
+<p align="center">
+  <sub>게임 서버는 Google Cloud(GCP)에서 운영합니다 &nbsp;·&nbsp; 서울 로비와 미국 · 독일 · 호주 게임 서버</sub>
 </p>
