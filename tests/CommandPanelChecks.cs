@@ -284,6 +284,17 @@ public partial class CommandPanelChecks : Main
     private static string TrainTerms(int wood, int oil, int supply, double seconds) =>
         Lang.F("목재 {0:N0} · 기름 {1:N0} · 인구 {2} · {3:0.##}초", wood, oil, supply, seconds);
 
+    // The icons in a command's tooltip cost row, e.g. "wood,oil,time"; empty without a cost row.
+    private static string TermIcons(Button slot)
+    {
+        var tip = ((CommandSlot)slot)._MakeCustomTooltip(slot.TooltipText) as Control;
+        if (tip == null) return "";
+        var row = tip.FindChild("Terms", true, false);
+        string icons = row == null ? "" : string.Join(",", row.GetChildren().Select(item => item.Name.ToString()));
+        tip.Free();
+        return icons;
+    }
+
     // The building a menu caption names, e.g. "공장(A)"; null for other captions.
     private static uint? MenuBuilding(string caption)
     {
@@ -386,7 +397,7 @@ public partial class CommandPanelChecks : Main
         Receive("TEAM_TIER 1 1 201 0 0 0 37 11 13");
         Receive("STOCK 0 36");
         Units.RequestUpgradeTownHall();
-        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains(Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", 37, 11, 13)) &&
+        Check(_slots[1].Disabled && _commands.Count == sent && _slots[1].TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", 37, 11, 13)) &&
             _slots[1].TooltipText.Contains(Lang.T("나무 부족")),
             "Upgrade tooltip and wood gate use arbitrary server-provided terms");
         Receive("STOCK 0 37");
@@ -429,7 +440,7 @@ public partial class CommandPanelChecks : Main
         Check(Buildings.TeamTier(2).TargetTier == 3 && Buildings.TeamTier(1).Tier == 1, "Enemy public tier is stored independently");
         Receive("TEAM_TIER 1 2 201 0 0 0 61 23 19");
         Receive("STOCK 0 61");
-        Check(_slots[1].Disabled && !_slots[7].Disabled && _slots[1].TooltipText.Contains(Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", 61, 23, 19)), "Tier transition uses new server costs and requires additional oil");
+        Check(_slots[1].Disabled && !_slots[7].Disabled && _slots[1].TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", 61, 23, 19)), "Tier transition uses new server costs and requires additional oil");
         Receive("STOCK 2 23");
         _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
         Check(_commands.Count == sent + 1 && _commands[^1] == "UPGRADE_TOWNHALL 201", "Tier three button uses the same authoritative command");
@@ -476,7 +487,7 @@ public partial class CommandPanelChecks : Main
         Receive("STOCK 2 120");
         int sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
-        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains(Lang.F("나무 {0:N0} · 기름 {1:N0} · {2:0.##}초", 300, 120, 45)) &&
+        Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", 300, 120, 45)) &&
             _slots[7].TooltipText.Contains(Lang.F("용병 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", Lang.T("공격력"), 15, 0, 5)),
             "Research cost, step and maximum level come from the server and gate the button");
         string melee = Lang.T("근접"), healing = Lang.T("치유");
@@ -595,21 +606,32 @@ public partial class CommandPanelChecks : Main
         Commands.BuildRequested += requested.Add;
         try
         {
+            // Arbitrary terms prove the build menu shows BUILD_DEF and copies no numbers of its own.
+            Receive($"BUILD_DEF {BuildingCatalog.Supply} 37 0 12.5 7");
+            Receive($"BUILD_DEF {BuildingCatalog.CoalDrill} 61 29 17.5 0");
+            Receive($"BUILD_DEF {BuildingCatalog.Fortress} 1 1 1 0");
             _slots[1].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierMenu("The lower-left worker button opens the tier-one construction menu");
+            Check(_slots[8].TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", 37, 0, 12.5)) &&
+                _slots[8].TooltipText.Contains(Lang.F("인구 +{0}", 7)), "The supply depot's tooltip shows the server's cost, time and added supply");
+            Check(_slots[4].TooltipText.Contains(Lang.T("생산 가능")) && _slots[4].TooltipText.Contains(UnitCatalog.Name(UnitCatalog.Knight)) &&
+                _slots[4].TooltipText.Contains(UnitCatalog.Name(UnitCatalog.Medic)), "The barracks tooltip lists the units it trains");
+            Check(TermIcons(_slots[8]) == "wood,time", "A wood-only building shows only wood and time in its cost row");
             Check(!_slots[10].Disabled, "Tower construction is available with the updated server definition");
             KeyStroke(input, Key.X);
             ExpectTierMenu("X inside the tier-one menu is an empty cell and keeps the menu");
             KeyStroke(input, Key.C);
             _slots[2].EmitSignal(BaseButton.SignalName.Pressed);
             ExpectTierTwoMenu("The X worker button opens the tier-two construction menu");
-            Check(_slots[7].TooltipText.Contains(Lang.T("일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용")) &&
-                _slots[8].TooltipText.Contains(Lang.T("완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동")),
+            Check(_slots[7].TooltipText.Contains(Lang.T("나무 없이 목재 채집")) &&
+                _slots[8].TooltipText.Contains(Lang.T("Q: 다른 곳에 출구 설치")),
                 "The tier-two menu explains the coal drill's wood and the tunnel's exit");
+            Check(TermIcons(_slots[7]) == "wood,oil,time", "The coal drill's cost row shows wood, oil and time");
+            Check(TermIcons(_slots[8]) == "", "A building whose terms have not arrived shows no cost row");
             KeyStroke(input, Key.C);
             ExpectUnit("C leaves the tier-two menu");
             KeyStroke(input, Key.Z);
-            Check(_slots[9].TooltipText.Contains(Lang.T("유전 지대에만 건설 · 유전마다 1개")), "The derrick menu explains its oilfield-only restriction");
+            Check(_slots[9].TooltipText.Contains(Lang.T("유전 지대에만 건설")), "The derrick menu explains its oilfield-only restriction");
             Check(!Commands.TryHandleShortcut(new InputEventKey { Pressed = true, Keycode = Key.Q, CtrlPressed = true }),
                 "Modified keys are not reinterpreted as plain building shortcuts");
             KeyStroke(input, Key.C);

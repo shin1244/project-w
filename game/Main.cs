@@ -532,6 +532,9 @@ public partial class Main : Node3D
             case "TRAIN_DEF":
                 Buildings?.HandleTrainingDefinition(parts);
                 break;
+            case "BUILD_DEF":
+                Buildings?.HandleBuildingDefinition(parts);
+                break;
             case "BODY":
                 Fog?.HandleBody(parts);
                 RefreshAttackRanges();

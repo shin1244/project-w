@@ -229,6 +229,7 @@ public partial class BuildingManager : Node3D
         _buildingRequirements.Clear();
         _buildingTierRequirements.Clear();
         _trainingDefinitions.Clear();
+        _buildingDefinitions.Clear();
         bool selectionChanged = _selected != null;
         ClearSelectionCore();
         foreach (uint id in new List<uint>(_buildings.Keys)) Remove(id);

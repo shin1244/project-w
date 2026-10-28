@@ -4,15 +4,24 @@ using System.Globalization;
 public partial class BuildingManager
 {
     private readonly Dictionary<uint, TrainingDefinition> _trainingDefinitions = new();
+    private readonly Dictionary<uint, BuildingDefinition> _buildingDefinitions = new();
     public long CommanderSupplyUsed { get; private set; }
     public long CommanderSupplyLimit { get; private set; }
     public bool HasCommanderSupply { get; private set; }
     public TrainingDefinition? TrainingTerms(uint type) => _trainingDefinitions.TryGetValue(type, out var terms) ? terms : null;
+    public BuildingDefinition? BuildingTerms(uint type) => _buildingDefinitions.TryGetValue(type, out var terms) ? terms : null;
 
     public void HandleTrainingDefinition(string[] parts)
     {
         if (!TrainingDefinition.TryParse(parts, out var definition)) return;
         _trainingDefinitions[definition.UnitType] = definition;
+        RequirementsChanged?.Invoke();
+    }
+
+    public void HandleBuildingDefinition(string[] parts)
+    {
+        if (!BuildingDefinition.TryParse(parts, out var definition)) return;
+        _buildingDefinitions[definition.BuildingType] = definition;
         RequirementsChanged?.Invoke();
     }
 
