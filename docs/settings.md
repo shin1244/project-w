@@ -1,6 +1,6 @@
 # 설정: 언어
 
-로비 화면(입장·방 목록·방) 오른쪽 위 **설정**(영어로는 **Settings**) 버튼이 설정 창을 엽니다. 바꾼 값은 바로 적용되고 `user://settings.cfg`(Windows는 `%APPDATA%\Godot\app_userdata\Burn Quarter\settings.cfg`)에 저장되어 다시 켜도 유지됩니다. 처음 실행하면 시스템 언어와 상관없이 **영어**로 시작합니다. 게임에 소리가 없어 음량 설정은 없습니다. 경기 중에는 설정 창이 없습니다.
+로비 화면(입장·방 목록·방) 오른쪽 위 **설정**(영어로는 **Settings**) 버튼이 설정 창을 엽니다. 바꾼 값은 바로 적용되고 `user://settings.cfg`(Windows는 `%APPDATA%\Godot\app_userdata\Burn Quarter\settings.cfg`)에 저장되어 다시 켜도 유지됩니다. 처음 실행하면 시스템 언어와 상관없이 **영어**로 시작합니다. 소리는 이동 명령 응답음 하나뿐이라 음량 설정은 없습니다([소리](sound.md)). 경기 중에는 설정 창이 없습니다.
 
 ![설정 창](images/lobby-settings.png)
 

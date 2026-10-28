@@ -783,6 +783,7 @@ public partial class Main : Node3D
     {
         if (!Map.IsSynchronized || Result != null || LocalRole == PlayerRole.Spectator) return;
         _net.Send(command);
+        OrderSound.For(command);
         GD.Print($"전송 요청: {command}");
     }
 

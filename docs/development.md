@@ -102,6 +102,7 @@ docs/             설명과 미리보기 이미지
 - [HQ·요새·감시탑과 건물 전투 동기화](../buildings/README.md)
 - [전장의 안개 동기화와 서버 성능 측정](fog-of-war.md)
 - [유닛과 메시지 형식](units.md)
+- [소리: 이동 명령 응답음](sound.md)
 - [맵 구성과 재생성](map.md)
 - [맵 해시와 나무 변경분 동기화](map-sync.md)
 
