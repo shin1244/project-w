@@ -58,7 +58,7 @@ F6으로 열면 여섯 장면을 반복 재생합니다. 유닛 움직임은 실
 ```text
 game/             메인 게임 장면, 입력·통신 연결과 메시지 분기
 lobby/            게스트 입장·방 목록·방·실제 전장 로딩, 설정 창
-settings/         음량·언어 설정 저장(자동 로드 Settings)과 번역 도우미 Lang
+settings/         언어 설정 저장(자동 로드 Settings)과 번역 도우미 Lang
 locale/           영어 번역(en.po). 원문은 코드의 한국어
 input/            마우스 입력과 맵 카메라
 network/          TCP 연결과 명령 문자열
@@ -102,7 +102,6 @@ docs/             설명과 미리보기 이미지
 - [HQ·요새·감시탑과 건물 전투 동기화](../buildings/README.md)
 - [전장의 안개 동기화와 서버 성능 측정](fog-of-war.md)
 - [유닛과 메시지 형식](units.md)
-- [효과음: 증기 소리와 재생 규칙](sound.md)
 - [맵 구성과 재생성](map.md)
 - [맵 해시와 나무 변경분 동기화](map-sync.md)
 

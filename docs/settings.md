@@ -1,25 +1,12 @@
-# 설정: 음량과 언어
+# 설정: 언어
 
-로비 화면(입장·방 목록·방) 오른쪽 위 **설정**(영어로는 **Settings**) 버튼이 설정 창을 엽니다. 바꾼 값은 바로 적용되고 `user://settings.cfg`(Windows는 `%APPDATA%\Godot\app_userdata\Burn Quarter\settings.cfg`)에 저장되어 다시 켜도 유지됩니다. 처음 실행하면 시스템 언어와 상관없이 **영어**, 모든 음량 100%로 시작합니다. 경기 중에는 설정 창이 없습니다.
+로비 화면(입장·방 목록·방) 오른쪽 위 **설정**(영어로는 **Settings**) 버튼이 설정 창을 엽니다. 바꾼 값은 바로 적용되고 `user://settings.cfg`(Windows는 `%APPDATA%\Godot\app_userdata\Burn Quarter\settings.cfg`)에 저장되어 다시 켜도 유지됩니다. 처음 실행하면 시스템 언어와 상관없이 **영어**로 시작합니다. 게임에 소리가 없어 음량 설정은 없습니다. 경기 중에는 설정 창이 없습니다.
 
 ![설정 창](images/lobby-settings.png)
 
 - 닫기 버튼, Esc, 창 바깥 클릭으로 닫습니다.
 - 저장과 적용은 자동 로드 `Settings`(`settings/Settings.cs`)가 맡고, 창은 `lobby/SettingsPanel.cs`입니다. `Lobby`·`Room`이 `SettingsPanel.Attach(this)`로 머리줄에 버튼을 붙입니다.
 - `Settings`는 자동 로드 맨 앞이라, 다른 자동 로드(`MatchSession`의 기본 이름 `Guest1234` 등)도 고른 언어로 시작합니다.
-
-## 음량
-
-| 슬라이더 | 버스 | 들어가는 소리 |
-| --- | --- | --- |
-| 전체 음량 (Master) | `Master` | 모든 소리 |
-| 효과음 (Effects) | `SFX` | 전장 소리: 공격·사망·공사·포격, 스팀돌격병 증기 |
-| 인터페이스 (Interface) | `UI` | 버튼 클릭·선택·명령 응답·오류·생산/건설 완료 알림 |
-
-- 0~100%이며 100%는 `default_bus_layout.tres`에 정한 그 버스의 원래 크기(`UI`는 −3 dB)입니다. 그 아래는 그 크기에 `linear_to_db(값)`을 더하고, 0%는 버스를 음소거합니다.
-- `Music` 버스는 있지만 아직 음악이 없어 슬라이더를 두지 않았습니다. 음악을 넣으면 `Settings.Buses`와 설정 창의 `Volumes`에 한 줄씩 더합니다.
-- 전체·인터페이스 슬라이더는 놓을 때 버튼 클릭 소리를 내 크기를 들려줍니다. 전장 소리는 맵 위치가 있어야 나므로 효과음 슬라이더는 소리를 내지 않습니다.
-- 끄는 동안에는 파일을 쓰지 않고 마우스를 놓을 때 한 번 저장합니다. 키보드·휠로 바꾸면 바로 저장합니다.
 
 ## 언어
 
@@ -58,7 +45,7 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 
 ## 확인
 
-`./tests/run.ps1 -Check SettingsChecks`가 서버 없이 처음 실행 기본값(영어·100%), 음량 적용·음소거·레이아웃 기준 크기, 언어 변경 알림, 저장 후 다시 읽기(재시작), 잘못된 파일의 기본값 복귀, 로비 화면의 설정 버튼·창과 언어 즉시 반영을 확인합니다. 소스의 `Lang.T`·`Lang.F` 문장과 `Indirect` 목록이 모두 `en.po`에 영어를 가지고, `{0}` 같은 자리를 그대로 지키는지도 봅니다. 검사는 `user://settings-checks.cfg`만 쓰고 플레이어의 `settings.cfg`는 건드리지 않습니다.
+`./tests/run.ps1 -Check SettingsChecks`가 서버 없이 처음 실행 기본값(영어), 언어 변경 알림, 저장 후 다시 읽기(재시작), 잘못된 파일의 기본값 복귀, 로비 화면의 설정 버튼·창과 언어 즉시 반영을 확인합니다. 소스의 `Lang.T`·`Lang.F` 문장과 `Indirect` 목록이 모두 `en.po`에 영어를 가지고, `{0}` 같은 자리를 그대로 지키는지도 봅니다. 검사는 `user://settings-checks.cfg`만 쓰고 플레이어의 `settings.cfg`는 건드리지 않습니다.
 
 ```powershell
 & $env:GODOT_BIN --path . --resolution 1600x900 res://tests/SettingsChecks.tscn -- --capture

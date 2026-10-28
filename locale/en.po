@@ -42,18 +42,6 @@ msgstr "Australia"
 msgid "설정"
 msgstr "Settings"
 
-msgid "음량"
-msgstr "Volume"
-
-msgid "전체 음량"
-msgstr "Master"
-
-msgid "효과음"
-msgstr "Effects"
-
-msgid "인터페이스"
-msgstr "Interface"
-
 msgid "언어"
 msgstr "Language"
 

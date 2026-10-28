@@ -30,8 +30,6 @@ public partial class UnitManager : Node3D
     [Export] public ResourceManager Resources;
     [Export] public BuildingManager Buildings;
     public IReadOnlyCollection<uint> SelectedUnitIds => _selectedUnitIds;
-    // Ticks are running; messages before the first TICK are the join snapshot, not live events.
-    public bool Live => _interpolation.HasTick;
     public IReadOnlyCollection<Unit> LiveUnits => _units.Values;
     public uint LocalTeam => _localTeam;
     public bool Spectating { get; private set; }
@@ -560,7 +558,6 @@ public partial class UnitManager : Node3D
         if (!_units.TryGetValue(impact.UnitId, out Unit ram) || ram.UnitType != UnitCatalog.SiegeRam ||
             ram.Team != impact.Team || ram.IsDying || !_ramImpacts.Add(impact.UnitId)) return;
         SiegeRamImpact.Spawn(this, impact.Position, impact.Team);
-        Sfx.At("ram-impact", impact.Position);
     }
 
     // Only explicit server healing events create effects. Neither changes local HP.
@@ -724,7 +721,6 @@ public partial class UnitManager : Node3D
 
         _units.Add(unitId, unit);
         if (_controlledHeroType.HasValue) ValidateSelection();
-        if (Live && _localPlayerId != 0 && ownerID == _localPlayerId && UnitCatalog.IsTrainable(unitType)) Sfx.Interface("unit-ready");
     }
 
     public Node3D ResolveFocus(uint id)
@@ -765,7 +761,6 @@ public partial class UnitManager : Node3D
         ForgetGroupUnit(unitId);
         if (_targetIndicator.Target == unit || _selectedUnitIds.Count == 0) _targetIndicator.Clear();
         unit.Name = $"Dying_{unitId}";
-        if (unit.IsVisibleInTree()) Sfx.At(SoundBank.Death(unit.UnitType), unit.GlobalPosition);
         unit.BeginDeath();
         if (_controlledHeroType.HasValue) selectionChanged |= ValidateSelection(notify: false);
         if (selectionChanged) SelectionChanged?.Invoke();
