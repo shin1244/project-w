@@ -62,6 +62,8 @@ public partial class Main : Node3D
         }
         Fog?.Configure(Map);
         if (Buildings != null && Fog != null) Buildings.VisibilityCheck = Fog.IsBuildingVisible;
+        // 경기 화면에서는 마우스가 창 밖으로 나가지 않아, 모니터가 여러 개여도 가장자리 카메라 이동이 끊기지 않는다 (docs/controls.md)
+        Input.MouseMode = Input.MouseModeEnum.Confined;
         ConnectInput();
         Units.CommandRequested += SendCommand;
         Units.PositionsRendered += OnPositionsRendered;
@@ -922,6 +924,7 @@ public partial class Main : Node3D
 
     public override void _ExitTree()
     {
+        if (Input.MouseMode == Input.MouseModeEnum.Confined) Input.MouseMode = Input.MouseModeEnum.Visible; // 로비·방에서는 풀어 준다
         if (GodotObject.IsInstanceValid(Shop)) { Shop.CommandRequested-=SendCommand;Shop.RecallRequested-=RequestRecall; }
         _skillRange.Clear();
         ClearAttackRanges();
