@@ -115,7 +115,7 @@ public partial class HeroShopPanel : Control
         if (item.From!=0)
         {
             int slot=Array.IndexOf(s.Items,item.From);
-            if (slot<0) return Lang.F("{0} 필요",_catalog.GetValueOrDefault(item.From)?.Name ?? Lang.T("이전 단계 장비"));
+            if (slot<0) return Lang.F("{0} 필요",_catalog.GetValueOrDefault(item.From)?.DisplayName ?? Lang.T("이전 단계 장비"));
             if (s.Pending[slot]) return Lang.T("이전 단계 장비 수령 필요");
         }
         else
@@ -148,7 +148,7 @@ public partial class HeroShopPanel : Control
             uint id=item.Id;
             var b=Button("",()=>RequestBuy(id));b.Name=$"Item{id}";b.CustomMinimumSize=new Vector2(0,58);
             b.Alignment=HorizontalAlignment.Left;b.AddThemeFontSizeOverride("font_size",13);
-            b.TooltipText=Lang.F("{0}티어",item.Tier)+$" · {item.Description}\n"+(item.From==0 ? Lang.T("기본 장비") : Lang.T("이전 단계 장비를 교체 · 표시 가격은 추가 비용"));
+            b.TooltipText=Lang.F("{0}티어",item.Tier)+$" · {item.EffectText}\n"+(item.From==0 ? Lang.T("기본 장비") : Lang.T("이전 단계 장비를 교체 · 표시 가격은 추가 비용"));
             _list.AddChild(b);_buyButtons[id]=b;
         }
     }
@@ -168,15 +168,15 @@ public partial class HeroShopPanel : Control
             uint id=Inventory?.Items[i] ?? 0;
             var d=_catalog.GetValueOrDefault(id);
             bool pending=Inventory?.Pending[i]==true;
-            _slots[i].Text=id==0 ? Lang.T("빈 칸") : ShortName(d?.Name ?? Lang.T("장비"))+"\n"+(pending ? Lang.T("배송 / 장착 중") : Lang.T("장착됨"));
+            _slots[i].Text=id==0 ? Lang.T("빈 칸") : ShortName(d?.DisplayName ?? Lang.T("장비"))+"\n"+(pending ? Lang.T("배송 / 장착 중") : Lang.T("장착됨"));
             _slots[i].Disabled=id==0 || pending || Inventory?.CanShop!=true;
             int value=ItemValue(id);
-            _slots[i].TooltipText=d==null ? Lang.T("아이템 슬롯") : $"{d.Name}\n{d.Description}\n"+(pending ? Lang.T("수령 후 장착됩니다.") : Lang.F("부활 구역에서 클릭하여 {0} G에 판매",value/2));
+            _slots[i].TooltipText=d==null ? Lang.T("아이템 슬롯") : $"{d.DisplayName}\n{d.EffectText}\n"+(pending ? Lang.T("수령 후 장착됩니다.") : Lang.F("부활 구역에서 클릭하여 {0} G에 판매",value/2));
         }
         foreach (var (id,b) in _buyButtons)
         {
             var d=_catalog[id];string reason=BuyBlockReason(id);b.Disabled=reason!=null;
-            b.Text=$"{d.Name}   {d.Cost:N0} G\n{reason ?? d.Description}";
+            b.Text=$"{d.DisplayName}   {d.Cost:N0} G\n{reason ?? d.EffectText}";
         }
     }
     private uint ItemFamily(uint id)

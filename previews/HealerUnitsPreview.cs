@@ -76,9 +76,9 @@ public partial class HealerUnitsPreview : Node3D
         _layout.AddChild(new ColorRect { Position = new Vector2(64, 199), Size = new Vector2(1472, 1), Color = new Color("4c5a61") });
         // The camera looks along +Z, so the doctor (+X) stands on the left.
         Text("돌팔이 의사", 300, 770, 508, 32, "f0e7d4", HorizontalAlignment.Center);
-        Text("영웅 > 용병 > 미니언 · 생체만 · 인력 사무소", 300, 821, 508, 20, "bd9c65", HorizontalAlignment.Center);
+        Text("영웅 > 병력 > 미니언 · 생체만 · 인력 사무소", 300, 821, 508, 20, "bd9c65", HorizontalAlignment.Center);
         Text("급유 기계", 800, 770, 508, 32, "f0e7d4", HorizontalAlignment.Center);
-        Text("기계 용병만 · 마나 없음 · 공장", 800, 821, 508, 20, "bd9c65", HorizontalAlignment.Center);
+        Text("기계 병력만 · 마나 없음 · 공장", 800, 821, 508, 20, "bd9c65", HorizontalAlignment.Center);
         Text("실제 게임 모델  ·  동일 배율", 64, 931, 900, 17, "94a5af");
     }
 

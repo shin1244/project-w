@@ -601,7 +601,7 @@ public partial class MinionPanel : Control
         100 => Lang.T("앞에서 적을 막는 근접 전투원"), 101 => Lang.T("뒤에서 공격하는 원거리 전투원"),
         102 => Lang.T("사망 시 주변 아군 최대 HP 10% 회복"),
         103 => Lang.T("등에 진 화로로 주변 적 유닛을 계속 태우는 근접 전투원"),
-        104 => Lang.T("주변 아군 영웅·용병이 받는 피해 일부를 대신 받는 근접 전투원"),
+        104 => Lang.T("주변 아군 영웅·병력이 받는 피해 일부를 대신 받는 근접 전투원"),
         105 => Lang.T("맞힌 화살의 전기가 주변 적에게 튕기는 원거리 전투원"), _ => Lang.T("라인을 따라 전진하는 미니언")
     };
 
@@ -609,7 +609,7 @@ public partial class MinionPanel : Control
     private static string Effect(MinionUpgradeSnapshot upgrade) => upgrade.UnitType switch
     {
         103 => Lang.F("주변 {0:0.#}m의 적 유닛에게 1초마다 자기 최대 체력의 {1:0.#}% 피해 (건물·일꾼·정글몹 제외)", upgrade.Radius, upgrade.Percent),
-        104 => Lang.F("주변 {0:0.#}m 아군 영웅·용병이 받는 피해의 {1:0.#}%를 대신 받음 (여러 기여도 가장 가까운 한 기만)", upgrade.Radius, upgrade.Percent),
+        104 => Lang.F("주변 {0:0.#}m 아군 영웅·병력이 받는 피해의 {1:0.#}%를 대신 받음 (여러 기여도 가장 가까운 한 기만)", upgrade.Radius, upgrade.Percent),
         105 => Lang.F("공격이 맞으면 {0:0.#}m 안의 다른 적에게 공격력의 {1:0.#}%, 다시 {2:0.#}%로 튕김 (소수점 내림·최소 1, 이미 맞은 적 제외, 건물·정글몹 제외)",
             upgrade.Radius, upgrade.Percent, upgrade.Percent * upgrade.Percent / 100),
         _ => ""

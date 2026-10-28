@@ -488,7 +488,7 @@ public partial class CommandPanelChecks : Main
         int sent = _commands.Count;
         KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
         Check(_slots[7].Disabled && _commands.Count == sent && _slots[7].TooltipText.Contains(Lang.F("목재 {0:N0} · 기름 {1:N0} · {2:0.##}초", 300, 120, 45)) &&
-            _slots[7].TooltipText.Contains(Lang.F("용병 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", Lang.T("공격력"), 15, 0, 5)),
+            _slots[7].TooltipText.Contains(Lang.F("병력 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", Lang.T("공격력"), 15, 0, 5)),
             "Research cost, step and maximum level come from the server and gate the button");
         string melee = Lang.T("근접"), healing = Lang.T("치유");
         Check(_slots[7].TooltipText.Contains($"{melee} +4 · {healing} +1.5") && _slots[8].TooltipText.Contains($"{melee} +40 · {healing} +20") &&

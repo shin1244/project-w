@@ -18,7 +18,7 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 - 같은 한국어가 영어에서 둘로 갈리면 문맥을 붙입니다: `Lang.T("입장", "lobby")` = Enter, `Lang.T("입장", "room")` = Join (`msgctxt`).
 - 컨트롤이 자기 글자를 스스로 번역하는 Godot 자동 번역은 루트에서 껐습니다. 번역은 `Lang`을 거친 곳에서만 일어나므로, 플레이어·방 이름이 번역 문장과 같아도 그대로 보입니다.
 - 화면은 `Settings.LanguageChanged`를 받아 한 번만 넣는 글자(`ApplyText`)를 다시 넣고 `Refresh`합니다. 매 갱신마다 글자를 다시 만드는 곳은 따로 할 일이 없습니다.
-- 용어는 상점 페이지 영어를 따릅니다: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone. 지역은 Korea·US·Germany·Australia입니다. 경기 화면의 `지휘관`도 같은 자리라 Director, 영웅 = hero이고, 경기 중 `용병`(인력 사무소·공장에서 뽑는 병력)도 한국어처럼 mercenary입니다.
+- 용어는 상점 페이지 영어를 따릅니다: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone. 지역은 Korea·US·Germany·Australia입니다. 경기 화면의 `지휘관`도 같은 자리라 Director, 영웅 = hero입니다. `용병`은 방에서 고르는 플레이어 역할에만 쓰고, 대표가 인력 사무소·공장에서 뽑는 유닛은 한국어 **병력**, 영어 **troops**입니다(연구 툴팁 `병력 기본 공격력 +n%`, 스킬·유닛 설명의 `미니언·병력` 등). 서버 코드의 `ClassMercenary`와 클라이언트 주석의 `용병 0~99`는 같은 유닛을 가리키는 옛 이름입니다.
 - 건물 영어 이름은 [건물 문서의 추천 이름](../buildings/README.md#영어-이름-추천)을 따르고(브랜치 = Supply Depot, 숙소 = House, 인력 사무소 = Barracks, 비허가 실험실 = Forge, 감시탑 = Watchtower, 시추탑 = Oil Derrick), HQ는 두 언어 모두 HQ입니다. 표에 없는 건물·유닛·스킬 이름은 `locale/en.po`의 이름 묶음에 있습니다.
 - 한 번만 넣는 글자를 다시 넣을 일은 로비 화면에만 있습니다. 설정 창은 로비에만 있어 경기 중에는 언어가 바뀌지 않으므로, 경기 HUD는 만들 때 한 번 번역하면 됩니다.
 
@@ -31,7 +31,8 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 | 로비가 보내는 거절 (`MatchSession.Describe`) | 오류 코드로 번역함. 모르는 코드는 로비 문장 그대로 |
 | 로비가 보내는 지역 이름, 방 화면의 용병 이름 | 알려진 이름만 번역함 (`en.po`) |
 | 경기 중 HUD: 명령창·선택 정보·미니언 편성·영웅 스킬과 상점·팀 창·관전 창·마석·건설 배치·유닛/건물 이름과 설명·스킬 설명, 맵 확인 문구와 맵 동기화 오류(로딩 화면에도 나옴) (`ui/`, `game/Main.cs`, `units/`, `buildings/`, `input/`, `maps/`, `events/`) | 번역함 |
-| 서버가 보내는 문장: 경기 중 `ERR` 거절(건설·구매·편성 등), 방 채팅의 회색 안내 줄(입장·방장 변경·카운트다운 등), 상점의 아이템 이름과 설명(`ITEM_CATALOG`) | 한국어 그대로. 바꾸려면 서버가 코드나 키를 보내도록 프로토콜을 바꿔야 함 |
+| 상점·장비 칸·배송 상자의 아이템 이름과 효과 (`ITEM_CATALOG`, `network/HeroEconomySnapshot.cs`) | 이름은 서버가 보내는 `key`로 `en.po`의 `msgctxt "item"`을 찾고, 없으면 서버의 한국어 이름. 효과는 서버 `effects`의 종류·값으로 클라이언트가 적고, `effects`가 없는 예전 서버나 모르는 종류가 섞이면 서버의 한국어 `description` |
+| 서버가 보내는 문장: 경기 중 `ERR` 거절(건설·구매·편성 등), 방 채팅의 회색 안내 줄(입장·방장 변경·카운트다운 등) | 한국어 그대로. 바꾸려면 서버가 코드나 키를 보내도록 프로토콜을 바꿔야 함 |
 | 맵 파일의 라인 이름(`maps/test.json`의 `top`·`bottom`) | 맵 데이터 그대로 |
 | 개발용 경고(`GD.PushWarning`·`GD.Print`) | 한국어 그대로 |
 
@@ -42,10 +43,11 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 1. 코드에 한국어로 쓰고 `Lang.T`나 `Lang.F`로 감쌉니다. 숫자·이름은 `{0}` 자리로 넘깁니다(문장 안에서 이어 붙이지 않음).
 2. `locale/en.po`의 해당 화면 묶음에 `msgid`(코드와 똑같은 한국어)와 `msgstr`(영어)을 더합니다. 줄바꿈은 `\n`입니다. 주석에 `fuzzy`라는 단어를 쓰면 Godot가 다음 항목을 건너뛰므로 쓰지 않습니다.
 3. 변수로 넘기는 문장(지역·영웅 이름, `NetClient`의 연결 오류처럼 호출 자리에 글자가 없는 것)은 `tests/SettingsChecks.cs`의 `Indirect`에도 적습니다.
+4. 새 영웅 아이템은 서버 `hero_item_defs.go`의 `Key`를 `msgid`로, 문맥 `item`을 붙여 `en.po`의 아이템 이름 묶음에 영어 이름을 더합니다(위 주석에 서버의 한국어 이름). 장비 칸은 이름의 마지막 단어만 보여 주므로 물건 이름으로 끝냅니다. 서버가 새 효과 종류를 보내기 시작하면 `HeroItemEffect.Text`에 문장을 더합니다. 빠뜨려도 서버의 한국어가 나올 뿐 검사는 실패하지 않습니다.
 
 ## 확인
 
-`./tests/run.ps1 -Check SettingsChecks`가 서버 없이 처음 실행 기본값(영어), 언어 변경 알림, 저장 후 다시 읽기(재시작), 잘못된 파일의 기본값 복귀, 로비 화면의 설정 버튼·창과 언어 즉시 반영을 확인합니다. 소스의 `Lang.T`·`Lang.F` 문장과 `Indirect` 목록이 모두 `en.po`에 영어를 가지고, `{0}` 같은 자리를 그대로 지키는지도 봅니다. 검사는 `user://settings-checks.cfg`만 쓰고 플레이어의 `settings.cfg`는 건드리지 않습니다.
+`./tests/run.ps1 -Check SettingsChecks`가 서버 없이 처음 실행 기본값(영어), 언어 변경 알림, 저장 후 다시 읽기(재시작), 잘못된 파일의 기본값 복귀, 로비 화면의 설정 버튼·창과 언어 즉시 반영을 확인합니다. 소스의 `Lang.T`·`Lang.F` 문장과 `Indirect` 목록이 모두 `en.po`에 영어를 가지고, `{0}` 같은 자리를 그대로 지키는지도 봅니다. 모의 `ITEM_CATALOG`로 아이템 이름이 `key`의 영어로, 효과가 서버 숫자로 적히는지, 모르는 `key`·효과와 `effects` 없는 카탈로그는 서버의 한국어가 나오는지, 한국어에서는 서버 이름이 나오는지도 확인합니다. 검사는 `user://settings-checks.cfg`만 쓰고 플레이어의 `settings.cfg`는 건드리지 않습니다.
 
 ```powershell
 & $env:GODOT_BIN --path . --resolution 1600x900 res://tests/SettingsChecks.tscn -- --capture

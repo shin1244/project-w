@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 public partial class RecoveryClientChecks : Main
 {
     private const BindingFlags Private=BindingFlags.Instance|BindingFlags.NonPublic;
-    private const string CatalogLine="ITEM_CATALOG [{\"id\":1,\"key\":\"sword\",\"name\":\"강철 장검\",\"description\":\"공격력 +40\",\"cost\":400},{\"id\":3,\"key\":\"boots\",\"name\":\"진군의 장화\",\"description\":\"이동 속도 +0.6\",\"cost\":300},{\"id\":7,\"key\":\"greatsword\",\"name\":\"명장의 대검\",\"description\":\"공격력 +120\",\"cost\":600,\"from\":1}]";
+    private const string CatalogLine="ITEM_CATALOG [{\"id\":1,\"key\":\"sword\",\"name\":\"강철 장검\",\"description\":\"공격력 +40\",\"cost\":400,\"effects\":[{\"stat\":\"attack\",\"value\":40}]},{\"id\":3,\"key\":\"boots\",\"name\":\"진군의 장화\",\"description\":\"이동 속도 +0.6\",\"cost\":300,\"effects\":[{\"stat\":\"moveSpeed\",\"value\":0.6}]},{\"id\":7,\"key\":\"greatsword\",\"name\":\"명장의 대검\",\"description\":\"공격력 +120\",\"cost\":600,\"from\":1,\"effects\":[{\"stat\":\"attack\",\"value\":120}]}]";
     public override async void _Ready()
     {
         try
@@ -36,6 +36,9 @@ public partial class RecoveryClientChecks : Main
                 Skills.Definition(0)?.Id=="marshal-shot", "Marshal must be spawned and controllable with server abilities");
             Receive(CatalogLine);
             Receive("HERO_ITEMS 400 1 0 0 0 0 0 0 0 0 0");
+            var sword=Shop.Catalog[1];
+            Check(((Button)Shop.FindChild("Item1",true,false)).Text==$"{sword.DisplayName}   400 G\n{sword.EffectText}" && sword.EffectText==Lang.F("공격력 +{0:0.##}",40),
+                "The shop shows the item's name and the effect worded from the catalog's numbers");
             long before=wire.Length;Shop.RequestBuy(1);
             Check(After(wire,before)=="BUY_ITEM 1\n" && Shop.Inventory.Gold==400 && Shop.Inventory.Items[0]==0,
                 "Purchase sends one request, without optimistic gold or equipment changes");

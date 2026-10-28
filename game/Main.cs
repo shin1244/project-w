@@ -475,7 +475,7 @@ public partial class Main : Node3D
                 {
                     if (!_crates.TryGetValue(crate.Id,out var view))
                     { view=new ItemCrateView { Name=$"ItemCrate_{crate.Id}" };_crates.Add(crate.Id,view);AddChild(view); }
-                    view.Apply(crate,Units.LocalTeam,Shop?.Catalog.GetValueOrDefault(crate.ItemId)?.Name ?? Lang.T("보급 상자"));
+                    view.Apply(crate,Units.LocalTeam,Shop?.Catalog.GetValueOrDefault(crate.ItemId)?.DisplayName ?? Lang.T("보급 상자"));
                 }
                 break;
             case "ITEM_CRATE_REMOVE":

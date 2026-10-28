@@ -32,7 +32,7 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | 단일 검사 `-Check SiegeRamChecks` | SiegeRam | 자동 공성추 소환·체력·실제 우클릭 공격·서버 충돌 연출·정리 |
 | 단일 검사 `-Check RecoveryClientChecks` | RecoveryClient | 사령관, 상점·장비, 아이템 상자 우클릭·일꾼 배달, 귀환·효과 타이머, 액티브·패시브 강화 및 포인트 동기화, 역할·맵·연결 초기화 |
 | 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 인력 사무소의 돌팔이 의사(비허가 실험실 필요)·`HEALING`·의사 마나, 마석 가격·잔액과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
-| 단일 검사 `-Check SettingsChecks` | Settings | 설정 기본값(영어·100%)·저장과 다시 읽기·버스 음량·언어 즉시 반영, 로비·경기 HUD 문장의 영어 번역 누락·자리 표시 |
+| 단일 검사 `-Check SettingsChecks` | Settings | 설정 기본값(영어·100%)·저장과 다시 읽기·버스 음량·언어 즉시 반영, 로비·경기 HUD 문장의 영어 번역 누락·자리 표시, 상점 아이템 이름(`key`)·효과(`effects`)의 영어와 한국어 대체 |
 | All | 중복을 제거한 24개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
 
 표에서 `check_arena`를 제외한 이름에는 `Checks` 접미사가 붙는다. 한 기능만 바꿨으면 `-Check 이름`이 우선이며, 관련 그룹을 실행했다면 기본 검사까지 추가 실행할 필요는 없다. 문서·외형만 바꿨다면 자동 테스트는 생략할 수 있다.
