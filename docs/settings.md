@@ -18,7 +18,7 @@ English(기본)와 한국어 중에서 고릅니다. 고르는 즉시 열려 있
 - 같은 한국어가 영어에서 둘로 갈리면 문맥을 붙입니다: `Lang.T("입장", "lobby")` = Enter, `Lang.T("입장", "room")` = Join (`msgctxt`).
 - 컨트롤이 자기 글자를 스스로 번역하는 Godot 자동 번역은 루트에서 껐습니다. 번역은 `Lang`을 거친 곳에서만 일어나므로, 플레이어·방 이름이 번역 문장과 같아도 그대로 보입니다.
 - 화면은 `Settings.LanguageChanged`를 받아 한 번만 넣는 글자(`ApplyText`)를 다시 넣고 `Refresh`합니다. 매 갱신마다 글자를 다시 만드는 곳은 따로 할 일이 없습니다.
-- 용어는 상점 페이지 영어를 따릅니다: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone. 지역은 Korea·US·Germany·Australia입니다. 경기 화면의 `지휘관`도 같은 자리라 Director, 영웅 = hero이고, 경기 중 `용병`(인력 사무소·공장에서 뽑는 병력)도 한국어처럼 mercenary입니다.
+- 용어는 상점 페이지 영어를 따릅니다: 대표 = Director, 용병 = Mercenary, 마석 = Mana Stone. 지역은 Korea·US·Germany·Australia입니다. 경기 화면의 `지휘관`도 같은 자리라 Director, 영웅 = hero입니다. `용병`은 방에서 고르는 플레이어 역할에만 쓰고, 대표가 인력 사무소·공장에서 뽑는 유닛은 한국어 **병력**, 영어 **troops**입니다(연구 툴팁 `병력 기본 공격력 +n%`, 스킬·유닛 설명의 `미니언·병력` 등). 서버 코드의 `ClassMercenary`와 클라이언트 주석의 `용병 0~99`는 같은 유닛을 가리키는 옛 이름입니다.
 - 건물 영어 이름은 [건물 문서의 추천 이름](../buildings/README.md#영어-이름-추천)을 따르고(브랜치 = Supply Depot, 숙소 = House, 인력 사무소 = Barracks, 비허가 실험실 = Forge, 감시탑 = Watchtower, 시추탑 = Oil Derrick), HQ는 두 언어 모두 HQ입니다. 표에 없는 건물·유닛·스킬 이름은 `locale/en.po`의 이름 묶음에 있습니다.
 - 한 번만 넣는 글자를 다시 넣을 일은 로비 화면에만 있습니다. 설정 창은 로비에만 있어 경기 중에는 언어가 바뀌지 않으므로, 경기 HUD는 만들 때 한 번 번역하면 됩니다.
 

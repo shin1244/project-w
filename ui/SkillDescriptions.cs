@@ -22,8 +22,8 @@ public static class SkillDescriptions
         {
             string amount=rank >= 3 ? "1" : rank >= 1 ? "0.7" : "0.5";
             return Lang.T("P · 전선 지휘")+"\n"+(rank >= 4
-                    ? Lang.F("주변 5m 아군 미니언·용병·영웅에게 공격 피해 +{0}, 받는 피해 −{0}.",amount)
-                    : Lang.F("주변 5m 아군 미니언·용병에게 공격 피해 +{0}, 받는 피해 −{0}.",amount))+
+                    ? Lang.F("주변 5m 아군 미니언·병력·영웅에게 공격 피해 +{0}, 받는 피해 −{0}.",amount)
+                    : Lang.F("주변 5m 아군 미니언·병력에게 공격 피해 +{0}, 받는 피해 −{0}.",amount))+
                 (rank >= 2 ? "\n"+Lang.T("오라 대상 이동 속도 +10%.") : "")+"\n"+Lang.T("자신과 일꾼에게는 적용되지 않으며 같은 오라는 중첩되지 않습니다.");
         }
         if (heroType == UnitCatalog.HeroRanger)
@@ -75,8 +75,8 @@ public static class SkillDescriptions
             "wolf-aura" => (Lang.T("E · 피의 안개"),
                 Lang.F("주변 3.5m 적에게 즉시 1회, 이후 0.5초마다 10회 타격.\n매 타격 공격력 {0:0}% 피해 · 5초 지속 · 종료 후 재사용 10초",25*scale)),
             "wolf-devour" => rank > 0
-                ? (Lang.T("R · 무리 포식"), Lang.T("주변 8m 아군 미니언·용병을 모두 먹습니다.\n가장 높은 최대 체력 ×1 보호막, 가장 높은 기본 공격력 ×2 추가 공격력.\n먹은 유닛 수만큼 일반 공격·Q 명중에 적용. 마지막 명중 후 남은 보호막도 종료.\n재사용 40초 · 재시전 시 이전 효과 교체"))
-                : (Lang.T("R · 포식"), Lang.T("8m 안 아군 미니언·용병 1마리를 먹습니다.\n대상의 최대 체력 ×1 보호막, 기본 공격력 ×2 추가 공격력.\n다음 일반 공격·Q 명중 후 종료 · 재사용 40초")),
+                ? (Lang.T("R · 무리 포식"), Lang.T("주변 8m 아군 미니언·병력을 모두 먹습니다.\n가장 높은 최대 체력 ×1 보호막, 가장 높은 기본 공격력 ×2 추가 공격력.\n먹은 유닛 수만큼 일반 공격·Q 명중에 적용. 마지막 명중 후 남은 보호막도 종료.\n재사용 40초 · 재시전 시 이전 효과 교체"))
+                : (Lang.T("R · 포식"), Lang.T("8m 안 아군 미니언·병력 중 1마리를 먹습니다.\n대상의 최대 체력 ×1 보호막, 기본 공격력 ×2 추가 공격력.\n다음 일반 공격·Q 명중 후 종료 · 재사용 40초")),
             "golem-slam" => empowered
                 ? (Lang.T("Q · 강화 내려찍기"), Lang.F("주변 {0}m 적에게 공격력 {1:0}% 피해.\n룬 각성 소모 · 재사용 10초",5,150*scale))
                 : (Lang.T("Q · 내려찍기"), Lang.F("주변 {0}m 적에게 공격력 {1:0}% 피해.\n2초 동안 이동 속도 35% 감소 · 재사용 10초",3.5f,120*scale)),
@@ -90,7 +90,7 @@ public static class SkillDescriptions
             "marshal-bulwark" => (Lang.T("W · 방벽"),
                 Lang.F("자신에게 최대 체력 {0:0.#}%, 주변 5m 아군에게 자신의 최대 체력 {1:0.#}% 보호막.\n5초 지속 · 재사용 12초",10*scale,5*scale)),
             "marshal-march" => (Lang.T("E · 진군"),
-                Lang.F("자신과 주변 5m 아군 미니언·용병에게 이동 속도 ×1.25, 공격 속도 ×1.2.\n{0}초 지속 · 재사용 12초",4+steps)),
+                Lang.F("자신과 주변 5m 아군 미니언·병력에게 이동 속도 ×1.25, 공격 속도 ×1.2.\n{0}초 지속 · 재사용 12초",4+steps)),
             "ranger-pierce" => (Lang.T("Q · 관통 화살"),
                 Lang.F("지정한 적에게 공격력 {0:0}% 피해. 일반 공격 판정이라 집중 사격을 쌓고 적용받음.\n사거리 8m · 재사용 8초",160*scale)),
             "ranger-stride" => (Lang.T("W · 바람 걸음"),
@@ -100,7 +100,7 @@ public static class SkillDescriptions
             "ranger-snipe" => (Lang.T("R · 저격"),
                 Lang.F("지정한 적에게 공격력 {0:0}% 피해.\n사거리 {1}m · 대상이 시야에 있어야 함 · 재사용 45초",350*scale,rank > 0 ? 18 : 14)),
             "marshal-command" => (Lang.T("R · 부대 소집"), rank > 0
-                ? Lang.T("주변 6m의 아군 미니언·용병을 소집.\n30초 동안 따라 이동하며 지정한 적을 집중 공격. 종료 시 소집 유닛 소멸.\n재사용 60초")
+                ? Lang.T("주변 6m의 아군 미니언·병력을 소집.\n30초 동안 따라 이동하며 지정한 적을 집중 공격. 종료 시 소집 유닛 소멸.\n재사용 60초")
                 : Lang.T("주변 6m의 아군 미니언을 소집.\n30초 동안 따라 이동하며 지정한 적을 집중 공격. 종료 시 소집 유닛 소멸.\n재사용 60초")),
             _ => (skillId ?? "", (string)null)
         };
@@ -118,10 +118,10 @@ public static class SkillDescriptions
         if (id is "wolf-devour" or "golem-up" or "marshal-command" or "ranger-snipe")
             return next != 1 ? Lang.T("최대 강화") : id switch
             {
-                "wolf-devour" => Lang.T("주변 8m 아군 미니언·용병 전체 포식 (일꾼 제외) · 가장 높은 체력 ×1 보호막·공격력 ×2 · 먹은 수만큼 강화 공격"),
+                "wolf-devour" => Lang.T("주변 8m 아군 미니언·병력 전체 포식 (일꾼 제외) · 가장 높은 체력 ×1 보호막·공격력 ×2 · 먹은 수만큼 강화 공격"),
                 "golem-up" => Lang.T("다음 Q/W/E 2회 강화"),
                 "ranger-snipe" => Lang.T("사거리 14m → 18m, 피해 20% 증가"),
-                _ => Lang.T("아군 용병도 소집 가능 (일꾼 제외)")
+                _ => Lang.T("아군 병력도 소집 가능 (일꾼 제외)")
             };
         if (next is < 1 or > 4) return Lang.T("최대 강화");
         if (next % 2 == 1) return id switch

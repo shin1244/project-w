@@ -385,7 +385,7 @@ public partial class CommandPanel : PanelContainer
             minionGains.Add($"{MinionShortName(step.UnitType)} +{(attack ? step.Attack : step.Hp):0.##}");
         var points = new List<string>();
         if (minionGains.Count > 0) points.Add(Lang.F("미니언 {0} 단계당 {1}", name, string.Join(" · ", minionGains)));
-        points.Add(Lang.F("용병 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", name, state.StepPercent, level, state.MaxLevel));
+        points.Add(Lang.F("병력 기본 {0} +{1}% (일꾼·영웅 제외) · 현재 {2}/{3}단계", name, state.StepPercent, level, state.MaxLevel));
         slot.Points = points.ToArray();
         slot.Warning = reason ?? "";
     }
