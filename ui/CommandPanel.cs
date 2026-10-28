@@ -100,9 +100,8 @@ public partial class CommandPanel : PanelContainer
     private Texture2D UnitIcon(uint type) => _portraits.GetPortrait(Units.SceneFor(type));
     private Texture2D BuildingIcon(uint type) => _portraits.GetPortrait(Buildings.SceneFor(type));
 
-    // Each command sits on its hotkey's cell (Q W E R / A S D F / Z X C V), which the slot numbers already follow.
-    // Production without a grid key takes the top row; cancel (Esc) has no cell of its own and takes the free
-    // bottom-right one.
+    // Each command sits on its hotkey's cell (Q W E R / A S D F / Z X C V), which the slot numbers already follow,
+    // and that key runs it (TryHandleShortcut). Cancel (Esc) has no cell of its own and takes the free bottom-right one.
     private void ArrangeSlots(DisplayMode mode)
     {
         bool cancel = mode is DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop or DisplayMode.Construction;
@@ -154,7 +153,7 @@ public partial class CommandPanel : PanelContainer
                 (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, 3) => (Lang.T("뒤로"), "C", Icon("command-back")),
                 (DisplayMode.BuildTierOne or DisplayMode.BuildTierTwo, int number) when BuildingCatalog.IsPlayerBuildable(BuildingTypeForSlot(next, number)) =>
                     (BuildingCatalog.Name(BuildingTypeForSlot(next, number)), CellKey(number), BuildingIcon(BuildingTypeForSlot(next, number))),
-                (DisplayMode.TownHall, 7) => (UnitCatalog.Name(UnitCatalog.Worker), "", UnitIcon(UnitCatalog.Worker)),
+                (DisplayMode.TownHall, 7) => (UnitCatalog.Name(UnitCatalog.Worker), "Q", UnitIcon(UnitCatalog.Worker)),
                 (DisplayMode.TownHall, 1) => (Lang.T("업그레이드"), "Z", Icon("command-upgrade")),
                 (DisplayMode.Barracks, 7) => (UnitCatalog.Name(UnitCatalog.Knight), "Q", UnitIcon(UnitCatalog.Knight)),
                 (DisplayMode.Barracks, 8) => (UnitCatalog.Name(UnitCatalog.Archer), "W", UnitIcon(UnitCatalog.Archer)),
@@ -452,24 +451,12 @@ public partial class CommandPanel : PanelContainer
         if (_heldMenuKeys.Contains(code)) return true;
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.ShiftPressed) return false;
         RefreshSelection();
-        int menuCell = BuildMenu ? CellOfKey(code) : 0; // A build menu takes the key of any cell it fills.
+        int cell = CellOfKey(code);
         int slot = code switch
         {
             Key.Escape when BuildMenu => 3,
-            _ when menuCell > 0 && Slot(menuCell).CommandName.Length > 0 => menuCell,
-            Key.Z when _display is DisplayMode.Workers or DisplayMode.TownHall => 1,
-            Key.X when _display == DisplayMode.Workers => 2,
-            Key.Z when _display == DisplayMode.Units && Units.HasSelectedArtillery => 1,
-            Key.Q when _display is DisplayMode.Barracks or DisplayMode.Workshop => 7,
-            Key.W when _display is DisplayMode.Barracks or DisplayMode.Workshop => 8,
-            Key.E when _display is DisplayMode.Barracks or DisplayMode.Workshop => 9,
-            Key.Q when _display == DisplayMode.Forge => 7,
-            Key.Q when _display == DisplayMode.ResearchLab => 7,
-            Key.Q when _display == DisplayMode.Tunnel => 7,
-            Key.W when _display == DisplayMode.Forge => 8,
-            Key.A when _display is DisplayMode.Units or DisplayMode.Workers => 4,
-            Key.S when _display is DisplayMode.Units or DisplayMode.Workers => 5,
-            Key.D when _display is DisplayMode.Units or DisplayMode.Workers => 6,
+            // A grid key runs the command on its cell when that command shows the key; the cancel moved to V shows Esc.
+            _ when cell > 0 && Slot(cell).Hotkey == CellKey(cell) => cell,
             Key.Escape when _display is DisplayMode.Construction or DisplayMode.TownHall or DisplayMode.Barracks or DisplayMode.Workshop && !Slot(3).Disabled => 3,
             _ => 0
         };

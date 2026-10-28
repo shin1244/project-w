@@ -78,7 +78,7 @@ public partial class CommandPanelChecks : Main
             }
 
             SelectBuilding(201);
-            Expect("The friendly town hall shows worker", (7, Lang.T("일꾼")));
+            Expect("The friendly town hall shows worker", (7, Cap("일꾼", "Q")));
             Check(Cell(7) == 0 && Cell(1) == 8 && Cell(3) == 11,
                 "The town hall's worker takes the top row, Z upgrade its Z cell and Esc cancel the free bottom-right cell");
             Check(Units.SelectedUnitIds.Count == 0, "Building selection clears selected units");
@@ -122,14 +122,14 @@ public partial class CommandPanelChecks : Main
             Expect("Changing the selected hall's team clears worker immediately");
             CheckNoWorkerTrain("Changing the hall's team prevents worker requests");
             Receive("BUILDING 0 201 1 -10 8 0");
-            Expect("A selected hall returning to our team restores worker", (7, Lang.T("일꾼")));
+            Expect("A selected hall returning to our team restores worker", (7, Cap("일꾼", "Q")));
             Receive("REMOVE 201");
             Expect("Removing the selected hall clears worker");
             CheckNoWorkerTrain("Removed halls cannot request workers");
 
             SelectBuilding(203);
             Receive("WELCOME 8 2 COMMANDER");
-            Expect("Changing the local team refreshes an already selected hall", (7, Lang.T("일꾼")));
+            Expect("Changing the local team refreshes an already selected hall", (7, Cap("일꾼", "Q")));
             CheckWorkerTrain();
             Receive("TEAM_TIER 2 1 203 0 0 0 37 11 13");
             Receive("STOCK 0 37");
@@ -264,7 +264,7 @@ public partial class CommandPanelChecks : Main
     private void Expect(string message, params (int Slot, string Text)[] entries)
     {
         var expected = entries.ToDictionary(entry => entry.Slot, entry => entry.Text);
-        bool townHall = expected.GetValueOrDefault(7) == Lang.T("일꾼");
+        bool townHall = expected.GetValueOrDefault(7) == Cap("일꾼", "Q");
         if (townHall) expected[1] = Lang.F("{0}티어 업그레이드", 2) + "(Z)";
         foreach ((int number, Button button) in _slots)
         {
@@ -736,7 +736,10 @@ public partial class CommandPanelChecks : Main
             "The existing Main and NetClient path writes exactly one correctly framed training line");
         Check(Units.LiveUnits.Count == unitsBefore && Stock.GetNode<Label>("Resources/Resource0/Amount").Text == stockBefore,
             "A training request does not create a local unit or deduct local stock");
-        Expect("Sending a worker request preserves the hall selection", (7, Lang.T("일꾼")));
+        int beforeKey = _commands.Count;
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.Q);
+        Check(_commands.Count == beforeKey + 1 && _commands[^1] == expected, "HQ Q trains a worker like its button");
+        Expect("Sending a worker request preserves the hall selection", (7, Cap("일꾼", "Q")));
     }
 
     private async Task CheckBarracksProduction()
@@ -864,6 +867,10 @@ public partial class CommandPanelChecks : Main
         Building producer = Buildings.SelectedBuilding;
         Expect("Owned active production shows cancel", (7, UnitCatalog.Name(UnitCatalog.Knight) + "(Q)"), (8, Cap("공압사수", "W")), (9, UnitCatalog.Name(UnitCatalog.Medic) + "(E)"), (3, Cap("생산 취소", "Esc")));
         Check(_slots[3].TooltipText.Contains("75%"), "Cancellation explains the refund rate");
+        int beforeCells = _commands.Count;
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.C);
+        KeyStroke(GetNode<PlayerInput>("PlayerInput"), Key.V);
+        Check(_commands.Count == beforeCells, "C and V do not cancel production; only Esc does");
         var details = GetNode<SelectionDetails>("SelectionUI/SelectionDetails");
         var queue = details.FindChildren("Queue", "HBoxContainer", true, false).OfType<HBoxContainer>().Single();
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
