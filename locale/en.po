@@ -581,15 +581,6 @@ msgstr "Siege mode"
 msgid "선택한 내 증기포격차만 전환 · 전환 중 이동·공격 불가"
 msgstr "Switches only your selected Steam Artillery · cannot move or attack while switching"
 
-msgid "유전 지대에만 건설 · 유전마다 1개"
-msgstr "Built only on oilfields · one per oilfield"
-
-msgid "일꾼이 목재를 끝없이 캐는 고정 채집지 · 나무가 떨어져도 사용"
-msgstr "A fixed site where workers gather wood endlessly · keeps working after the trees are gone"
-
-msgid "완성 후 선택하고 Q: 다른 곳에 출구 설치 · 아군 땅굴 우클릭: 반대쪽으로 이동"
-msgstr "Once built, select it and press Q to open an exit elsewhere · right-click a friendly tunnel: travel to its other end"
-
 msgid "공사를 취소하고 지불 비용의 75% 반환 (소수점 버림)"
 msgstr "Cancels construction and refunds 75% of the cost (rounded down)"
 
@@ -614,9 +605,6 @@ msgstr "Cancels the current training and refunds 75% of the cost · click queued
 msgid "지형 우클릭: 랠리 지정 · 선택한 건물 우클릭: 랠리 해제"
 msgstr "Right-click the ground: set rally · right-click the selected building: clear rally"
 
-msgid "나무 100 · 인구 1 · 생산 9초\n나무 우클릭: 새 일꾼 자동 채집"
-msgstr "Wood 100 · Supply 1 · 9s to train\nRight-click a tree: new workers gather automatically"
-
 msgid "{0}티어"
 msgstr "Tier {0}"
 
@@ -628,12 +616,6 @@ msgstr "{0:0}s"
 
 msgid "최고 단계"
 msgstr "Max level"
-
-msgid "나무 {0:N0} · 기름 {1:N0} · {2:0.##}초"
-msgstr "Wood {0:N0} · Oil {1:N0} · {2:0.##}s"
-
-msgid "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%\n팀의 다음 티어 영웅 장비 해금"
-msgstr "HQ, Fortress and Watchtower max HP and attack: +20% of base\nUnlocks the team's next tier of hero gear"
 
 msgid "HQ 업그레이드 중에는 일꾼을 생산할 수 없습니다."
 msgstr "Workers cannot be trained while the HQ upgrades."
@@ -1826,3 +1808,90 @@ msgstr "Amount change for a removed tree"
 
 msgid "맵 확인 전 동기화 완료 메시지"
 msgstr "Sync-complete message before the map check"
+
+msgid "나무 우클릭: 새 일꾼 자동 채집"
+msgstr "Right-click a tree: new workers gather automatically"
+
+msgid "HQ·요새·감시탑 최대 체력과 공격력: 기본값의 +20%"
+msgstr "HQ, Fortress and Watchtower max HP and attack: +20% of base"
+
+msgid "팀의 다음 티어 영웅 장비 해금"
+msgstr "Unlocks the team's next tier of hero gear"
+
+msgid "자원 채집"
+msgstr "Gathers resources"
+
+msgid "건물 건설"
+msgstr "Builds buildings"
+
+msgid "근접 보병"
+msgstr "Melee infantry"
+
+msgid "와이어 돌진 연구 시 자동 돌진"
+msgstr "Charges automatically after the Wire Charge research"
+
+msgid "원거리 보병"
+msgstr "Ranged infantry"
+
+msgid "아군 치유 (마나 사용)"
+msgstr "Heals allies (uses mana)"
+
+msgid "공격도 함"
+msgstr "Also attacks"
+
+msgid "전방 부채꼴 화염"
+msgstr "Flames in a cone ahead"
+
+msgid "전개 시 장거리 범위 포격"
+msgstr "Long-range area shelling when deployed"
+
+msgid "전개 중 이동 불가"
+msgstr "Cannot move while deployed"
+
+msgid "아군 기계 수리"
+msgstr "Repairs allied machines"
+
+msgid "일꾼 자원 반납"
+msgstr "Workers drop off resources"
+
+msgid "인구 +{0}"
+msgstr "Supply +{0}"
+
+msgid "인구 증가"
+msgstr "Adds supply"
+
+msgid "유전 지대에만 건설"
+msgstr "Built only on an oilfield"
+
+msgid "유전마다 1개"
+msgstr "One per oilfield"
+
+msgid "사거리 안 적 자동 공격"
+msgstr "Attacks enemies in range"
+
+msgid "생산 가능"
+msgstr "Trains"
+
+msgid "연구"
+msgstr "Research"
+
+msgid "나무 없이 목재 채집"
+msgstr "Wood without trees"
+
+msgid "Q: 다른 곳에 출구 설치"
+msgstr "Q: place an exit elsewhere"
+
+msgid "아군 땅굴 우클릭: 반대쪽으로 이동"
+msgstr "Right-click a friendly tunnel: travel to its other end"
+
+msgid "화염"
+msgstr "Flame"
+
+msgid "포격"
+msgstr "Shelling"
+
+msgid "수리"
+msgstr "Repair"
+
+msgid "{0:0.##}초"
+msgstr "{0:0.##}s"
