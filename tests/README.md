@@ -25,14 +25,13 @@ $env:GODOT_BIN = 'C:\tools\Godot\Godot_console.exe' # 실제 설치 경로
 | Units | UnitScene, Interpolation, MinionSync, RecoveryClient, SupportUpdate | 이동·공격·채집 명령, 선택 소유권, 미니언, 보간, 사령관·상점·귀환, 마석 슬롯 추가 |
 | Buildings | BuildingPlacement, ConstructionSync, CommandPanel, Rally, TowerSync | 배치·공사·생산·취소·랠리·건물 전투 표시, 생산·연구 중 톱니·연기 |
 | World | MapSync, MapZones, FogSync, Tribute, SiegeRam, check_arena | 맵 해시·나무·도로·차폐·지형 충돌·마석 이벤트·공성추 |
-| UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator, Sound, Settings | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀·효과음·설정(음량·언어) |
+| UI | RtsControl, SelectionDetails, CommandPanel, MatchResult, Spectator, Settings | 부대 지정·미니맵 조작·초상화 선택·편성 순서·생산 UI·승패·관전과 로비 복귀·설정(언어) |
 | Network | NetClient, Reconnect | 비동기 전송 순서·대기열 상한·쓰기 시간 제한·세션 취소와 재접속 격리·메인 스레드 오류 전달·마지막 `LEAVE` 전송, 경기 중 끊김의 제자리 재접속·무응답 감지·AI 대행 팀원 표시·방의 경기 복귀 제안 |
 | 단일 검사 `-Check RtsControlChecks` | RtsControl | 입력·편성 구매·탭 전환·네이티브 드래그 순서 변경·취소·오래된 리비전·역할 변경 |
 | 단일 검사 `-Check TributeChecks` | Tribute | 마석 스냅샷·대기/수집 시간·영웅 우클릭·역할 제한·재동기화/연결 종료 |
 | 단일 검사 `-Check SiegeRamChecks` | SiegeRam | 자동 공성추 소환·체력·실제 우클릭 공격·서버 충돌 연출·정리 |
 | 단일 검사 `-Check RecoveryClientChecks` | RecoveryClient | 사령관, 상점·장비, 아이템 상자 우클릭·일꾼 배달, 귀환·효과 타이머, 액티브·패시브 강화 및 포인트 동기화, 역할·맵·연결 초기화 |
 | 단일 검사 `-Check SupportUpdateChecks` | SupportUpdate | 인력 사무소의 돌팔이 의사(비허가 실험실 필요)·`HEALING`·의사 마나, 마석 가격·잔액과 + 버튼, HUD 표시 폭·역할/맵 초기화 |
-| 단일 검사 `-Check SoundChecks` | Sound | 공격·사망·공사·생산·전개·오류 메시지와 효과음, 초기 스냅샷 무음, 최소 간격·동시 재생 수, 화면 밖 거리 |
 | 단일 검사 `-Check SettingsChecks` | Settings | 설정 기본값(영어·100%)·저장과 다시 읽기·버스 음량·언어 즉시 반영, 로비·경기 HUD 문장의 영어 번역 누락·자리 표시 |
 | All | 중복을 제거한 24개 전체 | 테스트 구성 변경 또는 시스템 전반의 변경 |
 

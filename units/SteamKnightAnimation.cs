@@ -9,7 +9,6 @@ public partial class SteamKnightAnimation : Node
     private readonly List<Node3D> _gears = new(), _exits = new();
     private readonly List<MeshInstance3D> _wires = new(), _anchors = new(), _idlePuffs = new(), _burstPuffs = new();
     private Node3D _cables, _steam;
-    private AudioStreamPlayer3D _releaseSound;
     private Vector3 _rigRest, _lastPosition, _releaseOrigin;
     private Basis _releaseBasis;
     private float _stride, _walk, _swing = 1, _clock, _chargeBlend, _burstAge = 10, _winchAngle;
@@ -26,7 +25,6 @@ public partial class SteamKnightAnimation : Node
     };
     private static readonly StandardMaterial3D CableMaterial = new() { AlbedoColor = new Color("667680"), Metallic = .6f, Roughness = .6f };
     private static readonly StandardMaterial3D AnchorMaterial = new() { AlbedoColor = new Color("bbc1b6"), Metallic = .7f, Roughness = .5f };
-    private static AudioStreamWav _releaseClip;
 
     public override void _Ready()
     {
@@ -61,9 +59,6 @@ public partial class SteamKnightAnimation : Node
         }
         for (int i = 0; i < 3; i++) _idlePuffs.Add(NewPuff($"ReadySteam{i}"));
         for (int i = 0; i < 16; i++) _burstPuffs.Add(NewPuff($"ReleaseSteam{i}"));
-        _releaseSound = new AudioStreamPlayer3D { Name = "PressureRelease", Stream = ReleaseClip(), VolumeDb = -18, Bus = SoundBank.World,
-            MaxDistance = 26, UnitSize = 4 };
-        AddChild(_releaseSound);
         _unit.StateChanged += OnStateChanged;
         _unit.KnightChargeChanged += OnChargeChanged;
         ProcessPriority = 10;
@@ -216,7 +211,6 @@ public partial class SteamKnightAnimation : Node
             if (_observedInactive && unit.IsVisibleInTree() && !unit.IsDying && unit.EffectTick - snapshot.StartTick <= 2)
             {
                 _burstAge = 0; _releaseOrigin = _vent.GlobalPosition; _releaseBasis = _vent.GlobalBasis.Orthonormalized();
-                _releaseSound.GlobalPosition = _vent.GlobalPosition; _releaseSound.Play();
             }
             else _burstAge = 10;
         }
@@ -231,34 +225,12 @@ public partial class SteamKnightAnimation : Node
             && !(_unit.KnightCharge?.ActiveAt(_unit.EffectTick) ?? false)) _swing = 0;
     }
 
-    private void ClearBurst() { _burstAge = 10; _releaseSound?.Stop(); foreach (var puff in _burstPuffs) puff.Hide(); }
+    private void ClearBurst() { _burstAge = 10; foreach (var puff in _burstPuffs) puff.Hide(); }
     private void ClearEffects() { _cables?.Hide(); ClearBurst(); foreach (var puff in _idlePuffs) puff.Hide(); }
     private float ChargeAge(KnightChargeSnapshot snapshot) => _unit.EffectTick <= snapshot.StartTick ? 0
         : (_unit.EffectTick - snapshot.StartTick) / (float)InterpolationClock.TickRate;
     private static bool Available(Node3D target) => target != null && GodotObject.IsInstanceValid(target)
         && target.IsInsideTree() && target.IsVisibleInTree() && !target.IsQueuedForDeletion() && target is not Unit { IsDying: true };
-
-    private static AudioStreamWav ReleaseClip()
-    {
-        if (_releaseClip != null) return _releaseClip;
-        const int rate = 16000, count = 4480;
-        byte[] data = new byte[count * 2];
-        uint noise = 0x71ce293u;
-        float previous = 0;
-        for (int i = 0; i < count; i++)
-        {
-            noise ^= noise << 13; noise ^= noise >> 17; noise ^= noise << 5;
-            float n = (noise & 65535) / 32767.5f - 1;
-            float t = i / (float)count;
-            float envelope = Mathf.Min(1, t * 24) * Mathf.Pow(1 - t, 2.3f);
-            float value = (n - previous * .70f) * envelope * .34f;
-            previous = n;
-            short sample = (short)(Mathf.Clamp(value, -1, 1) * short.MaxValue);
-            data[i * 2] = (byte)(sample & 255); data[i * 2 + 1] = (byte)((sample >> 8) & 255);
-        }
-        _releaseClip = new AudioStreamWav { Format = AudioStreamWav.FormatEnum.Format16Bits, MixRate = rate, Stereo = false, Data = data };
-        return _releaseClip;
-    }
 
     public override void _ExitTree()
     {

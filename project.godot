@@ -19,7 +19,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 Settings="*res://settings/Settings.cs"
 Net="*res://network/NetClient.cs"
 MatchSession="*res://network/MatchSession.cs"
-Sfx="*res://audio/Sfx.cs"
+OrderSound="*res://audio/OrderSound.cs"
 
 [display]
 
