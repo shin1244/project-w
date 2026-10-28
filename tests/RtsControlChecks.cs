@@ -159,12 +159,20 @@ public partial class RtsControlChecks : Main
             await Flush();
             Vector3 destination = new(25, 0, -18);
             // 선택과 미니맵 명령도 같은 입력 큐를 사용합니다.
+            int acknowledged = 0;
+            void Acknowledge() => acknowledged++;
+            OrderSound.Instance.Played += Acknowledge;
             ClickUnit(103);
             KeyPress(Key.A);
             Click(MiniPoint(destination), MouseButton.Right);
             await Flush();
+            OrderSound.Instance.Played -= Acknowledge;
             Expect(103);
             Check(!_input.IsAttackTargeting && _commands.Count == 1, "One minimap right-click sends exactly one MOVE and exits A targeting");
+            Check(acknowledged == 1, "A sent MOVE plays the order acknowledgement once");
+            Check(OrderSound.Acknowledges("STOP 103") && OrderSound.Acknowledges("GATHER 103 7") &&
+                !OrderSound.Acknowledges("ATTACK 104 103") && !OrderSound.Acknowledges("ATTACK_MOVE 1 2 103") &&
+                !OrderSound.Acknowledges("TRAIN 601 1"), "Only orders that move or put units to work are acknowledged");
             string[] move = _commands.Single().Split(' ');
             Check(move.Length == 4 && move[0] == "MOVE" && move[3] == "103" &&
                 Math.Abs(float.Parse(move[1], CultureInfo.InvariantCulture) - destination.X) < .02f &&

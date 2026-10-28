@@ -67,8 +67,8 @@ public partial class UnitSceneChecks
             "Joining during a charge restores its active state at the current server tick");
         animation = knight.GetNode<SteamKnightAnimation>("SteamKnightAnimation");
         cables = animation.GetNode<Node3D>("ChargeCables");
-        Check(cables.Visible && !animation.GetNode<AudioStreamPlayer3D>("PressureRelease").Playing,
-            "A late active snapshot restores its wire without replaying the launch sound");
+        Check(cables.Visible && !animation.GetNode<Node3D>("ChargeSteam/ReleaseSteam4").Visible,
+            "A late active snapshot restores its wire without replaying the launch cloud");
         knight.EffectTick = active.EndTick;
         animation._Process(0);
         Check(!cables.Visible, "The server watchdog expiration clears stale charge presentation");
@@ -78,8 +78,8 @@ public partial class UnitSceneChecks
         Units.HandleKnightCharge(active, 10);
         knight.BeginDeath();
         Check(knight.KnightCharge == null, "Death clears charge effects before the corpse animation runs");
-        Check(!cables.Visible && !animation.GetNode<AudioStreamPlayer3D>("PressureRelease").Playing,
-            "Death clears the wire and stops pressure-release audio immediately");
+        Check(!cables.Visible && !animation.GetNode<Node3D>("ChargeSteam/ReleaseSteam0").Visible,
+            "Death clears the wire and the release steam immediately");
         knight.ApplyKnightCharge(active);
         Check(knight.KnightCharge == null, "Late charge updates cannot reactivate a dead knight");
         Receive("HIDE 9400"); Receive("HIDE 9401");

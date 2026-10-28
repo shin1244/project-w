@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 // The player's settings (settings/Settings.cs, lobby/SettingsPanel.cs): defaults, saving and
-// loading again as a restart does, bus levels, the language and its English text. Works on its
+// loading again as a restart does, the language and its English text. Works on its
 // own file so the player's user://settings.cfg is never written.
 public partial class SettingsChecks : Node
 {
@@ -14,7 +14,7 @@ public partial class SettingsChecks : Node
     // Korean reaching Lang.T other than as a literal at the call.
     private static readonly string[] Indirect =
     {
-        "전체 음량", "효과음", "인터페이스", "한국", "미국", "독일", "호주", "목재", "기름", "마석",
+        "한국", "미국", "독일", "호주", "목재", "기름", "마석",
         "연결 실패: {0}", "서버 연결이 종료되었습니다.", "서버 연결 종료: {0}", "전송 대기열이 가득 찼습니다. 서버 연결을 확인해 주세요.",
         "전송 시간이 초과되었습니다. 서버 연결을 확인해 주세요.", "전송 실패: {0}",
     };
@@ -82,43 +82,26 @@ public partial class SettingsChecks : Node
             "English text, told apart by context");
         Check(Lang.F("{0}초 후 시작", 5) == "Starting in 5s", "Formatted English");
         Check(Lang.T("아직 번역하지 않은 문장") == "아직 번역하지 않은 문장", "Untranslated text stays Korean");
-        foreach (string bus in Settings.Buses)
-        {
-            int index = AudioServer.GetBusIndex(bus);
-            Check(index >= 0 && _settings.Volume(bus) == 1 && !AudioServer.IsBusMute(index), $"{bus} starts at full volume");
-        }
-        Check(Mathf.IsEqualApprox(AudioServer.GetBusVolumeDb(AudioServer.GetBusIndex(SoundBank.Interface)), -3),
-            "Full volume keeps the bus layout's own level");
 
         int changes = 0;
         void Count() => changes++;
         _settings.LanguageChanged += Count;
-        _settings.SetVolume(SoundBank.World, .5f);
-        _settings.SetVolume(SoundBank.Interface, 0);
         _settings.SetLanguage(Lang.Korean);
         _settings.SetLanguage(Lang.Korean);
         _settings.LanguageChanged -= Count;
-        int effects = AudioServer.GetBusIndex(SoundBank.World), interfaceBus = AudioServer.GetBusIndex(SoundBank.Interface);
-        Check(Mathf.IsEqualApprox(AudioServer.GetBusVolumeDb(effects), Mathf.LinearToDb(.5f)) && !AudioServer.IsBusMute(effects),
-            "Half volume is applied at once");
-        Check(AudioServer.IsBusMute(interfaceBus), "Zero mutes the bus");
         Check(changes == 1 && TranslationServer.GetLocale() == Lang.Korean && Lang.T("방 목록") == "방 목록",
             "Korean applies at once and is announced once");
 
         var file = new ConfigFile();
-        Check(file.Load(Path) == Error.Ok && file.GetValue("interface", "language").AsString() == Lang.Korean &&
-            Mathf.IsEqualApprox((float)file.GetValue("audio", SoundBank.World).AsDouble(), .5f), "Choices are saved");
-        // A restart reads the file again; values changed since the last save are not kept.
-        _settings.SetVolume(SoundBank.World, .9f);
+        Check(file.Load(Path) == Error.Ok && file.GetValue("interface", "language").AsString() == Lang.Korean, "The choice is saved");
+        // A restart reads the file again.
         _settings.Load(Path);
-        Check(_settings.Language == Lang.Korean && Mathf.IsEqualApprox(_settings.Volume(SoundBank.World), .5f) &&
-            _settings.Volume(SoundBank.Interface) == 0 && AudioServer.IsBusMute(interfaceBus), "Saved choices come back after a restart");
+        Check(_settings.Language == Lang.Korean && TranslationServer.GetLocale() == Lang.Korean, "The saved choice comes back after a restart");
 
         file.SetValue("interface", "language", "xx");
-        file.SetValue("audio", "Master", 7);
         file.Save(Path);
         _settings.Load(Path);
-        Check(_settings.Language == Lang.English && _settings.Volume("Master") == 1, "A broken file falls back to valid settings");
+        Check(_settings.Language == Lang.English, "A broken file falls back to valid settings");
     }
 
     private async Task CheckLobbyPanel()
@@ -134,7 +117,7 @@ public partial class SettingsChecks : Node
             lobby.GetNode<Label>("%Description").Text == "Enter as a guest", "The lobby opens in English with a settings button");
 
         panel.OpenButton.EmitSignal(BaseButton.SignalName.Pressed);
-        Check(panel.Visible && panel.LanguagePicker.Selected == 0 && panel.Slider("Master").Value == 100, "The panel opens on the current settings");
+        Check(panel.Visible && panel.LanguagePicker.Selected == 0, "The panel opens on the current settings");
         // Rendered runs only: Godot --path . --resolution 1600x900 res://tests/SettingsChecks.tscn -- --capture
         if (OS.GetCmdlineUserArgs().Contains("--capture"))
         {
@@ -148,15 +131,10 @@ public partial class SettingsChecks : Node
         Check(_settings.Language == Lang.Korean && enter.Text == "입장" && panel.OpenButton.Text == "설정" &&
             lobby.GetNode<Label>("%Description").Text == "게스트 입장", "Choosing Korean changes the open screen at once");
 
-        panel.Slider(SoundBank.World).Value = 40;
-        var file = new ConfigFile();
-        Check(Mathf.IsEqualApprox(_settings.Volume(SoundBank.World), .4f) && file.Load(Path) == Error.Ok &&
-            Mathf.IsEqualApprox((float)file.GetValue("audio", SoundBank.World).AsDouble(), .4f), "A slider sets and saves its bus");
-
         panel.Close();
         Check(!panel.Visible, "The panel closes");
         panel.OpenButton.EmitSignal(BaseButton.SignalName.Pressed);
-        Check(panel.LanguagePicker.Selected == 1 && panel.Slider(SoundBank.World).Value == 40, "Reopening shows the saved choices");
+        Check(panel.LanguagePicker.Selected == 1, "Reopening shows the saved choice");
         panel.LanguagePicker.EmitSignal(OptionButton.SignalName.ItemSelected, 0);
         Check(enter.Text == "Enter", "Choosing English changes it back");
         lobby.QueueFree();

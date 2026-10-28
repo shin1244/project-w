@@ -50,7 +50,7 @@ public partial class SteamKnightPreview : Node3D
         using Image image = GetViewport().GetTexture().GetImage();
         Error result = image.SavePng(path);
         GD.Print($"Steam knight captured: {path} ({result})");
-        await FinishCapture(result == Error.Ok ? 0 : 1);
+        FinishCapture(result == Error.Ok ? 0 : 1);
     }
 
     private static bool HasArgument(string argument) => Array.Exists(OS.GetCmdlineUserArgs(), a => a == argument);
@@ -223,17 +223,10 @@ public partial class SteamKnightPreview : Node3D
             return;
         }
         GD.Print($"PASS: captured {FrameCount} steam knight frames at {FramesPerSecond} fps");
-        await FinishCapture(0);
+        FinishCapture(0);
     }
 
-    private async Task FinishCapture(int exitCode)
-    {
-        // Let the audio mixer release a still-playing launch burst before the one-shot renderer exits.
-        foreach (Unit knight in _knights)
-            knight.GetNode<SteamKnightAnimation>("SteamKnightAnimation").GetNode<AudioStreamPlayer3D>("PressureRelease").Stop();
-        await ToSignal(GetTree().CreateTimer(.1), SceneTreeTimer.SignalName.Timeout);
-        GetTree().Quit(exitCode);
-    }
+    private void FinishCapture(int exitCode) => GetTree().Quit(exitCode);
 
     private void SetView(bool low)
     {

@@ -269,7 +269,6 @@ public partial class Main : Node3D
         if (LocalRole == PlayerRole.Hero) { UnitInfo?.Inspect(unit); return; }
         Buildings?.ClearSelection();
         Units.SelectSingle(unit);
-        if (Units.SelectedUnitIds.Count > 0) Sfx.Interface("select");
     }
 
     private void UpgradeHeroSkill(int slot)
@@ -355,7 +354,6 @@ public partial class Main : Node3D
         Buildings?.ClearSelection();
         Resources?.ClearSelection();
         Units.SelectBox(rect);
-        if (Units.SelectedUnitIds.Count > 0) Sfx.Interface("select");
     }
 
     private void OnMessage(string message)
@@ -664,9 +662,6 @@ public partial class Main : Node3D
                 if (SkillActivationSnapshot.TryParse(parts, out var skill) && Units.TryGetUnit(skill.CasterId, out Unit caster) &&
                     Units.CanInspect(caster))
                 {
-                    // The marshal's first skill is a pistol shot; the fourth slot is every hero's ultimate.
-                    Sfx.At(caster.UnitType == UnitCatalog.HeroMarshal && skill.Slot == 0 ? "tower-shot" :
-                        skill.Slot == 3 ? "skill-ultimate" : "skill-cast", caster.GlobalPosition);
                     Node3D shotTarget = null;
                     if (caster.UnitType == UnitCatalog.HeroMarshal && skill.Slot == 0 && skill.TargetId is uint targetId)
                     {
@@ -773,7 +768,6 @@ public partial class Main : Node3D
                 Minimap?.Invalidate();
                 break;
             case "ERR":
-                Sfx.Interface("ui-error");
                 Shop?.Notice(message.Length>4 ? message[4..] : Lang.T("요청을 처리할 수 없습니다."));
                 Minions?.HandleMessage(parts);
                 Placement?.Notice(message.Length > 4 ? message[4..] : Lang.T("요청을 처리할 수 없습니다."), true);
@@ -789,7 +783,7 @@ public partial class Main : Node3D
     {
         if (!Map.IsSynchronized || Result != null || LocalRole == PlayerRole.Spectator) return;
         _net.Send(command);
-        if (SoundBank.Order(command) is string order) Sfx.Interface(order);
+        OrderSound.For(command);
         GD.Print($"전송 요청: {command}");
     }
 
